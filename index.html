@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Time v3.8.1</title>
+    <link rel="stylesheet" href="style.css?v=381">
+    <script src="i18n.js?v=381"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">&#127760;</span>
+                <div class="logo-text">
+                    <h1>Global Time</h1>
+                    <span class="version-badge" id="version-badge">ver 3.7.0</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="live" data-i18n="nav_live">Realtime</button>
+                <button class="nav-item" data-tab="fixed" data-i18n="nav_fixed">Time Edit</button>
+                <button class="nav-item" data-tab="multi" data-i18n="nav_multi">Continuous Time Edit</button>
+                <button class="nav-item" data-tab="calc" data-i18n="nav_calc">Calculator</button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-separator"></div>
+                <div class="sidebar-group sidebar-group-select">
+                    <div class="sidebar-control-row">
+                        <select id="ui-scale-select" class="form-select sidebar-select" style="width: 100%;"></select>
+                        <span class="info-tip" data-i18n-title="tooltip_ui_scale_desc" aria-label="Info">i</span>
+                    </div>
+                </div>
+                <div class="sidebar-group sidebar-group-select">
+                    <div class="sidebar-control-row">
+                        <select id="theme-select" class="form-select sidebar-select" style="width: 100%;">
+                            <option value="dark" data-i18n="theme_dark">Dark</option>
+                            <option value="light" data-i18n="theme_light">Light</option>
+                        </select>
+                        <span class="info-tip" data-i18n-title="tooltip_theme_desc" aria-label="Info">i</span>
+                    </div>
+                </div>
+                <div class="sidebar-group sidebar-group-select">
+                    <div class="sidebar-control-row">
+                        <select id="lang-select" class="form-select sidebar-select" style="width: 100%;">
+                            <option value="en">English(EN)</option>
+                            <option value="ko" selected>Korean(KO)</option>
+                        </select>
+                        <span class="info-tip" data-i18n-title="tooltip_language_desc" aria-label="Info">i</span>
+                    </div>
+                </div>
+                <div class="sidebar-separator"></div>
+                <div class="sidebar-group sidebar-group-inline sidebar-group-export">
+                    <button id="export-settings-btn" class="sm-btn" data-i18n="btn_export_settings">Export All</button>
+                    <span class="info-tip" data-i18n-title="tooltip_export_settings_desc" aria-label="Info">i</span>
+                </div>
+                <div class="sidebar-group sidebar-group-inline">
+                    <button id="import-settings-btn" class="sm-btn" data-i18n="btn_import_settings">Import All</button>
+                    <span class="info-tip" data-i18n-title="tooltip_import_settings_desc" aria-label="Info">i</span>
+                </div>
+                <div class="sidebar-separator"></div>
+                <div class="sidebar-group sidebar-group-inline sidebar-group-reset-only">
+                    <button id="reset-except-group-tz-btn" class="sm-btn" data-i18n="btn_reset_except_group_tz">Reset
+                        Settings Only</button>
+                    <span class="info-tip" data-i18n-title="tooltip_reset_except_group_tz_desc"
+                        aria-label="Info">i</span>
+                </div>
+                <div class="sidebar-group sidebar-group-inline">
+                    <button id="reset-all-settings-btn" class="sm-btn danger" data-i18n="btn_reset_all_settings">Reset
+                        All</button>
+                    <span class="info-tip" data-i18n-title="tooltip_reset_all_settings_desc" aria-label="Info">i</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard -->
+        <main class="main-content">
+            <!-- Group Tabs Bar (?ㅼ떆媛?怨좎젙 ?쒓컙?먯꽌留??쒖떆, 怨꾩궛湲곗뿉?쒕뒗 ?④?) -->
+            <div id="group-tabs-container" class="group-tabs">
+                <!-- Tabs rendered by JS -->
+                <button class="sm-btn" id="add-group-btn">+</button>
+            </div>
+
+            <!-- Global Control Bar (?ㅼ떆媛?怨좎젙 ?쒓컙?먯꽌留??쒖떆, 怨꾩궛湲곗뿉?쒕뒗 ?④?) -->
+            <div id="top-control-bar" class="control-bar">
+                <div class="control-row control-row-main">
+                    <div class="control-group">
+                        <span class="control-label-large" data-i18n="label_add_tz">Add Timezone</span>
+                        <select id="tz-quick-select" class="form-select" style="width: 118px;">
+                            <option value="" data-i18n="option_popular">Select popular city...</option>
+                        </select>
+                        <button id="show-all-tz" class="icon-btn" data-i18n="btn_list">List</button>
+                    </div>
+
+                    <div class="control-group control-group-divider">
+                        <span class="control-label-large" data-i18n="label_add_custom">Add Custom</span>
+                        <input type="text" id="custom-abbr" class="form-input" placeholder="Timezone"
+                            style="width: 64px;" data-i18n="placeholder_abbr">
+                        <input type="text" id="custom-name" class="form-input" placeholder="Name" style="width: 74px;"
+                            data-i18n="placeholder_name">
+                        <select id="custom-off-h" class="form-select" style="width: 120px;"></select>
+                        <span style="font-size:16px;">:</span>
+                        <select id="custom-off-m" class="form-select" style="width: 94px;">
+                            <option value="0">00</option>
+                            <option value="15">15</option>
+                            <option value="30">30</option>
+                            <option value="45">45</option>
+                        </select>
+                        <button id="add-custom-btn" class="sm-btn" data-i18n="btn_add">Add</button>
+                    </div>
+
+                    <div class="control-group control-group-divider">
+                        <span class="control-label-large" data-i18n="label_base_time">Base Time</span>
+                        <select id="base-time-select" class="form-select" style="width: 200px;"></select>
+                    </div>
+
+                </div>
+
+                <div id="control-option-row" class="control-row control-row-options">
+                    <div class="control-group option-toggle-group option-copy-format-group">
+                        <label class="control-label-large"
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <span data-i18n="label_copy_format">Display / Copy Format</span>
+                            <span class="info-tip" data-i18n-title="tooltip_copy_format_desc" aria-label="Info">i</span>
+                            <input type="checkbox" id="toggle-copy-format">
+                        </label>
+                    </div>
+
+                    <div class="control-group option-toggle-group option-timeline-group">
+                        <label class="control-label-large"
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <span data-i18n="label_timeline_view">Timeline View</span>
+                            <span class="info-tip" data-i18n-title="tooltip_timeline_view_desc"
+                                aria-label="Info">i</span>
+                            <input type="checkbox" id="toggle-timeline">
+                        </label>
+                    </div>
+
+                    <div class="control-group option-toggle-group option-extra-time-group">
+                        <label class="control-label-large"
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <span data-i18n="label_extra_time">Extra Time</span>
+                            <span class="info-tip" data-i18n-title="tooltip_extra_time_desc" aria-label="Info">i</span>
+                            <input type="checkbox" id="toggle-extra-time">
+                        </label>
+                    </div>
+
+                    <div class="control-group" style="margin-left: auto;">
+                        <button id="save-table-image-btn" class="sm-btn" data-i18n="btn_save_table_image">&#128444; Save
+                            Image</button>
+                        <button id="save-multi-range-titles-image-btn" class="sm-btn"
+                            data-i18n="btn_save_multi_titles_image" style="display: none;">&#128444; Save Image -
+                            Titles</button>
+                        <button id="save-multi-range-by-range-image-btn" class="sm-btn"
+                            data-i18n="btn_save_multi_by_range_image" style="display: none;">&#128444; Save Image - By
+                            Range</button>
+                        <button id="copy-all-btn" class="sm-btn" data-i18n="btn_copy_all">&#128203; Copy All</button>
+                    </div>
+                </div>
+
+                <div id="copy-format-row" class="copy-format-row" style="display: none;">
+                    <div class="copy-format-line">
+                        <span class="copy-format-title" data-i18n="label_display_format_row">Display</span>
+                        <div id="display-format-list" class="copy-format-list"></div>
+                        <button id="display-format-reset-btn" class="sm-btn" data-i18n="btn_reset">Reset</button>
+                    </div>
+                    <div class="copy-format-line">
+                        <span class="copy-format-title" data-i18n="label_copy_format_row">Copy</span>
+                        <div id="copy-format-list" class="copy-format-list"></div>
+                        <button id="copy-format-reset-btn" class="sm-btn" data-i18n="btn_reset">Reset</button>
+                    </div>
+                    <div class="copy-format-preview-row">
+                        <span class="copy-format-preview-label" data-i18n="label_preview">Copy Preview</span>
+                        <div id="copy-format-preview" class="copy-format-preview empty">-</div>
+                    </div>
+                </div>
+
+            </div>
+            <div id="time-adjust-frame" class="time-adjust-frame" style="display: none;">
+                <div id="time-adjust-row" class="time-adjust-row" style="display: none;">
+                    <div id="time-adjust-buttons" class="time-adjust-buttons"></div>
+                </div>
+            </div>
+            <div id="multi-controls-frame" class="multi-controls-frame" style="display: none;">
+                <div id="multi-subgroup-row" class="multi-subgroup-row" style="display: none;">
+                    <div class="control-group" id="multi-range-count-group" style="display: none;">
+                        <span class="control-label-large" data-i18n="label_range_count">Range Count</span>
+                        <button id="multi-range-count-decrease" class="sm-btn" type="button">-</button>
+                        <input id="multi-range-count-input" class="form-input" type="number" min="1" max="12" step="1"
+                            inputmode="numeric" value="1" style="width: 64px; text-align: center;">
+                        <button id="multi-range-count-increase" class="sm-btn" type="button">+</button>
+                        <span class="control-label-large" data-i18n="label_count_suffix">count</span>
+                        <span class="info-tip" data-i18n-title="tooltip_range_count_max" aria-label="Info">i</span>
+                    </div>
+                    <div id="multi-subgroup-tabs-container" class="multi-subgroup-tabs" style="display: none;">
+                        <button class="sm-btn" id="add-multi-subgroup-btn">+</button>
+                    </div>
+                </div>
+                <div id="multi-tools-row" class="control-row control-row-tools" style="display: none;">
+                    <div id="multi-bulk-start-tools" class="control-group"></div>
+                    <div id="multi-bulk-all-tools" class="control-group"></div>
+                </div>
+            </div>
+            <div id="timeline-frame" class="timeline-frame" style="display: none;"></div>
+
+            <!-- Content Screens -->
+            <section id="timezone-section" class="tab-content active">
+                <table class="data-table">
+                    <thead id="table-head">
+                        <tr>
+                            <th class="move-col" style="width: 70px;" data-i18n="th_order">Order</th>
+                            <th style="width: 110px;" data-i18n="th_tz_abbr">Timezone</th>
+                            <th style="width: 180px;" data-i18n="th_region">Name</th>
+                            <th style="width: 110px;" data-i18n="th_utc_offset">UTC</th>
+                            <!-- Day/Time columns dynamic -->
+                            <th class="dynamic-col" data-i18n="th_time_day_main">Time</th>
+                            <th class="export-exclude" style="width: 70px;" data-i18n="th_copy">Copy</th>
+                            <th class="export-exclude" style="width: 70px;" data-i18n="th_remove">Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clocks-container">
+                        <!-- UTC Row -->
+                        <tr class="time-row static" id="tz-row-utc">
+                            <td class="move-cell"><span class="drag-spacer" aria-hidden="true"></span></td>
+                            <td class="timezone-cell"><span class="zone-code">UTC</span></td>
+                            <td>
+                                <div class="zone-info">
+                                    <span class="zone-name" data-i18n="utc_name">Standard Time</span>
+                                </div>
+                            </td>
+                            <td><span class="offset-text">UTC+0</span></td>
+                            <!-- Dynamic Content -->
+                            <td class="dynamic-cell"><input type="text" class="time-input" id="utc-time-input-0"
+                                    spellcheck="false" data-slot="0"></td>
+                            <td class="export-exclude copy-cell"><button class="sm-btn custom-tooltip" id="copy-utc-btn"
+                                    data-i18n-title="tooltip_copy">&#128203;</button></td>
+                            <td class="export-exclude remove-cell"></td>
+                        </tr>
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="multi-range-section" class="tab-content">
+                <div id="multi-ranges-container" class="multi-ranges-container"></div>
+            </section>
+
+            <section id="calc-section" class="tab-content" style="overflow-y: auto;">
+                <div class="calc-grid">
+                    <div class="calc-card">
+                        <h2 data-i18n="calc_unit_title">Time Unit Converter</h2>
+                        <div class="calc-form converter-v-list">
+                            <div class="conv-row">
+                                <label data-i18n="calc_label_day" for="conv-day">Day</label>
+                                <div class="conv-input-group">
+                                    <input type="number" id="conv-day" class="form-input" placeholder="0">
+                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-conv-day-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                            </div>
+                            <div class="conv-row">
+                                <label data-i18n="calc_label_hour" for="conv-hour">Hour</label>
+                                <div class="conv-input-group">
+                                    <input type="number" id="conv-hour" class="form-input" placeholder="0">
+                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-conv-hour-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                            </div>
+                            <div class="conv-row">
+                                <label data-i18n="calc_label_min" for="conv-min">Minute</label>
+                                <div class="conv-input-group">
+                                    <input type="number" id="conv-min" class="form-input" placeholder="0">
+                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-conv-min-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                            </div>
+                            <div class="conv-row">
+                                <label data-i18n="calc_label_sec" for="conv-sec">Second</label>
+                                <div class="conv-input-group">
+                                    <input type="number" id="conv-sec" class="form-input" placeholder="0">
+                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-conv-sec-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="calc-card">
+                        <h2 data-i18n="calc_period_title">Period Calculator</h2>
+                        <div class="calc-form">
+                            <div class="calc-period-grid">
+                                <div class="calc-period-head">
+                                    <label data-i18n="calc_label_start" for="period-start">Start Date</label>
+                                    <label data-i18n="calc_label_end" for="period-end">End Date</label>
+                                </div>
+                                <div class="calc-period-input-row" style="align-items: center;">
+                                    <div style="flex: 1; display: flex; gap: 4px; align-items: center;">
+                                        <input type="text" id="period-start" class="form-input" style="width: 100%;">
+                                        <button type="button" class="calendar-btn" id="period-start-trigger"
+                                            style="flex-shrink: 0;">&#128197;</button>
+                                    </div>
+                                    <button type="button" id="period-swap-btn"
+                                        class="sm-btn calc-period-swap-btn custom-tooltip"
+                                        data-i18n-title="tooltip_swap_dates">&lt;-&gt;</button>
+                                    <div style="flex: 1; display: flex; gap: 4px; align-items: center;">
+                                        <input type="text" id="period-end" class="form-input" style="width: 100%;">
+                                        <button type="button" class="calendar-btn" id="period-end-trigger"
+                                            style="flex-shrink: 0;">&#128197;</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="calc-result-grid">
+                                <div class="calc-result-box calc-result-box-compact">
+                                    <div>
+                                        <div class="calc-result-label" data-i18n="calc_label_total_days">Total Days
+                                        </div>
+                                        <span class="result-val result-val-compact" id="period-res">0d</span>
+                                    </div>
+                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-res-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                                <div class="calc-result-box calc-result-box-compact">
+                                    <div>
+                                        <div class="calc-result-label" data-i18n="calc_label_total_hours">Total Hours
+                                        </div>
+                                        <span class="result-val result-val-compact" id="period-hour-res">0h</span>
+                                    </div>
+                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-hour-res-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                                <div class="calc-result-box calc-result-box-compact">
+                                    <div>
+                                        <div class="calc-result-label" data-i18n="calc_label_total_minutes">Total
+                                            Minutes</div>
+                                        <span class="result-val result-val-compact" id="period-min-res">0m</span>
+                                    </div>
+                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-min-res-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                                <div class="calc-result-box calc-result-box-compact">
+                                    <div>
+                                        <div class="calc-result-label" data-i18n="calc_label_total_seconds">Total
+                                            Seconds</div>
+                                        <span class="result-val result-val-compact" id="period-sec-res">0s</span>
+                                    </div>
+                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-sec-res-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="calc-card">
+                        <h2 data-i18n="calc_offset_title">Date Offset Calculator</h2>
+                        <div class="calc-form calc-shift-form">
+                            <!-- Row 1: Base Date -->
+                            <div class="calc-shift-item">
+                                <label for="offset-start" data-i18n="calc_label_base">Base Date</label>
+                                <div style="display: flex; gap: 4px; width: 100%; align-items: center;">
+                                    <input type="text" id="offset-start" class="form-input" style="width: 100%;">
+                                    <button type="button" class="calendar-btn" id="offset-start-trigger"
+                                        style="flex-shrink: 0;">&#128197;</button>
+                                </div>
+                            </div>
+
+                            <!-- Row 2: Shift Amount & Controls -->
+                            <div class="calc-shift-item">
+                                <label for="off-val" data-i18n="calc_label_shift">Shift</label>
+                                <div class="calc-shift-controls">
+                                    <button type="button" class="sm-btn" id="off-val-minus" aria-label="Decrease"
+                                        title="Decrease">-</button>
+                                    <input type="number" id="off-val" class="form-input" value="1" min="1">
+                                    <button type="button" class="sm-btn" id="off-val-plus" aria-label="Increase"
+                                        title="Increase">+</button>
+                                    <select id="off-unit" class="form-select">
+                                        <option value="day" data-i18n="calc_unit_day" selected>Days</option>
+                                        <option value="week" data-i18n="calc_unit_week">Weeks</option>
+                                        <option value="month" data-i18n="calc_unit_month">Months</option>
+                                        <option value="year" data-i18n="calc_unit_year">Years</option>
+                                    </select>
+                                    <select id="off-dir" class="form-select">
+                                        <option value="after" data-i18n="calc_label_after" selected>after</option>
+                                        <option value="before" data-i18n="calc_label_before">before</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Row 3: Result Date -->
+                            <div class="calc-shift-item">
+                                <label data-i18n="calc_label_result">Result Date</label>
+                                <div class="calc-shift-result-wrap">
+                                    <input type="text" id="offset-res" class="form-input" readonly value="-">
+                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-offset-res-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="calc-card">
+                        <h2 data-i18n="calc_countdown_title">Countdown</h2>
+                        <div class="calc-form countdown-list">
+                            <div class="countdown-slot" data-slot="0">
+                                <div class="countdown-slot-head">
+                                    <button type="button" class="countdown-name-btn" data-slot="0">Countdown 1</button>
+                                    <input type="text" class="form-input countdown-name-input" data-slot="0"
+                                        maxlength="40" style="display:none;">
+                                </div>
+                                <div class="countdown-slot-controls"
+                                    style="display: flex; gap: 4px; align-items: center;">
+                                    <input type="text" class="form-input countdown-target-input" data-slot="0"
+                                        style="flex: 1;">
+                                    <button type="button" class="calendar-btn trigger-cd-0"
+                                        style="flex-shrink: 0;">&#128197;</button>
+                                    <button type="button" class="sm-btn countdown-toggle-btn" data-action="toggle"
+                                        data-slot="0" data-i18n="calc_countdown_start">Start</button>
+                                    <button type="button" class="sm-btn danger" data-action="reset" data-slot="0"
+                                        data-i18n="calc_countdown_reset">Reset</button>
+                                </div>
+                                <div class="countdown-slot-display">
+                                    <span class="countdown-display" data-slot="0">00d 00:00:00</span>
+                                    <span class="countdown-status" data-slot="0"></span>
+                                </div>
+                            </div>
+                            <div class="countdown-slot" data-slot="1">
+                                <div class="countdown-slot-head">
+                                    <button type="button" class="countdown-name-btn" data-slot="1">Countdown 2</button>
+                                    <input type="text" class="form-input countdown-name-input" data-slot="1"
+                                        maxlength="40" style="display:none;">
+                                </div>
+                                <div class="countdown-slot-controls"
+                                    style="display: flex; gap: 4px; align-items: center;">
+                                    <input type="text" class="form-input countdown-target-input" data-slot="1"
+                                        style="flex: 1;">
+                                    <button type="button" class="calendar-btn trigger-cd-1"
+                                        style="flex-shrink: 0;">&#128197;</button>
+                                    <button type="button" class="sm-btn countdown-toggle-btn" data-action="toggle"
+                                        data-slot="1" data-i18n="calc_countdown_start">Start</button>
+                                    <button type="button" class="sm-btn danger" data-action="reset" data-slot="1"
+                                        data-i18n="calc_countdown_reset">Reset</button>
+                                </div>
+                                <div class="countdown-slot-display">
+                                    <span class="countdown-display" data-slot="1">00d 00:00:00</span>
+                                    <span class="countdown-status" data-slot="1"></span>
+                                </div>
+                            </div>
+                            <div class="countdown-slot" data-slot="2">
+                                <div class="countdown-slot-head">
+                                    <button type="button" class="countdown-name-btn" data-slot="2">Countdown 3</button>
+                                    <input type="text" class="form-input countdown-name-input" data-slot="2"
+                                        maxlength="40" style="display:none;">
+                                </div>
+                                <div class="countdown-slot-controls"
+                                    style="display: flex; gap: 4px; align-items: center;">
+                                    <input type="text" class="form-input countdown-target-input" data-slot="2"
+                                        style="flex: 1;">
+                                    <button type="button" class="calendar-btn trigger-cd-2"
+                                        style="flex-shrink: 0;">&#128197;</button>
+                                    <button type="button" class="sm-btn countdown-toggle-btn" data-action="toggle"
+                                        data-slot="2" data-i18n="calc_countdown_start">Start</button>
+                                    <button type="button" class="sm-btn danger" data-action="reset" data-slot="2"
+                                        data-i18n="calc_countdown_reset">Reset</button>
+                                </div>
+                                <div class="countdown-slot-display">
+                                    <span class="countdown-display" data-slot="2">00d 00:00:00</span>
+                                    <span class="countdown-status" data-slot="2"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="calc-card">
+                        <h2 data-i18n="calc_unix_title">Unix Timestamp Converter</h2>
+                        <div class="calc-form unix-tool">
+                            <div class="unix-now-box">
+                                <div class="unix-now-label" data-i18n="calc_unix_current">Current Unix Timestamp</div>
+                                <div class="unix-now-row">
+                                    <span class="result-val result-val-compact" id="unix-now-value">0</span>
+                                    <div class="unix-now-actions">
+                                        <button type="button" class="sm-btn" id="unix-sync-now-btn"
+                                            data-i18n="calc_unix_sync_now">Now</button>
+                                        <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                            id="copy-unix-now-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="unix-convert-block">
+                                <label for="unix-ts-input" class="calc-result-label"
+                                    data-i18n="calc_unix_ts_to_date">Timestamp -> Date</label>
+                                <input type="number" id="unix-ts-input" class="form-input" placeholder="0" step="1">
+                                <div class="calc-result-box calc-result-box-compact unix-result-box">
+                                    <span class="result-val result-val-date" id="unix-ts-date-out">-</span>
+                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                        id="copy-unix-ts-date-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                            </div>
+                            <div class="unix-convert-block">
+                                <label for="unix-date-input" class="calc-result-label"
+                                    data-i18n="calc_unix_date_to_ts">Date -> Timestamp</label>
+                                <div style="display: flex; gap: 4px; width: 100%; align-items: center;">
+                                    <input type="text" id="unix-date-input" class="form-input" style="width: 100%;">
+                                    <button type="button" class="calendar-btn" id="unix-date-input-trigger"
+                                        style="flex-shrink: 0;">&#128197;</button>
+                                </div>
+                                <div class="calc-result-box calc-result-box-compact unix-result-box">
+                                    <span class="result-val result-val-compact" id="unix-date-ts-out">-</span>
+                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                        id="copy-unix-date-ts-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="calc-card coming-soon">
+                        <div class="calc-coming-emoji" aria-hidden="true">&#128736;</div>
+                        <div class="calc-coming-title" data-i18n="calc_coming_soon_title">Coming Soon</div>
+                        <p class="calc-coming-desc" data-i18n="calc_coming_soon_desc">New time utilities are in
+                            progress. Share your ideas for upcoming tools.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Overlay -->
+    <div id="full-tz-overlay" class="overlay">
+        <div class="overlay-content">
+            <div class="overlay-header">
+                <h3 data-i18n="overlay_select_tz">Select Timezone</h3><button id="close-overlay" class="icon-btn"
+                    aria-label="Close">&times;</button>
+            </div>
+            <div class="overlay-tabs" role="tablist" aria-label="Timezone list type">
+                <button id="tz-tab-standard" class="overlay-tab active" type="button" role="tab" aria-selected="true"
+                    data-i18n="overlay_standard_tz_list">Standard Time List</button>
+                <button id="tz-tab-country" class="overlay-tab" type="button" role="tab" aria-selected="false"
+                    data-i18n="overlay_country_region_tz_list">Country - Region List</button>
+            </div>
+            <div id="full-tz-list" class="tz-grid"></div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+    <input type="file" id="settings-import-file" accept="application/json,.json" style="display:none;">
+    <input type="file" id="group-import-file" accept="application/json,.json" style="display:none;">
+    <input type="file" id="subgroup-import-file" accept="application/json,.json" style="display:none;">
+
+    <script src="js/modules/app-config.js?v=370"></script>
+    <script src="js/modules/date-picker.js?v=370"></script>
+    <script src="js/modules/time-core.js?v=370"></script>
+    <script src="js/modules/calculator.js?v=370"></script>
+    <script src="js/modules/multi-state.js?v=370"></script>
+    <script src="js/modules/image-export.js?v=370"></script>
+    <script src="js/modules/group-state.js?v=370"></script>
+    <script src="js/modules/group-tabs.js?v=370"></script>
+    <script src="js/modules/timezone-search.js?v=370"></script>
+    <script src="js/modules/snapshot-format.js?v=370"></script>
+    <script src="js/modules/table-render.js?v=370"></script>
+    <script src="js/modules/multi-range-render.js?v=370"></script>
+    <script src="js/modules/multi-range-copy.js?v=370"></script>
+    <script src="js/modules/copy-actions.js?v=370"></script>
+    <script src="js/modules/time-adjust-ui.js?v=370"></script>
+    <script src="js/modules/format-controls.js?v=370"></script>
+    <script src="js/modules/tab-ui.js?v=370"></script>
+    <script src="js/modules/state-persistence.js?v=370"></script>
+    <script src="js/modules/settings-io.js?v=370"></script>
+    <script src="js/modules/data-transfer.js?v=370"></script>
+    <script src="main.js?v=370"></script>
+</body>
+
+</html>
