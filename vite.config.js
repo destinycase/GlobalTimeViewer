@@ -1,12 +1,23 @@
-import { defineConfig } from 'vite';
+import { createLogger, defineConfig } from 'vite';
+
+const logger = createLogger();
+const loggerWarn = logger.warn;
+logger.warn = (msg, options) => {
+    const text = String(msg || "");
+    if (text.includes(`can't be bundled without type="module" attribute`)) {
+        return;
+    }
+    loggerWarn(msg, options);
+};
 
 export default defineConfig({
+    customLogger: logger,
     base: '',
     build: {
         outDir: 'dist',
         rollupOptions: {
             input: {
-                main: 'vite-index.html'
+                main: 'index.html'
             },
             output: {
                 entryFileNames: 'js/[name]-[hash].js',

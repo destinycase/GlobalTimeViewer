@@ -4,25 +4,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Time v3.8.1</title>
-    <link rel="stylesheet" href="style.css?v=381">
-    <script src="i18n.js?v=381"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
-        rel="stylesheet">
+    <title>Global Time Viwer v3.10.1</title>
+    <script src="i18n.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+    <div id="fatal-error-banner" class="fatal-error-banner" style="display: none;">
+        <div class="error-content">
+            <span class="error-icon">⚠️</span>
+            <div class="error-text">
+                <h2 data-i18n="error_fatal_title">애플리케이션 초기화 실패</h2>
+                <p data-i18n="error_fatal_desc">데이터를 불러오는 중 오류가 발생했습니다. 확장 프로그램을 새로고침하거나 설정을 초기화해 보세요.</p>
+            </div>
+            <button id="fatal-error-reset-btn" class="sm-btn danger" data-i18n="btn_reset_all">전체 초기화</button>
+        </div>
+    </div>
     <div class="app-layout">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="logo">
                 <span class="logo-icon">&#127760;</span>
                 <div class="logo-text">
-                    <h1>Global Time</h1>
-                    <span class="version-badge" id="version-badge">ver 3.7.0</span>
+                    <h1>Global Time Viwer</h1>
+                    <span class="version-badge" id="version-badge">ver 3.10.1</span>
                 </div>
             </div>
 
@@ -30,6 +35,8 @@
                 <button class="nav-item active" data-tab="live" data-i18n="nav_live">Realtime</button>
                 <button class="nav-item" data-tab="fixed" data-i18n="nav_fixed">Time Edit</button>
                 <button class="nav-item" data-tab="multi" data-i18n="nav_multi">Continuous Time Edit</button>
+                <button class="nav-item" data-tab="fixed-time" data-i18n="nav_fixed_time">Fixed Time</button>
+                <div class="nav-menu-separator" aria-hidden="true"></div>
                 <button class="nav-item" data-tab="calc" data-i18n="nav_calc">Calculator</button>
             </nav>
 
@@ -155,15 +162,25 @@
                         </label>
                     </div>
 
+                    <div class="control-group" id="fixed-time-slot-count-group" style="display: none;">
+                        <span class="control-label-large" data-i18n="label_fixed_time_slots">Fixed Time Slots</span>
+                        <button id="fixed-time-slot-count-decrease" class="sm-btn" type="button">-</button>
+                        <input id="fixed-time-slot-count-input" class="form-input" type="number" min="1" max="5"
+                            step="1" inputmode="numeric" value="1">
+                        <button id="fixed-time-slot-count-increase" class="sm-btn" type="button">+</button>
+                        <span class="control-label-large" data-i18n="label_count_suffix">count</span>
+                    </div>
+
+                    <div class="control-group" id="fixed-time-date-group" style="display: none;">
+                        <span class="control-label-large" data-i18n="label_fixed_date">Fixed Date</span>
+                        <input id="fixed-time-date-input" class="form-input" type="text" inputmode="numeric"
+                            data-i18n="placeholder_fixed_date" placeholder="YYYY-MM-DD" spellcheck="false">
+                        <button id="fixed-time-date-trigger" class="calendar-btn" type="button" title="Date Picker">&#128197;</button>
+                    </div>
+
                     <div class="control-group" style="margin-left: auto;">
                         <button id="save-table-image-btn" class="sm-btn" data-i18n="btn_save_table_image">&#128444; Save
                             Image</button>
-                        <button id="save-multi-range-titles-image-btn" class="sm-btn"
-                            data-i18n="btn_save_multi_titles_image" style="display: none;">&#128444; Save Image -
-                            Titles</button>
-                        <button id="save-multi-range-by-range-image-btn" class="sm-btn"
-                            data-i18n="btn_save_multi_by_range_image" style="display: none;">&#128444; Save Image - By
-                            Range</button>
                         <button id="copy-all-btn" class="sm-btn" data-i18n="btn_copy_all">&#128203; Copy All</button>
                     </div>
                 </div>
@@ -190,6 +207,13 @@
                 <div id="time-adjust-row" class="time-adjust-row" style="display: none;">
                     <div id="time-adjust-buttons" class="time-adjust-buttons"></div>
                 </div>
+            </div>
+            <div id="fixed-time-controls-frame" class="fixed-time-controls-frame" style="display: none;">
+                <div class="fixed-time-controls-header">
+                    <span class="control-label-large" data-i18n="label_fixed_time_slots">Fixed Time Slots</span>
+                    <button id="fixed-time-add-btn" class="sm-btn" type="button" data-i18n="btn_add_fixed_time">+ Add Slot</button>
+                </div>
+                <div id="fixed-time-slots" class="fixed-time-slots"></div>
             </div>
             <div id="multi-controls-frame" class="multi-controls-frame" style="display: none;">
                 <div id="multi-subgroup-row" class="multi-subgroup-row" style="display: none;">
@@ -229,25 +253,21 @@
                         </tr>
                     </thead>
                     <tbody id="clocks-container">
-                        <!-- UTC Row -->
-                        <tr class="time-row static" id="tz-row-utc">
-                            <td class="move-cell"><span class="drag-spacer" aria-hidden="true"></span></td>
-                            <td class="timezone-cell"><span class="zone-code">UTC</span></td>
-                            <td>
-                                <div class="zone-info">
-                                    <span class="zone-name" data-i18n="utc_name">Standard Time</span>
-                                </div>
-                            </td>
-                            <td><span class="offset-text">UTC+0</span></td>
-                            <!-- Dynamic Content -->
-                            <td class="dynamic-cell"><input type="text" class="time-input" id="utc-time-input-0"
-                                    spellcheck="false" data-slot="0"></td>
-                            <td class="export-exclude copy-cell"><button class="sm-btn custom-tooltip" id="copy-utc-btn"
-                                    data-i18n-title="tooltip_copy">&#128203;</button></td>
-                            <td class="export-exclude remove-cell"></td>
-                        </tr>
-                        <!-- Dynamic Rows -->
+                        <!-- Rows are rendered by JS -->
                     </tbody>
+                </table>
+            </section>
+
+            <section id="fixed-time-section" class="tab-content">
+                <table class="data-table fixed-time-table">
+                    <thead id="fixed-time-table-head">
+                        <tr>
+                            <th style="width: 110px;" data-i18n="th_tz_abbr">Timezone</th>
+                            <th style="width: 220px;" data-i18n="th_region">Name</th>
+                            <th class="dynamic-col" data-i18n="th_fixed_time">Fixed Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fixed-time-body"></tbody>
                 </table>
             </section>
 
@@ -480,42 +500,97 @@
                     </div>
 
                     <div class="calc-card">
-                        <h2 data-i18n="calc_unix_title">Unix Timestamp Converter</h2>
-                        <div class="calc-form unix-tool">
-                            <div class="unix-now-box">
-                                <div class="unix-now-label" data-i18n="calc_unix_current">Current Unix Timestamp</div>
-                                <div class="unix-now-row">
-                                    <span class="result-val result-val-compact" id="unix-now-value">0</span>
-                                    <div class="unix-now-actions">
-                                        <button type="button" class="sm-btn" id="unix-sync-now-btn"
-                                            data-i18n="calc_unix_sync_now">Now</button>
-                                        <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                            id="copy-unix-now-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                        <h2 data-i18n="calc_unix_title">Smart Format Converter</h2>
+                        <div class="calc-form smart-format-tool">
+                            <div class="smart-format-now-box">
+                                <div class="smart-format-now-head">
+                                    <div class="smart-format-now-label" data-i18n="calc_unix_current">Current Timestamp
+                                    </div>
+                                    <button type="button" class="sm-btn" id="unix-sync-now-btn"
+                                        data-i18n="calc_unix_sync_now">Now</button>
+                                </div>
+                                <div class="smart-format-now-grid">
+                                    <div class="smart-format-now-item">
+                                        <span class="calc-result-label" data-i18n="calc_fmt_unix_sec">Unix Timestamp
+                                            (s)</span>
+                                        <div class="smart-format-now-value-row">
+                                            <span class="result-val result-val-compact" id="unix-now-value">0</span>
+                                            <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                                id="copy-unix-now-btn"
+                                                data-i18n-title="tooltip_copy">&#128203;</button>
+                                        </div>
+                                    </div>
+                                    <div class="smart-format-now-item">
+                                        <span class="calc-result-label" data-i18n="calc_fmt_unix_ms">Unix Timestamp
+                                            (ms)</span>
+                                        <div class="smart-format-now-value-row">
+                                            <span class="result-val result-val-compact" id="unix-now-ms-value">0</span>
+                                            <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                                id="copy-unix-now-ms-btn"
+                                                data-i18n-title="tooltip_copy">&#128203;</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="unix-convert-block">
-                                <label for="unix-ts-input" class="calc-result-label"
-                                    data-i18n="calc_unix_ts_to_date">Timestamp -> Date</label>
-                                <input type="number" id="unix-ts-input" class="form-input" placeholder="0" step="1">
-                                <div class="calc-result-box calc-result-box-compact unix-result-box">
-                                    <span class="result-val result-val-date" id="unix-ts-date-out">-</span>
+                            <div class="smart-format-list">
+                                <div class="smart-format-row" data-format-field="unix_sec">
+                                    <label for="unix-ts-input" class="calc-result-label" data-i18n="calc_fmt_unix_sec">Unix
+                                        Timestamp (s)</label>
+                                    <input type="text" id="unix-ts-input" class="form-input smart-format-input"
+                                        inputmode="decimal" placeholder="0">
                                     <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-ts-date-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                        id="copy-unix-ts-btn" data-i18n-title="tooltip_copy">&#128203;</button>
                                 </div>
-                            </div>
-                            <div class="unix-convert-block">
-                                <label for="unix-date-input" class="calc-result-label"
-                                    data-i18n="calc_unix_date_to_ts">Date -> Timestamp</label>
-                                <div style="display: flex; gap: 4px; width: 100%; align-items: center;">
-                                    <input type="text" id="unix-date-input" class="form-input" style="width: 100%;">
-                                    <button type="button" class="calendar-btn" id="unix-date-input-trigger"
-                                        style="flex-shrink: 0;">&#128197;</button>
-                                </div>
-                                <div class="calc-result-box calc-result-box-compact unix-result-box">
-                                    <span class="result-val result-val-compact" id="unix-date-ts-out">-</span>
+                                <div class="smart-format-row" data-format-field="unix_ms">
+                                    <label for="unix-ts-ms-input" class="calc-result-label"
+                                        data-i18n="calc_fmt_unix_ms">Unix Timestamp (ms)</label>
+                                    <input type="text" id="unix-ts-ms-input" class="form-input smart-format-input"
+                                        inputmode="decimal" placeholder="0">
                                     <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-date-ts-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                        id="copy-unix-ts-ms-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                                <div class="smart-format-row" data-format-field="iso_local">
+                                    <label for="unix-iso-local-input" class="calc-result-label"
+                                        data-i18n="calc_fmt_iso_local">ISO 8601 (Local)</label>
+                                    <input type="text" id="unix-iso-local-input" class="form-input smart-format-input"
+                                        placeholder="2026-03-13T00:52:21+09:00">
+                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                        id="copy-unix-iso-local-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                                <div class="smart-format-row" data-format-field="iso_utc">
+                                    <label for="unix-iso-utc-input" class="calc-result-label"
+                                        data-i18n="calc_fmt_iso_utc">ISO 8601 (UTC)</label>
+                                    <input type="text" id="unix-iso-utc-input" class="form-input smart-format-input"
+                                        placeholder="2026-03-12T15:52:21Z">
+                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                        id="copy-unix-iso-utc-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                                <div class="smart-format-row" data-format-field="rfc2822">
+                                    <label for="unix-rfc2822-input" class="calc-result-label"
+                                        data-i18n="calc_fmt_rfc2822">RFC 2822</label>
+                                    <input type="text" id="unix-rfc2822-input" class="form-input smart-format-input"
+                                        placeholder="Fri, 13 Mar 2026 00:52:21 +0900">
+                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                        id="copy-unix-rfc2822-btn"
+                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                                <div class="smart-format-row" data-format-field="sql">
+                                    <label for="unix-sql-input" class="calc-result-label" data-i18n="calc_fmt_sql">SQL /
+                                        Database</label>
+                                    <input type="text" id="unix-sql-input" class="form-input smart-format-input"
+                                        placeholder="2026-03-13 00:52:21">
+                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                        id="copy-unix-sql-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                </div>
+                                <div class="smart-format-row" data-format-field="human">
+                                    <label for="unix-human-input" class="calc-result-label"
+                                        data-i18n="calc_fmt_human">Human Readable</label>
+                                    <input type="text" id="unix-human-input" class="form-input smart-format-input"
+                                        readonly>
+                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                        id="copy-unix-human-btn" data-i18n-title="tooltip_copy">&#128203;</button>
                                 </div>
                             </div>
                         </div>
@@ -555,27 +630,63 @@
     <input type="file" id="group-import-file" accept="application/json,.json" style="display:none;">
     <input type="file" id="subgroup-import-file" accept="application/json,.json" style="display:none;">
 
-    <script src="js/modules/app-config.js?v=370"></script>
-    <script src="js/modules/date-picker.js?v=370"></script>
-    <script src="js/modules/time-core.js?v=370"></script>
-    <script src="js/modules/calculator.js?v=370"></script>
-    <script src="js/modules/multi-state.js?v=370"></script>
-    <script src="js/modules/image-export.js?v=370"></script>
-    <script src="js/modules/group-state.js?v=370"></script>
-    <script src="js/modules/group-tabs.js?v=370"></script>
-    <script src="js/modules/timezone-search.js?v=370"></script>
-    <script src="js/modules/snapshot-format.js?v=370"></script>
-    <script src="js/modules/table-render.js?v=370"></script>
-    <script src="js/modules/multi-range-render.js?v=370"></script>
-    <script src="js/modules/multi-range-copy.js?v=370"></script>
-    <script src="js/modules/copy-actions.js?v=370"></script>
-    <script src="js/modules/time-adjust-ui.js?v=370"></script>
-    <script src="js/modules/format-controls.js?v=370"></script>
-    <script src="js/modules/tab-ui.js?v=370"></script>
-    <script src="js/modules/state-persistence.js?v=370"></script>
-    <script src="js/modules/settings-io.js?v=370"></script>
-    <script src="js/modules/data-transfer.js?v=370"></script>
-    <script src="main.js?v=370"></script>
+    <script src="js/vendor/luxon.min.js"></script>
+    <script src="js/modules/app-config.js"></script>
+    <script src="js/modules/main-constants.js"></script>
+    <script src="js/modules/service-bootstrap.js"></script>
+    <script src="js/modules/app-state-patcher.js"></script>
+    <script src="js/modules/date-picker.js"></script>
+    <script src="js/modules/time-core.js"></script>
+    <script src="js/modules/time-input-mutations.js"></script>
+    <script src="js/modules/timer-engine.js"></script>
+    <script src="js/modules/time-service.js"></script>
+    <script src="js/modules/timezone-data.js"></script>
+    <script src="js/modules/calculator.js"></script>
+    <script src="js/modules/calculator-actions.js"></script>
+    <script src="js/modules/multi-state.js"></script>
+    <script src="js/modules/image-export.js"></script>
+    <script src="js/modules/image-export-actions.js"></script>
+    <script src="js/modules/image-export-bridge.js"></script>
+    <script src="js/modules/image-export-naming.js"></script>
+    <script src="js/modules/image-clone.js"></script>
+    <script src="js/modules/image-foreign-render.js"></script>
+    <script src="js/modules/group-state.js"></script>
+    <script src="js/modules/group-context-state.js"></script>
+    <script src="js/modules/group-tabs.js"></script>
+    <script src="js/modules/timezone-search.js"></script>
+    <script src="js/modules/snapshot-format.js"></script>
+    <script src="js/modules/table-render.js"></script>
+    <script src="js/modules/table-image-render.js"></script>
+    <script src="js/modules/multi-range-image-render.js"></script>
+    <script src="js/modules/multi-range-state.js"></script>
+    <script src="js/modules/multi-range-render.js"></script>
+    <script src="js/modules/multi-range-copy.js"></script>
+    <script src="js/modules/copy-actions.js"></script>
+    <script src="js/modules/time-adjust-ui.js"></script>
+    <script src="js/modules/time-adjust-actions.js"></script>
+    <script src="js/modules/multi-bulk-tools.js"></script>
+    <script src="js/modules/timeline-frame.js"></script>
+    <script src="js/modules/fixed-time-core.js"></script>
+    <script src="js/modules/fixed-time-slot-utils.js"></script>
+    <script src="js/modules/fixed-time-state.js"></script>
+    <script src="js/modules/fixed-time-timeline.js"></script>
+    <script src="js/modules/fixed-time-actions.js"></script>
+    <script src="js/modules/fixed-time-table.js"></script>
+    <script src="js/modules/format-profile-state.js"></script>
+    <script src="js/modules/format-controls.js"></script>
+    <script src="js/modules/tab-ui.js"></script>
+    <script src="js/modules/tab-orchestrator.js"></script>
+    <script src="js/modules/main-ui-init.js"></script>
+    <script src="js/modules/main-ui-utils.js"></script>
+    <script src="js/modules/app-feedback.js"></script>
+    <script src="js/modules/ui-settings-actions.js"></script>
+    <script src="js/modules/app-persistence-state.js"></script>
+    <script src="js/modules/persistence-service-bundle.js"></script>
+    <script src="js/modules/state-persistence.js"></script>
+    <script src="js/modules/ui-preferences-state.js"></script>
+    <script src="js/modules/settings-io.js"></script>
+    <script src="js/modules/data-transfer.js"></script>
+    <script src="main.js"></script>
 </body>
 
 </html>

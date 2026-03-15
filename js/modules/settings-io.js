@@ -1,0 +1,267 @@
+(function initGtvSettingsIo(globalObj) {
+    "use strict";
+
+    function createService(deps) {
+        function createPersistenceWriteError(message, cause = null) {
+            const err = new Error(message || "Failed to persist imported settings payload");
+            err.code = "PERSISTENCE_WRITE_FAILED";
+            err.cause = cause || null;
+            return err;
+        }
+
+        async function persistPreferenceValue(storageKey, value) {
+            const writeResult = await deps.setStorageValue(storageKey, value, { suppressToast: true });
+            if (!writeResult || writeResult.ok !== true) {
+                throw createPersistenceWriteError(`Failed to persist preference key: ${storageKey}`, writeResult?.error || null);
+            }
+        }
+
+        async function ensurePersistenceSaved() {
+            const ok = await deps.savePersistence();
+            if (!ok) {
+                throw createPersistenceWriteError("Failed to persist normalized imported settings");
+            }
+        }
+
+        function ensureImportedGroupsFallbackToStandardTime() {
+            let changed = false;
+            const groups = Array.isArray(deps.getGroups()) ? deps.getGroups() : [];
+            groups.forEach((group) => {
+                if (!group || typeof group !== "object") return;
+                const zoneCount = Array.isArray(group.zones) ? group.zones.length : 0;
+                if (zoneCount > 0) return;
+
+                if (deps.sanitizeBaseTimezoneId(group.baseTimezoneId) !== "utc") {
+                    group.baseTimezoneId = "utc";
+                    changed = true;
+                }
+                if (group.showUtcRow === false) {
+                    group.showUtcRow = true;
+                    changed = true;
+                }
+                if (deps.sanitizeUtcRowOrder(group.utcRowOrder) !== 0) {
+                    group.utcRowOrder = 0;
+                    changed = true;
+                }
+            });
+            return changed;
+        }
+
+        function clampGroupIndex(value, groupsLength, fallback = 0) {
+            const safeLength = Number.isFinite(groupsLength) ? Math.max(1, Math.trunc(groupsLength)) : 1;
+            const parsed = parseInt(value, 10);
+            const fallbackParsed = parseInt(fallback, 10);
+            const safeValue = Number.isFinite(parsed) ? parsed : (Number.isFinite(fallbackParsed) ? fallbackParsed : 0);
+            return Math.min(Math.max(safeValue, 0), safeLength - 1);
+        }
+
+        function buildLegacyGlobalMultiState(payload) {
+            if (typeof deps.sanitizeMultiStatePayload !== "function") return null;
+            const normalized = deps.sanitizeMultiStatePayload({
+                multiRangeCount: payload?.multiRangeCount,
+                multiRanges: payload?.multiRanges,
+                multiRangeCollapsed: payload?.multiRangeCollapsed,
+                multiRangeStartEditEnabled: payload?.multiRangeStartEditEnabled,
+                multiRangeEndEditEnabled: payload?.multiRangeEndEditEnabled
+            }, null);
+            if (!normalized || typeof normalized !== "object") return null;
+            if (typeof deps.sanitizeMultiRangeTitle === "function") {
+                normalized.multiRangeTitle = deps.sanitizeMultiRangeTitle(payload?.multiRangeTitle);
+            }
+            return normalized;
+        }
+
+        function createFallbackImportedGroup(legacyGlobalMultiState = null) {
+            const translatedDefaultName = (typeof deps.t === "function") ? deps.t("default_group_name") : "Group";
+            const safeDefaultName = (typeof translatedDefaultName === "string" && translatedDefaultName.trim())
+                ? translatedDefaultName.trim()
+                : "Group";
+            const rawFallback = {
+                name: safeDefaultName,
+                zones: [],
+                baseTimezoneId: "utc",
+                showUtcRow: true,
+                utcRowOrder: 0,
+                fixedDate: (typeof deps.getDefaultFixedDate === "function")
+                    ? deps.getDefaultFixedDate()
+                    : "",
+                fixedTimes: (typeof deps.getDefaultFixedTimes === "function")
+                    ? deps.getDefaultFixedTimes()
+                    : []
+            };
+            if (typeof deps.sanitizeGroup === "function") {
+                const sanitized = deps.sanitizeGroup(rawFallback, 0, legacyGlobalMultiState);
+                if (sanitized && typeof sanitized === "object") return sanitized;
+            }
+            return rawFallback;
+        }
+
+        function sanitizeImportedGroups(payload) {
+            const sourceGroups = Array.isArray(payload?.groups) ? payload.groups : [];
+            const legacyGlobalMultiState = buildLegacyGlobalMultiState(payload);
+            if (typeof deps.sanitizeGroup !== "function") {
+                const fallbackGroups = sourceGroups
+                    .filter((group) => !!group && typeof group === "object")
+                    .map((group) => ({ ...group }));
+                if (fallbackGroups.length) return fallbackGroups;
+                return [createFallbackImportedGroup(legacyGlobalMultiState)];
+            }
+
+            const sanitized = sourceGroups
+                .map((group, idx) => deps.sanitizeGroup(group, idx, legacyGlobalMultiState))
+                .filter((group) => !!group && typeof group === "object");
+
+            if (sanitized.length) return sanitized;
+            return [createFallbackImportedGroup(legacyGlobalMultiState)];
+        }
+
+        function sanitizeImportedMainTab(tabValue) {
+            if (typeof deps.sanitizeMainTab === "function") {
+                return deps.sanitizeMainTab(tabValue);
+            }
+            const normalized = (typeof tabValue === "string") ? tabValue.trim() : "";
+            if (normalized === "live" || normalized === "fixed" || normalized === "multi" || normalized === "fixed-time" || normalized === "calc") {
+                return normalized;
+            }
+            return "live";
+        }
+
+        function buildSanitizedImportPayload(payload) {
+            const groups = sanitizeImportedGroups(payload);
+            const activeGroupId = clampGroupIndex(payload?.activeGroupId, groups.length, 0);
+            const currentMainTab = sanitizeImportedMainTab(payload?.currentMainTab);
+
+            const rawGroupMap = (payload?.activeGroupIdByMainTab && typeof payload.activeGroupIdByMainTab === "object")
+                ? payload.activeGroupIdByMainTab
+                : null;
+            const activeGroupIdByMainTab = {
+                live: clampGroupIndex(rawGroupMap?.live, groups.length, activeGroupId),
+                fixed: clampGroupIndex(rawGroupMap?.fixed, groups.length, activeGroupId)
+            };
+
+            const parsedSlotCount = parseInt(payload?.slotCount, 10);
+            const slotCount = Number.isFinite(parsedSlotCount) ? Math.min(2, Math.max(1, parsedSlotCount)) : 1;
+
+            let baseTimezoneId = "utc";
+            if (typeof deps.sanitizeBaseTimezoneId === "function") {
+                baseTimezoneId = deps.sanitizeBaseTimezoneId(payload?.baseTimezoneId);
+                if (baseTimezoneId !== "utc") {
+                    const activeGroup = groups[activeGroupId];
+                    const zones = Array.isArray(activeGroup?.zones) ? activeGroup.zones : [];
+                    const found = zones.some((zone) => zone && zone.id === baseTimezoneId);
+                    if (!found) baseTimezoneId = "utc";
+                }
+            }
+
+            return {
+                groups,
+                activeGroupId,
+                currentMainTab,
+                activeGroupIdByMainTab,
+                slotCount,
+                baseTimezoneId,
+                showCopyFormat: !!payload?.showCopyFormat,
+                showTimeline: !!payload?.showTimeline,
+                displayFormatOrder: payload?.displayFormatOrder,
+                displayFormatEnabled: payload?.displayFormatEnabled,
+                displayTimePartsEnabled: payload?.displayTimePartsEnabled,
+                copyFormatOrder: payload?.copyFormatOrder,
+                copyFormatEnabled: payload?.copyFormatEnabled,
+                copyTimePartsEnabled: payload?.copyTimePartsEnabled,
+                formatProfiles: payload?.formatProfiles,
+                activeFormatProfileContext: payload?.activeFormatProfileContext,
+                timeAdjustDayStepBySlot: payload?.timeAdjustDayStepBySlot,
+                multiRangeCount: payload?.multiRangeCount,
+                multiRangeTitle: payload?.multiRangeTitle,
+                multiRanges: payload?.multiRanges,
+                multiRangeCollapsed: payload?.multiRangeCollapsed,
+                multiRangeStartEditEnabled: payload?.multiRangeStartEditEnabled,
+                multiRangeEndEditEnabled: payload?.multiRangeEndEditEnabled
+            };
+        }
+
+        function normalizeImportPayload(payload) {
+            if (typeof deps.normalizeImportedPayload === "function") {
+                try {
+                    const normalized = deps.normalizeImportedPayload(payload);
+                    if (normalized && typeof normalized === "object") return normalized;
+                } catch (err) {
+                    console.warn("normalizeImportedPayload failed. Falling back to local import sanitization.", err);
+                }
+            }
+            return buildSanitizedImportPayload(payload);
+        }
+
+        async function applyImportedSettings(importedRoot) {
+            const payload = (importedRoot && typeof importedRoot === "object" && importedRoot.data && typeof importedRoot.data === "object")
+                ? importedRoot.data
+                : importedRoot;
+            if (!payload || typeof payload !== "object") {
+                throw new Error("Invalid settings payload");
+            }
+            if (!Array.isArray(payload.groups)) {
+                throw new Error("Invalid settings payload: groups is required");
+            }
+
+            const sanitizedPayload = normalizeImportPayload(payload);
+            const writeResult = await deps.persistStorageSnapshot(sanitizedPayload, { suppressToast: true });
+            if (!writeResult.ok) {
+                throw createPersistenceWriteError("Failed to persist imported settings payload", writeResult.error);
+            }
+
+            const pref = (importedRoot && typeof importedRoot === "object" && importedRoot.preferences && typeof importedRoot.preferences === "object")
+                ? importedRoot.preferences
+                : importedRoot;
+
+            if (pref && typeof pref === "object") {
+                if (typeof pref.theme === "string") {
+                    await persistPreferenceValue(deps.THEME_STORAGE_KEY, deps.sanitizeTheme(pref.theme));
+                }
+                if (typeof pref.language === "string" && deps.I18N_DATA[pref.language]) {
+                    await persistPreferenceValue(deps.LANG_STORAGE_KEY, pref.language);
+                }
+                if (pref.uiScale !== undefined) {
+                    await persistPreferenceValue(deps.UI_SCALE_STORAGE_KEY, String(deps.sanitizeUiScalePercent(pref.uiScale)));
+                }
+            }
+
+            const nextLang = await deps.getStorageValue(deps.LANG_STORAGE_KEY, "ko");
+            deps.setCurrentLang(deps.I18N_DATA[nextLang] ? nextLang : "ko");
+            await deps.loadPersistence();
+            if (deps.localizeAutoGeneratedNamesForCurrentLanguage()) {
+                await ensurePersistenceSaved();
+            }
+            if (ensureImportedGroupsFallbackToStandardTime()) {
+                await ensurePersistenceSaved();
+            }
+            await deps.applyTheme(await deps.loadThemePreference(), false);
+            await deps.applyUiScale(await deps.loadUiScalePreference(), false);
+            deps.applyTranslations();
+            deps.applyVersionBranding();
+
+            const langSelect = document.getElementById("lang-select");
+            if (langSelect) langSelect.value = deps.getCurrentLang();
+
+            const themeSelect = document.getElementById("theme-select");
+            if (themeSelect) themeSelect.value = deps.getCurrentTheme();
+            const uiScaleSelect = document.getElementById("ui-scale-select");
+            if (uiScaleSelect) {
+                deps.populateUiScaleSelect(uiScaleSelect);
+                uiScaleSelect.value = String(deps.getCurrentUiScalePercent());
+            }
+            deps.refreshMultiRangeControls();
+
+            deps.updateTZDropdown();
+            deps.refreshSelectWidths();
+            deps.switchMainTab(deps.getCurrentMainTab());
+        }
+
+        return Object.freeze({
+            applyImportedSettings
+        });
+    }
+
+    globalObj.GTVSettingsIO = Object.freeze({
+        createService
+    });
+})(typeof window !== "undefined" ? window : globalThis);

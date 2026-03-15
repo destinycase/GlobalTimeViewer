@@ -1,10 +1,12 @@
 const EN_I18N = {
-    app_title: "Global Time v3.8.1",
+    app_title: "Global Time Viwer v3.10.1",
     nav_live: "Realtime",
+    nav_fixed_time: "Fixed Time",
     nav_fixed: "Time Edit",
     nav_multi: "Continuous Time Edit",
     nav_calc: "Calculator",
     status_sync: "Real-time sync",
+    status_fixed_time: "Fixed time slot mode",
     status_fixed: "Fixed mode",
     status_multi: "Continuous time edit mode",
 
@@ -22,7 +24,7 @@ const EN_I18N = {
     label_copy_format: "Display / Copy Format",
     tooltip_time_adjust_desc: "You can change the time of the timezone set as the base time.",
     tooltip_extra_time_desc: "You can add an extra time slot to reflect a period range.",
-    tooltip_timeline_view_desc: "Shows a box timeline in Realtime and Time Edit tabs.",
+    tooltip_timeline_view_desc: "Shows a box timeline in Realtime, Time Edit, and Fixed Time tabs.",
     tooltip_copy_format_desc: "You can configure what is shown and copied. Drag to reorder display and copy formats.",
     tooltip_range_count_max: "Maximum range count is 12.",
     tooltip_ui_scale_desc: "Changes the size of UI elements. Default: 100%.",
@@ -39,6 +41,11 @@ const EN_I18N = {
     label_range_count: "Range Count",
     label_count_suffix: "count",
     label_range_name: "Range Name",
+    label_fixed_time_slots: "Fixed Time Slots",
+    label_fixed_time_slot_names: "Slot Names",
+    label_fixed_date: "Fixed Date",
+    label_fixed_time_default: "Fixed Time",
+    placeholder_fixed_date: "YYYY-MM-DD",
     placeholder_range_title: "Range",
     label_range_start: "Range Start",
     label_start_time_adjust: "Start Time Adjust",
@@ -59,12 +66,15 @@ const EN_I18N = {
     btn_import_settings: "Import All",
     btn_reset_except_group_tz: "Reset Settings Only",
     btn_reset_all_settings: "Reset All",
+    btn_reset_all: "Reset All",
+    confirm_reset_all: "Are you sure you want to reset all settings and groups? This action cannot be undone.",
     btn_copy_all: "📋 Copy All",
     btn_save_table_image: "🖼️ Save Image",
     btn_save_image_tz: "🖼️ Save Image",
     btn_save_image_range: "🖼️ Save Image - Range",
     btn_save_multi_titles_image: "🖼️ Save Image - Titles",
     btn_save_multi_by_range_image: "🖼️ Save Image - All",
+    btn_add_fixed_time: "+ Add Slot",
     btn_add: "Add",
     btn_list: "List",
     btn_reset: "Reset",
@@ -110,6 +120,7 @@ const EN_I18N = {
     th_time_day_extra: "Extra Time",
     th_time_day_start: "Start Time",
     th_time_day_end: "End Time",
+    th_fixed_time: "Fixed Time",
     th_time_with_day_main: "Date,Time,Day",
     th_time_with_day_extra: "Extra Date,Time,Day",
     th_time_main: "Date,Time",
@@ -169,12 +180,19 @@ const EN_I18N = {
     calc_countdown_expired: "Expired",
     calc_countdown_rename_prompt: "Edit countdown name:",
     calc_countdown_day_suffix: "d",
-    calc_unix_title: "Unix Timestamp Converter",
-    calc_unix_current: "Current Unix Timestamp",
+    calc_unix_title: "Smart Format Converter",
+    calc_unix_current: "Current Timestamp",
     calc_unix_sync_now: "Now",
     calc_unix_ts_to_date: "Timestamp -> Date",
     calc_unix_date_to_ts: "Date -> Timestamp",
-    calc_unix_invalid: "Invalid timestamp",
+    calc_unix_invalid: "Invalid Date",
+    calc_fmt_unix_sec: "Unix Timestamp (s)",
+    calc_fmt_unix_ms: "Unix Timestamp (ms)",
+    calc_fmt_iso_local: "ISO 8601 (Local)",
+    calc_fmt_iso_utc: "ISO 8601 (UTC)",
+    calc_fmt_rfc2822: "RFC 2822",
+    calc_fmt_sql: "SQL / Database",
+    calc_fmt_human: "Human Readable",
     calc_coming_soon_title: "Coming Soon",
     calc_coming_soon_desc: "New time utilities are in progress. Share your ideas for upcoming tools.",
 
@@ -212,6 +230,7 @@ const EN_I18N = {
     tooltip_swap_dates: "Swap Start/End Dates",
     tooltip_add_group: "Add Group",
     tooltip_add_subgroup: "Add Aux Group",
+    tooltip_remove_fixed_time: "Remove slot",
     tooltip_reset_except_group_tz_desc: "Resets settings only, while keeping groups and timezones.",
 
     dn_day: "Day (06:00~18:00)",
@@ -249,16 +268,32 @@ const EN_I18N = {
     toast_subgroup_name_changed: "Aux group name updated.",
     toast_range_count_max: "Range count max is 12.",
     toast_range_count_min: "Range count min is 1.",
+    toast_fixed_time_max: "You can add up to 5 fixed time slots.",
+    toast_fixed_time_min: "At least one fixed time slot is required.",
     toast_invalid_format: "Invalid data format.",
 
     confirm_delete_group: "Are you sure you want to delete this group?",
     confirm_delete_subgroup: "Are you sure you want to delete this aux group?",
     confirm_reset_except_group_tz: "Reset all settings except saved groups and timezones. Continue?",
-    confirm_reset_all_settings: "Saved groups, timezones, and all settings will be reset to defaults. Continue?"
+    confirm_reset_all_settings: "Saved groups, timezones, and all settings will be reset to defaults. Continue?",
+    error_fatal_title: "Application Initialization Failed",
+    error_fatal_desc: "An error occurred while loading data. Please try refreshing the extension or resetting the settings."
 };
 
 const KO_OVERRIDES = {
-    app_title: "Global Time v3.8.1",
+    nav_fixed_time: "\uACE0\uC815 \uC2DC\uAC04",
+    status_fixed_time: "\uACE0\uC815 \uC2DC\uAC04 \uBAA8\uB4DC",
+    label_fixed_time_slots: "\uACE0\uC815 \uC2DC\uAC04 \uC2AC\uB86F",
+    label_fixed_time_slot_names: "\uC2AC\uB86F \uC774\uB984",
+    label_fixed_date: "\uACE0\uC815 \uB0A0\uC9DC",
+    label_fixed_time_default: "\uACE0\uC815 \uC2DC\uAC04",
+    placeholder_fixed_date: "YYYY-MM-DD",
+    btn_add_fixed_time: "+ \uC2AC\uB86F \uCD94\uAC00",
+    th_fixed_time: "\uACE0\uC815 \uC2DC\uAC04",
+    tooltip_remove_fixed_time: "\uC2AC\uB86F \uC0AD\uC81C",
+    toast_fixed_time_max: "\uACE0\uC815 \uC2DC\uAC04 \uC2AC\uB86F\uC740 \uCD5C\uB300 5\uAC1C\uAE4C\uC9C0 \uCD94\uAC00\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    toast_fixed_time_min: "\uACE0\uC815 \uC2DC\uAC04 \uC2AC\uB86F\uC740 \uCD5C\uC18C 1\uAC1C \uC774\uC0C1 \uD544\uC694\uD569\uB2C8\uB2E4.",
+    app_title: "Global Time Viwer v3.10.1",
     nav_live: "실시간",
     nav_fixed: "시간 변경",
     nav_multi: "연속 시간 변경",
@@ -281,7 +316,7 @@ const KO_OVERRIDES = {
     label_copy_format: "표기 / 복사 양식",
     tooltip_time_adjust_desc: "기준 시간으로 설정된 시간대의 시간을 변경할 수 있습니다.",
     tooltip_extra_time_desc: "시간을 추가하여 기간을 반영해볼 수 있습니다.",
-    tooltip_timeline_view_desc: "실시간/시간 변경 탭에 박스 타임라인을 표시합니다.",
+    tooltip_timeline_view_desc: "실시간/시간 변경/고정 시간 탭에 박스 타임라인을 표시합니다.",
     tooltip_copy_format_desc: "화면 표기와 복사 항목을 설정하고 드래그로 순서를 변경할 수 있습니다.",
     tooltip_range_count_max: "구간의 최대 수량은 12개 입니다.",
     tooltip_ui_scale_desc: "UI 항목의 크기를 변경합니다. 기본 값: 100%",
@@ -415,14 +450,21 @@ const KO_OVERRIDES = {
     calc_countdown_expired: "만료",
     calc_countdown_rename_prompt: "카운트다운 이름을 입력하세요:",
     calc_countdown_day_suffix: "일",
-    calc_unix_title: "Unix 타임스탬프 변환기",
-    calc_unix_current: "현재 Unix 타임스탬프",
+    calc_unix_title: "스마트 시간 포맷 변환기",
+    calc_unix_current: "현재 타임스탬프",
     calc_unix_sync_now: "지금",
     calc_unix_ts_to_date: "타임스탬프 -> 날짜",
     calc_unix_date_to_ts: "날짜 -> 타임스탬프",
-    calc_unix_invalid: "유효하지 않은 타임스탬프",
+    calc_unix_invalid: "유효하지 않은 날짜",
+    calc_fmt_unix_sec: "Unix 타임스탬프 (초)",
+    calc_fmt_unix_ms: "Unix 타임스탬프 (밀리초)",
+    calc_fmt_iso_local: "ISO 8601 (로컬)",
+    calc_fmt_iso_utc: "ISO 8601 (UTC)",
+    calc_fmt_rfc2822: "RFC 2822",
+    calc_fmt_sql: "SQL / 데이터베이스",
+    calc_fmt_human: "사람이 읽기 쉬운 형식",
     calc_coming_soon_title: "새로운 기능 준비 중 (Coming Soon)",
-    calc_coming_soon_desc: "Global Time은 더 편리한 시간 계산 기능을 준비하고 있습니다. 원하시는 기능이 있다면 의견을 남겨주세요.",
+    calc_coming_soon_desc: "Global Time Viwer는 더 편리한 시간 계산 기능을 준비하고 있습니다. 원하시는 기능이 있다면 의견을 남겨주세요.",
 
     option_popular: "인기 도시 선택...",
     overlay_select_tz: "시간대 선택",
@@ -500,7 +542,9 @@ const KO_OVERRIDES = {
     confirm_delete_group: "이 그룹을 삭제하시겠습니까?",
     confirm_delete_subgroup: "이 보조 그룹을 삭제하시겠습니까?",
     confirm_reset_except_group_tz: "저장된 그룹과 시간대를 유지하고 나머지 설정을 초기화합니다. 계속할까요?",
-    confirm_reset_all_settings: "저장된 그룹/시간대/모든 설정을 초기값으로 되돌립니다. 계속할까요?"
+    confirm_reset_all_settings: "저장된 그룹/시간대/모든 설정을 초기값으로 되돌립니다. 계속할까요?",
+    error_fatal_title: "애플리케이션 초기화 실패",
+    error_fatal_desc: "데이터를 불러오는 중 오류가 발생했습니다. 확장 프로그램을 새로고침하거나 설정을 초기화해 보세요."
 };
 
 const I18N_DATA = {
@@ -508,7 +552,26 @@ const I18N_DATA = {
     en: { ...EN_I18N }
 };
 
-let currentLang = localStorage.getItem("GTV_Lang") || "ko";
+function safeLocalStorageGet(key, fallback = null) {
+    try {
+        return localStorage.getItem(key) ?? fallback;
+    } catch (e) {
+        console.warn(`localStorage.getItem("${key}") failed during i18n init.`, e);
+        return fallback;
+    }
+}
+
+function safeLocalStorageSet(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (e) {
+        console.warn(`localStorage.setItem("${key}") failed during i18n update.`, e);
+        return false;
+    }
+}
+
+let currentLang = safeLocalStorageGet("GTV_Lang") || "ko";
 if (!I18N_DATA[currentLang]) {
     currentLang = "ko";
 }
@@ -516,7 +579,7 @@ if (!I18N_DATA[currentLang]) {
 function setLanguage(lang) {
     if (!I18N_DATA[lang]) return;
     currentLang = lang;
-    localStorage.setItem("GTV_Lang", lang);
+    safeLocalStorageSet("GTV_Lang", lang);
     applyTranslations();
 }
 
