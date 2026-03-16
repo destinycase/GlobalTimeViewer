@@ -104,7 +104,8 @@
 
             safeDates.forEach((slotDate) => {
                 const validDate = toValidDate(slotDate, fallbackDate) || fallbackDate;
-                const parts = safeTimeServiceMethod("resolveLocalDateParts", null, validDate, zone, tz.id, fixedDisplayOffsetMinutes);
+                const effectiveOffset = tz.type === "custom" ? callDep("getCustomOffsetMinutes", 0, tz) : fixedDisplayOffsetMinutes;
+                const parts = safeTimeServiceMethod("resolveLocalDateParts", null, validDate, zone, tz.id, effectiveOffset);
                 if (!parts) return;
 
                 const hour = Number.isFinite(parts?.H) ? Math.trunc(parts.H) : 0;

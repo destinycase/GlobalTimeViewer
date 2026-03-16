@@ -114,11 +114,6 @@
             }
 
             headRow.textContent = "";
-            const moveHead = document.createElement("th");
-            moveHead.className = "move-col";
-            moveHead.style.width = "70px";
-            moveHead.textContent = translate("th_order");
-            headRow.appendChild(moveHead);
 
             displayColumns.forEach((colKey) => {
                 if (colKey === "timezone") {
@@ -218,41 +213,6 @@
                 const isBaseRow = tz.id === baseRef.id;
                 if (isBaseRow) row.classList.add("static");
                 row.draggable = false;
-
-                const moveCell = document.createElement("td");
-                moveCell.className = "move-cell";
-                const moveGroup = document.createElement("div");
-                moveGroup.className = "btn-group";
-                if (isBaseRow) {
-                    const spacer = document.createElement("span");
-                    spacer.className = "drag-spacer";
-                    spacer.setAttribute("aria-hidden", "true");
-                    moveGroup.appendChild(spacer);
-                } else {
-                    const dragHandle = document.createElement("button");
-                    dragHandle.type = "button";
-                    dragHandle.className = "drag-handle";
-                    dragHandle.draggable = true;
-                    dragHandle.textContent = "\u22EE\u22EE";
-                    dragHandle.addEventListener("dragstart", (event) => {
-                        row.classList.add("dragging");
-                        if (event.dataTransfer) {
-                            event.dataTransfer.effectAllowed = "move";
-                            event.dataTransfer.setData("text/plain", tz.id || "");
-                            const ghost = invokeDep("createDragGhostFromRow", row);
-                            event.dataTransfer.setDragImage(ghost || row, 20, 20);
-                        }
-                    });
-                    dragHandle.addEventListener("dragend", () => {
-                        row.classList.remove("dragging");
-                        invokeDep("clearDragGhost");
-                        invokeDep("saveFixedTimeOrder");
-                        invokeDep("updateClocks");
-                    });
-                    moveGroup.appendChild(dragHandle);
-                }
-                moveCell.appendChild(moveGroup);
-                row.appendChild(moveCell);
 
                 const offsetAnchorDate = isValidDate(slotUtcDates[0]) ? slotUtcDates[0] : anchorDate;
                 displayColumns.forEach((colKey) => {

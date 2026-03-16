@@ -2154,9 +2154,6 @@ fixedTimeTableService = GTV_FIXED_TIME_TABLE.createService({
     getFixedTimeSlotHeaderLabel,
     renameFixedTimeSlot,
     copyFixedTimeSlotColumn,
-    createDragGhostFromRow,
-    clearDragGhost,
-    saveFixedTimeOrder,
     updateClocks: () => updateClocks(),
     getZoneAbbreviation,
     getZoneDisplayName,
@@ -3079,7 +3076,6 @@ function bindRowContainerDragAndDrop(container) {
 
 function initDragAndDrop() {
     bindRowContainerDragAndDrop(document.getElementById("clocks-container"));
-    bindRowContainerDragAndDrop(document.getElementById("fixed-time-body"));
 }
 function captureReorderableRowRects(container) {
     const rectMap = new Map();
@@ -3146,10 +3142,6 @@ function saveOrderForContainer(containerSelector) {
 
 function saveOrder() {
     saveOrderForContainer("#clocks-container");
-}
-
-function saveFixedTimeOrder() {
-    saveOrderForContainer("#fixed-time-body");
 }
 
 function formatTimeTextByParts(snapshot, timePartsEnabled) {

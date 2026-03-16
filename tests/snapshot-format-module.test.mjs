@@ -51,8 +51,14 @@ function createDepsStub() {
         getSignedDurationDayHourMinute: () => "1d 0h 0m",
         t: (key) => key === "unit_days_suffix" ? "d" : key,
         timeService: {
-            resolveLocalDateParts(date) {
-                const d = new Date(date.getTime() + (9 * 60 * 60000));
+            resolveLocalDateParts(date, zone, timezoneId, fixedOffsetMinutes) {
+                let offset = 0;
+                if (typeof fixedOffsetMinutes === "number") {
+                    offset = fixedOffsetMinutes;
+                } else if (zone === "Asia/Seoul") {
+                    offset = 540;
+                }
+                const d = new Date(date.getTime() + (offset * 60000));
                 return {
                     Y: d.getUTCFullYear(),
                     M: d.getUTCMonth() + 1,
@@ -117,4 +123,16 @@ test("getRowFormattedText returns empty text with missing dependencies", () => {
     const service = createService({});
     const text = service.getRowFormattedText("utc", ["timezone"], { timezone: true });
     expect(text).toBe("");
+});
+
+test("buildTimezoneComputedSnapshotForDates correctly applies custom timezone offset", () => {
+    const service = createService(createDepsStub());
+    const customTz = { id: "custom1", type: "custom", abbr: "MYTZ" };
+    
+    const snapshot = service.buildTimezoneComputedSnapshotForDates(customTz, [new Date("2026-01-01T00:00:00Z")]);
+
+    expect(snapshot).toBeTruthy();
+    expect(snapshot.timezone).toBe("MYTZ");
+    expect(snapshot.offset).toBe("UTC+09:00");
+    expect(snapshot.times[0]).toBe("2026-01-01 09:00:00");
 });
