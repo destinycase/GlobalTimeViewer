@@ -95,6 +95,20 @@
             return invokeDep("formatUtcOffsetLabel", invokeDep("getTimezoneOffset", tz.zone || "UTC", safeAnchorDate)) || "";
         }
 
+        function getZoneDisplayNameForUiAtDate(tz, anchorDate) {
+            const safeAnchorDate = isValidDate(anchorDate) ? anchorDate : new Date();
+            const uiName = invokeDep("getZoneDisplayNameForUiAtDate", tz, safeAnchorDate);
+            if (typeof uiName === "string" && uiName.trim()) return uiName;
+            return invokeDep("getZoneDisplayName", tz) || "";
+        }
+
+        function applyZoneCodeKindClass(zoneCodeEl, timezoneRef = null) {
+            if (!zoneCodeEl || !zoneCodeEl.classList || typeof zoneCodeEl.classList.toggle !== "function") return;
+            const isCustom = !!(timezoneRef && timezoneRef.type === "custom");
+            zoneCodeEl.classList.toggle("zone-code-custom", isCustom);
+            zoneCodeEl.classList.toggle("zone-code-standard", !isCustom);
+        }
+
         function renderFixedTimeTable() {
             if (typeof document !== "object" || !document) return;
             const headRow = document.querySelector("#fixed-time-table-head tr");
@@ -224,6 +238,7 @@
                         const zoneCode = document.createElement("span");
                         zoneCode.className = "zone-code";
                         zoneCode.textContent = invokeDep("getZoneAbbreviation", tz, anchorDate) || "";
+                        applyZoneCodeKindClass(zoneCode, tz);
                         abbrWrap.appendChild(zoneCode);
                         tzCell.appendChild(abbrWrap);
                         row.appendChild(tzCell);
@@ -236,7 +251,7 @@
                         zoneInfo.className = "zone-info";
                         const zoneName = document.createElement("span");
                         zoneName.className = "zone-name";
-                        zoneName.textContent = invokeDep("getZoneDisplayName", tz) || "";
+                        zoneName.textContent = getZoneDisplayNameForUiAtDate(tz, offsetAnchorDate) || "";
                         zoneInfo.appendChild(zoneName);
                         nameCell.appendChild(zoneInfo);
                         row.appendChild(nameCell);

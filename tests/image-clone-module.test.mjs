@@ -103,5 +103,30 @@ describe("GTV image clone module", () => {
         expect(service.cloneTableForImageExport(null)).toBeNull();
         expect(service.cloneMultiRangeBlockForImageExport(undefined)).toBeNull();
     });
-});
 
+    it("removes [DST] suffix from cloned zone-name labels", () => {
+        const module = loadImageCloneModule();
+        const zoneNameNode = { textContent: "America/New_York [DST]" };
+        const source = {
+            querySelectorAll(selector) {
+                if (selector === ".time-input") return [];
+                return [];
+            },
+            cloneNode() {
+                return {
+                    querySelectorAll(selector) {
+                        if (selector === ".time-input") return [];
+                        if (selector === ".zone-name") return [zoneNameNode];
+                        if (selector === ".export-exclude, .move-col, .move-cell") return [];
+                        return [];
+                    }
+                };
+            }
+        };
+        const service = module.createService({});
+
+        service.cloneTableForImageExport(source);
+
+        expect(zoneNameNode.textContent).toBe("America/New_York");
+    });
+});

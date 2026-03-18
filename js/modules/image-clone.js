@@ -20,6 +20,10 @@
             }
         }
 
+        function stripDstSuffix(value) {
+            return String(value || "").replace(/\s*\[DST\]\s*$/i, "").trim();
+        }
+
         function replaceTimeInputsWithText(sourceEl, clonedEl, docRef) {
             const srcInputs = toArray(sourceEl?.querySelectorAll?.(".time-input"));
             const clonedInputs = toArray(clonedEl?.querySelectorAll?.(".time-input"));
@@ -36,11 +40,19 @@
             toArray(root?.querySelectorAll?.(selector)).forEach((node) => node?.remove?.());
         }
 
+        function sanitizeZoneNameLabels(root) {
+            toArray(root?.querySelectorAll?.(".zone-name")).forEach((node) => {
+                if (!node || typeof node.textContent !== "string") return;
+                node.textContent = stripDstSuffix(node.textContent);
+            });
+        }
+
         function cloneTableForImageExport(tableEl) {
             if (!tableEl || typeof tableEl.cloneNode !== "function") return null;
             const docRef = getDocumentRef();
             const clone = tableEl.cloneNode(true);
             replaceTimeInputsWithText(tableEl, clone, docRef);
+            sanitizeZoneNameLabels(clone);
             removeBySelector(clone, ".export-exclude, .move-col, .move-cell");
             return clone;
         }
@@ -51,6 +63,7 @@
             const clone = blockEl.cloneNode(true);
             replaceTimeInputsWithText(blockEl, clone, docRef);
             clone.classList?.remove?.("collapsed");
+            sanitizeZoneNameLabels(clone);
             removeBySelector(
                 clone,
                 ".multi-range-header-actions, .multi-range-adjust-row, .export-exclude, .move-col, .move-cell"
@@ -68,4 +81,3 @@
         createService
     });
 })(typeof window !== "undefined" ? window : globalThis);
-

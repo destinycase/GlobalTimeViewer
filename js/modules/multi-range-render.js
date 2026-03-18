@@ -40,10 +40,28 @@
             return invokeDep("getCurrentLang") === "ko" ? "ko" : "en";
         }
 
+        function isValidDate(value) {
+            return value instanceof Date && Number.isFinite(value.getTime());
+        }
+
+        function getZoneDisplayNameForUiAtDate(tz, anchorDate) {
+            const safeAnchorDate = isValidDate(anchorDate) ? anchorDate : new Date();
+            const uiName = invokeDep("getZoneDisplayNameForUiAtDate", tz, safeAnchorDate);
+            if (typeof uiName === "string" && uiName.trim()) return uiName;
+            return invokeDep("getZoneDisplayName", tz) || "";
+        }
+
         function getDayNightGlyph(marker) {
             if (marker === "DAY") return "\u2600\uFE0F";
             if (marker === "NIGHT") return "\uD83C\uDF19";
             return marker;
+        }
+
+        function applyZoneCodeKindClass(zoneCodeEl, timezoneRef = null) {
+            if (!zoneCodeEl || !zoneCodeEl.classList || typeof zoneCodeEl.classList.toggle !== "function") return;
+            const isCustom = !!(timezoneRef && timezoneRef.type === "custom");
+            zoneCodeEl.classList.toggle("zone-code-custom", isCustom);
+            zoneCodeEl.classList.toggle("zone-code-standard", !isCustom);
         }
 
         function getTimezoneDisplayPointAtDate(date, tz, fixedDisplayOffsetMinutes = null) {
@@ -196,10 +214,14 @@
             });
             inner += `<td class="export-exclude copy-cell"><div class="btn-group"><button class="sm-btn copy-row-btn" title="${translate("tooltip_copy")}">&#128203;</button></div></td>`;
             tr.insertAdjacentHTML("beforeend", inner);
+            applyZoneCodeKindClass(tr.querySelector(".zone-code"), safeTz);
 
             if (!isBase) {
                 const zoneNameEl = tr.querySelector(".zone-name");
-                if (zoneNameEl) zoneNameEl.textContent = invokeDep("getZoneDisplayName", safeTz) || "";
+                if (zoneNameEl) {
+                    const anchorDate = new Date(range.startUtcMs);
+                    zoneNameEl.textContent = getZoneDisplayNameForUiAtDate(safeTz, anchorDate) || "";
+                }
             }
 
             const copyBtn = tr.querySelector(".copy-row-btn");
@@ -274,9 +296,6 @@
                 container.innerHTML = "";
                 return;
             }
-            const baseZoneName = invokeDep("getZoneDisplayName", baseRef) || "";
-            const escapedBaseZoneName = invokeDep("escapeHtml", baseZoneName);
-            const baseRefName = (typeof escapedBaseZoneName === "string") ? escapedBaseZoneName : String(baseZoneName);
             const displayColumns = asArray(invokeDep("getDisplayColumns", 2));
             const rowsToRender = asArray(invokeDep("getRenderableTimezoneRows", baseRef));
             const multiRanges = asArray(invokeDep("getMultiRanges"));
@@ -286,6 +305,11 @@
 
             container.innerHTML = "";
             multiRanges.forEach((range, rangeIdx) => {
+                const rangeAnchorDate = new Date(range?.startUtcMs);
+                const baseZoneName = getZoneDisplayNameForUiAtDate(baseRef, rangeAnchorDate) || "";
+                const escapedBaseZoneName = invokeDep("escapeHtml", baseZoneName);
+                const baseRefName = (typeof escapedBaseZoneName === "string") ? escapedBaseZoneName : String(baseZoneName);
+
                 const block = doc.createElement("div");
                 block.className = "multi-range-block";
                 const isCollapsed = !!multiRangeCollapsed[rangeIdx];

@@ -50,6 +50,16 @@ describe("GTV table image render module", () => {
         expect(service.extractTableCellText(cell)).toBe("\u2600\uFE0F 09:00:00 Sat");
     });
 
+    it("strips [DST] suffix from zone-name for export text", () => {
+        const module = loadTableImageRenderModule();
+        const service = module.createService({});
+        const cell = createQueryCell({
+            ".zone-name": { textContent: "America/New_York [DST]" }
+        });
+
+        expect(service.extractTableCellText(cell)).toBe("America/New_York");
+    });
+
     it("returns fixed-time export context when fixed-time tab is active", () => {
         const fixedTable = { id: "fixed-table" };
         const module = loadTableImageRenderModule({
@@ -126,4 +136,3 @@ describe("GTV table image render module", () => {
         await expect(service.renderTimezoneTableFallbackDataUrl()).rejects.toThrow("Table element not found");
     });
 });
-

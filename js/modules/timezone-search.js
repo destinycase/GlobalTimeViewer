@@ -142,37 +142,37 @@
         function getSelectableTZEntries() {
             const entries = [];
             const zoneMap = getZoneMap();
+            const now = new Date();
             getSortedTZData(getTZDatabase()).forEach((tzData) => {
                 const mapping = zoneMap[tzData.zone];
-                if (Array.isArray(mapping) && mapping.length >= 2) {
+                const hasDstMapping = Array.isArray(mapping) && mapping.length >= 2;
+                const currentAbbr = normalizeZoneAbbreviation(getBetterAbbrSafe(tzData.zone, now));
+                if (hasDstMapping) {
                     const offsets = getZoneStandardDaylightOffsets(tzData.zone);
                     if (Number.isFinite(offsets.daylight) && Number.isFinite(offsets.standard) && offsets.daylight !== offsets.standard) {
+                        const currentOffset = getTimezoneOffsetSafe(tzData.zone, now);
+                        const inDaylight = Number.isFinite(currentOffset) ? currentOffset === offsets.daylight : false;
+                        const activeSuffix = inDaylight ? "dst" : "std";
+                        const activeAbbr = normalizeZoneAbbreviation(inDaylight ? mapping[1] : mapping[0]);
                         entries.push({
                             ...tzData,
                             kind: "country_region",
-                            key: `${tzData.zone}|dst`,
-                            abbr: normalizeZoneAbbreviation(mapping[1]),
-                            fixedOffsetMinutes: offsets.daylight
-                        });
-                        entries.push({
-                            ...tzData,
-                            kind: "country_region",
-                            key: `${tzData.zone}|std`,
-                            abbr: normalizeZoneAbbreviation(mapping[0]),
-                            fixedOffsetMinutes: offsets.standard
+                            key: `${tzData.zone}|${activeSuffix}`,
+                            abbr: activeAbbr || currentAbbr || normalizeZoneAbbreviation(mapping[0]),
+                            fixedOffsetMinutes: null
                         });
                         return;
                     }
                 }
 
-                const baseAbbr = Array.isArray(mapping)
+                const autoAbbr = Array.isArray(mapping)
                     ? normalizeZoneAbbreviation(mapping[0])
-                    : normalizeZoneAbbreviation(mapping || getBetterAbbrSafe(tzData.zone, new Date()));
+                    : normalizeZoneAbbreviation(mapping || currentAbbr);
                 entries.push({
                     ...tzData,
                     kind: "country_region",
                     key: `${tzData.zone}|auto`,
-                    abbr: baseAbbr || normalizeZoneAbbreviation(getBetterAbbrSafe(tzData.zone, new Date())),
+                    abbr: autoAbbr || currentAbbr,
                     fixedOffsetMinutes: null
                 });
             });
@@ -307,14 +307,23 @@
                     fixedOffsetMinutes
                 };
             }
+            const entryKey = (typeof entry.key === "string") ? entry.key.trim() : "";
+            const isAutoEntry = entryKey.endsWith("|auto");
+            const keyHasFixedVariant = entryKey.endsWith("|dst") || entryKey.endsWith("|std");
+            const hasFiniteOffset = Number.isFinite(entry.fixedOffsetMinutes);
+            const keepFixedFields = keyHasFixedVariant && hasFiniteOffset;
+            const fixedOffsetMinutes = keepFixedFields ? entry.fixedOffsetMinutes : null;
+            const fixedAbbr = keepFixedFields
+                ? normalizeZoneAbbreviation(entry.abbr)
+                : (isAutoEntry ? normalizeZoneAbbreviation(entry.abbr) : "");
             return {
                 id: createUniqueTimezoneId("tz"),
                 zone: entry.zone,
                 name_ko: `${entry.name} - ${entry.city}`,
                 name_en: `${entry.name_en} - ${entry.city_en}`,
                 type: "standard",
-                fixedAbbr: normalizeZoneAbbreviation(entry.abbr),
-                fixedOffsetMinutes: Number.isFinite(entry.fixedOffsetMinutes) ? entry.fixedOffsetMinutes : null
+                fixedAbbr,
+                fixedOffsetMinutes
             };
         }
 

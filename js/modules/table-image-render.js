@@ -38,6 +38,10 @@
             };
         }
 
+        function stripDstSuffix(value) {
+            return String(value || "").replace(/\s*\[DST\]\s*$/i, "").trim();
+        }
+
         function extractTableCellText(cell) {
             if (!cell) return "";
             const timeInput = cell.querySelector?.(".time-input");
@@ -60,7 +64,7 @@
             const zoneCode = (cell.querySelector?.(".zone-code")?.textContent || "").trim();
             if (zoneCode) return zoneCode;
             const zoneName = (cell.querySelector?.(".zone-name")?.textContent || "").trim();
-            if (zoneName) return zoneName;
+            if (zoneName) return stripDstSuffix(zoneName);
             const offsetText = (cell.querySelector?.(".offset-text")?.textContent || "").trim();
             if (offsetText) return offsetText;
             const periodDays = (cell.querySelector?.(".period-days-text")?.textContent || "").trim();
@@ -254,4 +258,3 @@
         createService
     });
 })(typeof window !== "undefined" ? window : globalThis);
-

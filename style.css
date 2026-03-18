@@ -2118,10 +2118,23 @@ input[type=number] {
     font-size: 16px;
     color: var(--accent);
     background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.24);
     padding: 4px 8px;
     border-radius: 2px;
     min-width: 65px;
     text-align: center;
+}
+
+.zone-code.zone-code-custom {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.34);
+}
+
+:root[data-theme="light"] .zone-code.zone-code-custom {
+    color: #b45309;
+    background: rgba(245, 158, 11, 0.16);
+    border-color: rgba(180, 83, 9, 0.32);
 }
 
 .zone-name {

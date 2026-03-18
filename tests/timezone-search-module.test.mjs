@@ -139,6 +139,157 @@ describe("GTV timezone search module", () => {
         });
     });
 
+    it("getSelectableTZEntries exposes a single active entry for DST zones", () => {
+        const module = loadTimezoneSearchModule();
+        const service = module.createService({
+            TZ_DATABASE: [
+                {
+                    zone: "America/New_York",
+                    name: "USA",
+                    city: "New York",
+                    name_en: "USA",
+                    city_en: "New York"
+                }
+            ],
+            ZONE_MAP: {
+                "America/New_York": ["EST", "EDT"]
+            },
+            getTimezoneOffset: (_zone, date) => {
+                const month = date.getUTCMonth();
+                if (month === 0) return -300;
+                if (month === 6) return -240;
+                return -240;
+            },
+            getBetterAbbr: () => "EDT"
+        });
+
+        const entries = service.getSelectableTZEntries();
+        expect(entries).toHaveLength(1);
+        expect(entries[0].key).toMatch(/^America\/New_York\|(dst|std)$/);
+        expect(entries[0].fixedOffsetMinutes).toBe(null);
+        expect(["EST", "EDT"]).toContain(entries[0].abbr);
+        expect(entries.some((entry) => entry.key.endsWith("|auto"))).toBe(false);
+    });
+
+    it("createStandardTimezoneFromSelectableEntry keeps dst/std entries fixed", () => {
+        const module = loadTimezoneSearchModule();
+        const service = module.createService({
+            createUniqueTimezoneId: () => "tz-fixed"
+        });
+
+        const result = service.createStandardTimezoneFromSelectableEntry({
+            kind: "country_region",
+            key: "America/New_York|dst",
+            zone: "America/New_York",
+            name: "USA",
+            city: "New York",
+            name_en: "USA",
+            city_en: "New York",
+            abbr: "EDT",
+            fixedOffsetMinutes: -240
+        });
+
+        expect(result).toMatchObject({
+            id: "tz-fixed",
+            zone: "America/New_York",
+            fixedAbbr: "EDT",
+            fixedOffsetMinutes: -240
+        });
+    });
+
+    it("createStandardTimezoneFromSelectableEntry clears fixed fields for dst/std when offset is not fixed", () => {
+        const module = loadTimezoneSearchModule();
+        const service = module.createService({
+            createUniqueTimezoneId: () => "tz-dynamic"
+        });
+
+        const result = service.createStandardTimezoneFromSelectableEntry({
+            kind: "country_region",
+            key: "America/New_York|dst",
+            zone: "America/New_York",
+            name: "USA",
+            city: "New York",
+            name_en: "USA",
+            city_en: "New York",
+            abbr: "EDT",
+            fixedOffsetMinutes: null
+        });
+
+        expect(result).toMatchObject({
+            id: "tz-dynamic",
+            zone: "America/New_York",
+            fixedAbbr: "",
+            fixedOffsetMinutes: null
+        });
+    });
+
+    it("createStandardTimezoneFromSelectableEntry clears fixed fields for auto entries", () => {
+        const module = loadTimezoneSearchModule();
+        const service = module.createService({
+            createUniqueTimezoneId: () => "tz-auto"
+        });
+
+        const result = service.createStandardTimezoneFromSelectableEntry({
+            kind: "country_region",
+            key: "America/New_York|auto",
+            zone: "America/New_York",
+            name: "USA",
+            city: "New York",
+            name_en: "USA",
+            city_en: "New York",
+            abbr: "EST",
+            fixedOffsetMinutes: -300
+        });
+
+        expect(result).toMatchObject({
+            id: "tz-auto",
+            zone: "America/New_York",
+            fixedAbbr: "EST",
+            fixedOffsetMinutes: null
+        });
+    });
+
+    it("addFromSearchWithData keeps DST zone rows dynamic from existing selectable key", () => {
+        const added = [];
+        const module = loadTimezoneSearchModule();
+        const service = module.createService({
+            TZ_DATABASE: [
+                {
+                    zone: "America/New_York",
+                    name: "USA",
+                    city: "New York",
+                    name_en: "USA",
+                    city_en: "New York"
+                }
+            ],
+            ZONE_MAP: {
+                "America/New_York": ["EST", "EDT"]
+            },
+            getTimezoneOffset: (_zone, date) => {
+                const month = date.getUTCMonth();
+                if (month === 0) return -300;
+                if (month === 6) return -240;
+                return -240;
+            },
+            getBetterAbbr: () => "EDT",
+            createUniqueTimezoneId: () => "tz-ny",
+            addTimezone: (timezone) => {
+                added.push(timezone);
+            }
+        });
+
+        const entry = service.getSelectableTZEntries()[0];
+        service.addFromSearchWithData(entry.key);
+
+        expect(added).toHaveLength(1);
+        expect(added[0]).toMatchObject({
+            id: "tz-ny",
+            zone: "America/New_York",
+            fixedAbbr: "",
+            fixedOffsetMinutes: null
+        });
+    });
+
     it("updateTZDropdown exits safely when quick select element is missing", () => {
         const module = loadTimezoneSearchModule({
             document: {

@@ -24,6 +24,24 @@
             return String(key || "");
         }
 
+        function isValidDate(value) {
+            return value instanceof Date && Number.isFinite(value.getTime());
+        }
+
+        function getSlotZeroAnchorDate() {
+            const slotZero = invokeDep("getGlobalTime", 0);
+            if (isValidDate(slotZero)) return slotZero;
+            return new Date();
+        }
+
+        function getZoneDisplayNameForUiAtDate(tz, anchorDate = getSlotZeroAnchorDate()) {
+            const uiName = invokeDep("getZoneDisplayNameForUiAtDate", tz, anchorDate);
+            if (typeof uiName === "string" && uiName.trim()) return uiName;
+            const baseName = invokeDep("getZoneDisplayName", tz);
+            if (typeof baseName === "string" && baseName.trim()) return baseName;
+            return "";
+        }
+
         function getDisplayEnabledMap() {
             const enabled = invokeDep("getDisplayFormatEnabled");
             return (enabled && typeof enabled === "object") ? enabled : {};
@@ -76,6 +94,13 @@
             if (showDate) return "date";
             if (showTime) return "time";
             return "none";
+        }
+
+        function applyZoneCodeKindClass(zoneCodeEl, timezoneRef = null) {
+            if (!zoneCodeEl || !zoneCodeEl.classList || typeof zoneCodeEl.classList.toggle !== "function") return;
+            const isCustom = !!(timezoneRef && timezoneRef.type === "custom");
+            zoneCodeEl.classList.toggle("zone-code-custom", isCustom);
+            zoneCodeEl.classList.toggle("zone-code-standard", !isCustom);
         }
 
         function buildTimeColumnCell(slotIdx, slotCountToRender, options = {}) {
@@ -205,7 +230,7 @@
             return `${copyCell}${removeCell}`;
         }
 
-        function createInteractiveTimezoneRow(tz, effectiveSlotCount, displayColumns, rowId = tz?.id) {
+        function createInteractiveTimezoneRow(tz, effectiveSlotCount, displayColumns, rowId = tz?.id, anchorDate = getSlotZeroAnchorDate()) {
             const doc = getDocumentRef();
             if (!doc || typeof doc.createElement !== "function") return null;
             const safeTz = (tz && typeof tz === "object") ? tz : {};
@@ -225,7 +250,8 @@
             tr.insertAdjacentHTML('beforeend', inner);
 
             const zoneNameEl = tr.querySelector(".zone-name");
-            if (zoneNameEl) zoneNameEl.textContent = invokeDep("getZoneDisplayName", safeTz) || "";
+            if (zoneNameEl) zoneNameEl.textContent = getZoneDisplayNameForUiAtDate(safeTz, anchorDate) || "";
+            applyZoneCodeKindClass(tr.querySelector(".zone-code"), safeTz);
 
             const copyBtn = tr.querySelector(".copy-row-btn");
             if (copyBtn) copyBtn.addEventListener("click", () => invokeDep("copyRow", safeRowId));
@@ -315,7 +341,8 @@
             const effectiveSlotCount = invokeDep("isRealtime") ? 1 : getSlotCountSafe();
             const displayColumns = getDisplayColumns(effectiveSlotCount);
             const baseRef = invokeDep("getBaseTimezoneRef") || { id: "utc", zone: "UTC" };
-            const baseZoneName = invokeDep("getZoneDisplayName", baseRef) || "";
+            const anchorDate = getSlotZeroAnchorDate();
+            const baseZoneName = getZoneDisplayNameForUiAtDate(baseRef, anchorDate) || "";
             const escapedBaseZoneName = invokeDep("escapeHtml", baseZoneName);
             const baseRefName = (typeof escapedBaseZoneName === "string") ? escapedBaseZoneName : String(baseZoneName);
             const theadRow = doc.querySelector?.("#table-head tr");
@@ -343,6 +370,7 @@
             });
             baseInner += buildRowActionCells(translate("tooltip_copy"), "");
             baseRow.insertAdjacentHTML('beforeend', baseInner);
+            applyZoneCodeKindClass(baseRow.querySelector(".zone-code"), baseRef);
             const baseCopyBtn = baseRow.querySelector(".copy-row-btn");
             if (baseCopyBtn) baseCopyBtn.addEventListener("click", () => invokeDep("copyRow", baseRef.id));
             container.appendChild(baseRow);
@@ -382,7 +410,7 @@
             rowsToRender.forEach((tz) => {
                 if (!tz || typeof tz !== "object") return;
                 const rowId = tz.id === "utc" ? "utc" : tz.id;
-                const row = createInteractiveTimezoneRow(tz, effectiveSlotCount, displayColumns, rowId);
+                const row = createInteractiveTimezoneRow(tz, effectiveSlotCount, displayColumns, rowId, anchorDate);
                 if (row) container.appendChild(row);
             });
 

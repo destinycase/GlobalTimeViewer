@@ -263,7 +263,8 @@
                     const offH = parseInt(offHInput?.value, 10) || 0;
                     const offM = parseInt(offMInput?.value, 10) || 0;
                     if (!name) return showToast(t("toast_input_name"));
-                    addTimezone({ id: createUniqueTimezoneId("tz-c"), abbr, name, offH, offM, type: "custom" });
+                    const added = addTimezone({ id: createUniqueTimezoneId("tz-c"), abbr, name, offH, offM, type: "custom" });
+                    if (added === false) return;
                     if (abbrInput) abbrInput.value = "";
                     if (nameInput) nameInput.value = "";
                 });
