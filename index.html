@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Time Viwer v3.10.1</title>
-    <script src="i18n.js"></script>
+    <title>Global Time Viewer</title>
+    <script src="i18n.js" defer></script>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -26,8 +26,8 @@
             <div class="logo">
                 <span class="logo-icon">&#127760;</span>
                 <div class="logo-text">
-                    <h1>Global Time Viwer</h1>
-                    <span class="version-badge" id="version-badge">ver 3.11.1</span>
+                    <h1>Global Time Viewer</h1>
+                    <span class="version-badge" id="version-badge"></span>
                 </div>
             </div>
 
@@ -92,13 +92,13 @@
 
         <!-- Main Dashboard -->
         <main class="main-content">
-            <!-- Group Tabs Bar (?ㅼ떆媛?怨좎젙 ?쒓컙?먯꽌留??쒖떆, 怨꾩궛湲곗뿉?쒕뒗 ?④?) -->
+            <!-- Group tabs are rendered by JavaScript. -->
             <div id="group-tabs-container" class="group-tabs">
                 <!-- Tabs rendered by JS -->
                 <button class="sm-btn" id="add-group-btn">+</button>
             </div>
 
-            <!-- Global Control Bar (?ㅼ떆媛?怨좎젙 ?쒓컙?먯꽌留??쒖떆, 怨꾩궛湲곗뿉?쒕뒗 ?④?) -->
+            <!-- Main controls are rendered by JavaScript. -->
             <div id="top-control-bar" class="control-bar">
                 <div class="control-row control-row-main">
                     <div class="control-group">
@@ -630,90 +630,92 @@
     <input type="file" id="group-import-file" accept="application/json,.json" style="display:none;">
     <input type="file" id="subgroup-import-file" accept="application/json,.json" style="display:none;">
 
-    <script src="js/vendor/luxon.min.js"></script>
-    <script src="js/modules/app-config.js"></script>
-    <script src="js/modules/main-constants.js"></script>
-    <script src="js/modules/main-module-resolver.js"></script>
-    <script src="js/modules/main-module-spec.js"></script>
-    <script src="js/modules/main-foundation-services.js"></script>
-    <script src="js/modules/main-app-state-services.js"></script>
-    <script src="js/modules/main-persistence-services.js"></script>
-    <script src="js/modules/main-group-tabs-service.js"></script>
-    <script src="js/modules/main-image-runtime-services.js"></script>
-    <script src="js/modules/main-image-export-services.js"></script>
-    <script src="js/modules/main-image-export-bridge-proxy.js"></script>
-    <script src="js/modules/main-image-export-naming-proxy.js"></script>
-    <script src="js/modules/main-row-order-services.js"></script>
-    <script src="js/modules/main-row-view-services.js"></script>
-    <script src="js/modules/main-select-services.js"></script>
-    <script src="js/modules/main-group-localization-services.js"></script>
-    <script src="js/modules/main-persistence-snapshot-services.js"></script>
-    <script src="js/modules/main-persistence-composition-services.js"></script>
-    <script src="js/modules/main-clock-orchestrator-services.js"></script>
-    <script src="js/modules/main-timezone-runtime-services.js"></script>
-    <script src="js/modules/main-timezone-mutation-services.js"></script>
-    <script src="js/modules/main-base-timezone-services.js"></script>
-    <script src="js/modules/main-runtime-composition-services.js"></script>
-    <script src="js/modules/main-fixed-time-services.js"></script>
-    <script src="js/modules/main-multi-range-services.js"></script>
-    <script src="js/modules/main-time-adjust-services.js"></script>
-    <script src="js/modules/main-tab-services.js"></script>
-    <script src="js/modules/main-group-state-services.js"></script>
-    <script src="js/modules/main-ui-runtime-services.js"></script>
-    <script src="js/modules/service-bootstrap.js"></script>
-    <script src="js/modules/app-state-patcher.js"></script>
-    <script src="js/modules/date-picker.js"></script>
-    <script src="js/modules/time-core.js"></script>
-    <script src="js/modules/time-input-mutations.js"></script>
-    <script src="js/modules/timer-engine.js"></script>
-    <script src="js/modules/time-service.js"></script>
-    <script src="js/modules/timezone-data.js"></script>
-    <script src="js/modules/calculator.js"></script>
-    <script src="js/modules/calculator-actions.js"></script>
-    <script src="js/modules/multi-state.js"></script>
-    <script src="js/modules/image-export.js"></script>
-    <script src="js/modules/image-export-actions.js"></script>
-    <script src="js/modules/image-export-bridge.js"></script>
-    <script src="js/modules/image-export-naming.js"></script>
-    <script src="js/modules/image-clone.js"></script>
-    <script src="js/modules/image-foreign-render.js"></script>
-    <script src="js/modules/group-state.js"></script>
-    <script src="js/modules/group-context-state.js"></script>
-    <script src="js/modules/group-tabs.js"></script>
-    <script src="js/modules/timezone-search.js"></script>
-    <script src="js/modules/snapshot-format.js"></script>
-    <script src="js/modules/table-render.js"></script>
-    <script src="js/modules/table-image-render.js"></script>
-    <script src="js/modules/multi-range-image-render.js"></script>
-    <script src="js/modules/multi-range-state.js"></script>
-    <script src="js/modules/multi-range-render.js"></script>
-    <script src="js/modules/multi-range-copy.js"></script>
-    <script src="js/modules/copy-actions.js"></script>
-    <script src="js/modules/time-adjust-ui.js"></script>
-    <script src="js/modules/time-adjust-actions.js"></script>
-    <script src="js/modules/multi-bulk-tools.js"></script>
-    <script src="js/modules/timeline-frame.js"></script>
-    <script src="js/modules/fixed-time-core.js"></script>
-    <script src="js/modules/fixed-time-slot-utils.js"></script>
-    <script src="js/modules/fixed-time-state.js"></script>
-    <script src="js/modules/fixed-time-timeline.js"></script>
-    <script src="js/modules/fixed-time-actions.js"></script>
-    <script src="js/modules/fixed-time-table.js"></script>
-    <script src="js/modules/format-profile-state.js"></script>
-    <script src="js/modules/format-controls.js"></script>
-    <script src="js/modules/tab-ui.js"></script>
-    <script src="js/modules/tab-orchestrator.js"></script>
-    <script src="js/modules/main-ui-init.js"></script>
-    <script src="js/modules/main-ui-utils.js"></script>
-    <script src="js/modules/app-feedback.js"></script>
-    <script src="js/modules/ui-settings-actions.js"></script>
-    <script src="js/modules/app-persistence-state.js"></script>
-    <script src="js/modules/persistence-service-bundle.js"></script>
-    <script src="js/modules/state-persistence.js"></script>
-    <script src="js/modules/ui-preferences-state.js"></script>
-    <script src="js/modules/settings-io.js"></script>
-    <script src="js/modules/data-transfer.js"></script>
-    <script src="main.js"></script>
+    <script src="js/vendor/luxon.min.js" defer></script>
+    <script src="js/modules/app-config.js" defer></script>
+    <script src="js/modules/main-constants.js" defer></script>
+    <script src="js/modules/main-module-resolver.js" defer></script>
+    <script src="js/modules/main-module-spec.js" defer></script>
+    <script src="js/modules/main-foundation-services.js" defer></script>
+    <script src="js/modules/main-app-state-services.js" defer></script>
+    <script src="js/modules/main-persistence-services.js" defer></script>
+    <script src="js/modules/main-group-tabs-service.js" defer></script>
+    <script src="js/modules/main-image-runtime-services.js" defer></script>
+    <script src="js/modules/main-image-export-services.js" defer></script>
+    <script src="js/modules/main-image-export-bridge-proxy.js" defer></script>
+    <script src="js/modules/main-image-export-naming-proxy.js" defer></script>
+    <script src="js/modules/main-row-order-services.js" defer></script>
+    <script src="js/modules/main-row-view-services.js" defer></script>
+    <script src="js/modules/main-select-services.js" defer></script>
+    <script src="js/modules/main-group-localization-services.js" defer></script>
+    <script src="js/modules/main-orchestration-flow-services.js" defer></script>
+    <script src="js/modules/main-persistence-snapshot-services.js" defer></script>
+    <script src="js/modules/main-persistence-composition-services.js" defer></script>
+    <script src="js/modules/main-clock-orchestrator-services.js" defer></script>
+    <script src="js/modules/main-timezone-runtime-services.js" defer></script>
+    <script src="js/modules/main-timezone-mutation-services.js" defer></script>
+    <script src="js/modules/main-base-timezone-services.js" defer></script>
+    <script src="js/modules/main-runtime-composition-services.js" defer></script>
+    <script src="js/modules/main-fixed-time-services.js" defer></script>
+    <script src="js/modules/main-multi-range-services.js" defer></script>
+    <script src="js/modules/main-time-adjust-services.js" defer></script>
+    <script src="js/modules/main-tab-services.js" defer></script>
+    <script src="js/modules/main-group-state-services.js" defer></script>
+    <script src="js/modules/main-ui-runtime-services.js" defer></script>
+    <script src="js/modules/service-bootstrap.js" defer></script>
+    <script src="js/modules/app-state-patcher.js" defer></script>
+    <script src="js/modules/date-picker.js" defer></script>
+    <script src="js/modules/time-core.js" defer></script>
+    <script src="js/modules/time-input-mutations.js" defer></script>
+    <script src="js/modules/timer-engine.js" defer></script>
+    <script src="js/modules/time-service.js" defer></script>
+    <script src="js/modules/timezone-data.js" defer></script>
+    <script src="js/modules/calculator.js" defer></script>
+    <script src="js/modules/calculator-actions.js" defer></script>
+    <script src="js/modules/multi-state.js" defer></script>
+    <script src="js/modules/image-export.js" defer></script>
+    <script src="js/modules/image-export-actions.js" defer></script>
+    <script src="js/modules/image-export-bridge.js" defer></script>
+    <script src="js/modules/image-export-naming.js" defer></script>
+    <script src="js/modules/image-clone.js" defer></script>
+    <script src="js/modules/image-foreign-render.js" defer></script>
+    <script src="js/modules/group-state.js" defer></script>
+    <script src="js/modules/group-context-state.js" defer></script>
+    <script src="js/modules/group-tabs.js" defer></script>
+    <script src="js/modules/timezone-search.js" defer></script>
+    <script src="js/modules/snapshot-format.js" defer></script>
+    <script src="js/modules/table-render.js" defer></script>
+    <script src="js/modules/table-image-render.js" defer></script>
+    <script src="js/modules/multi-range-image-render.js" defer></script>
+    <script src="js/modules/multi-range-state.js" defer></script>
+    <script src="js/modules/multi-range-render.js" defer></script>
+    <script src="js/modules/multi-range-copy.js" defer></script>
+    <script src="js/modules/copy-actions.js" defer></script>
+    <script src="js/modules/time-adjust-ui.js" defer></script>
+    <script src="js/modules/time-adjust-actions.js" defer></script>
+    <script src="js/modules/multi-bulk-tools.js" defer></script>
+    <script src="js/modules/timeline-frame.js" defer></script>
+    <script src="js/modules/fixed-time-core.js" defer></script>
+    <script src="js/modules/fixed-time-slot-utils.js" defer></script>
+    <script src="js/modules/fixed-time-state.js" defer></script>
+    <script src="js/modules/fixed-time-timeline.js" defer></script>
+    <script src="js/modules/fixed-time-actions.js" defer></script>
+    <script src="js/modules/fixed-time-table.js" defer></script>
+    <script src="js/modules/format-profile-state.js" defer></script>
+    <script src="js/modules/format-controls.js" defer></script>
+    <script src="js/modules/tab-ui.js" defer></script>
+    <script src="js/modules/tab-orchestrator.js" defer></script>
+    <script src="js/modules/main-ui-init.js" defer></script>
+    <script src="js/modules/main-ui-utils.js" defer></script>
+    <script src="js/modules/app-feedback.js" defer></script>
+    <script src="js/modules/ui-settings-actions.js" defer></script>
+    <script src="js/modules/app-persistence-state.js" defer></script>
+    <script src="js/modules/persistence-service-bundle.js" defer></script>
+    <script src="js/modules/state-persistence.js" defer></script>
+    <script src="js/modules/ui-preferences-state.js" defer></script>
+    <script src="js/modules/settings-io.js" defer></script>
+    <script src="js/modules/data-transfer.js" defer></script>
+    <script src="main.js" defer></script>
 </body>
 
 </html>
+

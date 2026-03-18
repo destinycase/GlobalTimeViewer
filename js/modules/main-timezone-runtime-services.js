@@ -60,7 +60,8 @@
         function setCappedRuntimeCache(cache, key, value) {
             if (!(cache instanceof Map)) return;
             if (cache.size >= maxRuntimeCacheSize) {
-                cache.clear();
+                const oldestKey = cache.keys().next().value;
+                if (oldestKey !== undefined) cache.delete(oldestKey);
             }
             cache.set(key, value);
         }

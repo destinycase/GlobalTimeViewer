@@ -73,6 +73,7 @@
             GTV_MAIN_ROW_VIEW_SERVICES: { globalName: "GTVMainRowViewServices", errorLabel: "GTVMainRowViewServices", requiredMethod: "createService" },
             GTV_MAIN_SELECT_SERVICES: { globalName: "GTVMainSelectServices", errorLabel: "GTVMainSelectServices", requiredMethod: "createService" },
             GTV_MAIN_GROUP_LOCALIZATION_SERVICES: { globalName: "GTVMainGroupLocalizationServices", errorLabel: "GTVMainGroupLocalizationServices", requiredMethod: "createService" },
+            GTV_MAIN_ORCHESTRATION_FLOW_SERVICES: { globalName: "GTVMainOrchestrationFlowServices", errorLabel: "GTVMainOrchestrationFlowServices", requiredMethod: "createService" },
             GTV_MAIN_PERSISTENCE_SNAPSHOT_SERVICES: { globalName: "GTVMainPersistenceSnapshotServices", errorLabel: "GTVMainPersistenceSnapshotServices", requiredMethod: "createService" },
             GTV_MAIN_PERSISTENCE_COMPOSITION_SERVICES: { globalName: "GTVMainPersistenceCompositionServices", errorLabel: "GTVMainPersistenceCompositionServices", requiredMethod: "createService" },
             GTV_MAIN_CLOCK_ORCHESTRATOR_SERVICES: { globalName: "GTVMainClockOrchestratorServices", errorLabel: "GTVMainClockOrchestratorServices", requiredMethod: "createService" },

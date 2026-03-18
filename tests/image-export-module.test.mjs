@@ -169,7 +169,7 @@ test("saveTimezoneTableImage uses combined multi-range renderer in multi tab", a
     expect(multiRenderCalls).toBe(1);
     expect(timezoneRenderCalls).toBe(0);
     expect(doc.anchors.length).toBe(1);
-    expect(doc.anchors[0].download).toMatch(/^GlobalTimeViwer_MultiRanges_All_\d+\.png$/);
+    expect(doc.anchors[0].download).toMatch(/^GlobalTimeViewer_MultiRanges_All_\d+\.png$/);
 });
 
 test("saveTimezoneTableImage uses timezone fallback renderer when foreign object is unavailable", async () => {
@@ -288,5 +288,5 @@ test("saveMultiRangeSingleImage uses provided range index", async () => {
 
     expect(observedRangeIndexes).toEqual([3]);
     expect(doc.anchors.length).toBe(1);
-    expect(doc.anchors[0].download).toMatch(/^GlobalTimeViwer_MultiRange_Range_4_\d+\.png$/);
+    expect(doc.anchors[0].download).toMatch(/^GlobalTimeViewer_MultiRange_Range_4_\d+\.png$/);
 });

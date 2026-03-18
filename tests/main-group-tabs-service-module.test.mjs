@@ -41,6 +41,7 @@ describe("GTV main group tabs service module", () => {
             },
             t: (key) => key,
             showToast: () => {},
+            confirmFn: () => false,
             getState: () => ({}),
             setState: () => {},
             isMultiTab: () => false,
@@ -75,6 +76,7 @@ describe("GTV main group tabs service module", () => {
         });
 
         expect(result.groupTabsService).toBe(groupTabsService);
+        expect(config.confirmFn()).toBe(false);
 
         config.renderGroups();
         config.renderMultiSubgroups();

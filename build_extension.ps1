@@ -1,9 +1,75 @@
+param(
+    [switch]$EnforceVersionConsistency
+)
+
 $ErrorActionPreference = "Stop"
+$utf8NoBOM = New-Object System.Text.UTF8Encoding($false)
+
+function Sync-VersionMetadata {
+    param(
+        [string]$RootDir,
+        [switch]$EnforceVersionConsistency
+    )
+
+    $packagePath = Join-Path $RootDir "package.json"
+    $manifestPath = Join-Path $RootDir "manifest.json"
+    $appConfigPath = Join-Path $RootDir "js\modules\app-config.js"
+
+    if (!(Test-Path $packagePath) -or !(Test-Path $manifestPath) -or !(Test-Path $appConfigPath)) {
+        throw "Version sync failed: required files are missing."
+    }
+
+    $pkg = Get-Content $packagePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $version = [string]$pkg.version
+    if ([string]::IsNullOrWhiteSpace($version)) {
+        throw "Version sync failed: package.json version is empty."
+    }
+
+    $manifestContent = Get-Content $manifestPath -Raw -Encoding UTF8
+    $appConfigContent = Get-Content $appConfigPath -Raw -Encoding UTF8
+
+    $manifestVersionMatch = [regex]::Match($manifestContent, '"version"\s*:\s*"([^"]+)"')
+    $manifestVersionNameMatch = [regex]::Match($manifestContent, '"version_name"\s*:\s*"([^"]+)"')
+    $appConfigVersionMatch = [regex]::Match($appConfigContent, 'VERSION:\s*"([^"]+)"')
+    if (!$manifestVersionMatch.Success -or !$manifestVersionNameMatch.Success -or !$appConfigVersionMatch.Success) {
+        throw "Version sync failed: could not parse one or more version fields."
+    }
+
+    $manifestVersion = [string]$manifestVersionMatch.Groups[1].Value
+    $manifestVersionName = [string]$manifestVersionNameMatch.Groups[1].Value
+    $appConfigVersion = [string]$appConfigVersionMatch.Groups[1].Value
+    $mismatches = @()
+    if ($manifestVersion -ne $version) { $mismatches += "manifest.json version=$manifestVersion" }
+    if ($manifestVersionName -ne $version) { $mismatches += "manifest.json version_name=$manifestVersionName" }
+    if ($appConfigVersion -ne $version) { $mismatches += "js/modules/app-config.js VERSION=$appConfigVersion" }
+    if ($EnforceVersionConsistency -and $mismatches.Count -gt 0) {
+        $joined = [string]::Join("; ", $mismatches)
+        throw "Version consistency check failed. package.json version=$version; mismatches: $joined"
+    }
+
+    $nextManifest = [regex]::Replace($manifestContent, '"version"\s*:\s*"[^"]+"', "`"version`": `"$version`"")
+    $nextManifest = [regex]::Replace($nextManifest, '"version_name"\s*:\s*"[^"]+"', "`"version_name`": `"$version`"")
+    if ($nextManifest -ne $manifestContent) {
+        [System.IO.File]::WriteAllText($manifestPath, $nextManifest, $utf8NoBOM)
+        Write-Host "Synced manifest version to $version" -ForegroundColor DarkGray
+    }
+
+    $nextAppConfig = [regex]::Replace($appConfigContent, 'VERSION:\s*"[^"]+"', "VERSION: `"$version`"")
+    if ($nextAppConfig -ne $appConfigContent) {
+        [System.IO.File]::WriteAllText($appConfigPath, $nextAppConfig, $utf8NoBOM)
+        Write-Host "Synced app-config version to $version" -ForegroundColor DarkGray
+    }
+}
 
 Push-Location $PSScriptRoot
 try {
+    if ($EnforceVersionConsistency) {
+        Write-Host "Strict version consistency mode enabled." -ForegroundColor DarkGray
+    }
+    Sync-VersionMetadata -RootDir $PSScriptRoot -EnforceVersionConsistency:$EnforceVersionConsistency
+
     $destDir = "dist_extension"
-    $zipFile = "GlobalTimeViwer_extension.zip"
+    $zipFile = "GlobalTimeViewer_extension.zip"
 
     # Reset destination directory if it exists
     if (Test-Path $destDir) {
@@ -12,7 +78,6 @@ try {
     New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 
     Write-Host "Creating temporary Vite entry file..." -ForegroundColor Cyan
-    $utf8NoBOM = New-Object System.Text.UTF8Encoding($false)
     $indexPath = "$PSScriptRoot\index.html"
     $originalIndexContent = Get-Content $indexPath -Raw -Encoding UTF8
 

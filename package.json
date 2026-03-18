@@ -1,7 +1,7 @@
 {
-  "name": "globaltimeviwer",
-  "version": "3.11.1",
-  "description": "Global Time Viwer는 여러 시간대를 빠르게 비교하고, 시간 조정/기간 계산/복사/이미지 저장까지 처리할 수 있는 브라우저 기반 도구입니다.",
+  "name": "globaltimeviewer",
+  "version": "3.11.2",
+  "description": "Global Time Viewer는 여러 시간대를 빠르게 비교하고, 시간 조정/기간 계산/복사/이미지 저장까지 처리할 수 있는 브라우저 기반 도구입니다.",
   "main": "main.js",
   "directories": {
     "test": "tests"
@@ -9,7 +9,9 @@
   "scripts": {
     "test": "vitest",
     "build": "powershell -ExecutionPolicy Bypass -File build_extension.ps1",
-    "build:vite": "vite build"
+    "build:strict": "powershell -ExecutionPolicy Bypass -File build_extension.ps1 -EnforceVersionConsistency",
+    "build:vite": "vite build",
+    "ci:gate": "npm run test -- --run && npm run build:strict"
   },
   "keywords": [],
   "author": "",

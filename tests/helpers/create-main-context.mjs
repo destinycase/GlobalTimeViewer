@@ -23,6 +23,7 @@ const MAIN_ROW_ORDER_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "m
 const MAIN_ROW_VIEW_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-row-view-services.js");
 const MAIN_SELECT_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-select-services.js");
 const MAIN_GROUP_LOCALIZATION_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-group-localization-services.js");
+const MAIN_ORCHESTRATION_FLOW_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-orchestration-flow-services.js");
 const MAIN_PERSISTENCE_SNAPSHOT_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-persistence-snapshot-services.js");
 const MAIN_PERSISTENCE_COMPOSITION_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-persistence-composition-services.js");
 const MAIN_CLOCK_ORCHESTRATOR_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-clock-orchestrator-services.js");
@@ -191,6 +192,7 @@ export function createMainContext() {
     const mainRowViewServicesCode = fs.readFileSync(MAIN_ROW_VIEW_SERVICES_MODULE_PATH, "utf8");
     const mainSelectServicesCode = fs.readFileSync(MAIN_SELECT_SERVICES_MODULE_PATH, "utf8");
     const mainGroupLocalizationServicesCode = fs.readFileSync(MAIN_GROUP_LOCALIZATION_SERVICES_MODULE_PATH, "utf8");
+    const mainOrchestrationFlowServicesCode = fs.readFileSync(MAIN_ORCHESTRATION_FLOW_SERVICES_MODULE_PATH, "utf8");
     const mainPersistenceSnapshotServicesCode = fs.readFileSync(MAIN_PERSISTENCE_SNAPSHOT_SERVICES_MODULE_PATH, "utf8");
     const mainPersistenceCompositionServicesCode = fs.readFileSync(MAIN_PERSISTENCE_COMPOSITION_SERVICES_MODULE_PATH, "utf8");
     const mainClockOrchestratorServicesCode = fs.readFileSync(MAIN_CLOCK_ORCHESTRATOR_SERVICES_MODULE_PATH, "utf8");
@@ -343,6 +345,7 @@ export function createMainContext() {
     vm.runInContext(mainRowViewServicesCode, sandbox, { filename: "js/modules/main-row-view-services.js" });
     vm.runInContext(mainSelectServicesCode, sandbox, { filename: "js/modules/main-select-services.js" });
     vm.runInContext(mainGroupLocalizationServicesCode, sandbox, { filename: "js/modules/main-group-localization-services.js" });
+    vm.runInContext(mainOrchestrationFlowServicesCode, sandbox, { filename: "js/modules/main-orchestration-flow-services.js" });
     vm.runInContext(mainPersistenceSnapshotServicesCode, sandbox, { filename: "js/modules/main-persistence-snapshot-services.js" });
     vm.runInContext(mainPersistenceCompositionServicesCode, sandbox, { filename: "js/modules/main-persistence-composition-services.js" });
     vm.runInContext(mainClockOrchestratorServicesCode, sandbox, { filename: "js/modules/main-clock-orchestrator-services.js" });

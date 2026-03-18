@@ -28,6 +28,7 @@ describe("GTV main module spec", () => {
         expect(specMap.GTV_MAIN_ROW_VIEW_SERVICES.globalName).toBe("GTVMainRowViewServices");
         expect(specMap.GTV_MAIN_SELECT_SERVICES.globalName).toBe("GTVMainSelectServices");
         expect(specMap.GTV_MAIN_GROUP_LOCALIZATION_SERVICES.globalName).toBe("GTVMainGroupLocalizationServices");
+        expect(specMap.GTV_MAIN_ORCHESTRATION_FLOW_SERVICES.globalName).toBe("GTVMainOrchestrationFlowServices");
         expect(specMap.GTV_MAIN_PERSISTENCE_SNAPSHOT_SERVICES.globalName).toBe("GTVMainPersistenceSnapshotServices");
         expect(specMap.GTV_MAIN_PERSISTENCE_COMPOSITION_SERVICES.globalName).toBe("GTVMainPersistenceCompositionServices");
         expect(specMap.GTV_MAIN_CLOCK_ORCHESTRATOR_SERVICES.globalName).toBe("GTVMainClockOrchestratorServices");

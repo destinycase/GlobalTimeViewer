@@ -72,7 +72,7 @@
             callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_generating", "toast_table_image_generating"), { type: "loading" });
             callDep(deps, "ensureMultiRangeState", null);
             const dataUrl = await callDepAsync(deps, "renderMultiRangeTitlesToPngDataUrl", "");
-            const fileName = callDep(deps, "getMultiRangeTitlesImageFilename", `GlobalTimeViwer_MultiRanges_Titles_${Date.now()}.png`);
+            const fileName = callDep(deps, "getMultiRangeTitlesImageFilename", `GlobalTimeViewer_MultiRanges_Titles_${Date.now()}.png`);
             if (!dataUrl) throw new Error("Image render failed");
             await downloadDataUrl(dataUrl, fileName);
             callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });
@@ -93,7 +93,7 @@
             callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_generating", "toast_table_image_generating"), { type: "loading" });
             const dataUrl = await callDepAsync(deps, "renderMultiRangesToPngDataUrl", "");
             if (!dataUrl) throw new Error("Image render failed");
-            const filename = `GlobalTimeViwer_MultiRanges_All_${Date.now()}.png`;
+            const filename = `GlobalTimeViewer_MultiRanges_All_${Date.now()}.png`;
             await downloadDataUrl(dataUrl, filename);
             callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });
         } catch (err) {
@@ -113,7 +113,7 @@
             callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_generating", "toast_table_image_generating"), { type: "loading" });
             const dataUrl = await callDepAsync(deps, "renderMultiRangeSingleToPngDataUrl", "", rangeIdx);
             if (!dataUrl) throw new Error("Image render failed");
-            const filename = `GlobalTimeViwer_MultiRange_Range_${rangeIdx + 1}_${Date.now()}.png`;
+            const filename = `GlobalTimeViewer_MultiRange_Range_${rangeIdx + 1}_${Date.now()}.png`;
             await downloadDataUrl(dataUrl, filename);
             callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });
         } catch (err) {
@@ -155,7 +155,7 @@
                 dataUrl = await callDepAsync(deps, "renderTimezoneTableFallbackDataUrl", "");
             }
             if (!dataUrl) throw new Error("Image render failed");
-            const baseName = callDep(deps, "getTimezoneTableImageFilename", `GlobalTimeViwer_Table_${Date.now()}`);
+            const baseName = callDep(deps, "getTimezoneTableImageFilename", `GlobalTimeViewer_Table_${Date.now()}`);
             const filename = `${baseName}.png`;
             await downloadDataUrl(dataUrl, filename);
             callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });

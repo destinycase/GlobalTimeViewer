@@ -73,6 +73,7 @@
             switchMainTab: safeDeps.switchMainTab,
             showToast: safeDeps.showToast,
             t: safeDeps.t,
+            confirmFn: safeDeps.confirmFn,
             tFormat: safeDeps.tFormat,
             applyVersionBranding: safeDeps.applyVersionBranding,
             applyTranslations: () => {

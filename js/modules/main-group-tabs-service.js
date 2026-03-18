@@ -26,6 +26,7 @@
         groupTabsService = groupTabsApi.createService({
             t: safeDeps.t,
             showToast: safeDeps.showToast,
+            confirmFn: safeDeps.confirmFn,
             getState: safeDeps.getState,
             setState: safeDeps.setState,
             isMultiTab: safeDeps.isMultiTab,

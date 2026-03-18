@@ -334,6 +334,56 @@ describe("GTV state persistence module", () => {
         expect(loaded.logs.warn.length).toBeGreaterThan(0);
     });
 
+    it("resetAllSettings uses injected confirmFn and aborts when denied", async () => {
+        let confirmCalled = 0;
+        const localStorage = createLocalStorageStub();
+        localStorage.setItem("TEST_STORAGE_KEY", "{\"hello\":\"world\"}");
+        const loaded = loadStatePersistenceModule({
+            localStorage,
+            confirm: () => {
+                throw new Error("global confirm should not be used");
+            }
+        });
+        const service = loaded.module.createService(createBaseDeps({
+            confirmFn() {
+                confirmCalled += 1;
+                return false;
+            }
+        }));
+
+        await service.resetAllSettings();
+
+        expect(confirmCalled).toBe(1);
+        expect(localStorage.getItem("TEST_STORAGE_KEY")).toBe("{\"hello\":\"world\"}");
+    });
+
+    it("resetAllSettings resets state without calling location.reload", async () => {
+        let reloadCalled = 0;
+        const loaded = loadStatePersistenceModule({
+            confirm: () => true,
+            location: {
+                reload() {
+                    reloadCalled += 1;
+                }
+            }
+        });
+        const capturedStates = [];
+        const service = loaded.module.createService(createBaseDeps({
+            confirmFn: () => true,
+            setState(next) {
+                capturedStates.push(next);
+            }
+        }));
+
+        await service.resetAllSettings();
+
+        expect(reloadCalled).toBe(0);
+        const groupsState = capturedStates.find((item) => Array.isArray(item?.groups));
+        expect(groupsState).toBeTruthy();
+        expect(groupsState.currentMainTab).toBe("live");
+        expect(groupsState.slotCount).toBe(1);
+    });
+
     it("loadPersistence includes sanitized formatProfiles when provided", async () => {
         const payload = {
             groups: [{

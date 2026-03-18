@@ -42,6 +42,27 @@ describe("GTV main timezone mutation services module", () => {
         expect(generated).toBe("tz-100-1");
     });
 
+    it("prefers UUID-based timezone id and falls back when UUID id is already used", () => {
+        const moduleApi = loadMainTimezoneMutationServicesModule();
+        const groups = [{ zones: [{ id: "tz-dupe" }] }];
+        let seed = 10;
+        const service = moduleApi.createService({
+            getGroups: () => groups,
+            sanitizeTimezoneId: (value) => String(value || "").trim(),
+            getRandomUUID: () => "dupe",
+            getNextTimezoneIdSeed: () => {
+                seed += 1;
+                return seed;
+            },
+            getNow: () => 400,
+            getRandom: () => 0.123
+        });
+
+        const generated = service.createUniqueTimezoneId("tz");
+
+        expect(generated).toBe("tz-400-11");
+    });
+
     it("adds and removes timezones with persistence and rerender", () => {
         const moduleApi = loadMainTimezoneMutationServicesModule();
         const group = {

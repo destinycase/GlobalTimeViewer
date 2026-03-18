@@ -16,14 +16,14 @@
         function getSettingsExportFileName() {
             const now = new Date();
             const stamp = `${now.getFullYear()}-${deps.pad(now.getMonth() + 1)}-${deps.pad(now.getDate())}_${deps.pad(now.getHours())}${deps.pad(now.getMinutes())}${deps.pad(now.getSeconds())}`;
-            return `GlobalTimeViwer_settings_${stamp}.json`;
+            return `GlobalTimeViewer_settings_${stamp}.json`;
         }
 
         function getGroupExportFileName(groupName = "") {
             const now = new Date();
             const stamp = `${now.getFullYear()}-${deps.pad(now.getMonth() + 1)}-${deps.pad(now.getDate())}_${deps.pad(now.getHours())}${deps.pad(now.getMinutes())}${deps.pad(now.getSeconds())}`;
             const safeName = deps.sanitizeFilenamePart(groupName || "") || "group";
-            return `GlobalTimeViwer_group_${safeName}_${stamp}.json`;
+            return `GlobalTimeViewer_group_${safeName}_${stamp}.json`;
         }
 
         function getSubgroupExportFileName(groupName = "", subgroupName = "") {
@@ -31,7 +31,7 @@
             const stamp = `${now.getFullYear()}-${deps.pad(now.getMonth() + 1)}-${deps.pad(now.getDate())}_${deps.pad(now.getHours())}${deps.pad(now.getMinutes())}${deps.pad(now.getSeconds())}`;
             const safeGroupName = deps.sanitizeFilenamePart(groupName || "") || "group";
             const safeSubgroupName = deps.sanitizeFilenamePart(subgroupName || "") || "subgroup";
-            return `GlobalTimeViwer_subgroup_${safeGroupName}_${safeSubgroupName}_${stamp}.json`;
+            return `GlobalTimeViewer_subgroup_${safeGroupName}_${safeSubgroupName}_${stamp}.json`;
         }
 
         function isValidGroupImportSource(source) {
@@ -163,7 +163,7 @@
                 };
                 const fileName = getGroupExportFileName(sourceGroup.name);
                 const exportPayload = {
-                    app: "GlobalTimeViwer",
+                    app: "GlobalTimeViewer",
                     type: "group",
                     formatVersion: 1,
                     version: deps.VERSION,
@@ -257,7 +257,7 @@
                 };
                 const fileName = getSubgroupExportFileName(sourceGroup.name, sourceSubgroup.name);
                 const exportPayload = {
-                    app: "GlobalTimeViwer",
+                    app: "GlobalTimeViewer",
                     type: "subgroup",
                     formatVersion: 1,
                     version: deps.VERSION,
@@ -341,7 +341,7 @@
                 const fileName = getSettingsExportFileName();
                 const currentLang = deps.getCurrentLang();
                 const exportPayload = {
-                    app: "GlobalTimeViwer",
+                    app: "GlobalTimeViewer",
                     formatVersion: 1,
                     version: deps.VERSION,
                     exportedAt: new Date().toISOString(),

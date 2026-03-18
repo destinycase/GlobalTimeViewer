@@ -63,6 +63,7 @@
                 switchMainTab: cfg.switchMainTab,
                 showToast: cfg.showToast,
                 t: cfg.t,
+                confirmFn: cfg.confirmFn,
                 applyVersionBranding: cfg.applyVersionBranding,
                 applyTranslations: cfg.applyTranslations
             });

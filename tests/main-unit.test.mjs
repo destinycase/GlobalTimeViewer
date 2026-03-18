@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+﻿import { expect, test } from "vitest";
 
 import { createMainContext } from "./helpers/create-main-context.mjs";
 
@@ -277,7 +277,7 @@ test("createStandardTimezoneFromSelectableEntry builds fixed standard timezone p
     expect(result).toMatchObject({
         type: "standard",
         zone: "Asia/Seoul",
-        name_ko: "UTC+09:00 표준시",
+        name_ko: "UTC+09:00 \uD45C\uC900\uC2DC",
         name_en: "UTC+09:00 Standard Time",
         fixedAbbr: "GMT+9",
         fixedOffsetMinutes: 540
@@ -327,6 +327,37 @@ test("applyCurrentGroupBaseTimezoneId rerenders list/timeline and persists", () 
     expect(run("groups[0].utcRowOrder")).toBe(0);
     expect(listRenderCount).toBe(1);
     expect(timelineRenderCount).toBe(1);
+});
+
+test("setCurrentGroupBaseTimezoneId shows warning toast once when service is missing", () => {
+    const { sandbox, run } = createMainContext();
+
+    run(`
+        var __toastCount = 0;
+        appFeedbackService = { showToast: function () { __toastCount += 1; } };
+        mainBaseTimezoneService = null;
+    `);
+
+    expect(sandbox.setCurrentGroupBaseTimezoneId("utc")).toBe(false);
+    expect(sandbox.setCurrentGroupBaseTimezoneId("utc")).toBe(false);
+    expect(run("__toastCount")).toBe(1);
+});
+
+test("tab predicates read patched state snapshot before direct variable fallback", () => {
+    const { sandbox, run } = createMainContext();
+
+    run(`
+        currentMainTab = "live";
+        appStatePatcherService.applyStatePatch({ currentMainTab: "fixed-time" });
+    `);
+    expect(sandbox.isFixedTimeTab()).toBe(true);
+    expect(sandbox.isMultiTab()).toBe(false);
+    expect(sandbox.isTimelineSupportedTab()).toBe(true);
+
+    run(`appStatePatcherService.applyStatePatch({ currentMainTab: "multi" });`);
+    expect(sandbox.isFixedTimeTab()).toBe(false);
+    expect(sandbox.isMultiTab()).toBe(true);
+    expect(sandbox.isTimelineSupportedTab()).toBe(false);
 });
 
 test("addTimezone rerenders timeline after updating group zones", () => {
@@ -422,7 +453,7 @@ test("getZoneDisplayName localizes standard IANA timezone", () => {
     const tzSeoul = { type: "standard", zone: "Asia/Seoul", name_ko: "Past KR", name_en: "Past EN" };
 
     run(`currentLang = "ko";`);
-    expect(sandbox.getZoneDisplayName(tzSeoul)).toBe("대한민국 - 서울");
+    expect(sandbox.getZoneDisplayName(tzSeoul)).toBe("\uB300\uD55C\uBBFC\uAD6D - \uC11C\uC6B8");
 
     run(`currentLang = "en";`);
     expect(sandbox.getZoneDisplayName(tzSeoul)).toBe("South Korea - Seoul");
@@ -441,13 +472,19 @@ test("getZoneDisplayName localizes fixed offset standard time", () => {
         };
     `);
 
-    const tzFixed = { type: "standard", zone: "UTC", fixedAbbr: "GMT+9", fixedOffsetMinutes: 540, name_ko: "UTC+09:00 표준시" };
+    const tzFixed = {
+        type: "standard",
+        zone: "UTC",
+        fixedAbbr: "GMT+9",
+        fixedOffsetMinutes: 540,
+        name_ko: "UTC+09:00 \uD45C\uC900\uC2DC"
+    };
 
     // Evaluate inside the sandbox setting the variable directly
     run(`var testTzFixed = ${JSON.stringify(tzFixed)};`);
 
     run(`currentLang = "ko";`);
-    expect(run(`getZoneDisplayName(testTzFixed)`)).toBe("UTC+09:00 표준시");
+    expect(run(`getZoneDisplayName(testTzFixed)`)).toBe("UTC+09:00 \uD45C\uC900\uC2DC");
 
     run(`currentLang = "en";`);
     expect(run(`getZoneDisplayName(testTzFixed)`)).toBe("UTC+09:00 Standard Time");
@@ -457,18 +494,107 @@ test("getZoneDisplayName falls back to stored name for custom and unknown types"
     const { sandbox, run } = createMainContext();
 
     // Custom timezones have only one user-defined name and shouldn't change across languages
-    const tzCustom = { type: "custom", zone: "", abbr: "MYTZ", name_ko: "내 커스텀", name_en: "My Custom" };
+    const tzCustom = { type: "custom", zone: "", abbr: "MYTZ", name_ko: "??而ㅼ뒪?", name_en: "My Custom" };
 
     run(`var testTzCustom = ${JSON.stringify(tzCustom)};`);
 
     run(`currentLang = "ko";`);
-    expect(run(`getZoneDisplayName(testTzCustom)`)).toBe("내 커스텀");
+    expect(run(`getZoneDisplayName(testTzCustom)`)).toBe("??而ㅼ뒪?");
 
     run(`currentLang = "en";`);
-    expect(run(`getZoneDisplayName(testTzCustom)`)).toBe("내 커스텀"); // Always prefers name_ko/name as it's user-entered
+    expect(run(`getZoneDisplayName(testTzCustom)`)).toBe("??而ㅼ뒪?"); // Always prefers name_ko/name as it's user-entered
 });
 
 
+
+test("timezone runtime helpers keep fallback behavior when runtime service is missing", () => {
+    const { sandbox, run } = createMainContext();
+    run(`
+        mainTimezoneRuntimeService = null;
+        currentLang = "en";
+    `);
+
+    const minuteKey = sandbox.getUtcMinuteCacheKey(new Date(Date.UTC(2026, 0, 2, 3, 4, 59)));
+    expect(minuteKey).toBe("2026:0:2:3:4");
+
+    const cache = new Map([["old", 1]]);
+    sandbox.setCappedRuntimeCache(cache, "new", 2);
+    expect(cache.get("new")).toBe(2);
+
+    expect(
+        sandbox.getFixedOffsetForDisplayAtDate(
+            { type: "standard", zone: "Asia/Seoul", fixedOffsetMinutes: 540 },
+            new Date(Date.UTC(2026, 2, 7, 0, 0, 0))
+        )
+    ).toBe(540);
+    expect(sandbox.getTimezoneOffset("Asia/Seoul", new Date(Date.UTC(2026, 2, 7, 0, 0, 0)))).toBe(0);
+    expect(sandbox.isTimeZoneInDST("Asia/Seoul", new Date(Date.UTC(2026, 2, 7, 0, 0, 0)))).toBe(false);
+    expect(
+        sandbox.getLocalizedTZLabel({
+            name_en: "South Korea",
+            city_en: "Seoul",
+            name: "대한민국",
+            city: "서울"
+        })
+    ).toBe("South Korea - Seoul");
+});
+
+test("setPersistenceState falls back to local state patch when persistence service is missing", () => {
+    const { sandbox, run } = createMainContext();
+    run(`
+        appPersistenceStateService = null;
+        groups = [];
+        activeGroupId = 0;
+        currentMainTab = "live";
+        activeGroupIdByMainTab = { live: 0, fixed: 0 };
+        slotCount = 1;
+    `);
+
+    sandbox.setPersistenceState({
+        groups: [{ name: "G1", zones: [], showUtcRow: true, utcRowOrder: 0, fixedTimes: [] }],
+        activeGroupId: 0,
+        currentMainTab: "fixed",
+        activeGroupIdByMainTab: { live: 0, fixed: 1 },
+        slotCount: 2
+    });
+
+    expect(run("groups.length")).toBe(1);
+    expect(run("currentMainTab")).toBe("fixed");
+    expect(run("activeGroupIdByMainTab.fixed")).toBe(1);
+    expect(run("slotCount")).toBe(2);
+});
+
+test("setPersistenceState fallback applies format and multi-range keys consistently", () => {
+    const { sandbox, run } = createMainContext();
+    run(`
+        appPersistenceStateService = null;
+        displayFormatOrder = ["timezone", "time"];
+        copyFormatEnabled = { timezone: true, time: true, region: true };
+        multiRangeCount = 1;
+        multiRangeTitle = "Initial";
+        multiRanges = [{ startUtcMs: 1, endUtcMs: 2 }];
+        showTimeline = false;
+        isRealtime = true;
+    `);
+
+    sandbox.setPersistenceState({
+        displayFormatOrder: ["timezone", "offset", "time"],
+        copyFormatEnabled: { timezone: true, offset: true, time: false },
+        multiRangeCount: 3,
+        multiRangeTitle: "Updated",
+        multiRanges: [{ startUtcMs: 3, endUtcMs: 4 }],
+        showTimeline: true,
+        isRealtime: false
+    });
+
+    expect(run("displayFormatOrder.join(',')")).toBe("timezone,offset,time");
+    expect(run("copyFormatEnabled.time")).toBe(false);
+    expect(run("multiRangeCount")).toBe(3);
+    expect(run("multiRangeTitle")).toBe("Updated");
+    expect(run("multiRanges[0].startUtcMs")).toBe(3);
+    expect(run("showTimeline")).toBe(true);
+    expect(run("isRealtime")).toBe(false);
+});
 test("formatSnapshotText respects copy order and enabled flags", () => {
     const { sandbox } = createMainContext();
     const snapshot = {
@@ -635,7 +761,7 @@ test("applySnapshotToRow renders day/night glyphs instead of raw labels", () => 
     });
 
     expect(dn0.textContent).toBe("\u2600\uFE0F");
-    expect(dn1.textContent).toBe("🌙");
+    expect(dn1.textContent).toBe("\uD83C\uDF19");
     expect(dn0.title).toBe("dn_day");
     expect(dn1.title).toBe("dn_night");
 });
@@ -1347,7 +1473,7 @@ test("applyTimeAdjustAction shifts time using base timezone zone (non-UTC group 
                 id: "tz-base",
                 type: "standard",
                 zone: "Asia/Seoul",
-                name_ko: "대한민국 - 서울",
+                name_ko: "??쒕?援?- ?쒖슱",
                 name_en: "South Korea - Seoul",
                 fixedOffsetMinutes: null
             }],
@@ -1384,7 +1510,7 @@ test("applyTimeAdjustAction midnight uses selected base timezone when fixedOffse
                 id: "tz-base",
                 type: "standard",
                 zone: "America/New_York",
-                name_ko: "미국 - 뉴욕",
+                name_ko: "誘멸뎅 - ?댁슃",
                 name_en: "United States - New York",
                 fixedOffsetMinutes: null
             }],
@@ -1436,3 +1562,4 @@ test("timezone image export prefers primary renderer when foreign object support
     expect(primaryCalls).toBe(1);
     expect(fallbackCalls).toBe(0);
 });
+

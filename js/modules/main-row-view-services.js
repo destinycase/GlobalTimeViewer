@@ -77,7 +77,10 @@
             };
 
             if (rowId) {
-                if (rowViewCache.size >= maxRuntimeCacheSize) rowViewCache.clear();
+                if (rowViewCache.size >= maxRuntimeCacheSize) {
+                    const oldestKey = rowViewCache.keys().next().value;
+                    if (oldestKey !== undefined) rowViewCache.delete(oldestKey);
+                }
                 rowViewCache.set(rowId, state);
             }
             return state;

@@ -30,6 +30,7 @@ function createBaseDeps(state, overrides = {}) {
     return {
         t: (key) => key,
         showToast: () => { },
+        confirmFn: () => true,
         getState: () => state,
         setState: (next) => {
             Object.assign(state, next);
@@ -179,5 +180,44 @@ describe("GTV group tabs module", () => {
         expect(state.activeGroupId).toBe(1);
         expect(fixedTimeRenderCount).toBe(1);
         expect(timelineRenderCount).toBe(1);
+    });
+
+    it("deleteMultiSubgroup uses injected confirmFn and aborts when denied", () => {
+        const module = loadGroupTabsModule({
+            confirm: () => {
+                throw new Error("global confirm should not be called");
+            }
+        });
+        const state = {
+            groups: [{
+                name: "A",
+                multiSubgroups: [
+                    { id: "sg-1", name: "Subgroup 1" },
+                    { id: "sg-2", name: "Subgroup 2" }
+                ],
+                activeMultiSubgroupId: "sg-1"
+            }],
+            activeGroupId: 0,
+            currentMainTab: "live",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 }
+        };
+        let confirmCalls = 0;
+        let saveCalls = 0;
+        const service = module.createService(createBaseDeps(state, {
+            isMultiTab: () => true,
+            confirmFn: () => {
+                confirmCalls += 1;
+                return false;
+            },
+            savePersistence: () => {
+                saveCalls += 1;
+            }
+        }));
+
+        service.deleteMultiSubgroup("sg-2");
+
+        expect(confirmCalls).toBe(1);
+        expect(saveCalls).toBe(0);
+        expect(state.groups[0].multiSubgroups).toHaveLength(2);
     });
 });

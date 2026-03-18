@@ -2,6 +2,13 @@
     "use strict";
 
     function createService(deps) {
+        const confirmFn = (typeof deps.confirmFn === "function")
+            ? deps.confirmFn
+            : ((message) => {
+                if (typeof confirm === "function") return confirm(message);
+                return true;
+            });
+
         function getState() {
             const state = (typeof deps.getState === "function") ? deps.getState() : null;
             return (state && typeof state === "object") ? state : {};
@@ -132,7 +139,7 @@
                 deps.showToast(deps.t("toast_group_min"));
                 return;
             }
-            if (!confirm(deps.t("confirm_delete_group"))) return;
+            if (!confirmFn(deps.t("confirm_delete_group"))) return;
 
             const safeIdx = clampGroupIndexByLength(idx, groups.length);
             const currentActiveGroupId = clampGroupIndexByLength(state.activeGroupId, groups.length);
@@ -219,7 +226,7 @@
                 deps.showToast(deps.t("toast_subgroup_min"));
                 return;
             }
-            if (!confirm(deps.t("confirm_delete_subgroup"))) return;
+            if (!confirmFn(deps.t("confirm_delete_subgroup"))) return;
 
             deps.syncCurrentMultiStateToActiveSubgroup();
             const removeIdx = group.multiSubgroups.findIndex((item) => item.id === subgroupId);

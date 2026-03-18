@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createMainContext } from "./helpers/create-main-context.mjs";
 
-describe("Global Time Viwer - Time Logic", () => {
+describe("Global Time Viewer - Time Logic", () => {
     it("buildStrictUtcDateFromParts returns a valid Date for valid parts", () => {
         const { sandbox } = createMainContext();
         const result = sandbox.buildStrictUtcDateFromParts({

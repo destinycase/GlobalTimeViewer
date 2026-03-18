@@ -108,6 +108,7 @@
             mainUiUtilsService,
             appFeedbackService,
             calculatorActionsService,
+            confirmFn,
             setCustomTooltip: mainUiUtilsService.setCustomTooltip,
             upgradeNativeTitleTooltips: mainUiUtilsService.upgradeNativeTitleTooltips,
             hideFloatingTooltip: mainUiUtilsService.hideFloatingTooltip,

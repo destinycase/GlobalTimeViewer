@@ -1,5 +1,5 @@
 const EN_I18N = {
-    app_title: "Global Time Viwer v3.10.1",
+    app_title: "Global Time Viewer",
     nav_live: "Realtime",
     nav_fixed_time: "Fixed Time",
     nav_fixed: "Time Edit",
@@ -210,7 +210,7 @@ const EN_I18N = {
     prompt_new_subgroup: "Enter a new aux group name:",
     prompt_rename_subgroup: "Rename aux group to:",
 
-    unit_days_suffix: " days",
+    unit_days_suffix: "days",
     unit_days_short: "d",
     unit_hours_suffix: " hours",
     unit_minutes_suffix: " minutes",
@@ -295,7 +295,7 @@ const KO_OVERRIDES = {
     tooltip_remove_fixed_time: "\uC2AC\uB86F \uC0AD\uC81C",
     toast_fixed_time_max: "\uACE0\uC815 \uC2DC\uAC04 \uC2AC\uB86F\uC740 \uCD5C\uB300 5\uAC1C\uAE4C\uC9C0 \uCD94\uAC00\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
     toast_fixed_time_min: "\uACE0\uC815 \uC2DC\uAC04 \uC2AC\uB86F\uC740 \uCD5C\uC18C 1\uAC1C \uC774\uC0C1 \uD544\uC694\uD569\uB2C8\uB2E4.",
-    app_title: "Global Time Viwer v3.10.1",
+    app_title: "Global Time Viewer",
     nav_live: "실시간",
     nav_fixed: "시간 변경",
     nav_multi: "연속 시간 변경",
@@ -466,7 +466,7 @@ const KO_OVERRIDES = {
     calc_fmt_sql: "SQL / 데이터베이스",
     calc_fmt_human: "사람이 읽기 쉬운 형식",
     calc_coming_soon_title: "새로운 기능 준비 중 (Coming Soon)",
-    calc_coming_soon_desc: "Global Time Viwer는 더 편리한 시간 계산 기능을 준비하고 있습니다. 원하시는 기능이 있다면 의견을 남겨주세요.",
+    calc_coming_soon_desc: "Global Time Viewer는 더 편리한 시간 계산 기능을 준비하고 있습니다. 원하시는 기능이 있다면 의견을 남겨주세요.",
 
     option_popular: "도시 선택...",
     overlay_select_tz: "시간대 선택",

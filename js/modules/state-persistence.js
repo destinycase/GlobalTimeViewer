@@ -4,6 +4,12 @@
     function createService(deps) {
         let lastPersistenceErrorToastAt = 0;
         let persistenceWriteQueue = Promise.resolve();
+        const confirmFn = (typeof deps.confirmFn === "function")
+            ? deps.confirmFn
+            : ((message) => {
+                if (typeof confirm === "function") return confirm(message);
+                return true;
+            });
 
         function isQuotaExceededError(err) {
             if (!err || typeof err !== "object") return false;
@@ -195,6 +201,40 @@
             }
             deps.setState(baseState);
             deps.loadCurrentMultiStateFromActiveSubgroup();
+        }
+
+        async function syncUiAfterSettingsReset() {
+            const currentTheme = await deps.loadThemePreference();
+            const nextLangRaw = await getStorageValue(deps.LANG_STORAGE_KEY, "ko");
+            const nextLang = (typeof nextLangRaw === "string") ? nextLangRaw : "ko";
+            const currentLang = deps.I18N_DATA[nextLang] ? nextLang : "ko";
+
+            deps.setState({
+                currentTheme,
+                currentLang
+            });
+            deps.applyTheme(currentTheme, false);
+
+            const uiScale = await deps.loadUiScalePreference();
+            deps.applyUiScale(uiScale, false);
+            deps.applyTranslations();
+            deps.applyVersionBranding();
+
+            const langSelect = document.getElementById("lang-select");
+            if (langSelect) langSelect.value = currentLang;
+            const themeSelect = document.getElementById("theme-select");
+            if (themeSelect) themeSelect.value = currentTheme;
+            const uiScaleSelect = document.getElementById("ui-scale-select");
+            if (uiScaleSelect) {
+                deps.populateUiScaleSelect(uiScaleSelect);
+                uiScaleSelect.value = String(deps.getCurrentUiScalePercent());
+            }
+
+            deps.refreshMultiRangeControls();
+            deps.updateTZDropdown();
+            deps.refreshSelectWidths();
+            deps.switchMainTab("live");
+            await savePersistence();
         }
 
         function normalizeParsedPersistenceState(parsed) {
@@ -404,7 +444,7 @@
         }
 
         async function resetAllSettings() {
-            if (!confirm(deps.t("confirm_reset_all_settings"))) return;
+            if (!confirmFn(deps.t("confirm_reset_all_settings"))) return;
 
             const keysToRemove = [
                 deps.STORAGE_KEY,
@@ -423,11 +463,12 @@
                 console.warn("Chrome storage remove error.", err);
             }
             keysToRemove.forEach((key) => safeLocalStorageRemove(key));
-            location.reload();
+            applyDefaultPersistenceState({ includeMultiState: true });
+            await syncUiAfterSettingsReset();
         }
 
         async function resetExceptGroupsAndTimezones() {
-            if (!confirm(deps.t("confirm_reset_except_group_tz"))) return;
+            if (!confirmFn(deps.t("confirm_reset_except_group_tz"))) return;
 
             deps.syncCurrentMultiStateToActiveSubgroup();
             const currentState = (typeof deps.getState === "function") ? (deps.getState() || {}) : {};
@@ -503,37 +544,7 @@
             }
             keysToRemove.forEach((key) => safeLocalStorageRemove(key));
             safeLocalStorageRemove(deps.STORAGE_KEY);
-
-            const currentTheme = await deps.loadThemePreference();
-            const nextLangRaw = await getStorageValue(deps.LANG_STORAGE_KEY, "ko");
-            const nextLang = (typeof nextLangRaw === "string") ? nextLangRaw : "ko";
-
-            const currentLang = deps.I18N_DATA[nextLang] ? nextLang : "ko";
-            deps.setState({
-                currentTheme,
-                currentLang
-            });
-            deps.applyTheme(currentTheme, false);
-            const uiScale = await deps.loadUiScalePreference();
-            deps.applyUiScale(uiScale, false);
-            deps.applyTranslations();
-            deps.applyVersionBranding();
-
-            const langSelect = document.getElementById("lang-select");
-            if (langSelect) langSelect.value = currentLang;
-            const themeSelect = document.getElementById("theme-select");
-            if (themeSelect) themeSelect.value = currentTheme;
-            const uiScaleSelect = document.getElementById("ui-scale-select");
-            if (uiScaleSelect) {
-                deps.populateUiScaleSelect(uiScaleSelect);
-                uiScaleSelect.value = String(deps.getCurrentUiScalePercent());
-            }
-
-            deps.refreshMultiRangeControls();
-            deps.updateTZDropdown();
-            deps.refreshSelectWidths();
-            deps.switchMainTab("live");
-            await savePersistence();
+            await syncUiAfterSettingsReset();
         }
 
         return Object.freeze({
