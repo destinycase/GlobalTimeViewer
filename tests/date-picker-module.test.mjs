@@ -212,6 +212,32 @@ test("open/close toggles popup visibility state", () => {
     expect(picker.popup.style.display).toBe("none");
 });
 
+test("next month navigation from 31st does not skip to the following month", () => {
+    const sandbox = createSandbox();
+    const input = sandbox.document.createElement("input");
+    const picker = new sandbox.CustomDatePicker(input, { type: "date", lang: "en" });
+
+    picker.setDate(new Date("2026-01-31T00:00:00"));
+    picker.nextBtn.dispatchEvent({ type: "click", preventDefault() { } });
+
+    expect(picker.currentDate.getFullYear()).toBe(2026);
+    expect(picker.currentDate.getMonth()).toBe(1);
+    expect(picker.title.textContent).toBe("2026-02");
+});
+
+test("previous month navigation from 31st does not skip to the prior month", () => {
+    const sandbox = createSandbox();
+    const input = sandbox.document.createElement("input");
+    const picker = new sandbox.CustomDatePicker(input, { type: "date", lang: "en" });
+
+    picker.setDate(new Date("2026-03-31T00:00:00"));
+    picker.prevBtn.dispatchEvent({ type: "click", preventDefault() { } });
+
+    expect(picker.currentDate.getFullYear()).toBe(2026);
+    expect(picker.currentDate.getMonth()).toBe(1);
+    expect(picker.title.textContent).toBe("2026-02");
+});
+
 test("clear button resets value and triggers input change event", () => {
     const sandbox = createSandbox();
     const input = sandbox.document.createElement("input");

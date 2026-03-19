@@ -92,6 +92,13 @@
         return `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
     }
 
+    function formatUTCDateOnlyStartOfDay(dateObj) {
+        const year = dateObj.getUTCFullYear();
+        const month = pad2(dateObj.getUTCMonth() + 1);
+        const day = pad2(dateObj.getUTCDate());
+        return `${year}-${month}-${day} 00:00:00`;
+    }
+
     function initConverter() {
         const secIn = getElementById("conv-sec");
         const minIn = getElementById("conv-min");
@@ -734,15 +741,7 @@
             }
             return null;
         };
-
-
-        // 날짜 이동 계산용: 로컬 자정으로 파싱 (setFullYear/setMonth 등 로컬 메서드와 일관성 유지)
-        const getPickerDateLocal = (el) => {
-            if (el._cdp && el._cdp.selectedDate) return new Date(el._cdp.selectedDate);
-            if (el.value) return new Date(el.value + 'T00:00:00');
-            return null;
-        };
-
+        // Reuse UTC date parsing for both period and offset calculations.
         const today = new Date();
         const todayText = formatDateOnly(today);
         if (!periodStart.value) periodStart.value = todayText;
@@ -775,7 +774,7 @@
             }
 
 
-            const offStartD = getPickerDateLocal(offsetStart);
+            const offStartD = getPickerDateUtc(offsetStart);
             if (!offStartD) {
                 offsetResult.value = "-";
                 return;
@@ -786,12 +785,20 @@
             const directionMultiplier = offsetDirection.value === "before" ? -1 : 1;
             const actualShift = offsetValue * directionMultiplier;
 
-            if (offsetUnit.value === "day") resultDate.setDate(resultDate.getDate() + actualShift);
-            if (offsetUnit.value === "week") resultDate.setDate(resultDate.getDate() + (actualShift * 7));
-            if (offsetUnit.value === "month") resultDate.setMonth(resultDate.getMonth() + actualShift);
-            if (offsetUnit.value === "year") resultDate.setFullYear(resultDate.getFullYear() + actualShift);
+            if (offsetUnit.value === "day") resultDate.setUTCDate(resultDate.getUTCDate() + actualShift);
+            if (offsetUnit.value === "week") resultDate.setUTCDate(resultDate.getUTCDate() + (actualShift * 7));
+            if (offsetUnit.value === "month") {
+                const targetDay = resultDate.getUTCDate();
+                resultDate.setUTCMonth(resultDate.getUTCMonth() + actualShift);
+                if (resultDate.getUTCDate() !== targetDay) resultDate.setUTCDate(0);
+            }
+            if (offsetUnit.value === "year") {
+                const targetDay = resultDate.getUTCDate();
+                resultDate.setUTCFullYear(resultDate.getUTCFullYear() + actualShift);
+                if (resultDate.getUTCDate() !== targetDay) resultDate.setUTCDate(0);
+            }
 
-            offsetResult.value = formatLocalDateTime(resultDate);
+            offsetResult.value = formatUTCDateOnlyStartOfDay(resultDate);
         };
 
         [periodStart, periodEnd, offsetStart, offsetValueInput, offsetUnit, offsetDirection].forEach((el) => {

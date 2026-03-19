@@ -183,7 +183,7 @@
             if (this.prevBtn) {
                 this.prevBtn.addEventListener("click", (e) => {
                     e.preventDefault();
-                    this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+                    this._shiftCurrentMonth(-1);
                     this._render();
                 }, { signal });
             }
@@ -191,7 +191,7 @@
             if (this.nextBtn) {
                 this.nextBtn.addEventListener("click", (e) => {
                     e.preventDefault();
-                    this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+                    this._shiftCurrentMonth(1);
                     this._render();
                 }, { signal });
             }
@@ -276,6 +276,13 @@
                     this._triggerChange();
                 }, { signal });
             }
+        }
+
+        _shiftCurrentMonth(delta) {
+            if (!Number.isFinite(delta) || delta === 0) return;
+            // Pin to the first day to prevent Date overflow from skipping months.
+            this.currentDate.setDate(1);
+            this.currentDate.setMonth(this.currentDate.getMonth() + delta);
         }
 
         _render() {

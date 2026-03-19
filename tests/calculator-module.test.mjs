@@ -376,6 +376,20 @@ function createTranslator() {
     return (key) => map[key] || key;
 }
 
+function withTimezone(tz, run) {
+    const previousTz = process.env.TZ;
+    process.env.TZ = tz;
+    try {
+        return run();
+    } finally {
+        if (typeof previousTz === "string") {
+            process.env.TZ = previousTz;
+        } else {
+            delete process.env.TZ;
+        }
+    }
+}
+
 test("date shift supports year unit with before direction", () => {
     const { sandbox, elements } = createCalculatorContext();
     sandbox.GTVCalculator.initCalculators({
@@ -390,6 +404,56 @@ test("date shift supports year unit with before direction", () => {
     elements.offDir.dispatch("change");
 
     expect(elements.offsetRes.value).toBe("2024-03-07 00:00:00");
+});
+
+test("date shift clamps month overflow to the month end", () => {
+    const { sandbox, elements } = createCalculatorContext();
+    sandbox.GTVCalculator.initCalculators({
+        t: createTranslator(),
+        copyText: async () => { }
+    });
+
+    elements.offsetStart.value = "2026-01-31";
+    elements.offVal.value = "1";
+    elements.offUnit.value = "month";
+    elements.offDir.value = "after";
+    elements.offDir.dispatch("change");
+
+    expect(elements.offsetRes.value).toBe("2026-02-28 00:00:00");
+});
+
+test("date shift clamps leap-day year overflow to february end", () => {
+    const { sandbox, elements } = createCalculatorContext();
+    sandbox.GTVCalculator.initCalculators({
+        t: createTranslator(),
+        copyText: async () => { }
+    });
+
+    elements.offsetStart.value = "2024-02-29";
+    elements.offVal.value = "1";
+    elements.offUnit.value = "year";
+    elements.offDir.value = "after";
+    elements.offDir.dispatch("change");
+
+    expect(elements.offsetRes.value).toBe("2025-02-28 00:00:00");
+});
+
+test("date shift keeps midnight output across DST boundary in timezone rules", () => {
+    withTimezone("Africa/Cairo", () => {
+        const { sandbox, elements } = createCalculatorContext();
+        sandbox.GTVCalculator.initCalculators({
+            t: createTranslator(),
+            copyText: async () => { }
+        });
+
+        elements.offsetStart.value = "2026-04-23";
+        elements.offVal.value = "1";
+        elements.offUnit.value = "day";
+        elements.offDir.value = "after";
+        elements.offDir.dispatch("change");
+
+        expect(elements.offsetRes.value).toBe("2026-04-24 00:00:00");
+    });
 });
 
 test("unix converter performs bidirectional conversion", () => {
