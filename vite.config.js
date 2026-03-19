@@ -13,6 +13,34 @@ logger.warn = (msg, options) => {
 export default defineConfig({
     customLogger: logger,
     base: '',
+    test: {
+        coverage: {
+            provider: 'v8',
+            reporter: ['text-summary', 'html'],
+            all: true,
+            thresholds: {
+                statements: 42.5,
+                lines: 42.5,
+                branches: 45.3,
+                functions: 20.8
+            },
+            include: [
+                'background.js',
+                'i18n.js',
+                'main.js',
+                'js/modules/**/*.js'
+            ],
+            exclude: [
+                'dist/**',
+                'dist_extension/**',
+                'coverage/**',
+                'node_modules/**',
+                'js/vendor/**',
+                'js/bundle.js',
+                'tests/**'
+            ]
+        }
+    },
     build: {
         outDir: 'dist',
         rollupOptions: {
