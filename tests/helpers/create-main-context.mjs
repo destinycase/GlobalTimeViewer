@@ -12,7 +12,13 @@ const MAIN_CONSTANTS_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", 
 const MAIN_MODULE_RESOLVER_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-module-resolver.js");
 const MAIN_MODULE_SPEC_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-module-spec.js");
 const MAIN_FOUNDATION_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-foundation-services.js");
+const MAIN_SHARED_UTILS_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-shared-utils.js");
+const MAIN_SERVICE_METHOD_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-service-method-bridge.js");
+const MAIN_DIRECT_STATE_PATCH_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-direct-state-patch.js");
 const MAIN_APP_STATE_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-app-state-services.js");
+const MAIN_APP_STATE_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-app-state-bridge.js");
+const MAIN_PATCHED_STATE_SELECTORS_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-patched-state-selectors.js");
+const MAIN_TIMEZONE_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-timezone-facade.js");
 const MAIN_PERSISTENCE_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-persistence-services.js");
 const MAIN_GROUP_TABS_SERVICE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-group-tabs-service.js");
 const MAIN_IMAGE_RUNTIME_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-image-runtime-services.js");
@@ -28,6 +34,7 @@ const MAIN_PERSISTENCE_SNAPSHOT_SERVICES_MODULE_PATH = path.resolve(process.cwd(
 const MAIN_PERSISTENCE_COMPOSITION_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-persistence-composition-services.js");
 const MAIN_CLOCK_ORCHESTRATOR_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-clock-orchestrator-services.js");
 const MAIN_TIMEZONE_RUNTIME_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-timezone-runtime-services.js");
+const MAIN_TIMEZONE_RUNTIME_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-timezone-runtime-bridge.js");
 const MAIN_TIMEZONE_MUTATION_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-timezone-mutation-services.js");
 const MAIN_BASE_TIMEZONE_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-base-timezone-services.js");
 const MAIN_RUNTIME_COMPOSITION_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-runtime-composition-services.js");
@@ -181,7 +188,13 @@ export function createMainContext() {
     const mainModuleResolverCode = fs.readFileSync(MAIN_MODULE_RESOLVER_MODULE_PATH, "utf8");
     const mainModuleSpecCode = fs.readFileSync(MAIN_MODULE_SPEC_MODULE_PATH, "utf8");
     const mainFoundationServicesCode = fs.readFileSync(MAIN_FOUNDATION_SERVICES_MODULE_PATH, "utf8");
+    const mainSharedUtilsCode = fs.readFileSync(MAIN_SHARED_UTILS_MODULE_PATH, "utf8");
+    const mainServiceMethodBridgeCode = fs.readFileSync(MAIN_SERVICE_METHOD_BRIDGE_MODULE_PATH, "utf8");
+    const mainDirectStatePatchCode = fs.readFileSync(MAIN_DIRECT_STATE_PATCH_MODULE_PATH, "utf8");
     const mainAppStateServicesCode = fs.readFileSync(MAIN_APP_STATE_SERVICES_MODULE_PATH, "utf8");
+    const mainAppStateBridgeCode = fs.readFileSync(MAIN_APP_STATE_BRIDGE_MODULE_PATH, "utf8");
+    const mainPatchedStateSelectorsCode = fs.readFileSync(MAIN_PATCHED_STATE_SELECTORS_MODULE_PATH, "utf8");
+    const mainTimezoneFacadeCode = fs.readFileSync(MAIN_TIMEZONE_FACADE_MODULE_PATH, "utf8");
     const mainPersistenceServicesCode = fs.readFileSync(MAIN_PERSISTENCE_SERVICES_MODULE_PATH, "utf8");
     const mainGroupTabsServiceCode = fs.readFileSync(MAIN_GROUP_TABS_SERVICE_MODULE_PATH, "utf8");
     const mainImageRuntimeServicesCode = fs.readFileSync(MAIN_IMAGE_RUNTIME_SERVICES_MODULE_PATH, "utf8");
@@ -197,6 +210,7 @@ export function createMainContext() {
     const mainPersistenceCompositionServicesCode = fs.readFileSync(MAIN_PERSISTENCE_COMPOSITION_SERVICES_MODULE_PATH, "utf8");
     const mainClockOrchestratorServicesCode = fs.readFileSync(MAIN_CLOCK_ORCHESTRATOR_SERVICES_MODULE_PATH, "utf8");
     const mainTimezoneRuntimeServicesCode = fs.readFileSync(MAIN_TIMEZONE_RUNTIME_SERVICES_MODULE_PATH, "utf8");
+    const mainTimezoneRuntimeBridgeCode = fs.readFileSync(MAIN_TIMEZONE_RUNTIME_BRIDGE_MODULE_PATH, "utf8");
     const mainTimezoneMutationServicesCode = fs.readFileSync(MAIN_TIMEZONE_MUTATION_SERVICES_MODULE_PATH, "utf8");
     const mainBaseTimezoneServicesCode = fs.readFileSync(MAIN_BASE_TIMEZONE_SERVICES_MODULE_PATH, "utf8");
     const mainRuntimeCompositionServicesCode = fs.readFileSync(MAIN_RUNTIME_COMPOSITION_SERVICES_MODULE_PATH, "utf8");
@@ -334,7 +348,13 @@ export function createMainContext() {
     vm.runInContext(mainModuleResolverCode, sandbox, { filename: "js/modules/main-module-resolver.js" });
     vm.runInContext(mainModuleSpecCode, sandbox, { filename: "js/modules/main-module-spec.js" });
     vm.runInContext(mainFoundationServicesCode, sandbox, { filename: "js/modules/main-foundation-services.js" });
+    vm.runInContext(mainSharedUtilsCode, sandbox, { filename: "js/modules/main-shared-utils.js" });
+    vm.runInContext(mainServiceMethodBridgeCode, sandbox, { filename: "js/modules/main-service-method-bridge.js" });
+    vm.runInContext(mainDirectStatePatchCode, sandbox, { filename: "js/modules/main-direct-state-patch.js" });
     vm.runInContext(mainAppStateServicesCode, sandbox, { filename: "js/modules/main-app-state-services.js" });
+    vm.runInContext(mainAppStateBridgeCode, sandbox, { filename: "js/modules/main-app-state-bridge.js" });
+    vm.runInContext(mainPatchedStateSelectorsCode, sandbox, { filename: "js/modules/main-patched-state-selectors.js" });
+    vm.runInContext(mainTimezoneFacadeCode, sandbox, { filename: "js/modules/main-timezone-facade.js" });
     vm.runInContext(mainPersistenceServicesCode, sandbox, { filename: "js/modules/main-persistence-services.js" });
     vm.runInContext(mainGroupTabsServiceCode, sandbox, { filename: "js/modules/main-group-tabs-service.js" });
     vm.runInContext(mainImageRuntimeServicesCode, sandbox, { filename: "js/modules/main-image-runtime-services.js" });
@@ -350,6 +370,7 @@ export function createMainContext() {
     vm.runInContext(mainPersistenceCompositionServicesCode, sandbox, { filename: "js/modules/main-persistence-composition-services.js" });
     vm.runInContext(mainClockOrchestratorServicesCode, sandbox, { filename: "js/modules/main-clock-orchestrator-services.js" });
     vm.runInContext(mainTimezoneRuntimeServicesCode, sandbox, { filename: "js/modules/main-timezone-runtime-services.js" });
+    vm.runInContext(mainTimezoneRuntimeBridgeCode, sandbox, { filename: "js/modules/main-timezone-runtime-bridge.js" });
     vm.runInContext(mainTimezoneMutationServicesCode, sandbox, { filename: "js/modules/main-timezone-mutation-services.js" });
     vm.runInContext(mainBaseTimezoneServicesCode, sandbox, { filename: "js/modules/main-base-timezone-services.js" });
     vm.runInContext(mainRuntimeCompositionServicesCode, sandbox, { filename: "js/modules/main-runtime-composition-services.js" });

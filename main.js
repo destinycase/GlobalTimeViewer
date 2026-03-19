@@ -56,7 +56,6 @@ let currentMainTab = "live";
 let activeGroupIdByMainTab = { live: 0, fixed: 0 };
 let currentTheme = "dark";
 let canUseForeignObjectRenderer = null;
-let timezoneIdSeed = 0;
 let fixedTimeIdSeed = 0;
 let groups = [];
 let activeGroupId = 0;
@@ -70,39 +69,18 @@ let mainTimezoneRuntimeService = null;
 let mainTimezoneMutationService = null;
 let mainBaseTimezoneService = null;
 let timeAdjustUiService = null;
+let mainServiceMethodBridgeService = null;
+let mainDirectStatePatchService = null;
+let mainSharedUtilsService = null;
+let mainTimezoneFacadeService = null;
 let appPersistenceStateService = null;
 let appStatePatcherService = null;
+let mainAppStateBridgeService = null;
+let mainPatchedStateSelectorsService = null;
 let persistenceServices = null;
 let persistenceService = null;
 let settingsIoService = null;
 let dataTransferService = null;
-
-const APP_STATE_PATCH_KEYS = Object.freeze([
-    "groups",
-    "activeGroupId",
-    "currentMainTab",
-    "activeGroupIdByMainTab",
-    "slotCount",
-    "showCopyFormat",
-    "showTimeline",
-    "displayFormatOrder",
-    "displayFormatEnabled",
-    "displayTimePartsEnabled",
-    "copyFormatOrder",
-    "copyFormatEnabled",
-    "copyTimePartsEnabled",
-    "formatProfiles",
-    "activeFormatProfileContext",
-    "timeAdjustDayStepBySlot",
-    "multiRangeCount",
-    "multiRangeTitle",
-    "multiRanges",
-    "multiRangeCollapsed",
-    "multiRangeStartEditEnabled",
-    "multiRangeEndEditEnabled",
-    "currentTheme",
-    "currentLang"
-]);
 
 const directStateSetters = {
     groups: (value) => { groups = value; },
@@ -166,8 +144,11 @@ function getUiScaleState() {
 }
 
 function applyDirectStatePatch(next = {}) {
+    if (mainDirectStatePatchService && typeof mainDirectStatePatchService.applyDirectStatePatch === "function") {
+        return mainDirectStatePatchService.applyDirectStatePatch(next);
+    }
     if (!next || typeof next !== "object") return;
-    APP_STATE_PATCH_KEYS.forEach((key) => {
+    Object.keys(directStateSetters).forEach((key) => {
         if (!Object.prototype.hasOwnProperty.call(next, key)) return;
         const setter = directStateSetters[key];
         if (typeof setter !== "function") return;
@@ -177,30 +158,26 @@ function applyDirectStatePatch(next = {}) {
         }
         setter(next[key]);
     });
-
     if (Object.prototype.hasOwnProperty.call(next, "isRealtime")) {
         setIsRealtimeState(next.isRealtime);
     }
 }
 
-const missingServiceMethodWarnings = new Set();
-function warnMissingServiceMethod(serviceName, methodName) {
-    const key = `${serviceName}.${methodName}`;
-    if (missingServiceMethodWarnings.has(key)) return;
-    missingServiceMethodWarnings.add(key);
-    console.warn(`[GTV] ${key} is unavailable. Fallback path will be used.`);
-}
-
-const missingFeatureToastWarnings = new Set();
 let requiredServicesAsserted = false;
+const SERVICE_METHOD_MISSING = Symbol("GTV_SERVICE_METHOD_MISSING");
+
+function warnMissingServiceMethod(serviceName, methodName) {
+    if (mainServiceMethodBridgeService && typeof mainServiceMethodBridgeService.warnMissingServiceMethod === "function") {
+        return mainServiceMethodBridgeService.warnMissingServiceMethod(serviceName, methodName);
+    }
+    console.warn(`[GTV] ${serviceName}.${methodName} is unavailable. Fallback path will be used.`);
+}
 
 function showMissingFeatureToastOnce(featureKey = "") {
     const key = String(featureKey || "").trim();
     if (!key) return;
-    if (missingFeatureToastWarnings.has(key)) return;
-    missingFeatureToastWarnings.add(key);
     const message = (currentLang === "ko")
-        ? "?꾩닔 湲곕뒫 紐⑤뱢??以鍮꾨릺吏 ?딆븯?듬땲?? ?덈줈怨좎묠 ???ㅼ떆 ?쒕룄??二쇱꽭??"
+        ? "필수 기능 모듈이 준비되지 않았습니다. 새로고침 후 다시 시도해 주세요."
         : "A required feature module is unavailable. Refresh and try again.";
     callServiceMethod(
         "appFeedbackService",
@@ -211,6 +188,9 @@ function showMissingFeatureToastOnce(featureKey = "") {
 }
 
 function getServiceMethod(serviceName, serviceRef, methodName, options = {}) {
+    if (mainServiceMethodBridgeService && typeof mainServiceMethodBridgeService.getServiceMethod === "function") {
+        return mainServiceMethodBridgeService.getServiceMethod(serviceName, serviceRef, methodName, options);
+    }
     if (serviceRef && typeof serviceRef[methodName] === "function") {
         return serviceRef[methodName].bind(serviceRef);
     }
@@ -356,7 +336,13 @@ const {
     GTV_MAIN_UI_UTILS,
     GTV_APP_FEEDBACK,
     GTV_MAIN_FOUNDATION_SERVICES,
+    GTV_MAIN_SHARED_UTILS,
+    GTV_MAIN_SERVICE_METHOD_BRIDGE,
+    GTV_MAIN_DIRECT_STATE_PATCH,
     GTV_MAIN_APP_STATE_SERVICES,
+    GTV_MAIN_APP_STATE_BRIDGE,
+    GTV_MAIN_PATCHED_STATE_SELECTORS,
+    GTV_MAIN_TIMEZONE_FACADE,
     GTV_MAIN_PERSISTENCE_SERVICES,
     GTV_MAIN_GROUP_TABS_SERVICE,
     GTV_MAIN_IMAGE_RUNTIME_SERVICES,
@@ -372,6 +358,7 @@ const {
     GTV_MAIN_PERSISTENCE_COMPOSITION_SERVICES,
     GTV_MAIN_CLOCK_ORCHESTRATOR_SERVICES,
     GTV_MAIN_TIMEZONE_RUNTIME_SERVICES,
+    GTV_MAIN_TIMEZONE_RUNTIME_BRIDGE,
     GTV_MAIN_TIMEZONE_MUTATION_SERVICES,
     GTV_MAIN_BASE_TIMEZONE_SERVICES,
     GTV_MAIN_RUNTIME_COMPOSITION_SERVICES,
@@ -401,6 +388,42 @@ const LEGACY_STORAGE_FALLBACK_KEYS = [...GTV_APP_CONFIG.LEGACY_STORAGE_FALLBACK_
 const THEME_LIST = [...GTV_APP_CONFIG.THEME_LIST];
 const TABLE_IMAGE_EXPORT_WIDTH = GTV_APP_CONFIG.TABLE_IMAGE_EXPORT_WIDTH;
 const EXPORT_MONO_FONT_FAMILY = GTV_APP_CONFIG.EXPORT_MONO_FONT_FAMILY;
+mainServiceMethodBridgeService = GTV_MAIN_SERVICE_METHOD_BRIDGE.createService({
+    onWarnMissingMethod: (serviceName, methodName) => {
+        console.warn(`[GTV] ${serviceName}.${methodName} is unavailable. Fallback path will be used.`);
+    },
+    onMissingFeature: (featureKey) => {
+        showMissingFeatureToastOnce(featureKey);
+    }
+});
+mainDirectStatePatchService = GTV_MAIN_DIRECT_STATE_PATCH.createService({
+    stateSetters: directStateSetters,
+    setIsRealtimeState: (...args) => setIsRealtimeState(...args)
+});
+mainAppStateBridgeService = GTV_MAIN_APP_STATE_BRIDGE.createService({
+    callServiceMethod,
+    getAppStatePatcherService: () => appStatePatcherService,
+    getAppPersistenceStateService: () => appPersistenceStateService,
+    applyDirectStatePatch: (next = {}) => applyDirectStatePatch(next),
+    serviceMethodMissingToken: SERVICE_METHOD_MISSING
+});
+mainSharedUtilsService = GTV_MAIN_SHARED_UTILS.createService({
+    tableImageExportWidth: TABLE_IMAGE_EXPORT_WIDTH,
+    createCanvas: () => {
+        if (typeof document !== "object" || !document || typeof document.createElement !== "function") {
+            return null;
+        }
+        return document.createElement("canvas");
+    }
+});
+mainTimezoneFacadeService = GTV_MAIN_TIMEZONE_FACADE.createService({
+    callServiceMethod,
+    getMainTimezoneRuntimeBridgeService: () => mainTimezoneRuntimeBridgeService,
+    getMainBaseTimezoneService: () => mainBaseTimezoneService,
+    getMainTimezoneMutationService: () => mainTimezoneMutationService,
+    getTimezoneSearchService: () => timezoneSearchService,
+    getTimeCore: () => GTV_TIME_CORE
+});
 const mainFoundationServices = GTV_MAIN_FOUNDATION_SERVICES.createService({
     GTV_SERVICE_BOOTSTRAP,
     GTV_PERSISTENCE_SERVICE_BUNDLE,
@@ -554,11 +577,10 @@ const timerEngineService = GTV_TIMER_ENGINE.createService({
     clearIntervalFn: (id) => clearInterval(id)
 });
 
-// Initialize timeService and commonUtils once at a higher scope
+// Initialize timeService once at a higher scope
 const timeService = GTV_TIME_SERVICE.createService({
     luxon: (typeof window !== "undefined" ? window.luxon : globalThis.luxon)
 });
-const commonUtils = Object.freeze({});
 
 // --- INTEGRATED CORE UTILITIES ---
 
@@ -566,86 +588,37 @@ const commonUtils = Object.freeze({});
  * Prepare shared canvas state for table image export.
  */
 function prepareExportCanvas(sourceWidth, sourceHeight, pageBg) {
-    const targetWidth = TABLE_IMAGE_EXPORT_WIDTH;
-    const renderRatio = targetWidth / Math.max(1, sourceWidth);
-    const targetHeight = Math.max(1, Math.round(sourceHeight * renderRatio));
-
-    const canvas = document.createElement("canvas");
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas context unavailable");
-
-    ctx.scale(renderRatio, renderRatio);
-    ctx.fillStyle = pageBg;
-    ctx.fillRect(0, 0, sourceWidth, sourceHeight);
-
-    return { canvas, ctx, renderRatio, targetWidth, targetHeight };
+    if (!mainSharedUtilsService || typeof mainSharedUtilsService.prepareExportCanvas !== "function") {
+        throw new Error("Main shared utils service is unavailable: prepareExportCanvas");
+    }
+    return mainSharedUtilsService.prepareExportCanvas(sourceWidth, sourceHeight, pageBg);
 }
 
 /**
  * Draw text in an export cell with shared styling options.
  */
 function drawExportCellText(ctx, text, x, y, w, h, options = {}) {
-    const {
-        align = "left",
-        color = "#f1f5f9",
-        font = "13px Arial",
-        clip = false,
-        padX = 8
-    } = options;
-
-    ctx.save();
-    if (clip) {
-        ctx.beginPath();
-        ctx.rect(x + 2, y + 1, Math.max(0, w - 4), Math.max(0, h - 2));
-        ctx.clip();
+    if (!mainSharedUtilsService || typeof mainSharedUtilsService.drawExportCellText !== "function") {
+        throw new Error("Main shared utils service is unavailable: drawExportCellText");
     }
-
-    ctx.fillStyle = color;
-    ctx.font = font;
-    ctx.textBaseline = "middle";
-
-    if (align === "center") {
-        ctx.textAlign = "center";
-        ctx.fillText(text, x + (w / 2), y + (h / 2));
-    } else {
-        ctx.textAlign = "left";
-        ctx.fillText(text, x + padX, y + (h / 2));
-    }
-    ctx.restore();
+    return mainSharedUtilsService.drawExportCellText(ctx, text, x, y, w, h, options);
 }
 
 /**
  * Parse date/time input into numeric parts based on input mode.
  */
 function parseDateTimeParts(val, inputMode) {
-    const normalized = (val || "").trim();
-    if (!normalized) return null;
-
-    const patterns = {
-        datetime: /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/,
-        date: /^(\d{4})-(\d{2})-(\d{2})$/,
-        time: /^(\d{2}):(\d{2}):(\d{2})$/
-    };
-
-    const match = normalized.match(patterns[inputMode]);
-    if (!match) return null;
-
-    return match.slice(1).map(Number);
+    if (!mainSharedUtilsService || typeof mainSharedUtilsService.parseDateTimeParts !== "function") {
+        return null;
+    }
+    return mainSharedUtilsService.parseDateTimeParts(val, inputMode);
 }
 
 function parseLocalDateTimeToUtcMs(value) {
-    const match = (value || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
-    if (!match) return NaN;
-    return Date.UTC(
-        Number(match[1]),
-        Number(match[2]) - 1,
-        Number(match[3]),
-        Number(match[4]),
-        Number(match[5]),
-        Number(match[6])
-    );
+    if (!mainSharedUtilsService || typeof mainSharedUtilsService.parseLocalDateTimeToUtcMs !== "function") {
+        return NaN;
+    }
+    return mainSharedUtilsService.parseLocalDateTimeToUtcMs(value);
 }
 
 function getSignedDurationDayHourMinute(a, b) {
@@ -733,108 +706,45 @@ function ensureBaseTimezoneSelection() {
     return groupContextStateService.ensureBaseTimezoneSelection();
 }
 
-const SERVICE_METHOD_MISSING = Symbol("GTV_SERVICE_METHOD_MISSING");
-
-function callMainTimezoneRuntimeMethodOrFallback(methodName, args = [], fallbackFactory = null) {
-    const result = callServiceMethod(
-        "mainTimezoneRuntimeService",
-        mainTimezoneRuntimeService,
-        methodName,
-        args,
-        { fallback: SERVICE_METHOD_MISSING }
-    );
-    if (result !== SERVICE_METHOD_MISSING) return result;
-    if (typeof fallbackFactory === "function") return fallbackFactory();
-    return fallbackFactory;
-}
-
+const mainTimezoneRuntimeBridgeService = GTV_MAIN_TIMEZONE_RUNTIME_BRIDGE.createService({
+    callServiceMethod: (...args) => callServiceMethod(...args),
+    getMainTimezoneRuntimeService: () => mainTimezoneRuntimeService,
+    getGlobalTimeState: (slotIdx = 0) => getGlobalTimeState(slotIdx),
+    getCurrentLangState: () => getPatchedCurrentLangState(),
+    maxRuntimeCacheSize: MAX_RUNTIME_CACHE_SIZE
+});
 function getUtcMinuteCacheKey(date) {
-    return callMainTimezoneRuntimeMethodOrFallback(
-        "getUtcMinuteCacheKey",
-        [date],
-        () => {
-            const safeDate = (date instanceof Date && Number.isFinite(date.getTime())) ? date : new Date();
-            return [
-                safeDate.getUTCFullYear(),
-                safeDate.getUTCMonth(),
-                safeDate.getUTCDate(),
-                safeDate.getUTCHours(),
-                safeDate.getUTCMinutes()
-            ].join(":");
-        }
-    );
+    return mainTimezoneFacadeService.getUtcMinuteCacheKey(date);
 }
-
 function setCappedRuntimeCache(cache, key, value) {
-    return callMainTimezoneRuntimeMethodOrFallback(
-        "setCappedRuntimeCache",
-        [cache, key, value],
-        () => {
-            if (!(cache instanceof Map)) return;
-            if (cache.size >= MAX_RUNTIME_CACHE_SIZE) {
-                const oldestKey = cache.keys().next().value;
-                if (oldestKey !== undefined) cache.delete(oldestKey);
-            }
-            cache.set(key, value);
-        }
-    );
+    return mainTimezoneFacadeService.setCappedRuntimeCache(cache, key, value);
 }
-
 function getZoneAbbreviation(tz, date = getGlobalTimeState(0)) {
-    return callMainTimezoneRuntimeMethodOrFallback("getZoneAbbreviation", [tz, date], "");
+    return mainTimezoneFacadeService.getZoneAbbreviation(tz, date);
 }
-
 function getBetterAbbr(zone, date) {
-    return callMainTimezoneRuntimeMethodOrFallback("getBetterAbbr", [zone, date], "");
+    return mainTimezoneFacadeService.getBetterAbbr(zone, date);
 }
-
 function isTimeZoneInDST(zone, date) {
-    return callMainTimezoneRuntimeMethodOrFallback("isTimeZoneInDST", [zone, date], false);
+    return mainTimezoneFacadeService.isTimeZoneInDST(zone, date);
 }
-
 function getTimezoneOffset(zone, date) {
-    return callMainTimezoneRuntimeMethodOrFallback("getTimezoneOffset", [zone, date], 0);
+    return mainTimezoneFacadeService.getTimezoneOffset(zone, date);
 }
-
 function getFixedOffsetForDisplayAtDate(tz, anchorDate) {
-    return callMainTimezoneRuntimeMethodOrFallback(
-        "getFixedOffsetForDisplayAtDate",
-        [tz, anchorDate],
-        () => {
-            if (!tz || tz.type !== "standard" || !tz.zone || tz.zone === "UTC") return null;
-            const raw = tz.fixedOffsetMinutes;
-            if (raw === null || raw === undefined || raw === "") return null;
-            const parsed = Number(raw);
-            if (!Number.isFinite(parsed)) return null;
-            return Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(parsed)));
-        }
-    );
+    return mainTimezoneFacadeService.getFixedOffsetForDisplayAtDate(tz, anchorDate);
 }
-
 function getFixedOffsetForDisplay(tz) {
-    return callMainTimezoneRuntimeMethodOrFallback(
-        "getFixedOffsetForDisplay",
-        [tz],
-        () => getFixedOffsetForDisplayAtDate(tz, getGlobalTimeState(0))
-    );
+    return mainTimezoneFacadeService.getFixedOffsetForDisplay(tz);
 }
-
 function getLocalizedTZLabel(tzData) {
-    return callMainTimezoneRuntimeMethodOrFallback(
-        "getLocalizedTZLabel",
-        [tzData],
-        () => {
-            if (!tzData || typeof tzData !== "object") return "";
-            if (getPatchedCurrentLangState() === "en") {
-                const name = tzData.name_en || tzData.name || tzData.name_ko || "";
-                const city = tzData.city_en || tzData.city || tzData.city_ko || "";
-                return city ? `${name} - ${city}` : name;
-            }
-            const name = tzData.name || tzData.name_ko || tzData.name_en || "";
-            const city = tzData.city || tzData.city_ko || tzData.city_en || "";
-            return city ? `${name} - ${city}` : name;
-        }
-    );
+    return mainTimezoneFacadeService.getLocalizedTZLabel(tzData);
+}
+function getZoneDisplayName(tz) {
+    return mainTimezoneFacadeService.getZoneDisplayName(tz);
+}
+function getZoneDisplayNameForUiAtDate(tz, anchorDate = getGlobalTimeState(0)) {
+    return mainTimezoneFacadeService.getZoneDisplayNameForUiAtDate(tz, anchorDate);
 }
 
 const pad = GTV_TIME_CORE.pad;
@@ -899,61 +809,31 @@ mainTimezoneRuntimeService = GTV_MAIN_TIMEZONE_RUNTIME_SERVICES.createService({
 });
 
 function sanitizeTimezoneId(value) {
-    if (value == null) return "";
-    return GTV_TIME_CORE.sanitizeTimezoneId(value);
+    return mainTimezoneFacadeService.sanitizeTimezoneId(value);
 }
 
 function sanitizeBaseTimezoneId(value) {
-    if (value == null) return "utc";
-    return GTV_TIME_CORE.sanitizeBaseTimezoneId(value);
+    return mainTimezoneFacadeService.sanitizeBaseTimezoneId(value);
 }
 
 function setCurrentGroupBaseTimezoneId(value) {
-    return callServiceMethod(
-        "mainBaseTimezoneService",
-        mainBaseTimezoneService,
-        "setCurrentGroupBaseTimezoneId",
-        [value],
-        { fallback: false, toastOnMissing: true, featureKey: "base-timezone-set" }
-    );
+    return mainTimezoneFacadeService.setCurrentGroupBaseTimezoneId(value);
 }
 
 function applyCurrentGroupBaseTimezoneId(nextBaseId, options = {}) {
-    return callServiceMethod(
-        "mainBaseTimezoneService",
-        mainBaseTimezoneService,
-        "applyCurrentGroupBaseTimezoneId",
-        [nextBaseId, options],
-        { toastOnMissing: true, featureKey: "base-timezone-apply" }
-    );
+    return mainTimezoneFacadeService.applyCurrentGroupBaseTimezoneId(nextBaseId, options);
 }
 
 function getUsedTimezoneIds() {
-    return callServiceMethod(
-        "mainTimezoneMutationService",
-        mainTimezoneMutationService,
-        "getUsedTimezoneIds",
-        [],
-        { fallback: new Set(["utc"]) }
-    );
+    return mainTimezoneFacadeService.getUsedTimezoneIds();
 }
 
 function createUniqueTimezoneId(prefix = "tz") {
-    return callServiceMethod(
-        "mainTimezoneMutationService",
-        mainTimezoneMutationService,
-        "createUniqueTimezoneId",
-        [prefix],
-        { fallback: `${prefix || "tz"}-${Date.now()}-${Math.floor(Math.random() * 1000000000)}` }
-    );
+    return mainTimezoneFacadeService.createUniqueTimezoneId(prefix);
 }
 
 function getNextTimezoneIdSeed() {
-    timezoneIdSeed += 1;
-    if (!Number.isSafeInteger(timezoneIdSeed) || timezoneIdSeed < 1) {
-        timezoneIdSeed = 1;
-    }
-    return timezoneIdSeed;
+    return mainTimezoneFacadeService.getNextTimezoneIdSeed();
 }
 
 function getCurrentMultiRangeStateSnapshot() {
@@ -1036,26 +916,6 @@ function isCurrentGroupUtcRowVisible() {
 
 function getCurrentGroupUtcRowOrder() {
     return groupContextStateService.getCurrentGroupUtcRowOrder();
-}
-
-function getZoneDisplayName(tz) {
-    return callServiceMethod(
-        "mainTimezoneRuntimeService",
-        mainTimezoneRuntimeService,
-        "getZoneDisplayName",
-        [tz],
-        { fallback: "" }
-    );
-}
-
-function getZoneDisplayNameForUiAtDate(tz, anchorDate = getGlobalTimeState(0)) {
-    return callServiceMethod(
-        "mainTimezoneRuntimeService",
-        mainTimezoneRuntimeService,
-        "getZoneDisplayNameForUiAtDate",
-        [tz, anchorDate],
-        { fallback: getZoneDisplayName(tz) }
-    );
 }
 
 function escapeHtml(value) {
@@ -1388,13 +1248,7 @@ function normalizeGroupTabState() {
 }
 
 function getPersistenceState() {
-    return callServiceMethod(
-        "appPersistenceStateService",
-        appPersistenceStateService,
-        "getPersistenceState",
-        [],
-        { fallback: {} }
-    );
+    return mainAppStateBridgeService.getPersistenceState();
 }
 
 function getGroupsStateSnapshot() {
@@ -1438,18 +1292,7 @@ function getActiveGroupNameSnapshot() {
 }
 
 function setPersistenceState(next = {}) {
-    const result = callServiceMethod(
-        "appPersistenceStateService",
-        appPersistenceStateService,
-        "setPersistenceState",
-        [next],
-        { fallback: SERVICE_METHOD_MISSING }
-    );
-    if (result === SERVICE_METHOD_MISSING) {
-        applyDirectStatePatch(next);
-        return;
-    }
-    return result;
+    return mainAppStateBridgeService.setPersistenceState(next);
 }
 
 const mainSelectServices = GTV_MAIN_SELECT_SERVICES.createService({
@@ -2116,164 +1959,162 @@ const mainAppStateServices = GTV_MAIN_APP_STATE_SERVICES.createService({
 });
 appStatePatcherService = mainAppStateServices.appStatePatcherService;
 appPersistenceStateService = mainAppStateServices.appPersistenceStateService;
+mainPatchedStateSelectorsService = GTV_MAIN_PATCHED_STATE_SELECTORS.createService({
+    getPatchedStateValue: (key, fallbackValue) => mainAppStateBridgeService.getPatchedStateValue(key, fallbackValue),
+    getPatchedIntegerStateValue: (key, fallbackValue = 0) =>
+        mainAppStateBridgeService.getPatchedIntegerStateValue(key, fallbackValue),
+    getPatchedBooleanStateValue: (key, fallbackValue = false) =>
+        mainAppStateBridgeService.getPatchedBooleanStateValue(key, fallbackValue),
+    getPatchedStringStateValue: (key, fallbackValue = "") =>
+        mainAppStateBridgeService.getPatchedStringStateValue(key, fallbackValue),
+    getPatchedArrayStateValue: (key, fallbackValue = []) =>
+        mainAppStateBridgeService.getPatchedArrayStateValue(key, fallbackValue),
+    getPatchedObjectStateValue: (key, fallbackValue = {}) =>
+        mainAppStateBridgeService.getPatchedObjectStateValue(key, fallbackValue),
+    patchAppState: (next = {}) => mainAppStateBridgeService.patchAppState(next),
+    getFallbackState: () => ({
+        currentMainTab,
+        slotCount,
+        showCopyFormat,
+        showTimeline,
+        currentTheme,
+        currentLang,
+        displayFormatOrder,
+        displayFormatEnabled,
+        displayTimePartsEnabled,
+        copyFormatOrder,
+        copyFormatEnabled,
+        copyTimePartsEnabled,
+        activeFormatProfileContext,
+        activeGroupId,
+        multiRangeCount,
+        multiRanges,
+        multiRangeCollapsed,
+        timeAdjustDayStepBySlot,
+        multiRangeTitle
+    })
+});
 ensureFormatProfiles(createDefaultFormatProfile("live"));
 activateFormatProfileForCurrentContext({ syncCurrent: false });
 
 function getPatchedAppStateSnapshot() {
-    return callServiceMethod(
-        "appStatePatcherService",
-        appStatePatcherService,
-        "getStateSnapshot",
-        [],
-        { fallback: {} }
-    );
+    return mainAppStateBridgeService.getPatchedAppStateSnapshot();
 }
 
 function patchAppState(next = {}) {
-    const result = callServiceMethod(
-        "appStatePatcherService",
-        appStatePatcherService,
-        "applyStatePatch",
-        [next],
-        { fallback: SERVICE_METHOD_MISSING }
-    );
-    if (result === SERVICE_METHOD_MISSING) {
-        setPersistenceState(next);
-    }
+    return mainAppStateBridgeService.patchAppState(next);
 }
 
 function getPatchedStateValue(key, fallbackValue) {
-    const state = getPatchedAppStateSnapshot();
-    if (state && typeof state === "object" && Object.prototype.hasOwnProperty.call(state, key)) {
-        return state[key];
-    }
-    return fallbackValue;
+    return mainAppStateBridgeService.getPatchedStateValue(key, fallbackValue);
 }
 
 function getPatchedIntegerStateValue(key, fallbackValue = 0) {
-    const fallback = Number.isFinite(Number(fallbackValue)) ? Math.trunc(Number(fallbackValue)) : 0;
-    const raw = getPatchedStateValue(key, fallback);
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed)) return fallback;
-    return Math.trunc(parsed);
+    return mainAppStateBridgeService.getPatchedIntegerStateValue(key, fallbackValue);
 }
 
 function getPatchedBooleanStateValue(key, fallbackValue = false) {
-    return !!getPatchedStateValue(key, !!fallbackValue);
+    return mainAppStateBridgeService.getPatchedBooleanStateValue(key, fallbackValue);
 }
 
 function getPatchedStringStateValue(key, fallbackValue = "") {
-    const fallback = (typeof fallbackValue === "string") ? fallbackValue : "";
-    const raw = getPatchedStateValue(key, fallback);
-    return (typeof raw === "string" && raw) ? raw : fallback;
+    return mainAppStateBridgeService.getPatchedStringStateValue(key, fallbackValue);
 }
 
 function getPatchedArrayStateValue(key, fallbackValue = []) {
-    const fallback = Array.isArray(fallbackValue) ? fallbackValue : [];
-    const raw = getPatchedStateValue(key, fallback);
-    return Array.isArray(raw) ? raw : fallback;
+    return mainAppStateBridgeService.getPatchedArrayStateValue(key, fallbackValue);
 }
 
 function getPatchedObjectStateValue(key, fallbackValue = {}) {
-    const fallback = (fallbackValue && typeof fallbackValue === "object" && !Array.isArray(fallbackValue))
-        ? fallbackValue
-        : {};
-    const raw = getPatchedStateValue(key, fallback);
-    if (raw && typeof raw === "object" && !Array.isArray(raw)) return raw;
-    return fallback;
+    return mainAppStateBridgeService.getPatchedObjectStateValue(key, fallbackValue);
 }
 
 function getPatchedMainTabState() {
-    return getPatchedStringStateValue("currentMainTab", currentMainTab);
+    return mainPatchedStateSelectorsService.getPatchedMainTabState();
 }
 
 function getPatchedSlotCountState() {
-    const value = getPatchedIntegerStateValue("slotCount", slotCount);
-    return Math.max(1, value);
+    return mainPatchedStateSelectorsService.getPatchedSlotCountState();
 }
 
 function setPatchedSlotCountState(next) {
-    const parsed = Number(next);
-    if (!Number.isFinite(parsed)) return;
-    patchAppState({ slotCount: Math.max(1, Math.trunc(parsed)) });
+    return mainPatchedStateSelectorsService.setPatchedSlotCountState(next);
 }
 
 function getPatchedShowCopyFormatState() {
-    return getPatchedBooleanStateValue("showCopyFormat", showCopyFormat);
+    return mainPatchedStateSelectorsService.getPatchedShowCopyFormatState();
 }
 
 function setPatchedShowCopyFormatState(next) {
-    patchAppState({ showCopyFormat: !!next });
+    return mainPatchedStateSelectorsService.setPatchedShowCopyFormatState(next);
 }
 
 function getPatchedShowTimelineState() {
-    return getPatchedBooleanStateValue("showTimeline", showTimeline);
+    return mainPatchedStateSelectorsService.getPatchedShowTimelineState();
 }
 
 function setPatchedShowTimelineState(next) {
-    patchAppState({ showTimeline: !!next });
+    return mainPatchedStateSelectorsService.setPatchedShowTimelineState(next);
 }
 
 function getPatchedCurrentThemeState() {
-    return getPatchedStringStateValue("currentTheme", currentTheme);
+    return mainPatchedStateSelectorsService.getPatchedCurrentThemeState();
 }
 
 function getPatchedCurrentLangState() {
-    return getPatchedStringStateValue("currentLang", currentLang);
+    return mainPatchedStateSelectorsService.getPatchedCurrentLangState();
 }
 
 function getPatchedDisplayFormatOrderState() {
-    return getPatchedArrayStateValue("displayFormatOrder", displayFormatOrder);
+    return mainPatchedStateSelectorsService.getPatchedDisplayFormatOrderState();
 }
 
 function getPatchedDisplayFormatEnabledState() {
-    return getPatchedObjectStateValue("displayFormatEnabled", displayFormatEnabled);
+    return mainPatchedStateSelectorsService.getPatchedDisplayFormatEnabledState();
 }
 
 function getPatchedDisplayTimePartsEnabledState() {
-    return getPatchedObjectStateValue("displayTimePartsEnabled", displayTimePartsEnabled);
+    return mainPatchedStateSelectorsService.getPatchedDisplayTimePartsEnabledState();
 }
 
 function getPatchedCopyFormatOrderState() {
-    return getPatchedArrayStateValue("copyFormatOrder", copyFormatOrder);
+    return mainPatchedStateSelectorsService.getPatchedCopyFormatOrderState();
 }
 
 function getPatchedCopyFormatEnabledState() {
-    return getPatchedObjectStateValue("copyFormatEnabled", copyFormatEnabled);
+    return mainPatchedStateSelectorsService.getPatchedCopyFormatEnabledState();
 }
 
 function getPatchedCopyTimePartsEnabledState() {
-    return getPatchedObjectStateValue("copyTimePartsEnabled", copyTimePartsEnabled);
+    return mainPatchedStateSelectorsService.getPatchedCopyTimePartsEnabledState();
 }
 
 function getPatchedActiveFormatProfileContextState() {
-    return getPatchedStringStateValue("activeFormatProfileContext", activeFormatProfileContext);
+    return mainPatchedStateSelectorsService.getPatchedActiveFormatProfileContextState();
 }
 
 function getPatchedActiveGroupIdState() {
-    const value = getPatchedIntegerStateValue("activeGroupId", activeGroupId);
-    return Math.max(0, value);
+    return mainPatchedStateSelectorsService.getPatchedActiveGroupIdState();
 }
 
 function getPatchedMultiRangeCountState() {
-    const value = getPatchedIntegerStateValue("multiRangeCount", multiRangeCount);
-    return Math.max(1, value);
+    return mainPatchedStateSelectorsService.getPatchedMultiRangeCountState();
 }
 
 function getPatchedMultiRangesState() {
-    return getPatchedArrayStateValue("multiRanges", multiRanges);
+    return mainPatchedStateSelectorsService.getPatchedMultiRangesState();
 }
 
 function getPatchedMultiRangeCollapsedState() {
-    return getPatchedArrayStateValue("multiRangeCollapsed", multiRangeCollapsed);
+    return mainPatchedStateSelectorsService.getPatchedMultiRangeCollapsedState();
 }
 
 function getPatchedTimeAdjustDayStepBySlotState() {
-    return getPatchedArrayStateValue("timeAdjustDayStepBySlot", timeAdjustDayStepBySlot);
+    return mainPatchedStateSelectorsService.getPatchedTimeAdjustDayStepBySlotState();
 }
 
 function getPatchedMultiRangeTitleState() {
-    return getPatchedStringStateValue("multiRangeTitle", multiRangeTitle);
+    return mainPatchedStateSelectorsService.getPatchedMultiRangeTitleState();
 }
 
 const mainPersistenceCompositionServices = GTV_MAIN_PERSISTENCE_COMPOSITION_SERVICES.createService({
@@ -3332,27 +3173,14 @@ function handleMultiRangeTimeChange(rangeIdx, val, timezone, slotIdx, timezoneId
 }
 
 function createStandardTimezoneFromSelectableEntry(entry) {
-    if (!entry || typeof entry !== "object") return null;
-    return timezoneSearchService.createStandardTimezoneFromSelectableEntry(entry);
+    return mainTimezoneFacadeService.createStandardTimezoneFromSelectableEntry(entry);
 }
 
 function addTimezone(tz) {
-    return callServiceMethod(
-        "mainTimezoneMutationService",
-        mainTimezoneMutationService,
-        "addTimezone",
-        [tz],
-        { fallback: false, toastOnMissing: true, featureKey: "timezone-add" }
-    );
+    return mainTimezoneFacadeService.addTimezone(tz);
 }
 function removeTimezone(id) {
-    return callServiceMethod(
-        "mainTimezoneMutationService",
-        mainTimezoneMutationService,
-        "removeTimezone",
-        [id],
-        { toastOnMissing: true, featureKey: "timezone-remove" }
-    );
+    return mainTimezoneFacadeService.removeTimezone(id);
 }
 
 function formatTimeTextByParts(snapshot, timePartsEnabled) {

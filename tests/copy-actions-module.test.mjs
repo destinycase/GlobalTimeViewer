@@ -101,6 +101,29 @@ describe("GTV copy actions module", () => {
         expect(preview.classList.contains("empty")).toBe(true);
     });
 
+    it("updateCopyFormatPreview falls back when dependency invocation throws", () => {
+        const preview = {
+            textContent: "",
+            classList: createClassList()
+        };
+        const module = loadCopyActionsModule({
+            document: {
+                getElementById(id) {
+                    return id === "copy-format-preview" ? preview : null;
+                }
+            }
+        });
+        const service = module.createService({
+            isShowCopyFormat: () => {
+                throw new Error("dep failure");
+            }
+        });
+
+        expect(() => service.updateCopyFormatPreview()).not.toThrow();
+        expect(preview.textContent).toBe("-");
+        expect(preview.classList.contains("empty")).toBe(true);
+    });
+
     it("updateCopyFormatPreview renders multi-tab snapshot text", () => {
         const preview = {
             textContent: "",
@@ -251,5 +274,21 @@ describe("GTV copy actions module", () => {
         });
         await liveService.copyAllTimezones();
         expect(liveCopied).toBe("utc:00\nasia-seoul:00");
+    });
+
+    it("copyAllTimezones exits safely when live mode has no query selector support", async () => {
+        const module = loadCopyActionsModule({
+            document: {
+                getElementById() {
+                    return null;
+                }
+            }
+        });
+        const service = module.createService({
+            isMultiTab: () => false,
+            isFixedTimeTab: () => false
+        });
+
+        await expect(service.copyAllTimezones()).resolves.toBeUndefined();
     });
 });
