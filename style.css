@@ -156,6 +156,7 @@ td {
     display: flex;
     align-items: center;
     gap: 10px;
+    white-space: nowrap;
 }
 
 .nav-item:hover {
@@ -167,7 +168,6 @@ td {
     background: var(--accent-glow);
     color: var(--accent);
     border-color: rgba(56, 189, 248, 0.2);
-    font-weight: 600;
 }
 
 /* Unified Button & Input Style */
