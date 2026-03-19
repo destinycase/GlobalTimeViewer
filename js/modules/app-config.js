@@ -2,7 +2,7 @@
     "use strict";
 
     const APP_CONFIG = Object.freeze({
-        VERSION: "3.11.2",
+        VERSION: "3.11.3",
         STORAGE_KEY: "GTV_v323_Data",
         THEME_STORAGE_KEY: "GTV_Theme",
         LANG_STORAGE_KEY: "GTV_Lang",
