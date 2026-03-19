@@ -1,11 +1,22 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { expect, test } from "vitest";
+import { afterEach, expect, test } from "vitest";
 
+const require = createRequire(import.meta.url);
+const TIME_CORE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "time-core.js");
 const CALCULATOR_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "calculator.js");
-const calculatorCode = fs.readFileSync(CALCULATOR_MODULE_PATH, "utf8");
+const TIME_CORE_MODULE_ID = require.resolve(TIME_CORE_MODULE_PATH);
+const CALCULATOR_MODULE_ID = require.resolve(CALCULATOR_MODULE_PATH);
+
+const activeRestores = [];
+
+afterEach(() => {
+    while (activeRestores.length) {
+        const restore = activeRestores.pop();
+        if (typeof restore === "function") restore();
+    }
+});
 
 function createClassList(initial = "") {
     const values = new Set(String(initial).split(/\s+/).filter(Boolean));
@@ -261,36 +272,54 @@ function createCalculatorContext() {
 
     const storage = createStorageStub();
 
-    const sandbox = {
-        console,
-        Date,
-        Math,
-        JSON,
-        Number,
-        String,
-        Object,
-        Array,
-        parseInt,
-        localStorage: storage,
-        document: documentStub,
-        prompt: () => null,
-        setInterval(fn) {
-            intervals.push(fn);
-            return intervals.length;
-        },
-        clearInterval(id) {
-            intervals[id - 1] = null;
-        }
+    const preservedKeys = [
+        "window",
+        "document",
+        "localStorage",
+        "prompt",
+        "setInterval",
+        "clearInterval",
+        "GTVTimeCore",
+        "GTVCalculator",
+        "__gtvCalcRefresh",
+        "CustomDatePicker"
+    ];
+    const preserved = new Map();
+    preservedKeys.forEach((key) => {
+        preserved.set(key, Object.prototype.hasOwnProperty.call(globalThis, key) ? globalThis[key] : undefined);
+    });
+
+    globalThis.window = globalThis;
+    globalThis.document = documentStub;
+    globalThis.localStorage = storage;
+    globalThis.prompt = () => null;
+    globalThis.setInterval = (fn) => {
+        intervals.push(fn);
+        return intervals.length;
     };
-    sandbox.window = sandbox;
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
+    globalThis.clearInterval = (id) => {
+        intervals[id - 1] = null;
+    };
 
-    // Load dependencies required by calculator.js
-    const timeCorePath = path.resolve(process.cwd(), "js/modules/time-core.js");
-    vm.runInContext(fs.readFileSync(timeCorePath, "utf8"), sandbox, { filename: "js/modules/time-core.js" });
+    delete require.cache[TIME_CORE_MODULE_ID];
+    delete require.cache[CALCULATOR_MODULE_ID];
+    require(TIME_CORE_MODULE_PATH);
+    require(CALCULATOR_MODULE_PATH);
 
-    vm.runInContext(calculatorCode, sandbox, { filename: "js/modules/calculator.js" });
+    activeRestores.push(() => {
+        delete require.cache[TIME_CORE_MODULE_ID];
+        delete require.cache[CALCULATOR_MODULE_ID];
+        preservedKeys.forEach((key) => {
+            const value = preserved.get(key);
+            if (value === undefined) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = value;
+        });
+    });
+
+    const sandbox = globalThis;
 
     return {
         sandbox,
