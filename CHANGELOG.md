@@ -1,5 +1,20 @@
 # 변경 이력 (Changelog)
 
+## [3.11.4] - 2026-03-21
+### 변경됨
+- `main.js`의 주요 래퍼 함수를 도메인 파사드로 분리했습니다.
+  - 시간 조정: `main-time-adjust-facade`
+  - 시간대/테이블: `main-timezone-table-facade`
+  - 고정 시간 탭: `main-fixed-time-tab-facade`
+  - 연속 시간 변경 탭: `main-multi-range-tab-facade`
+- 앱 초기화 흐름을 `main-app-bootstrap` 모듈로 분리해 진입점 책임을 축소했습니다.
+- 모듈 스펙/로더/엔트리 스크립트 체인을 확장해 신규 파사드 모듈을 정식 등록했습니다.
+
+### 테스트
+- 도메인 파사드 모듈 단위 테스트를 추가했습니다.
+- 메인 글로벌 API 스모크 테스트를 추가했습니다.
+- `npm run ci:gate` 기준으로 lint, coverage, strict build까지 통과를 확인했습니다.
+
 ## [3.11.3] - 2026-03-20
 ### 변경됨
 - 계산기 날짜 이동 로직을 UTC 기준 파싱 및 UTC day/week/month/year 연산으로 전환해 시간대 드리프트를 방지했습니다.
