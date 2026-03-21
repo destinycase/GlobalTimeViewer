@@ -441,7 +441,7 @@ test("removeTimezone rerenders timeline after removing row", () => {
 test("getZoneDisplayName localizes standard IANA timezone", () => {
     const { sandbox, run } = createMainContext();
 
-    // The environment already defined TZ_DATABASE via main.js, so we only need to redefine the getter.
+    // main.js에서 TZ_DATABASE를 이미 정의하므로 getter만 재정의한다.
     run(`
         getLocalizedTZLabel = function(tzData) {
             if (currentLang === "en") return tzData.name_en + " - " + tzData.city_en;
@@ -449,7 +449,7 @@ test("getZoneDisplayName localizes standard IANA timezone", () => {
         };
     `);
 
-    // South Korea is already in TZ_DATABASE, we just need to pass an object representing it.
+    // TZ_DATABASE에 대한민국 데이터가 이미 있으므로 이를 가리키는 객체만 전달한다.
     const tzSeoul = { type: "standard", zone: "Asia/Seoul", name_ko: "Past KR", name_en: "Past EN" };
 
     run(`currentLang = "ko";`);
@@ -480,7 +480,7 @@ test("getZoneDisplayName localizes fixed offset standard time", () => {
         name_ko: "UTC+09:00 \uD45C\uC900\uC2DC"
     };
 
-    // Evaluate inside the sandbox setting the variable directly
+    // 샌드박스 내부에서 변수를 직접 설정해 평가한다.
     run(`var testTzFixed = ${JSON.stringify(tzFixed)};`);
 
     run(`currentLang = "ko";`);
@@ -493,16 +493,16 @@ test("getZoneDisplayName localizes fixed offset standard time", () => {
 test("getZoneDisplayName falls back to stored name for custom and unknown types", () => {
     const { sandbox, run } = createMainContext();
 
-    // Custom timezones have only one user-defined name and shouldn't change across languages
-    const tzCustom = { type: "custom", zone: "", abbr: "MYTZ", name_ko: "??而ㅼ뒪?", name_en: "My Custom" };
+    // 커스텀 시간대는 사용자 정의 이름 1개만 사용하므로 언어에 따라 바뀌지 않는다.
+    const tzCustom = { type: "custom", zone: "", abbr: "MYTZ", name_ko: "커스텀", name_en: "My Custom" };
 
     run(`var testTzCustom = ${JSON.stringify(tzCustom)};`);
 
     run(`currentLang = "ko";`);
-    expect(run(`getZoneDisplayName(testTzCustom)`)).toBe("??而ㅼ뒪?");
+    expect(run(`getZoneDisplayName(testTzCustom)`)).toBe("커스텀");
 
     run(`currentLang = "en";`);
-    expect(run(`getZoneDisplayName(testTzCustom)`)).toBe("??而ㅼ뒪?"); // Always prefers name_ko/name as it's user-entered
+    expect(run(`getZoneDisplayName(testTzCustom)`)).toBe("커스텀"); // 사용자 입력 이름(name_ko/name)을 항상 우선 사용한다.
 });
 
 
@@ -1473,7 +1473,7 @@ test("applyTimeAdjustAction shifts time using base timezone zone (non-UTC group 
                 id: "tz-base",
                 type: "standard",
                 zone: "Asia/Seoul",
-                name_ko: "??쒕?援?- ?쒖슱",
+                name_ko: "대한민국 - 서울",
                 name_en: "South Korea - Seoul",
                 fixedOffsetMinutes: null
             }],
@@ -1510,7 +1510,7 @@ test("applyTimeAdjustAction midnight uses selected base timezone when fixedOffse
                 id: "tz-base",
                 type: "standard",
                 zone: "America/New_York",
-                name_ko: "誘멸뎅 - ?댁슃",
+                name_ko: "미국 - 뉴욕",
                 name_en: "United States - New York",
                 fixedOffsetMinutes: null
             }],

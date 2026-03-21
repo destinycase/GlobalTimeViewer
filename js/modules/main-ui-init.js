@@ -63,7 +63,7 @@
         const upgradeNativeTitleTooltips = deps.upgradeNativeTitleTooltips;
 
         function initUI() {
-            // Main Tabs
+            // 메인 탭
             document.querySelectorAll(".nav-item").forEach((btn) => {
                 btn.addEventListener("click", () => switchMainTab(btn.dataset.tab));
             });
@@ -177,7 +177,7 @@
             }
             refreshFixedTimeSlotCountControls();
 
-            // Populate Custom Offset Hour Select
+            // 커스텀 오프셋 시간 선택 옵션 채우기
             const hSel = document.getElementById("custom-off-h");
             if (hSel) {
                 for (let i = 14; i >= -12; i--) {
@@ -190,7 +190,7 @@
                 }
             }
 
-            // Extra Time Toggle
+            // 추가 시간 토글
             const extraTimeToggle = document.getElementById("toggle-extra-time");
             if (extraTimeToggle) {
                 extraTimeToggle.checked = getSlotCount() > 1;
@@ -250,7 +250,7 @@
                 });
             }
 
-            // Custom Zone
+            // 커스텀 시간대
             const addCustomBtn = document.getElementById("add-custom-btn");
             if (addCustomBtn) {
                 addCustomBtn.addEventListener("click", () => {
@@ -310,7 +310,7 @@
                 });
             }
 
-            // Language Selector
+            // 언어 선택기
             const langSelect = document.getElementById("lang-select");
             if (langSelect) {
                 langSelect.value = getCurrentLang();

@@ -141,7 +141,7 @@
                 try {
                     captureEl.releasePointerCapture(state.pointerId);
                 } catch (_err) {
-                    // Ignore pointer capture release failures during rerender/dispose.
+                    // 리렌더/정리 중 포인터 캡처 해제 실패는 무시한다.
                 }
             }
         }
@@ -366,7 +366,7 @@
                     try {
                         captureEl.setPointerCapture(state.pointerId);
                     } catch (_err) {
-                        // Ignore pointer capture failures for unsupported environments.
+                        // 미지원 환경의 포인터 캡처 실패는 무시한다.
                     }
                 }
             });

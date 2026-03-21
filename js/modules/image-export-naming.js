@@ -21,7 +21,7 @@
                 try {
                     return String(depPad(n));
                 } catch (_err) {
-                    // Fallback to local padding.
+                    // 의존 패딩 함수 실패 시 로컬 패딩으로 대체한다.
                 }
             }
             return String(Number.isFinite(n) ? n : 0).padStart(2, "0");

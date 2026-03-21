@@ -280,7 +280,7 @@
 
         _shiftCurrentMonth(delta) {
             if (!Number.isFinite(delta) || delta === 0) return;
-            // Pin to the first day to prevent Date overflow from skipping months.
+            // 날짜 오버플로로 월이 건너뛰지 않도록 1일로 고정한다.
             this.currentDate.setDate(1);
             this.currentDate.setMonth(this.currentDate.getMonth() + delta);
         }

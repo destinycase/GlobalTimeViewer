@@ -161,14 +161,14 @@
         }
     }
 
-    function saveCountdownState() {
-        try {
-            if (!storage || typeof storage.setItem !== "function") return;
-            storage.setItem(COUNTDOWN_STORAGE_KEY, JSON.stringify(countdownState));
-        } catch (err) {
-            // Ignore storage errors for calculator-only helper state.
+        function saveCountdownState() {
+            try {
+                if (!storage || typeof storage.setItem !== "function") return;
+                storage.setItem(COUNTDOWN_STORAGE_KEY, JSON.stringify(countdownState));
+            } catch (err) {
+                // 계산기 전용 보조 상태 저장 실패는 무시한다.
+            }
         }
-    }
 
     function normalizeCountdownState(persisted, t) {
         const base = Array.isArray(persisted) ? persisted : [];
@@ -741,7 +741,7 @@
             }
             return null;
         };
-        // Reuse UTC date parsing for both period and offset calculations.
+        // 기간 계산과 오프셋 계산에서 동일한 UTC 날짜 파싱 로직을 재사용한다.
         const today = new Date();
         const todayText = formatDateOnly(today);
         if (!periodStart.value) periodStart.value = todayText;
@@ -830,7 +830,7 @@
 
         if (periodSwapBtn) {
             periodSwapBtn.addEventListener("click", () => {
-                // CDP 상태까지 고려한 Swap 로직 보완
+                // CDP 상태까지 고려해 교환(Swap) 로직을 보완
                 const startD = getPickerDateUtc(periodStart);
                 const endD = getPickerDateUtc(periodEnd);
 

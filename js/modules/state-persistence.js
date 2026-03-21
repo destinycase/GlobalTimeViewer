@@ -125,7 +125,7 @@
 
         function enqueuePersistenceWrite(taskFn) {
             const nextWrite = persistenceWriteQueue.then(taskFn, taskFn);
-            // Keep queue alive even if one write fails.
+            // 쓰기 1건이 실패해도 큐가 끊기지 않도록 유지한다.
             persistenceWriteQueue = nextWrite.catch(() => false);
             return nextWrite;
         }

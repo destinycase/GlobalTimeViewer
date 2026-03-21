@@ -123,7 +123,7 @@
                     if (Array.isArray(values) && values.length) return values;
                 }
             } catch (err) {
-                // Fallback below.
+                // 아래 대체 경로를 사용한다.
             }
             const fallback = new Set(["UTC"]);
             getTZDatabase().forEach((tzData) => {

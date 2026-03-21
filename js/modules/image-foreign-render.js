@@ -58,7 +58,7 @@
                         }
                     }
                 } catch (_err) {
-                    // Ignore inaccessible stylesheet rules.
+                    // 접근할 수 없는 스타일시트 규칙은 무시한다.
                 }
             }
 
@@ -119,7 +119,7 @@
             try {
                 await doc.fonts.ready;
             } catch (_) {
-                // Ignore font readiness failures and continue with fallback rendering.
+                // 폰트 준비 실패 시에도 대체 렌더링으로 계속 진행한다.
             }
         }
 
@@ -412,4 +412,3 @@
         createService
     });
 })(typeof window !== "undefined" ? window : globalThis);
-

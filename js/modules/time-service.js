@@ -1,6 +1,6 @@
 ﻿/**
- * GTVTimeService Module
- * Provides high-level time manipulation and state management using Luxon.
+ * GTVTimeService 모듈
+ * Luxon을 사용해 상위 레벨의 시간 연산과 상태 처리를 제공한다.
  */
 (function initGtvTimeService(globalObj) {
     "use strict";
@@ -73,7 +73,7 @@
         }
 
         /**
-         * Converts a JS Date to a Luxon DateTime in the specified timezone.
+         * JS Date를 지정한 시간대의 Luxon DateTime으로 변환한다.
          */
         function toDateTime(date, zone = "UTC", fixedOffsetMinutes = null) {
             if (hasLuxonDateTime()) {
@@ -93,7 +93,7 @@
         }
 
         /**
-         * Resolves local date parts (Y, M, D) for a given timezone.
+         * 주어진 시간대 기준의 로컬 날짜/시간 파트(Y, M, D 등)를 계산한다.
          */
         function resolveLocalDateParts(date, zone, timezoneId = null, fixedOffsetMinutes = null) {
             const dt = toDateTime(date, zone, fixedOffsetMinutes);
@@ -108,7 +108,7 @@
         }
 
         /**
-         * Shifts a date by the specified period.
+         * 지정한 기간 단위만큼 날짜를 이동한다.
          */
         function shiftDate(date, delta = {}, zone = "UTC", fixedOffsetMinutes = null) {
             if (hasLuxonDateTime()) {
@@ -135,7 +135,7 @@
         }
 
         /**
-         * Calculates the signed day span between two date strings (YYYY-MM-DD).
+         * 두 날짜 문자열(YYYY-MM-DD) 사이의 부호 있는 일수 차이를 계산한다.
          */
         function getDaySpan(startStr, endStr) {
             const startIso = (typeof startStr === "string") ? startStr.split(" ")[0] : "";
@@ -158,7 +158,7 @@
         }
 
         /**
-         * Formats duration between two dates.
+         * 두 시점 사이의 기간을 문자열로 포맷한다.
          */
         function formatDuration(startMs, endMs, lang = "en") {
             const safeStartMs = Number(startMs);
@@ -191,7 +191,7 @@
         }
 
         /**
-         * Adjusts a date based on specific actions (midnight, sharp_hour, etc.)
+         * 특정 액션(midnight, sharp_hour 등)에 맞춰 날짜를 조정한다.
          */
         function adjustDate(date, action, zone = "UTC", fixedOffsetMinutes = null, customDays = 1) {
             if (action === "now") return new Date();
@@ -295,10 +295,10 @@
         }
 
         /**
-         * Converts local date/time parts to UTC JS Date.
-         * @param {{year, month, day, hour, minute, second}} parts local time parts
-         * @param {string} zone IANA zone name or "UTC"/"CUSTOM"
-         * @param {number|null} fixedOffsetMinutes fixed offset in minutes when using CUSTOM
+         * 로컬 날짜/시간 파트를 UTC JS Date로 변환한다.
+         * @param {{year, month, day, hour, minute, second}} parts 로컬 시간 파트
+         * @param {string} zone IANA 시간대 이름 또는 "UTC"/"CUSTOM"
+         * @param {number|null} fixedOffsetMinutes CUSTOM 모드에서 사용하는 분 단위 고정 오프셋
          */
         function fromLocalPartsToUtc(parts, zone = "UTC", fixedOffsetMinutes = null) {
             const safeParts = {

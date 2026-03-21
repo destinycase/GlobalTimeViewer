@@ -119,7 +119,7 @@
                 const dateStr = `${year}-${safePad(month)}-${safePad(day)}`;
                 const clockStr = `${safePad(hour)}:${safePad(minute)}:${safePad(second)}`;
 
-                // Use local calendar date parts for weekday to avoid an extra timezone conversion call.
+                // 요일 계산 시 추가 시간대 변환 호출을 피하려고 로컬 달력 날짜 파트를 사용한다.
                 const weekdayDate = new Date(Date.UTC(
                     Math.max(1, year),
                     Math.max(0, month - 1),
