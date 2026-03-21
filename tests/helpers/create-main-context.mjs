@@ -9,6 +9,8 @@ const luxon = require("luxon");
 const MAIN_JS_PATH = path.resolve(process.cwd(), "main.js");
 const APP_CONFIG_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "app-config.js");
 const MAIN_CONSTANTS_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-constants.js");
+const MAIN_APP_STATE_VARS_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-app-state-vars.js");
+const MAIN_CORE_SERVICE_ASSEMBLY_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-core-service-assembly.js");
 const MAIN_MODULE_RESOLVER_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-module-resolver.js");
 const MAIN_MODULE_SPEC_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-module-spec.js");
 const MAIN_FOUNDATION_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-foundation-services.js");
@@ -18,6 +20,9 @@ const MAIN_DIRECT_STATE_PATCH_MODULE_PATH = path.resolve(process.cwd(), "js", "m
 const MAIN_APP_STATE_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-app-state-services.js");
 const MAIN_APP_STATE_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-app-state-bridge.js");
 const MAIN_PATCHED_STATE_SELECTORS_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-patched-state-selectors.js");
+const MAIN_FORMAT_PROFILE_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-format-profile-facade.js");
+const MAIN_TIMELINE_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-timeline-facade.js");
+const MAIN_FIXED_TIME_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-fixed-time-facade.js");
 const MAIN_TIMEZONE_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-timezone-facade.js");
 const MAIN_TIMEZONE_TABLE_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-timezone-table-facade.js");
 const MAIN_TIME_ADJUST_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-time-adjust-facade.js");
@@ -190,6 +195,8 @@ function createStorageStub() {
 export function createMainContext() {
     const appConfigCode = fs.readFileSync(APP_CONFIG_MODULE_PATH, "utf8");
     const mainConstantsCode = fs.readFileSync(MAIN_CONSTANTS_MODULE_PATH, "utf8");
+    const mainAppStateVarsCode = fs.readFileSync(MAIN_APP_STATE_VARS_MODULE_PATH, "utf8");
+    const mainCoreServiceAssemblyCode = fs.readFileSync(MAIN_CORE_SERVICE_ASSEMBLY_MODULE_PATH, "utf8");
     const mainModuleResolverCode = fs.readFileSync(MAIN_MODULE_RESOLVER_MODULE_PATH, "utf8");
     const mainModuleSpecCode = fs.readFileSync(MAIN_MODULE_SPEC_MODULE_PATH, "utf8");
     const mainFoundationServicesCode = fs.readFileSync(MAIN_FOUNDATION_SERVICES_MODULE_PATH, "utf8");
@@ -199,6 +206,9 @@ export function createMainContext() {
     const mainAppStateServicesCode = fs.readFileSync(MAIN_APP_STATE_SERVICES_MODULE_PATH, "utf8");
     const mainAppStateBridgeCode = fs.readFileSync(MAIN_APP_STATE_BRIDGE_MODULE_PATH, "utf8");
     const mainPatchedStateSelectorsCode = fs.readFileSync(MAIN_PATCHED_STATE_SELECTORS_MODULE_PATH, "utf8");
+    const mainFormatProfileFacadeCode = fs.readFileSync(MAIN_FORMAT_PROFILE_FACADE_MODULE_PATH, "utf8");
+    const mainTimelineFacadeCode = fs.readFileSync(MAIN_TIMELINE_FACADE_MODULE_PATH, "utf8");
+    const mainFixedTimeFacadeCode = fs.readFileSync(MAIN_FIXED_TIME_FACADE_MODULE_PATH, "utf8");
     const mainTimezoneFacadeCode = fs.readFileSync(MAIN_TIMEZONE_FACADE_MODULE_PATH, "utf8");
     const mainTimezoneTableFacadeCode = fs.readFileSync(MAIN_TIMEZONE_TABLE_FACADE_MODULE_PATH, "utf8");
     const mainTimeAdjustFacadeCode = fs.readFileSync(MAIN_TIME_ADJUST_FACADE_MODULE_PATH, "utf8");
@@ -355,6 +365,8 @@ export function createMainContext() {
     vm.createContext(sandbox);
     vm.runInContext(appConfigCode, sandbox, { filename: "js/modules/app-config.js" });
     vm.runInContext(mainConstantsCode, sandbox, { filename: "js/modules/main-constants.js" });
+    vm.runInContext(mainAppStateVarsCode, sandbox, { filename: "js/modules/main-app-state-vars.js" });
+    vm.runInContext(mainCoreServiceAssemblyCode, sandbox, { filename: "js/modules/main-core-service-assembly.js" });
     vm.runInContext(mainModuleResolverCode, sandbox, { filename: "js/modules/main-module-resolver.js" });
     vm.runInContext(mainModuleSpecCode, sandbox, { filename: "js/modules/main-module-spec.js" });
     vm.runInContext(mainFoundationServicesCode, sandbox, { filename: "js/modules/main-foundation-services.js" });
@@ -364,6 +376,9 @@ export function createMainContext() {
     vm.runInContext(mainAppStateServicesCode, sandbox, { filename: "js/modules/main-app-state-services.js" });
     vm.runInContext(mainAppStateBridgeCode, sandbox, { filename: "js/modules/main-app-state-bridge.js" });
     vm.runInContext(mainPatchedStateSelectorsCode, sandbox, { filename: "js/modules/main-patched-state-selectors.js" });
+    vm.runInContext(mainFormatProfileFacadeCode, sandbox, { filename: "js/modules/main-format-profile-facade.js" });
+    vm.runInContext(mainTimelineFacadeCode, sandbox, { filename: "js/modules/main-timeline-facade.js" });
+    vm.runInContext(mainFixedTimeFacadeCode, sandbox, { filename: "js/modules/main-fixed-time-facade.js" });
     vm.runInContext(mainTimezoneFacadeCode, sandbox, { filename: "js/modules/main-timezone-facade.js" });
     vm.runInContext(mainTimezoneTableFacadeCode, sandbox, { filename: "js/modules/main-timezone-table-facade.js" });
     vm.runInContext(mainTimeAdjustFacadeCode, sandbox, { filename: "js/modules/main-time-adjust-facade.js" });

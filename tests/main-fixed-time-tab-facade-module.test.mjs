@@ -30,41 +30,57 @@ describe("GTV main fixed-time tab facade module", () => {
     it("delegates fixed-time table methods and tab rendering flow", () => {
         const moduleApi = loadMainFixedTimeTabFacadeModule();
         const calls = [];
+        const dateInput = { value: "" };
         const fixedTimeTableService = {
             getFixedTimeSlotLayoutMetrics: () => ({ inputWidthPx: 220, columnMinWidthPx: 300 }),
             getFixedTimeDisplayColumns: () => ["timezone", "time_slots"],
             getFixedTimeOffsetTextAtDate: () => "+09:00",
-            renderFixedTimeTable: () => "table-rendered"
+            renderFixedTimeTable: () => {
+                calls.push("table");
+                return "table-rendered";
+            }
         };
         const service = moduleApi.createService({
             callServiceMethod: createCallServiceMethod(),
             getFixedTimeTableService: () => fixedTimeTableService,
-            getCurrentGroup: () => ({ id: 1 }),
+            getCurrentGroup: () => ({ id: 1, fixedDate: "2026-03-21" }),
             ensureGroupFixedTimes: () => { calls.push("ensure"); },
+            refreshFixedTimeSlotCountControls: () => { calls.push("refresh"); },
+            getDocumentRef: () => ({
+                getElementById: () => dateInput
+            }),
             renderBaseTimeSelect: () => { calls.push("base"); },
-            renderFixedTimeControls: () => { calls.push("controls"); }
         });
 
         expect(service.getFixedTimeSlotLayoutMetrics({})).toEqual({ inputWidthPx: 220, columnMinWidthPx: 300 });
         expect(service.getFixedTimeDisplayColumns()).toEqual(["timezone", "time_slots"]);
         expect(service.getFixedTimeOffsetTextAtDate({}, new Date())).toBe("+09:00");
         expect(service.renderFixedTimeTable()).toBe("table-rendered");
+        expect(service.renderFixedTimeControls({ fixedDate: "2026-03-22" })).toBe(undefined);
+        expect(dateInput.value).toBe("2026-03-22");
         expect(service.renderFixedTimeTab()).toBe(undefined);
-        expect(calls).toEqual(["ensure", "base", "controls"]);
+        expect(dateInput.value).toBe("2026-03-21");
+        expect(calls).toEqual(["table", "refresh", "ensure", "ensure", "base", "refresh", "table"]);
     });
 
     it("returns fallback values when fixed-time table service is unavailable", () => {
         const moduleApi = loadMainFixedTimeTabFacadeModule({ withWindow: false });
+        const dateInput = { value: "keep" };
         const service = moduleApi.createService({
             callServiceMethod: createCallServiceMethod(),
             getFixedTimeTableService: () => null,
-            getCurrentGroup: () => null
+            getCurrentGroup: () => null,
+            getDocumentRef: () => ({
+                getElementById: () => dateInput
+            })
         });
 
         expect(service.getFixedTimeSlotLayoutMetrics({})).toEqual({ inputWidthPx: 100, columnMinWidthPx: 152 });
         expect(service.getFixedTimeDisplayColumns()).toEqual(["timezone", "region", "time_slots"]);
         expect(service.getFixedTimeOffsetTextAtDate({}, new Date())).toBe("");
         expect(service.renderFixedTimeTable()).toBe(undefined);
+        expect(service.renderFixedTimeControls()).toBe(undefined);
+        expect(dateInput.value).toBe("");
         expect(service.renderFixedTimeTab()).toBe(undefined);
     });
 
@@ -75,6 +91,7 @@ describe("GTV main fixed-time tab facade module", () => {
         expect(service.getFixedTimeSlotLayoutMetrics({})).toBe(undefined);
         expect(service.getFixedTimeDisplayColumns()).toBe(undefined);
         expect(service.getFixedTimeOffsetTextAtDate({}, new Date())).toBe(undefined);
+        expect(service.renderFixedTimeControls()).toBe(undefined);
         expect(service.renderFixedTimeTable()).toBe(undefined);
         expect(service.renderFixedTimeTab()).toBe(undefined);
     });

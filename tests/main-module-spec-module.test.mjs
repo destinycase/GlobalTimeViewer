@@ -32,11 +32,15 @@ describe("GTV main module spec", () => {
         expect(specMap.GTV_MAIN_PERSISTENCE_SNAPSHOT_SERVICES.globalName).toBe("GTVMainPersistenceSnapshotServices");
         expect(specMap.GTV_MAIN_PERSISTENCE_COMPOSITION_SERVICES.globalName).toBe("GTVMainPersistenceCompositionServices");
         expect(specMap.GTV_MAIN_CLOCK_ORCHESTRATOR_SERVICES.globalName).toBe("GTVMainClockOrchestratorServices");
+        expect(specMap.GTV_MAIN_CORE_SERVICE_ASSEMBLY.globalName).toBe("GTVMainCoreServiceAssembly");
         expect(specMap.GTV_MAIN_SHARED_UTILS.globalName).toBe("GTVMainSharedUtils");
         expect(specMap.GTV_MAIN_SERVICE_METHOD_BRIDGE.globalName).toBe("GTVMainServiceMethodBridge");
         expect(specMap.GTV_MAIN_DIRECT_STATE_PATCH.globalName).toBe("GTVMainDirectStatePatch");
         expect(specMap.GTV_MAIN_APP_STATE_BRIDGE.globalName).toBe("GTVMainAppStateBridge");
         expect(specMap.GTV_MAIN_PATCHED_STATE_SELECTORS.globalName).toBe("GTVMainPatchedStateSelectors");
+        expect(specMap.GTV_MAIN_FORMAT_PROFILE_FACADE.globalName).toBe("GTVMainFormatProfileFacade");
+        expect(specMap.GTV_MAIN_TIMELINE_FACADE.globalName).toBe("GTVMainTimelineFacade");
+        expect(specMap.GTV_MAIN_FIXED_TIME_FACADE.globalName).toBe("GTVMainFixedTimeFacade");
         expect(specMap.GTV_MAIN_TIMEZONE_FACADE.globalName).toBe("GTVMainTimezoneFacade");
         expect(specMap.GTV_MAIN_TIMEZONE_TABLE_FACADE.globalName).toBe("GTVMainTimezoneTableFacade");
         expect(specMap.GTV_MAIN_TIME_ADJUST_FACADE.globalName).toBe("GTVMainTimeAdjustFacade");

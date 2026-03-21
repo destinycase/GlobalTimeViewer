@@ -1,5 +1,15 @@
 # 변경 이력 (Changelog)
 
+## [3.11.5] - 2026-03-22
+### 변경됨
+- `main.js`에 집중되어 있던 전역 상태 변수(`globalTimes` 등)와 서비스 의존성 조립기(`GTV_MAIN_MODULE_RESOLVER`) 로직을 각각 `main-app-state-vars.js`, `main-core-service-assembly.js`로 분리해 추출했습니다.
+- 이를 통해 `main.js`의 파일 크기를 800줄 가량 추가 절감하고 결합도를 획기적으로 낮췄습니다.
+- 릴리스 버전 상향 (v3.11.5)
+
+### 테스트
+- 분리된 상태 모듈에 대한 단위 테스트(`main-app-state-vars-module.test.mjs`, `main-core-service-assembly-module.test.mjs`)를 추가/갱신했습니다.
+- `npm run ci:gate`를 통해 416개의 전체 유닛 테스트 및 무결점 빌드를 확인했습니다.
+
 ## [3.11.4] - 2026-03-21
 ### 변경됨
 - `main.js`의 주요 래퍼 함수를 도메인 파사드로 분리했습니다.

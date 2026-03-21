@@ -8,6 +8,25 @@ const MAIN_PATH = path.resolve(process.cwd(), "main.js");
 const MAIN_CODE = fs.readFileSync(MAIN_PATH, "utf8");
 
 function runMainWithSandbox({ withWindow = true, constantsDefined = true } = {}) {
+    const mainAppStateVarsStub = {
+        createService: () => ({
+            initialState: {},
+            createDirectStateSetters: () => ({})
+        })
+    };
+    const mainCoreServiceAssemblyStub = {
+        createService: () => ({
+            mainServiceMethodBridgeService: null,
+            mainDirectStatePatchService: null,
+            mainAppStateBridgeService: null,
+            mainSharedUtilsService: null,
+            mainTimezoneFacadeService: null,
+            mainTimezoneTableFacadeService: null,
+            mainTimeAdjustFacadeService: null,
+            mainFixedTimeTabFacadeService: null,
+            mainMultiRangeTabFacadeService: null
+        })
+    };
     const sandbox = {
         console,
         setTimeout,
@@ -17,8 +36,12 @@ function runMainWithSandbox({ withWindow = true, constantsDefined = true } = {})
     if (withWindow) {
         sandbox.window = {};
         if (constantsDefined) sandbox.window.GTVMainConstants = {};
+        sandbox.window.GTVMainAppStateVars = mainAppStateVarsStub;
+        sandbox.window.GTVMainCoreServiceAssembly = mainCoreServiceAssemblyStub;
     } else if (constantsDefined) {
         sandbox.GTVMainConstants = {};
+        sandbox.GTVMainAppStateVars = mainAppStateVarsStub;
+        sandbox.GTVMainCoreServiceAssembly = mainCoreServiceAssemblyStub;
     }
     sandbox.globalThis = sandbox;
     vm.createContext(sandbox);

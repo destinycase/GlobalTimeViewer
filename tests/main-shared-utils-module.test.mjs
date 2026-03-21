@@ -28,6 +28,7 @@ describe("GTV main shared utils module", () => {
         expect(service.parseDateTimeParts("bad", "datetime")).toBe(null);
         expect(Number.isNaN(service.parseLocalDateTimeToUtcMs("bad"))).toBe(true);
         expect(service.parseLocalDateTimeToUtcMs("2026-03-20 01:02:03")).toBe(Date.UTC(2026, 2, 20, 1, 2, 3));
+        expect(service.escapeHtml("<div>'A' & \"B\"</div>")).toBe("&lt;div&gt;&#39;A&#39; &amp; &quot;B&quot;&lt;/div&gt;");
     });
 
     it("prepares export canvas and draws text with expected alignment", () => {

@@ -15,11 +15,14 @@
         const ensureGroupFixedTimes = (typeof safeDeps.ensureGroupFixedTimes === "function")
             ? safeDeps.ensureGroupFixedTimes
             : (() => undefined);
+        const refreshFixedTimeSlotCountControls = (typeof safeDeps.refreshFixedTimeSlotCountControls === "function")
+            ? safeDeps.refreshFixedTimeSlotCountControls
+            : (() => undefined);
+        const getDocumentRef = (typeof safeDeps.getDocumentRef === "function")
+            ? safeDeps.getDocumentRef
+            : (() => ((typeof document === "object" && document) ? document : null));
         const renderBaseTimeSelect = (typeof safeDeps.renderBaseTimeSelect === "function")
             ? safeDeps.renderBaseTimeSelect
-            : (() => undefined);
-        const renderFixedTimeControls = (typeof safeDeps.renderFixedTimeControls === "function")
-            ? safeDeps.renderFixedTimeControls
             : (() => undefined);
 
         function getFixedTimeSlotLayoutMetrics(partsEnabled) {
@@ -61,12 +64,33 @@
             );
         }
 
+        function renderFixedTimeControls(group = null, options = {}) {
+            refreshFixedTimeSlotCountControls();
+
+            const doc = getDocumentRef();
+            const dateInput = doc && typeof doc.getElementById === "function"
+                ? doc.getElementById("fixed-time-date-input")
+                : null;
+            if (!dateInput) return;
+
+            const safeGroup = group || getCurrentGroup();
+            if (!safeGroup) {
+                dateInput.value = "";
+                return;
+            }
+
+            if (options.ensureGroup !== false) {
+                ensureGroupFixedTimes(safeGroup);
+            }
+            dateInput.value = safeGroup.fixedDate || "";
+        }
+
         function renderFixedTimeTab() {
             const group = getCurrentGroup();
             if (!group) return;
             ensureGroupFixedTimes(group);
             renderBaseTimeSelect();
-            renderFixedTimeControls();
+            renderFixedTimeControls(group, { ensureGroup: false });
             renderFixedTimeTable();
         }
 
@@ -74,6 +98,7 @@
             getFixedTimeSlotLayoutMetrics,
             getFixedTimeDisplayColumns,
             getFixedTimeOffsetTextAtDate,
+            renderFixedTimeControls,
             renderFixedTimeTable,
             renderFixedTimeTab
         });
