@@ -87,4 +87,19 @@ describe("GTV main app bootstrap module", () => {
 
         await expect(service.initApp()).resolves.toBe(undefined);
     });
+
+    it("routes async persistence load errors to showFatalError (simulating corrupted storage)", async () => {
+        const moduleApi = loadMainAppBootstrapModule({ withWindow: false });
+        const errors = [];
+        const service = moduleApi.createService({
+            assertRequiredServices: () => {},
+            loadPersistence: async () => {
+                throw new Error("Corrupted local storage JSON");
+            },
+            showFatalError: (err) => errors.push(err.message)
+        });
+
+        await service.initApp();
+        expect(errors).toEqual(["Corrupted local storage JSON"]);
+    });
 });

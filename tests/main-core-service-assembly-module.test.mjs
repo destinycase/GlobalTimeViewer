@@ -319,4 +319,105 @@ describe("GTV main core service assembly module", () => {
         expect(assembled.groupContextStateService).toEqual({ name: "groupContext" });
         expect(assembled.timeService).toEqual({ name: "timeService" });
     });
+
+    it("throws a TypeError when a required structural dependency factory is completely omitted", () => {
+        const moduleApi = loadMainCoreServiceAssemblyModule();
+        
+        // Provide an empty deps object, which should cause deps.GTV_MAIN_SERVICE_METHOD_BRIDGE.createService to throw
+        expect(() => {
+            moduleApi.createService({});
+        }).toThrow(/Cannot read properties of undefined/);
+        
+        // Provide partial deps but missing one in the middle (e.g., GTV_MAIN_FORMAT_PROFILE_FACADE)
+        const makeApi = (name) => ({ createService: () => ({ name }) });
+        const partialDeps = {
+            GTV_MAIN_SERVICE_METHOD_BRIDGE: makeApi("b"),
+            GTV_MAIN_DIRECT_STATE_PATCH: makeApi("p"),
+            GTV_MAIN_APP_STATE_BRIDGE: makeApi("a"),
+            GTV_MAIN_PATCHED_STATE_SELECTORS: makeApi("ps"),
+            GTV_MAIN_SHARED_UTILS: makeApi("su"),
+            GTV_MAIN_TIMEZONE_RUNTIME_BRIDGE: makeApi("trb"),
+            GTV_MAIN_TIMEZONE_RUNTIME_SERVICES: makeApi("trs")
+            // Intentionally missing GTV_MAIN_TIMEZONE_FACADE and others
+        };
+
+        expect(() => {
+            moduleApi.createService(partialDeps);
+        }).toThrow(/Cannot read properties of undefined/);
+    });
+
+    it("prioritizes getRuntimeCurrentLangState over getCurrentLangState dynamically", () => {
+        const moduleApi = loadMainCoreServiceAssemblyModule();
+        let runtimeLangCalled = false;
+        let currentLangCalled = false;
+
+        const calls = {};
+        const makeApi = (name) => ({
+            createService: (deps) => {
+                calls[name] = deps;
+                return { name };
+            }
+        });
+
+        const mockDeps = {
+            GTV_MAIN_SERVICE_METHOD_BRIDGE: makeApi("bridge"),
+            GTV_MAIN_DIRECT_STATE_PATCH: makeApi("patch"),
+            GTV_MAIN_APP_STATE_BRIDGE: makeApi("appBridge"),
+            GTV_MAIN_PATCHED_STATE_SELECTORS: makeApi("patchedSelectors"),
+            GTV_MAIN_SHARED_UTILS: makeApi("shared"),
+            GTV_MAIN_TIMEZONE_RUNTIME_BRIDGE: makeApi("runtimeBridge"),
+            GTV_MAIN_TIMEZONE_RUNTIME_SERVICES: makeApi("tzRuntime"),
+            GTV_MAIN_FORMAT_PROFILE_FACADE: makeApi("f"),
+            GTV_MAIN_TIMEZONE_FACADE: makeApi("tz"),
+            GTV_MAIN_BASE_TIMEZONE_SERVICES: makeApi("b"),
+            GTV_MAIN_TIMEZONE_MUTATION_SERVICES: makeApi("m"),
+            GTV_MAIN_TIMEZONE_TABLE_FACADE: makeApi("t"),
+            GTV_MAIN_TIME_ADJUST_FACADE: makeApi("a"),
+            GTV_MAIN_FIXED_TIME_TAB_FACADE: makeApi("ft"),
+            GTV_MAIN_FIXED_TIME_FACADE: makeApi("ff"),
+            GTV_MAIN_TIMELINE_FACADE: makeApi("tf"),
+            GTV_MAIN_MULTI_RANGE_TAB_FACADE: makeApi("mt"),
+            GTV_MAIN_GROUP_LOCALIZATION_SERVICES: makeApi("gl"),
+            GTV_MAIN_ORCHESTRATION_FLOW_SERVICES: makeApi("of"),
+            GTV_MAIN_SELECT_SERVICES: makeApi("ss"),
+            GTV_TIMEZONE_SEARCH: makeApi("ts"),
+            GTV_SNAPSHOT_FORMAT: makeApi("sf"),
+            GTV_TIME_INPUT_MUTATIONS: makeApi("ti"),
+            GTV_MAIN_ROW_ORDER_SERVICES: makeApi("ro"),
+            GTV_MAIN_ROW_VIEW_SERVICES: makeApi("rv"),
+            GTV_TABLE_RENDER: makeApi("tr"),
+            GTV_MAIN_IMAGE_EXPORT_BRIDGE_PROXY: makeApi("iebp"),
+            GTV_MAIN_IMAGE_RUNTIME_SERVICES: makeApi("irs"),
+            GTV_MAIN_FIXED_TIME_SERVICES: makeApi("fts"),
+            GTV_MAIN_MULTI_RANGE_SERVICES: makeApi("mrs"),
+            GTV_MAIN_TIME_ADJUST_SERVICES: makeApi("tas"),
+            GTV_MAIN_TAB_SERVICES: makeApi("tabs"),
+            GTV_MAIN_GROUP_STATE_SERVICES: makeApi("gss"),
+            GTV_MAIN_IMAGE_EXPORT_NAMING_PROXY: makeApi("ienp"),
+            GTV_MAIN_IMAGE_EXPORT_SERVICES: makeApi("ies"),
+            GTV_MAIN_APP_STATE_SERVICES: makeApi("ass"),
+            GTV_MAIN_PERSISTENCE_COMPOSITION_SERVICES: makeApi("pcs"),
+            GTV_MAIN_RUNTIME_COMPOSITION_SERVICES: makeApi("rcs"),
+            GTV_MAIN_APP_BOOTSTRAP: makeApi("ab"),
+            GTV_GROUP_CONTEXT_STATE: makeApi("gc"),
+            GTV_FORMAT_PROFILE_STATE: makeApi("fp"),
+            GTV_MULTI_RANGE_STATE: makeApi("mr"),
+            GTV_FIXED_TIME_SLOT_UTILS: makeApi("ftsu"),
+            GTV_FIXED_TIME_STATE: makeApi("ftsState"),
+            GTV_UI_PREFERENCES_STATE: makeApi("uip"),
+            GTV_TIMER_ENGINE: makeApi("te"),
+            GTV_TIME_SERVICE: makeApi("timesvc"),
+            getRuntimeCurrentLangState: () => { runtimeLangCalled = true; return "ko"; },
+            getCurrentLangState: () => { currentLangCalled = true; return "en"; }
+        };
+
+        // When creating, the priority logic should inject getRuntimeCurrentLangState into tzRuntime
+        moduleApi.createService(mockDeps);
+        
+        // Execute the bound function inside tzRuntime to verify it calls the runtime version
+        const boundLangFn = calls.tzRuntime.getCurrentLang;
+        expect(boundLangFn()).toBe("ko");
+        expect(runtimeLangCalled).toBe(true);
+        expect(currentLangCalled).toBe(false);
+    });
 });
