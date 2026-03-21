@@ -19,6 +19,11 @@ const MAIN_APP_STATE_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "m
 const MAIN_APP_STATE_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-app-state-bridge.js");
 const MAIN_PATCHED_STATE_SELECTORS_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-patched-state-selectors.js");
 const MAIN_TIMEZONE_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-timezone-facade.js");
+const MAIN_TIMEZONE_TABLE_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-timezone-table-facade.js");
+const MAIN_TIME_ADJUST_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-time-adjust-facade.js");
+const MAIN_FIXED_TIME_TAB_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-fixed-time-tab-facade.js");
+const MAIN_MULTI_RANGE_TAB_FACADE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-multi-range-tab-facade.js");
+const MAIN_APP_BOOTSTRAP_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-app-bootstrap.js");
 const MAIN_PERSISTENCE_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-persistence-services.js");
 const MAIN_GROUP_TABS_SERVICE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-group-tabs-service.js");
 const MAIN_IMAGE_RUNTIME_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-image-runtime-services.js");
@@ -195,6 +200,11 @@ export function createMainContext() {
     const mainAppStateBridgeCode = fs.readFileSync(MAIN_APP_STATE_BRIDGE_MODULE_PATH, "utf8");
     const mainPatchedStateSelectorsCode = fs.readFileSync(MAIN_PATCHED_STATE_SELECTORS_MODULE_PATH, "utf8");
     const mainTimezoneFacadeCode = fs.readFileSync(MAIN_TIMEZONE_FACADE_MODULE_PATH, "utf8");
+    const mainTimezoneTableFacadeCode = fs.readFileSync(MAIN_TIMEZONE_TABLE_FACADE_MODULE_PATH, "utf8");
+    const mainTimeAdjustFacadeCode = fs.readFileSync(MAIN_TIME_ADJUST_FACADE_MODULE_PATH, "utf8");
+    const mainFixedTimeTabFacadeCode = fs.readFileSync(MAIN_FIXED_TIME_TAB_FACADE_MODULE_PATH, "utf8");
+    const mainMultiRangeTabFacadeCode = fs.readFileSync(MAIN_MULTI_RANGE_TAB_FACADE_MODULE_PATH, "utf8");
+    const mainAppBootstrapCode = fs.readFileSync(MAIN_APP_BOOTSTRAP_MODULE_PATH, "utf8");
     const mainPersistenceServicesCode = fs.readFileSync(MAIN_PERSISTENCE_SERVICES_MODULE_PATH, "utf8");
     const mainGroupTabsServiceCode = fs.readFileSync(MAIN_GROUP_TABS_SERVICE_MODULE_PATH, "utf8");
     const mainImageRuntimeServicesCode = fs.readFileSync(MAIN_IMAGE_RUNTIME_SERVICES_MODULE_PATH, "utf8");
@@ -338,7 +348,7 @@ export function createMainContext() {
     sandbox.addEventListener = () => { };
     sandbox.removeEventListener = () => { };
 
-    // Add browser-specific window properties that aren't on the sandbox root
+    // 샌드박스 루트에 없는 브라우저 전용 window 속성을 추가한다.
     sandbox.innerWidth = 1920;
     sandbox.innerHeight = 1080;
 
@@ -355,6 +365,11 @@ export function createMainContext() {
     vm.runInContext(mainAppStateBridgeCode, sandbox, { filename: "js/modules/main-app-state-bridge.js" });
     vm.runInContext(mainPatchedStateSelectorsCode, sandbox, { filename: "js/modules/main-patched-state-selectors.js" });
     vm.runInContext(mainTimezoneFacadeCode, sandbox, { filename: "js/modules/main-timezone-facade.js" });
+    vm.runInContext(mainTimezoneTableFacadeCode, sandbox, { filename: "js/modules/main-timezone-table-facade.js" });
+    vm.runInContext(mainTimeAdjustFacadeCode, sandbox, { filename: "js/modules/main-time-adjust-facade.js" });
+    vm.runInContext(mainFixedTimeTabFacadeCode, sandbox, { filename: "js/modules/main-fixed-time-tab-facade.js" });
+    vm.runInContext(mainMultiRangeTabFacadeCode, sandbox, { filename: "js/modules/main-multi-range-tab-facade.js" });
+    vm.runInContext(mainAppBootstrapCode, sandbox, { filename: "js/modules/main-app-bootstrap.js" });
     vm.runInContext(mainPersistenceServicesCode, sandbox, { filename: "js/modules/main-persistence-services.js" });
     vm.runInContext(mainGroupTabsServiceCode, sandbox, { filename: "js/modules/main-group-tabs-service.js" });
     vm.runInContext(mainImageRuntimeServicesCode, sandbox, { filename: "js/modules/main-image-runtime-services.js" });

@@ -38,6 +38,11 @@ describe("GTV main module spec", () => {
         expect(specMap.GTV_MAIN_APP_STATE_BRIDGE.globalName).toBe("GTVMainAppStateBridge");
         expect(specMap.GTV_MAIN_PATCHED_STATE_SELECTORS.globalName).toBe("GTVMainPatchedStateSelectors");
         expect(specMap.GTV_MAIN_TIMEZONE_FACADE.globalName).toBe("GTVMainTimezoneFacade");
+        expect(specMap.GTV_MAIN_TIMEZONE_TABLE_FACADE.globalName).toBe("GTVMainTimezoneTableFacade");
+        expect(specMap.GTV_MAIN_TIME_ADJUST_FACADE.globalName).toBe("GTVMainTimeAdjustFacade");
+        expect(specMap.GTV_MAIN_FIXED_TIME_TAB_FACADE.globalName).toBe("GTVMainFixedTimeTabFacade");
+        expect(specMap.GTV_MAIN_MULTI_RANGE_TAB_FACADE.globalName).toBe("GTVMainMultiRangeTabFacade");
+        expect(specMap.GTV_MAIN_APP_BOOTSTRAP.globalName).toBe("GTVMainAppBootstrap");
         expect(specMap.GTV_MAIN_TIMEZONE_RUNTIME_SERVICES.globalName).toBe("GTVMainTimezoneRuntimeServices");
         expect(specMap.GTV_MAIN_TIMEZONE_RUNTIME_BRIDGE.globalName).toBe("GTVMainTimezoneRuntimeBridge");
         expect(specMap.GTV_MAIN_TIMEZONE_MUTATION_SERVICES.globalName).toBe("GTVMainTimezoneMutationServices");

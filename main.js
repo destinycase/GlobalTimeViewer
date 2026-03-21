@@ -73,6 +73,11 @@ let mainServiceMethodBridgeService = null;
 let mainDirectStatePatchService = null;
 let mainSharedUtilsService = null;
 let mainTimezoneFacadeService = null;
+let mainTimezoneTableFacadeService = null;
+let mainTimeAdjustFacadeService = null;
+let mainFixedTimeTabFacadeService = null;
+let mainMultiRangeTabFacadeService = null;
+let mainAppBootstrapService = null;
 let appPersistenceStateService = null;
 let appStatePatcherService = null;
 let mainAppStateBridgeService = null;
@@ -217,12 +222,7 @@ function savePersistenceSafely(...args) {
 }
 
 function renderMultiRangesSafely() {
-    return callServiceMethod(
-        "multiRangeRenderService",
-        multiRangeRenderService,
-        "renderMultiRanges",
-        []
-    );
+    return mainMultiRangeTabFacadeService.renderMultiRanges();
 }
 
 function assertRequiredServices() {
@@ -343,6 +343,11 @@ const {
     GTV_MAIN_APP_STATE_BRIDGE,
     GTV_MAIN_PATCHED_STATE_SELECTORS,
     GTV_MAIN_TIMEZONE_FACADE,
+    GTV_MAIN_TIMEZONE_TABLE_FACADE,
+    GTV_MAIN_TIME_ADJUST_FACADE,
+    GTV_MAIN_FIXED_TIME_TAB_FACADE,
+    GTV_MAIN_MULTI_RANGE_TAB_FACADE,
+    GTV_MAIN_APP_BOOTSTRAP,
     GTV_MAIN_PERSISTENCE_SERVICES,
     GTV_MAIN_GROUP_TABS_SERVICE,
     GTV_MAIN_IMAGE_RUNTIME_SERVICES,
@@ -423,6 +428,38 @@ mainTimezoneFacadeService = GTV_MAIN_TIMEZONE_FACADE.createService({
     getMainTimezoneMutationService: () => mainTimezoneMutationService,
     getTimezoneSearchService: () => timezoneSearchService,
     getTimeCore: () => GTV_TIME_CORE
+});
+mainTimezoneTableFacadeService = GTV_MAIN_TIMEZONE_TABLE_FACADE.createService({
+    callServiceMethod,
+    getTableRenderService: () => tableRenderService,
+    getMainTimezoneFacadeService: () => mainTimezoneFacadeService,
+    getCopyActionsService: () => copyActionsService,
+    isFixedTimeTab: () => isFixedTimeTab(),
+    renderFixedTimeTab: () => renderFixedTimeTab()
+});
+mainTimeAdjustFacadeService = GTV_MAIN_TIME_ADJUST_FACADE.createService({
+    callServiceMethod,
+    getTimeAdjustUiService: () => timeAdjustUiService,
+    getTimeAdjustActionsService: () => timeAdjustActionsService,
+    getMultiBulkToolsService: () => multiBulkToolsService,
+    getTimeAdjustDayStepBySlotSnapshot: () => getTimeAdjustDayStepBySlotSnapshot(),
+    setTimeAdjustDayStepBySlotState: (nextValues = []) => setTimeAdjustDayStepBySlotState(nextValues),
+    defaultTimeAdjustDayStep: DEFAULT_TIME_ADJUST_DAY_STEP,
+    minTimeAdjustDayStep: MIN_TIME_ADJUST_DAY_STEP,
+    maxTimeAdjustDayStep: MAX_TIME_ADJUST_DAY_STEP
+});
+mainFixedTimeTabFacadeService = GTV_MAIN_FIXED_TIME_TAB_FACADE.createService({
+    callServiceMethod,
+    getFixedTimeTableService: () => fixedTimeTableService,
+    getCurrentGroup,
+    ensureGroupFixedTimes,
+    renderBaseTimeSelect: () => renderBaseTimeSelect(),
+    renderFixedTimeControls: () => renderFixedTimeControls()
+});
+mainMultiRangeTabFacadeService = GTV_MAIN_MULTI_RANGE_TAB_FACADE.createService({
+    callServiceMethod,
+    getMultiRangeRenderService: () => multiRangeRenderService,
+    getMultiRangeCopyService: () => multiRangeCopyService
 });
 const mainFoundationServices = GTV_MAIN_FOUNDATION_SERVICES.createService({
     GTV_SERVICE_BOOTSTRAP,
@@ -577,15 +614,15 @@ const timerEngineService = GTV_TIMER_ENGINE.createService({
     clearIntervalFn: (id) => clearInterval(id)
 });
 
-// Initialize timeService once at a higher scope
+// 상위 스코프에서 timeService를 1회 초기화
 const timeService = GTV_TIME_SERVICE.createService({
     luxon: (typeof window !== "undefined" ? window.luxon : globalThis.luxon)
 });
 
-// --- INTEGRATED CORE UTILITIES ---
+// --- 통합 코어 유틸리티 ---
 
 /**
- * Prepare shared canvas state for table image export.
+ * 표 이미지 내보내기를 위한 공통 캔버스 상태를 준비한다.
  */
 function prepareExportCanvas(sourceWidth, sourceHeight, pageBg) {
     if (!mainSharedUtilsService || typeof mainSharedUtilsService.prepareExportCanvas !== "function") {
@@ -595,7 +632,7 @@ function prepareExportCanvas(sourceWidth, sourceHeight, pageBg) {
 }
 
 /**
- * Draw text in an export cell with shared styling options.
+ * 공통 스타일 옵션을 적용해 내보내기 셀 텍스트를 그린다.
  */
 function drawExportCellText(ctx, text, x, y, w, h, options = {}) {
     if (!mainSharedUtilsService || typeof mainSharedUtilsService.drawExportCellText !== "function") {
@@ -605,7 +642,7 @@ function drawExportCellText(ctx, text, x, y, w, h, options = {}) {
 }
 
 /**
- * Parse date/time input into numeric parts based on input mode.
+ * 입력 모드에 맞춰 날짜/시간 입력 문자열을 숫자 파트로 파싱한다.
  */
 function parseDateTimeParts(val, inputMode) {
     if (!mainSharedUtilsService || typeof mainSharedUtilsService.parseDateTimeParts !== "function") {
@@ -638,47 +675,24 @@ function setTimeAdjustDayStepBySlotState(nextValues = []) {
     patchPrimaryState({ timeAdjustDayStepBySlot: [...safeValues] });
 }
 
-function callTimeAdjustUiMethodOrFallback(methodName, args = [], fallbackFactory = null) {
-    const fallbackToken = {};
-    const result = callServiceMethod(
-        "timeAdjustUiService",
-        timeAdjustUiService,
-        methodName,
-        args,
-        { fallback: fallbackToken }
-    );
-    if (result !== fallbackToken) return result;
-    if (typeof fallbackFactory === "function") return fallbackFactory();
-    return fallbackFactory;
-}
-
 function getTimeAdjustDayStep(slotIdx) {
-    return callTimeAdjustUiMethodOrFallback(
-        "getTimeAdjustDayStep",
-        [slotIdx],
-        () => {
-            const idx = Number.isInteger(slotIdx) ? slotIdx : 0;
-            const daySteps = getTimeAdjustDayStepBySlotSnapshot();
-            return daySteps[idx] || DEFAULT_TIME_ADJUST_DAY_STEP;
-        }
-    );
+    return mainTimeAdjustFacadeService.getTimeAdjustDayStep(slotIdx);
 }
 
 function setTimeAdjustDayStep(slotIdx, value) {
-    return callTimeAdjustUiMethodOrFallback(
-        "setTimeAdjustDayStep",
-        [slotIdx, value],
-        () => {
-            const idx = Number.isInteger(slotIdx) ? slotIdx : 0;
-            const daySteps = [...getTimeAdjustDayStepBySlotSnapshot()];
-            daySteps[idx] = value;
-            setTimeAdjustDayStepBySlotState(daySteps);
-        }
-    );
+    return mainTimeAdjustFacadeService.setTimeAdjustDayStep(slotIdx, value);
 }
 
 function updateTimeAdjustPanelSafely() {
-    return callTimeAdjustUiMethodOrFallback("updateTimeAdjustPanel", []);
+    return mainTimeAdjustFacadeService.updateTimeAdjustPanel();
+}
+
+function renderTimeAdjustSet(slotIdx, options = {}) {
+    return mainTimeAdjustFacadeService.renderTimeAdjustSet(slotIdx, options);
+}
+
+function attachTimeAdjustToggleLabel(setEl, checked, text, onChange) {
+    return mainTimeAdjustFacadeService.attachTimeAdjustToggleLabel(setEl, checked, text, onChange);
 }
 
 
@@ -1146,13 +1160,7 @@ function refreshMultiRangeControls() {
 }
 
 function renderMultiBulkToolSets() {
-    return callServiceMethod(
-        "multiBulkToolsService",
-        multiBulkToolsService,
-        "renderMultiBulkToolSets",
-        [],
-        { toastOnMissing: true, featureKey: "multi-bulk-tools" }
-    );
+    return mainTimeAdjustFacadeService.renderMultiBulkToolSets();
 }
 
 function syncMultiRangeStartLinks(startIdx = 1) {
@@ -1314,7 +1322,7 @@ const {
     renderBaseTimeSelect
 } = mainSelectServices;
 
-// --- Group Data Structure ---
+// --- 그룹 데이터 구조 ---
 
 const timezoneSearchService = GTV_TIMEZONE_SEARCH.createService({
     TZ_DATABASE,
@@ -1643,15 +1651,9 @@ const mainMultiRangeServices = GTV_MAIN_MULTI_RANGE_SERVICES.createService({
     saveMultiRangeSingleImage,
     setMultiRangesCollapsedBelow,
     toggleMultiRangeCollapsed,
-    renderTimeAdjustSet: (slotIdx, options = {}) =>
-        callTimeAdjustUiMethodOrFallback("renderTimeAdjustSet", [slotIdx, options], null),
+    renderTimeAdjustSet,
     applyMultiRangeTimeAdjustAction,
-    attachTimeAdjustToggleLabel: (setEl, checked, text, onChange) =>
-        callTimeAdjustUiMethodOrFallback(
-            "attachTimeAdjustToggleLabel",
-            [setEl, checked, text, onChange],
-            undefined
-        ),
+    attachTimeAdjustToggleLabel,
     setMultiRangeStartEditEnabled,
     setMultiRangeEndEditEnabled,
     getMultiDisplayColumnHeader: (colKey) => tableRenderService.getMultiDisplayColumnHeader(colKey),
@@ -2396,6 +2398,29 @@ timelineFrameService = mainRuntimeCompositionServices.timelineFrameService;
 fixedTimeTableService = mainRuntimeCompositionServices.fixedTimeTableService;
 mainUiInitService = mainRuntimeCompositionServices.mainUiInitService;
 mainClockOrchestratorService = mainRuntimeCompositionServices.mainClockOrchestratorService;
+mainAppBootstrapService = GTV_MAIN_APP_BOOTSTRAP.createService({
+    assertRequiredServices,
+    loadPersistence,
+    localizeAutoGeneratedNamesForCurrentLanguage,
+    savePersistenceSafely: () => savePersistenceSafely(),
+    loadCurrentMultiStateFromActiveSubgroup,
+    loadThemePreference,
+    applyTheme,
+    loadUiScalePreference,
+    applyUiScale,
+    applyTranslations,
+    applyVersionBranding,
+    initUI: () => mainUiInitService.initUI(),
+    bindFloatingTooltipEvents,
+    initDragAndDrop,
+    initSearchAndSelect: () => timezoneSearchService.initSearchAndSelect(),
+    initCalculators,
+    startRealtimeTicker: () => timerEngineService.startRealtimeTicker(),
+    switchMainTab,
+    getCurrentMainTab: () => getPatchedMainTabState(),
+    updateClocks,
+    showFatalError
+});
 
 function showFatalError(err) {
     const result = callServiceMethod(
@@ -2411,32 +2436,7 @@ function showFatalError(err) {
 }
 
 async function initApp() {
-    try {
-        assertRequiredServices();
-        await loadPersistence();
-        if (localizeAutoGeneratedNamesForCurrentLanguage()) {
-            await savePersistenceSafely();
-        }
-        loadCurrentMultiStateFromActiveSubgroup();
-        await applyTheme(await loadThemePreference(), false);
-        await applyUiScale(await loadUiScalePreference(), false);
-        applyTranslations();
-        applyVersionBranding();
-        mainUiInitService.initUI();
-        bindFloatingTooltipEvents();
-        initDragAndDrop();
-        timezoneSearchService.initSearchAndSelect();
-        initCalculators();
-
-        timerEngineService.startRealtimeTicker();
-
-        switchMainTab(getPatchedMainTabState());
-
-        // Force initial update
-        updateClocks();
-    } catch (err) {
-        showFatalError(err);
-    }
+    return await mainAppBootstrapService.initApp();
 }
 
 if (document.readyState === "loading") {
@@ -2463,16 +2463,7 @@ function refreshOptionToggleDividers() {
 }
 
 function sanitizeTimeAdjustDayStep(value) {
-    const safeValue = Number.isFinite(Number(value)) ? value : DEFAULT_TIME_ADJUST_DAY_STEP;
-    return callTimeAdjustUiMethodOrFallback(
-        "sanitizeTimeAdjustDayStep",
-        [safeValue],
-        () => {
-            const parsed = Number(safeValue);
-            if (!Number.isFinite(parsed)) return DEFAULT_TIME_ADJUST_DAY_STEP;
-            return Math.min(MAX_TIME_ADJUST_DAY_STEP, Math.max(MIN_TIME_ADJUST_DAY_STEP, Math.trunc(parsed)));
-        }
-    );
+    return mainTimeAdjustFacadeService.sanitizeTimeAdjustDayStep(value);
 }
 
 
@@ -2507,38 +2498,24 @@ function buildRowActionCells(copyButtonTitle, removeButtonText, removeButtonTitl
 }
 
 function buildTimezoneComputedSnapshotForRange(tz, startDate, endDate) {
-    if (!(startDate instanceof Date) || !Number.isFinite(startDate.getTime())) return null;
-    if (!(endDate instanceof Date) || !Number.isFinite(endDate.getTime())) return null;
-    return multiRangeRenderService.buildTimezoneComputedSnapshotForRange(tz, startDate, endDate);
+    return mainMultiRangeTabFacadeService.buildTimezoneComputedSnapshotForRange(tz, startDate, endDate);
 }
 
 function applySnapshotToRow(row, snapshot) {
-    if (!row || !snapshot) return false;
-    return multiRangeRenderService.applySnapshotToRow(row, snapshot);
+    return mainMultiRangeTabFacadeService.applySnapshotToRow(row, snapshot);
 }
 
 function formatRangeDurationText(startUtcMs, endUtcMs) {
-    const safeStart = Number.isFinite(startUtcMs) ? startUtcMs : Date.now();
-    const safeEnd = Number.isFinite(endUtcMs) ? endUtcMs : safeStart;
-    return multiRangeRenderService.formatRangeDurationText(safeStart, safeEnd);
+    return mainMultiRangeTabFacadeService.formatRangeDurationText(startUtcMs, endUtcMs);
 }
 
-// --- List Rendering (Dynamic Slots) ---
+// --- 목록 렌더링(동적 슬롯) ---
 function renderList() {
-    if (isFixedTimeTab()) {
-        return renderFixedTimeTab();
-    }
-    return tableRenderService.renderList();
+    return mainTimezoneTableFacadeService.renderList();
 }
 
 function resolveTimeAdjustZoneAndOffset(baseRef, fixedOffsetMinutes = null) {
-    return callServiceMethod(
-        "timeAdjustActionsService",
-        timeAdjustActionsService,
-        "resolveTimeAdjustZoneAndOffset",
-        [baseRef, fixedOffsetMinutes],
-        { fallback: { zone: "UTC", fixedOffsetMinutes: null } }
-    );
+    return mainTimeAdjustFacadeService.resolveTimeAdjustZoneAndOffset(baseRef, fixedOffsetMinutes);
 }
 
 
@@ -2549,43 +2526,25 @@ function resolveTimeAdjustZoneAndOffset(baseRef, fixedOffsetMinutes = null) {
 
 
 function applyTimeAdjustAction(slotIdx, action) {
-    return callServiceMethod(
-        "timeAdjustActionsService",
-        timeAdjustActionsService,
-        "applyTimeAdjustAction",
-        [slotIdx, action],
-        { toastOnMissing: true, featureKey: "time-adjust" }
-    );
+    return mainTimeAdjustFacadeService.applyTimeAdjustAction(slotIdx, action);
 }
 
 function getAdjustedUtcDateByAction(baseDate, action, slotIdx, baseRef, fixedOffsetMinutes) {
-    return callServiceMethod(
-        "timeAdjustActionsService",
-        timeAdjustActionsService,
-        "getAdjustedUtcDateByAction",
-        [baseDate, action, slotIdx, baseRef, fixedOffsetMinutes],
-        { fallback: null }
+    return mainTimeAdjustFacadeService.getAdjustedUtcDateByAction(
+        baseDate,
+        action,
+        slotIdx,
+        baseRef,
+        fixedOffsetMinutes
     );
 }
 
 function applyBulkRangeAllAction(slotIdx, action) {
-    return callServiceMethod(
-        "timeAdjustActionsService",
-        timeAdjustActionsService,
-        "applyBulkRangeAllAction",
-        [slotIdx, action],
-        { toastOnMissing: true, featureKey: "time-adjust-bulk" }
-    );
+    return mainTimeAdjustFacadeService.applyBulkRangeAllAction(slotIdx, action);
 }
 
 function applyMultiRangeTimeAdjustAction(rangeIdx, slotIdx, action) {
-    return callServiceMethod(
-        "timeAdjustActionsService",
-        timeAdjustActionsService,
-        "applyMultiRangeTimeAdjustAction",
-        [rangeIdx, slotIdx, action],
-        { toastOnMissing: true, featureKey: "time-adjust-multi-range" }
-    );
+    return mainTimeAdjustFacadeService.applyMultiRangeTimeAdjustAction(rangeIdx, slotIdx, action);
 }
 
 
@@ -3093,54 +3052,26 @@ function renderFixedTimeControls() {
 }
 
 function getFixedTimeSlotLayoutMetrics(partsEnabled) {
-    return callServiceMethod(
-        "fixedTimeTableService",
-        fixedTimeTableService,
-        "getFixedTimeSlotLayoutMetrics",
-        [partsEnabled],
-        { fallback: { inputWidthPx: 100, columnMinWidthPx: 152 } }
-    );
+    return mainFixedTimeTabFacadeService.getFixedTimeSlotLayoutMetrics(partsEnabled);
 }
 
 function getFixedTimeDisplayColumns() {
-    return callServiceMethod(
-        "fixedTimeTableService",
-        fixedTimeTableService,
-        "getFixedTimeDisplayColumns",
-        [],
-        { fallback: ["timezone", "region", "time_slots"] }
-    );
+    return mainFixedTimeTabFacadeService.getFixedTimeDisplayColumns();
 }
 
 function getFixedTimeOffsetTextAtDate(tz, anchorDate) {
-    return callServiceMethod(
-        "fixedTimeTableService",
-        fixedTimeTableService,
-        "getFixedTimeOffsetTextAtDate",
-        [tz, anchorDate],
-        { fallback: "" }
-    );
+    return mainFixedTimeTabFacadeService.getFixedTimeOffsetTextAtDate(tz, anchorDate);
 }
 
 function renderFixedTimeTable() {
-    return callServiceMethod(
-        "fixedTimeTableService",
-        fixedTimeTableService,
-        "renderFixedTimeTable",
-        []
-    );
+    return mainFixedTimeTabFacadeService.renderFixedTimeTable();
 }
 
 function renderFixedTimeTab() {
-    const group = getCurrentGroup();
-    if (!group) return;
-    ensureGroupFixedTimes(group);
-    renderBaseTimeSelect();
-    renderFixedTimeControls();
-    renderFixedTimeTable();
+    return mainFixedTimeTabFacadeService.renderFixedTimeTab();
 }
 
-// --- Clock Logic ---
+// --- 시계 로직 ---
 function updateClocks() {
     return mainOrchestrationFlowServices.updateClocks();
 }
@@ -3173,14 +3104,14 @@ function handleMultiRangeTimeChange(rangeIdx, val, timezone, slotIdx, timezoneId
 }
 
 function createStandardTimezoneFromSelectableEntry(entry) {
-    return mainTimezoneFacadeService.createStandardTimezoneFromSelectableEntry(entry);
+    return mainTimezoneTableFacadeService.createStandardTimezoneFromSelectableEntry(entry);
 }
 
 function addTimezone(tz) {
-    return mainTimezoneFacadeService.addTimezone(tz);
+    return mainTimezoneTableFacadeService.addTimezone(tz);
 }
 function removeTimezone(id) {
-    return mainTimezoneFacadeService.removeTimezone(id);
+    return mainTimezoneTableFacadeService.removeTimezone(id);
 }
 
 function formatTimeTextByParts(snapshot, timePartsEnabled) {
@@ -3195,21 +3126,19 @@ function formatSnapshotText(snapshot, order, enabled, timePartsEnabled = DEFAULT
 }
 
 function updateCopyFormatPreview() {
-    copyActionsService.updateCopyFormatPreview();
+    return mainTimezoneTableFacadeService.updateCopyFormatPreview();
 }
 
 async function copyAllTimezones() {
-    return await copyActionsService.copyAllTimezones();
+    return await mainTimezoneTableFacadeService.copyAllTimezones();
 }
 
 async function copyMultiRangeRow(rangeIdx, rowId) {
-    if (!Number.isInteger(rangeIdx) || rangeIdx < 0) return false;
-    if (typeof rowId !== "string" || !rowId.trim()) return false;
-    return await multiRangeCopyService.copyMultiRangeRow(rangeIdx, rowId);
+    return await mainMultiRangeTabFacadeService.copyMultiRangeRow(rangeIdx, rowId);
 }
 
 async function copyAllMultiRangeTimezones() {
-    return await multiRangeCopyService.copyAllMultiRangeTimezones();
+    return await mainMultiRangeTabFacadeService.copyAllMultiRangeTimezones();
 }
 
 function initCalculators() {
@@ -3245,7 +3174,7 @@ async function loadPersistence() {
     return await persistenceService.loadPersistence();
 }
 
-// --- End of main.js ---
+// --- main.js 끝 ---
 
 
 
