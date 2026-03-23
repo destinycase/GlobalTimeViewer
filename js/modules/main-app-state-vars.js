@@ -5,21 +5,11 @@
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const t = (typeof safeDeps.t === "function") ? safeDeps.t : (() => "Range");
         const copyFormatKeys = Array.isArray(safeDeps.copyFormatKeys) ? safeDeps.copyFormatKeys : [];
-        const defaultDisplayFormatEnabled = (
-            safeDeps.defaultDisplayFormatEnabled && typeof safeDeps.defaultDisplayFormatEnabled === "object"
-        ) ? safeDeps.defaultDisplayFormatEnabled : {};
-        const defaultCopyFormatEnabled = (
-            safeDeps.defaultCopyFormatEnabled && typeof safeDeps.defaultCopyFormatEnabled === "object"
-        ) ? safeDeps.defaultCopyFormatEnabled : {};
-        const defaultDisplayTimePartsEnabled = (
-            safeDeps.defaultDisplayTimePartsEnabled && typeof safeDeps.defaultDisplayTimePartsEnabled === "object"
-        ) ? safeDeps.defaultDisplayTimePartsEnabled : {};
-        const defaultCopyTimePartsEnabled = (
-            safeDeps.defaultCopyTimePartsEnabled && typeof safeDeps.defaultCopyTimePartsEnabled === "object"
-        ) ? safeDeps.defaultCopyTimePartsEnabled : {};
-        const defaultTimeAdjustDayStep = Number.isFinite(Number(safeDeps.defaultTimeAdjustDayStep))
-            ? Number(safeDeps.defaultTimeAdjustDayStep)
-            : 1;
+        const defaultDisplayFormatEnabled = (safeDeps.defaultDisplayFormatEnabled && typeof safeDeps.defaultDisplayFormatEnabled === "object") ? safeDeps.defaultDisplayFormatEnabled : {};
+        const defaultCopyFormatEnabled = (safeDeps.defaultCopyFormatEnabled && typeof safeDeps.defaultCopyFormatEnabled === "object") ? safeDeps.defaultCopyFormatEnabled : {};
+        const defaultDisplayTimePartsEnabled = (safeDeps.defaultDisplayTimePartsEnabled && typeof safeDeps.defaultDisplayTimePartsEnabled === "object") ? safeDeps.defaultDisplayTimePartsEnabled : {};
+        const defaultCopyTimePartsEnabled = (safeDeps.defaultCopyTimePartsEnabled && typeof safeDeps.defaultCopyTimePartsEnabled === "object") ? safeDeps.defaultCopyTimePartsEnabled : {};
+        const defaultTimeAdjustDayStep = Number.isFinite(Number(safeDeps.defaultTimeAdjustDayStep)) ? Number(safeDeps.defaultTimeAdjustDayStep) : 1;
 
         const initialState = Object.freeze({
             isRealtime: true,
