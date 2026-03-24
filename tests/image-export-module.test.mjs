@@ -1,11 +1,12 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { expect, test } from "vitest";
+import { afterEach, expect, test } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "image-export.js");
-const moduleCode = fs.readFileSync(MODULE_PATH, "utf8");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function createDocumentStub() {
     const anchors = [];
@@ -41,26 +42,59 @@ function createDocumentStub() {
 }
 
 function createApi({ documentStub = null, chromeStub = null } = {}) {
-    const sandbox = {
-        console,
-        Date,
-        Math,
-        Number,
-        String,
-        Object,
-        Array,
-        Promise,
-        setTimeout,
-        clearTimeout
+    const globalPatches = {
+        window: globalThis,
+        console
     };
-    if (documentStub) sandbox.document = documentStub;
-    if (chromeStub) sandbox.chrome = chromeStub;
-    sandbox.window = sandbox;
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(moduleCode, sandbox, { filename: "js/modules/image-export.js" });
-    return sandbox.GTVImageExport;
+    if (documentStub) globalPatches.document = documentStub;
+    if (chromeStub) globalPatches.chrome = chromeStub;
+    const keys = [
+        "window",
+        "console",
+        "document",
+        "chrome",
+        "GTVImageExport",
+        ...Object.keys(globalPatches)
+    ];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVImageExport || globalThis.GTVImageExport;
 }
+
+afterEach(() => {
+    while (moduleCleanupStack.length) {
+        const cleanup = moduleCleanupStack.pop();
+        try {
+            cleanup();
+        } catch {
+            // Ignore cleanup failures in tests.
+        }
+    }
+});
 
 test("downloadDataUrl uses anchor fallback when chrome API is unavailable", async () => {
     const doc = createDocumentStub();

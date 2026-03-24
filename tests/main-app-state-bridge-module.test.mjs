@@ -1,20 +1,43 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-app-state-bridge.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadMainAppStateBridgeModule() {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = { window: {}, globalThis: {}, console };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/main-app-state-bridge.js" });
-    return sandbox.window.GTVMainAppStateBridge
-        || sandbox.GTVMainAppStateBridge
-        || sandbox.globalThis.GTVMainAppStateBridge;
+    const globalPatches = { window: {}, console };
+    const keys = ["window", "console", "GTVMainAppStateBridge", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVMainAppStateBridge || globalThis.GTVMainAppStateBridge;
 }
 
 function createCallServiceMethod() {
@@ -27,6 +50,16 @@ function createCallServiceMethod() {
 }
 
 describe("GTV main app state bridge module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
     it("uses fallback patch when state services are missing", () => {
         const moduleApi = loadMainAppStateBridgeModule();
         const patches = [];

@@ -1,13 +1,14 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "settings-io.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadSettingsIoModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
     const logs = {
         error: [],
         warn: [],
@@ -29,18 +30,47 @@ function loadSettingsIoModule(options = {}) {
             return null;
         }
     };
-    const sandbox = {
+    const globalPatches = {
         window: {},
-        globalThis: {},
         document: documentStub,
         console: consoleStub,
         ...options.globals
     };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/settings-io.js" });
+    const keys = [
+        "window",
+        "document",
+        "console",
+        "GTVSettingsIO",
+        ...Object.keys(globalPatches)
+    ];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
     return {
-        module: sandbox.window.GTVSettingsIO || sandbox.GTVSettingsIO || sandbox.globalThis.GTVSettingsIO,
+        module: globalThis.window?.GTVSettingsIO || globalThis.GTVSettingsIO,
         logs
     };
 }
@@ -113,6 +143,17 @@ function createBaseDeps(overrides = {}) {
 }
 
 describe("GTV settings IO module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("throws for invalid payload without groups array", async () => {
         const loaded = loadSettingsIoModule();
         const service = loaded.module.createService(createBaseDeps());

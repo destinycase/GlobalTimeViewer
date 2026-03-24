@@ -1,11 +1,12 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { expect, test } from "vitest";
+import { afterEach, expect, test } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "date-picker.js");
-const moduleCode = fs.readFileSync(MODULE_PATH, "utf8");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function createClassList() {
     const tokens = new Set();
@@ -130,8 +131,23 @@ function createSandbox() {
         }
     };
 
-    const sandbox = {
-        console,
+    const eventCtor = class Event {
+        constructor(type, options = {}) {
+            this.type = type;
+            this.bubbles = !!options.bubbles;
+        }
+    };
+    const abortControllerCtor = class AbortController {
+        constructor() {
+            this.signal = {};
+        }
+        abort() { }
+    };
+    const windowStub = {
+        document: documentStub,
+        innerWidth: 1280,
+        scrollX: 0,
+        scrollY: 0,
         Date,
         Math,
         Number,
@@ -142,29 +158,71 @@ function createSandbox() {
         isNaN,
         setTimeout,
         clearTimeout,
-        document: documentStub,
-        innerWidth: 1280,
-        scrollX: 0,
-        scrollY: 0,
         Event: class Event {
             constructor(type, options = {}) {
                 this.type = type;
                 this.bubbles = !!options.bubbles;
             }
         },
-        AbortController: class AbortController {
-            constructor() {
-                this.signal = {};
-            }
-            abort() { }
-        }
+        AbortController: abortControllerCtor
     };
-    sandbox.window = sandbox;
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(moduleCode, sandbox, { filename: "js/modules/date-picker.js" });
-    return sandbox;
+    windowStub.Event = eventCtor;
+
+    const keys = [
+        "window",
+        "document",
+        "innerWidth",
+        "scrollX",
+        "scrollY",
+        "Event",
+        "AbortController",
+        "CustomDatePicker",
+        "console"
+    ];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    globalThis.window = windowStub;
+    globalThis.document = documentStub;
+    globalThis.innerWidth = windowStub.innerWidth;
+    globalThis.scrollX = windowStub.scrollX;
+    globalThis.scrollY = windowStub.scrollY;
+    globalThis.Event = eventCtor;
+    globalThis.AbortController = abortControllerCtor;
+    globalThis.console = console;
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return windowStub;
 }
+
+afterEach(() => {
+    while (moduleCleanupStack.length) {
+        const cleanup = moduleCleanupStack.pop();
+        try {
+            cleanup();
+        } catch {
+            // Ignore cleanup failures during tests.
+        }
+    }
+});
 
 test("CustomDatePicker initializes placeholder and input class", () => {
     const sandbox = createSandbox();

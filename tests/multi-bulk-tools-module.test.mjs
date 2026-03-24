@@ -1,10 +1,12 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "multi-bulk-tools.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function createClassList() {
     const values = new Set();
@@ -86,10 +88,8 @@ function flattenTree(root) {
 }
 
 function loadMultiBulkToolsModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = {
+    const globalPatches = {
         window: {},
-        globalThis: {},
         document: options.document || {
             getElementById() {
                 return null;
@@ -108,13 +108,56 @@ function loadMultiBulkToolsModule(options = {}) {
         requestAnimationFrame: options.requestAnimationFrame || null,
         getComputedStyle: () => ({ columnGap: "0", gap: "0", marginRight: "0" })
     };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/multi-bulk-tools.js" });
-    return sandbox.window.GTVMultiBulkTools || sandbox.GTVMultiBulkTools || sandbox.globalThis.GTVMultiBulkTools;
+    const keys = [
+        "window",
+        "document",
+        "console",
+        "requestAnimationFrame",
+        "getComputedStyle",
+        "GTVMultiBulkTools",
+        ...Object.keys(globalPatches)
+    ];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVMultiBulkTools || globalThis.GTVMultiBulkTools;
 }
 
 describe("GTV multi bulk tools module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("renderMultiBulkToolSets exits safely when controls are missing", () => {
         const module = loadMultiBulkToolsModule({
             document: {
@@ -219,4 +262,3 @@ describe("GTV multi bulk tools module", () => {
         expect(endEnableCount).toBe(1);
     });
 });
-

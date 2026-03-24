@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
 
 import { describe, expect, it } from "vitest";
 
@@ -9,22 +8,27 @@ const INDEX_PATH = path.resolve(process.cwd(), "index.html");
 
 function loadI18nData() {
     const code = fs.readFileSync(I18N_PATH, "utf8");
-    const sandbox = {
-        localStorage: {
+    const evaluate = new Function(
+        "localStorage",
+        "document",
+        "window",
+        "console",
+        `${code}\nreturn I18N_DATA;`
+    );
+    return evaluate(
+        {
             getItem: () => "ko",
-            setItem: () => {}
+            setItem: () => { }
         },
-        document: {
+        {
             title: "",
+            documentElement: { lang: "" },
             querySelectorAll: () => [],
             getElementById: () => null
         },
-        window: {}
-    };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(`${code}\n;globalThis.__I18N_DATA__ = I18N_DATA;`, sandbox, { filename: "i18n.js" });
-    return sandbox.__I18N_DATA__;
+        {},
+        console
+    );
 }
 
 function collectAttributeValues(html, attrName) {

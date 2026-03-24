@@ -1,23 +1,56 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-app-state-vars.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadMainAppStateVarsModule() {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = { window: {}, globalThis: {}, console };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/main-app-state-vars.js" });
-    return sandbox.window.GTVMainAppStateVars
-        || sandbox.GTVMainAppStateVars
-        || sandbox.globalThis.GTVMainAppStateVars;
+    const globalPatches = { window: {}, console };
+    const keys = ["window", "console", "GTVMainAppStateVars", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVMainAppStateVars || globalThis.GTVMainAppStateVars;
 }
 
 describe("GTV main app state vars module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
     it("creates initial state from injected defaults", () => {
         const moduleApi = loadMainAppStateVarsModule();
         const service = moduleApi.createService({
@@ -55,6 +88,79 @@ describe("GTV main app state vars module", () => {
 
         expect(state.showTimeline).toBe(true);
         expect(state.currentLang).toBe("ko");
+    });
+
+    it("invokes all direct setter handlers when provided", () => {
+        const moduleApi = loadMainAppStateVarsModule();
+        const service = moduleApi.createService();
+        const calls = [];
+        const handledKeys = [
+            "groups",
+            "activeGroupId",
+            "currentMainTab",
+            "activeGroupIdByMainTab",
+            "slotCount",
+            "showCopyFormat",
+            "showTimeline",
+            "displayFormatOrder",
+            "displayFormatEnabled",
+            "displayTimePartsEnabled",
+            "copyFormatOrder",
+            "copyFormatEnabled",
+            "copyTimePartsEnabled",
+            "formatProfiles",
+            "activeFormatProfileContext",
+            "timeAdjustDayStepBySlot",
+            "multiRangeCount",
+            "multiRangeTitle",
+            "multiRanges",
+            "multiRangeCollapsed",
+            "multiRangeStartEditEnabled",
+            "multiRangeEndEditEnabled",
+            "currentTheme",
+            "currentLang"
+        ];
+
+        const setterDeps = Object.fromEntries(
+            handledKeys.map((key) => [
+                key,
+                (value) => {
+                    calls.push([key, value]);
+                }
+            ])
+        );
+
+        const setters = service.createDirectStateSetters(setterDeps);
+
+        setters.groups([{ id: 1 }]);
+        setters.activeGroupId(2);
+        setters.currentMainTab("fixed");
+        setters.activeGroupIdByMainTab({ live: 1, fixed: 2 });
+        setters.slotCount(3);
+        setters.showCopyFormat(true);
+        setters.showTimeline(0);
+        setters.displayFormatOrder(["date"]);
+        setters.displayFormatEnabled({ date: true });
+        setters.displayTimePartsEnabled({ hour: true });
+        setters.copyFormatOrder(["time"]);
+        setters.copyFormatEnabled({ time: true });
+        setters.copyTimePartsEnabled({ minute: true });
+        setters.formatProfiles({ profileA: {} });
+        setters.activeFormatProfileContext("multi");
+        setters.timeAdjustDayStepBySlot([1, 2]);
+        setters.multiRangeCount(4);
+        setters.multiRangeTitle("Range X");
+        setters.multiRanges([{ id: "r1" }]);
+        setters.multiRangeCollapsed([false]);
+        setters.multiRangeStartEditEnabled([true]);
+        setters.multiRangeEndEditEnabled([false]);
+        setters.currentTheme("light");
+        setters.currentLang("ko");
+
+        expect(calls.length).toBe(handledKeys.length);
+        const calledKeys = calls.map(([key]) => key);
+        expect(calledKeys).toEqual(handledKeys);
+        expect(calls.find(([key]) => key === "showTimeline")?.[1]).toBe(false);
     });
 
     it("uses fallback defaults when deps are invalid", () => {

@@ -1,10 +1,12 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "state-persistence.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function createLocalStorageStub() {
     const store = new Map();
@@ -40,7 +42,6 @@ function createFailingLocalStorageStub() {
 }
 
 function loadStatePersistenceModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
     const logs = {
         error: [],
         warn: [],
@@ -57,9 +58,8 @@ function loadStatePersistenceModule(options = {}) {
             logs.log.push(args);
         }
     };
-    const sandbox = {
-        window: {},
-        globalThis: {},
+
+    const globalPatches = {
         localStorage: options.localStorage || createLocalStorageStub(),
         document: {
             getElementById() {
@@ -71,11 +71,37 @@ function loadStatePersistenceModule(options = {}) {
         console: consoleStub,
         chrome: options.chrome
     };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/state-persistence.js" });
+
+    const keys = ["window", "GTVStatePersistence", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    globalThis.window = globalThis;
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
     return {
-        module: sandbox.window.GTVStatePersistence || sandbox.GTVStatePersistence || sandbox.globalThis.GTVStatePersistence,
+        module: globalThis.GTVStatePersistence,
         logs
     };
 }
@@ -136,6 +162,17 @@ function createBaseDeps(overrides = {}) {
 }
 
 describe("GTV state persistence module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures during tests.
+            }
+        }
+    });
+
     it("savePersistence returns false when snapshot generation throws", async () => {
         const loaded = loadStatePersistenceModule();
         const mod = loaded.module;

@@ -1,43 +1,89 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "image-foreign-render.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadImageForeignRenderModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = {
+    const globalPatches = {
         window: {},
-        globalThis: {},
         console: options.console || console
     };
     if (Object.prototype.hasOwnProperty.call(options, "document")) {
-        sandbox.document = options.document;
+        globalPatches.document = options.document;
     }
     if (Object.prototype.hasOwnProperty.call(options, "URL")) {
-        sandbox.URL = options.URL;
+        globalPatches.URL = options.URL;
     }
     if (Object.prototype.hasOwnProperty.call(options, "Blob")) {
-        sandbox.Blob = options.Blob;
+        globalPatches.Blob = options.Blob;
     }
     if (Object.prototype.hasOwnProperty.call(options, "Image")) {
-        sandbox.Image = options.Image;
+        globalPatches.Image = options.Image;
     }
     if (Object.prototype.hasOwnProperty.call(options, "DOMException")) {
-        sandbox.DOMException = options.DOMException;
+        globalPatches.DOMException = options.DOMException;
     }
     if (Object.prototype.hasOwnProperty.call(options, "getComputedStyle")) {
-        sandbox.getComputedStyle = options.getComputedStyle;
+        globalPatches.getComputedStyle = options.getComputedStyle;
     }
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/image-foreign-render.js" });
-    return sandbox.window.GTVImageForeignRender || sandbox.GTVImageForeignRender || sandbox.globalThis.GTVImageForeignRender;
+    const keys = [
+        "window",
+        "console",
+        "document",
+        "URL",
+        "Blob",
+        "Image",
+        "DOMException",
+        "getComputedStyle",
+        "GTVImageForeignRender",
+        ...Object.keys(globalPatches)
+    ];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVImageForeignRender || globalThis.GTVImageForeignRender;
 }
 
 describe("GTV image foreign render module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("returns empty css text when document is unavailable", () => {
         const module = loadImageForeignRenderModule();
         const service = module.createService({});
@@ -82,4 +128,3 @@ describe("GTV image foreign render module", () => {
         await expect(service.renderElementWithForeignObjectToPngDataUrl(null)).rejects.toThrow("Render element not found");
     });
 });
-

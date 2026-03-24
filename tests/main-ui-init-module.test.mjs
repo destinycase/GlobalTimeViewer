@@ -1,34 +1,69 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-ui-init.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadMainUiInitModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = {
+    const globalPatches = {
         window: {},
-        globalThis: {},
         document: options.document || {
             getElementById() { return null; },
             addEventListener() { },
             querySelectorAll() { return []; }
         },
-        MutationObserver: class {
+        MutationObserver: options.MutationObserver || class {
             observe() {}
             disconnect() {}
         },
         console
     };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/main-ui-init.js" });
-    return sandbox.window.GTVMainUiInit || sandbox.GTVMainUiInit || sandbox.globalThis.GTVMainUiInit;
+    const keys = ["window", "document", "MutationObserver", "console", "GTVMainUiInit", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVMainUiInit || globalThis.GTVMainUiInit;
 }
 
 describe("GTV main ui init module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("gracefully runs even when DOM elements are completely missing from HTML", () => {
         // Provide an completely empty DOM stub
         const documentStub = {

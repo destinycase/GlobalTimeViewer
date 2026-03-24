@@ -1,10 +1,12 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "table-render.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function createClassList() {
     const values = new Set();
@@ -49,10 +51,8 @@ function createElementStub() {
 }
 
 function loadTableRenderModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = {
-        window: {},
-        globalThis: {},
+    const globalPatches = {
+        window: options.window || {},
         document: options.document || {
             getElementById() {
                 return null;
@@ -66,13 +66,48 @@ function loadTableRenderModule(options = {}) {
         },
         console
     };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/table-render.js" });
-    return sandbox.window.GTVTableRender || sandbox.GTVTableRender || sandbox.globalThis.GTVTableRender;
+    const keys = ["window", "document", "GTVTableRender", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVTableRender || globalThis.GTVTableRender;
 }
 
 describe("GTV table render module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("getDisplayColumns tolerates malformed format state", () => {
         const module = loadTableRenderModule();
         const service = module.createService({

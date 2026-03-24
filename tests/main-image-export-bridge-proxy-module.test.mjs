@@ -1,23 +1,56 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-image-export-bridge-proxy.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadMainImageExportBridgeProxyModule() {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = { window: {}, globalThis: {}, console };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/main-image-export-bridge-proxy.js" });
-    return sandbox.window.GTVMainImageExportBridgeProxy
-        || sandbox.GTVMainImageExportBridgeProxy
-        || sandbox.globalThis.GTVMainImageExportBridgeProxy;
+    const globalPatches = { window: {}, console };
+    const keys = ["window", "console", "GTVMainImageExportBridgeProxy", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVMainImageExportBridgeProxy || globalThis.GTVMainImageExportBridgeProxy;
 }
 
 describe("GTV main image export bridge proxy module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
     it("delegates to image export bridge service and preserves fallback defaults", async () => {
         const moduleApi = loadMainImageExportBridgeProxyModule();
         const calls = [];

@@ -1,23 +1,57 @@
-import fs from "node:fs";
-import path from "node:path";
-import vm from "node:vm";
+﻿import path from "node:path";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-timezone-runtime-services.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadMainTimezoneRuntimeServicesModule() {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = { window: {}, globalThis: {}, console };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/main-timezone-runtime-services.js" });
-    return sandbox.window.GTVMainTimezoneRuntimeServices
-        || sandbox.GTVMainTimezoneRuntimeServices
-        || sandbox.globalThis.GTVMainTimezoneRuntimeServices;
+    const globalPatches = { window: {}, console };
+    const keys = ["window", "console", "GTVMainTimezoneRuntimeServices", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVMainTimezoneRuntimeServices || globalThis.GTVMainTimezoneRuntimeServices;
 }
 
 describe("GTV main timezone runtime services module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("resolves abbreviations using fixed mapping and custom fallback", () => {
         const moduleApi = loadMainTimezoneRuntimeServicesModule();
         const service = moduleApi.createService({
@@ -47,25 +81,25 @@ describe("GTV main timezone runtime services module", () => {
             formatUtcOffsetLabel: () => "UTC+09:00",
             getTzDatabase: () => ([{
                 zone: "Asia/Seoul",
-                name: "대한민국",
-                city: "서울",
+                name: "\uB300\uD55C\uBBFC\uAD6D",
+                city: "\uC11C\uC6B8",
                 name_en: "South Korea",
                 city_en: "Seoul"
             }]),
-            resolveLocalizedTZLabel: () => "외부 라벨"
+            resolveLocalizedTZLabel: () => "\uC678\uBD80 \uB77C\uBCA8"
         });
 
         expect(service.getZoneDisplayName({
             type: "standard",
             zone: "Asia/Seoul",
             name: "Korea Standard Time"
-        })).toBe("외부 라벨");
+        })).toBe("\uC678\uBD80 \uB77C\uBCA8");
 
         expect(service.getZoneDisplayName({
             type: "standard",
             zone: "Asia/Seoul",
             fixedOffsetMinutes: 540,
-            name_ko: "한국 표준시"
-        })).toBe("UTC+09:00 표준시");
+            name_ko: "\uD55C\uAD6D \uD45C\uC900\uC2DC"
+        })).toBe("UTC+09:00 \uD45C\uC900\uC2DC");
     });
 });

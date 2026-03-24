@@ -1,16 +1,16 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "multi-range-image-render.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadMultiRangeImageRenderModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = {
+    const globalPatches = {
         window: {},
-        globalThis: {},
         document: options.document || {
             getElementById() {
                 return null;
@@ -27,13 +27,48 @@ function loadMultiRangeImageRenderModule(options = {}) {
         })),
         console: options.console || console
     };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/multi-range-image-render.js" });
-    return sandbox.window.GTVMultiRangeImageRender || sandbox.GTVMultiRangeImageRender || sandbox.globalThis.GTVMultiRangeImageRender;
+    const keys = ["window", "document", "getComputedStyle", "console", "GTVMultiRangeImageRender", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVMultiRangeImageRender || globalThis.GTVMultiRangeImageRender;
 }
 
 describe("GTV multi-range image render module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("fallback renderer throws when multi-range container is missing", async () => {
         const module = loadMultiRangeImageRenderModule();
         const service = module.createService({
@@ -115,4 +150,3 @@ describe("GTV multi-range image render module", () => {
         expect(dataUrl).toBe("data:image/png;base64,TITLES");
     });
 });
-

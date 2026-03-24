@@ -1,28 +1,81 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "calculator-actions.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
+
+function setGlobalKey(key, value) {
+    try {
+        globalThis[key] = value;
+        return;
+    } catch {
+        // Some globals (e.g. navigator in Node) are accessor-only by default.
+    }
+    Object.defineProperty(globalThis, key, {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value
+    });
+}
 
 function loadCalculatorActionsModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const windowStub = options.window || {};
-    const sandbox = {
-        window: windowStub,
-        globalThis: {},
-        console: options.console || console,
-        document: options.document,
-        navigator: options.navigator
+    const globalPatches = {
+        window: options.window || {},
+        console: options.console || console
     };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/calculator-actions.js" });
-    return sandbox.window.GTVCalculatorActions || sandbox.GTVCalculatorActions || sandbox.globalThis.GTVCalculatorActions;
+    if (Object.prototype.hasOwnProperty.call(options, "document")) {
+        globalPatches.document = options.document;
+    }
+    if (Object.prototype.hasOwnProperty.call(options, "navigator")) {
+        globalPatches.navigator = options.navigator;
+    }
+    const keys = ["window", "console", "document", "navigator", "GTVCalculatorActions", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        setGlobalKey(key, value);
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            setGlobalKey(key, entry.value);
+        });
+    });
+
+    return globalThis.window?.GTVCalculatorActions || globalThis.GTVCalculatorActions;
 }
 
 describe("GTV calculator actions module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("initCalculators delegates to calculator module with translated t and copyText", () => {
         const module = loadCalculatorActionsModule();
         let observedOptions = null;

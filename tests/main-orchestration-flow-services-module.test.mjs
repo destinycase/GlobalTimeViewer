@@ -1,23 +1,56 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-orchestration-flow-services.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadMainOrchestrationFlowServicesModule() {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = { window: {}, globalThis: {}, console };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/main-orchestration-flow-services.js" });
-    return sandbox.window.GTVMainOrchestrationFlowServices
-        || sandbox.GTVMainOrchestrationFlowServices
-        || sandbox.globalThis.GTVMainOrchestrationFlowServices;
+    const globalPatches = { window: {}, console };
+    const keys = ["window", "console", "GTVMainOrchestrationFlowServices", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVMainOrchestrationFlowServices || globalThis.GTVMainOrchestrationFlowServices;
 }
 
 describe("GTV main orchestration flow services module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
     it("proxies update/persistence/group-localization flows through composed services", () => {
         const moduleApi = loadMainOrchestrationFlowServicesModule();
         let updateCalls = 0;

@@ -1,11 +1,11 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
 import { describe, expect, it } from "vitest";
 
 const MAIN_PATH = path.resolve(process.cwd(), "main.js");
-const MAIN_CODE = fs.readFileSync(MAIN_PATH, "utf8");
+const require = createRequire(import.meta.url);
+const MAIN_ID = require.resolve(MAIN_PATH);
 
 function runMainWithSandbox({ withWindow = true, constantsDefined = true } = {}) {
     const mainAppStateVarsStub = {
@@ -27,30 +27,61 @@ function runMainWithSandbox({ withWindow = true, constantsDefined = true } = {})
             mainMultiRangeTabFacadeService: null
         })
     };
-    const sandbox = {
+    const globalPatches = {
         console,
         setTimeout,
         clearTimeout,
         t: () => "Range"
     };
     if (withWindow) {
-        sandbox.window = {};
-        if (constantsDefined) sandbox.window.GTVMainConstants = {};
-        sandbox.window.GTVMainAppStateVars = mainAppStateVarsStub;
-        sandbox.window.GTVMainCoreServiceAssembly = mainCoreServiceAssemblyStub;
+        const windowRef = {};
+        if (constantsDefined) windowRef.GTVMainConstants = {};
+        windowRef.GTVMainAppStateVars = mainAppStateVarsStub;
+        windowRef.GTVMainCoreServiceAssembly = mainCoreServiceAssemblyStub;
+        globalPatches.window = windowRef;
     } else if (constantsDefined) {
-        sandbox.GTVMainConstants = {};
-        sandbox.GTVMainAppStateVars = mainAppStateVarsStub;
-        sandbox.GTVMainCoreServiceAssembly = mainCoreServiceAssemblyStub;
+        globalPatches.GTVMainConstants = {};
+        globalPatches.GTVMainAppStateVars = mainAppStateVarsStub;
+        globalPatches.GTVMainCoreServiceAssembly = mainCoreServiceAssemblyStub;
     }
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
+    const keys = [
+        "window",
+        "console",
+        "setTimeout",
+        "clearTimeout",
+        "t",
+        "GTVMainConstants",
+        "GTVMainAppStateVars",
+        "GTVMainCoreServiceAssembly",
+        ...Object.keys(globalPatches)
+    ];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
 
     try {
-        vm.runInContext(MAIN_CODE, sandbox, { filename: "main.js" });
+        Object.entries(globalPatches).forEach(([key, value]) => {
+            globalThis[key] = value;
+        });
+        delete require.cache[MAIN_ID];
+        require(MAIN_PATH);
         return null;
     } catch (err) {
         return err;
+    } finally {
+        delete require.cache[MAIN_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
     }
 }
 

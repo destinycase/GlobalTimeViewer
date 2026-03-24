@@ -1,30 +1,59 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
 import { DateTime } from "luxon";
-import { expect, test } from "vitest";
+import { afterEach, expect, test } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "time-service.js");
-const moduleCode = fs.readFileSync(MODULE_PATH, "utf8");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function createService(deps = {}) {
-    const sandbox = {
-        console,
-        Date,
-        Math,
-        Number,
-        String,
-        Object,
-        Array,
-        parseInt
+    const globalPatches = {
+        window: globalThis,
+        console
     };
-    sandbox.window = sandbox;
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(moduleCode, sandbox, { filename: "js/modules/time-service.js" });
-    return sandbox.GTVTimeService.createService(deps);
+    const keys = ["window", "console", "GTVTimeService", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return (globalThis.window?.GTVTimeService || globalThis.GTVTimeService).createService(deps);
 }
+
+afterEach(() => {
+    while (moduleCleanupStack.length) {
+        const cleanup = moduleCleanupStack.pop();
+        try {
+            cleanup();
+        } catch {
+            // Ignore cleanup failures in tests.
+        }
+    }
+});
 
 test("formatDuration renders Korean label correctly", () => {
     const service = createService({ luxon: { DateTime } });

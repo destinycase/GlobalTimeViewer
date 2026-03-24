@@ -1,26 +1,61 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "fixed-time-timeline.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadFixedTimeTimelineModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = {
-        window: {},
-        globalThis: {},
+    const globalPatches = {
+        window: options.window || {},
         Date,
         console: options.console || console
     };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/fixed-time-timeline.js" });
-    return sandbox.window.GTVFixedTimeTimeline || sandbox.GTVFixedTimeTimeline || sandbox.globalThis.GTVFixedTimeTimeline;
+    const keys = ["window", "Date", "console", "GTVFixedTimeTimeline", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVFixedTimeTimeline || globalThis.GTVFixedTimeTimeline;
 }
 
 describe("GTV fixed time timeline module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("applies ratio to fixed-time slot with clamping", () => {
         const module = loadFixedTimeTimelineModule();
         const group = { fixedTimes: [{ id: "ft-1", name: "Slot", time: "00:00" }] };

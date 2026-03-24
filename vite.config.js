@@ -19,10 +19,10 @@ export default defineConfig({
             reporter: ['text-summary', 'html'],
             all: true,
             thresholds: {
-                statements: 42.5,
-                lines: 42.5,
-                branches: 43.2,
-                functions: 20.0
+                statements: 80.2,
+                lines: 80.2,
+                branches: 66.4,
+                functions: 59.0
             },
             include: [
                 'background.js',

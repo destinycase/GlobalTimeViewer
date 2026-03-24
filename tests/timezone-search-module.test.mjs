@@ -1,10 +1,12 @@
-﻿import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "timezone-search.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function createClassList() {
     const values = new Set();
@@ -130,25 +132,57 @@ function createOffsetAndAbbrDeps() {
 }
 
 function loadTimezoneSearchModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
     const windowStub = {
         requestIdleCallback: options.requestIdleCallback,
         setTimeout: options.setTimeout
     };
-    const sandbox = {
+    const globalPatches = {
         window: windowStub,
-        globalThis: {},
         Intl: options.Intl || Intl,
         document: options.document || createDocumentStub(),
         console
     };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/timezone-search.js" });
-    return sandbox.window.GTVTimezoneSearch || sandbox.GTVTimezoneSearch || sandbox.globalThis.GTVTimezoneSearch;
+    const keys = ["GTVTimezoneSearch", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVTimezoneSearch || globalThis.GTVTimezoneSearch;
 }
 
 describe("GTV timezone search module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
     it("getSelectableTZEntries handles missing deps state safely", () => {
         const module = loadTimezoneSearchModule();
         const service = module.createService(null);
@@ -616,3 +650,4 @@ describe("GTV timezone search module", () => {
         expect(serviceEn.getTimezoneEntryTitle(entry)).toBe("Japan - Tokyo");
     });
 });
+

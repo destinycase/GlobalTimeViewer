@@ -1,28 +1,65 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-module-resolver.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadMainModuleResolver() {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = { window: {}, globalThis: {}, console };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/main-module-resolver.js" });
+    const windowRef = {};
+    const globalPatches = { window: windowRef, console };
+    const keys = ["window", "console", "GTVMainModuleResolver", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
     return {
-        moduleApi: sandbox.window.GTVMainModuleResolver || sandbox.GTVMainModuleResolver || sandbox.globalThis.GTVMainModuleResolver,
-        sandbox
+        moduleApi: globalThis.window?.GTVMainModuleResolver || globalThis.GTVMainModuleResolver,
+        windowRef
     };
 }
 
 describe("GTV main module resolver", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("resolves module map with required API checks", () => {
-        const { moduleApi, sandbox } = loadMainModuleResolver();
-        sandbox.window.GTVFoo = { createService: () => ({ ok: true }) };
-        sandbox.window.GTVBar = { value: 10 };
+        const { moduleApi, windowRef } = loadMainModuleResolver();
+        windowRef.GTVFoo = { createService: () => ({ ok: true }) };
+        windowRef.GTVBar = { value: 10 };
 
         const resolved = moduleApi.resolveModules({
             FOO: { globalName: "GTVFoo", errorLabel: "GTVFoo", requiredMethod: "createService" },
@@ -42,16 +79,16 @@ describe("GTV main module resolver", () => {
     });
 
     it("throws for missing required module APIs", () => {
-        const { moduleApi, sandbox } = loadMainModuleResolver();
-        sandbox.window.GTVBad = {};
+        const { moduleApi, windowRef } = loadMainModuleResolver();
+        windowRef.GTVBad = {};
         expect(() => moduleApi.resolveModules({
             BAD: { globalName: "GTVBad", errorLabel: "GTVBad", requiredMethod: "createService" }
         })).toThrow("Missing required module API: GTVBad.createService");
     });
 
     it("throws validate message for malformed module shape", () => {
-        const { moduleApi, sandbox } = loadMainModuleResolver();
-        sandbox.window.GTVTimezoneData = { TZ_DATABASE: null, ZONE_MAP: null };
+        const { moduleApi, windowRef } = loadMainModuleResolver();
+        windowRef.GTVTimezoneData = { TZ_DATABASE: null, ZONE_MAP: null };
         expect(() => moduleApi.resolveModules({
             TZ: {
                 globalName: "GTVTimezoneData",

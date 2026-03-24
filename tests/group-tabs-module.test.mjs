@@ -1,16 +1,16 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "group-tabs.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadGroupTabsModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = {
+    const globalPatches = {
         window: {},
-        globalThis: {},
         document: options.document || {
             getElementById() {
                 return null;
@@ -20,10 +20,34 @@ function loadGroupTabsModule(options = {}) {
         confirm: options.confirm || (() => true),
         console
     };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/group-tabs.js" });
-    return sandbox.window.GTVGroupTabs || sandbox.GTVGroupTabs || sandbox.globalThis.GTVGroupTabs;
+    const keys = ["window", "document", "prompt", "confirm", "console", "GTVGroupTabs", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVGroupTabs || globalThis.GTVGroupTabs;
 }
 
 function createBaseDeps(state, overrides = {}) {
@@ -92,6 +116,17 @@ function createBaseDeps(state, overrides = {}) {
 }
 
 describe("GTV group tabs module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("addGroup handles non-array groups state and initializes first group", () => {
         const module = loadGroupTabsModule({
             prompt: () => "New Group"

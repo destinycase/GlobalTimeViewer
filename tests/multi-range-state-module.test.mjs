@@ -1,16 +1,16 @@
-import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "multi-range-state.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
+const moduleCleanupStack = [];
 
 function loadMultiRangeStateModule(options = {}) {
-    const code = fs.readFileSync(MODULE_PATH, "utf8");
-    const sandbox = {
+    const globalPatches = {
         window: {},
-        globalThis: {},
         Date: options.Date || Date,
         document: options.document || {
             getElementById() {
@@ -19,10 +19,34 @@ function loadMultiRangeStateModule(options = {}) {
         },
         console
     };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { filename: "js/modules/multi-range-state.js" });
-    return sandbox.window.GTVMultiRangeState || sandbox.GTVMultiRangeState || sandbox.globalThis.GTVMultiRangeState;
+    const keys = ["window", "Date", "document", "console", "GTVMultiRangeState", ...Object.keys(globalPatches)];
+    const previous = new Map();
+    keys.forEach((key) => {
+        previous.set(key, {
+            exists: Object.prototype.hasOwnProperty.call(globalThis, key),
+            value: globalThis[key]
+        });
+    });
+
+    Object.entries(globalPatches).forEach(([key, value]) => {
+        globalThis[key] = value;
+    });
+
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
+    moduleCleanupStack.push(() => {
+        delete require.cache[MODULE_ID];
+        keys.forEach((key) => {
+            const entry = previous.get(key);
+            if (!entry || !entry.exists) {
+                delete globalThis[key];
+                return;
+            }
+            globalThis[key] = entry.value;
+        });
+    });
+
+    return globalThis.window?.GTVMultiRangeState || globalThis.GTVMultiRangeState;
 }
 
 function createState(overrides = {}) {
@@ -56,6 +80,17 @@ function createDeps(state, overrides = {}) {
 }
 
 describe("GTV multi-range state module", () => {
+    afterEach(() => {
+        while (moduleCleanupStack.length) {
+            const cleanup = moduleCleanupStack.pop();
+            try {
+                cleanup();
+            } catch {
+                // Ignore cleanup failures in tests.
+            }
+        }
+    });
+
     it("sanitizeMultiRangeCount clamps by configured min/max", () => {
         const module = loadMultiRangeStateModule();
         const service = module.createService({
