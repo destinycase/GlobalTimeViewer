@@ -107,12 +107,78 @@ describe("GTV image foreign render module", () => {
         expect(writes).toEqual([false]);
     });
 
+    it("returns cached foreignObject support value without probing", async () => {
+        const module = loadImageForeignRenderModule();
+        const writes = [];
+        const service = module.createService({
+            getCanUseForeignObjectRenderer: () => true,
+            setCanUseForeignObjectRenderer: (value) => writes.push(value)
+        });
+
+        await expect(service.detectForeignObjectRendererSupport()).resolves.toBe(true);
+        expect(writes).toEqual([]);
+    });
+
+    it("marks unsupported when document createElement or Blob constructor is unavailable", async () => {
+        const urlMock = {
+            createObjectURL: () => "blob:mock",
+            revokeObjectURL: () => {}
+        };
+
+        const noDocModule = loadImageForeignRenderModule({
+            document: {},
+            URL: urlMock,
+            Blob: class FakeBlob {}
+        });
+        const noDocWrites = [];
+        const noDocService = noDocModule.createService({
+            getCanUseForeignObjectRenderer: () => null,
+            setCanUseForeignObjectRenderer: (value) => noDocWrites.push(value)
+        });
+        await expect(noDocService.detectForeignObjectRendererSupport()).resolves.toBe(false);
+        expect(noDocWrites).toEqual([false]);
+
+        const noBlobModule = loadImageForeignRenderModule({
+            document: { createElement: () => ({}) },
+            URL: urlMock,
+            Blob: undefined
+        });
+        const noBlobWrites = [];
+        const noBlobService = noBlobModule.createService({
+            getCanUseForeignObjectRenderer: () => null,
+            setCanUseForeignObjectRenderer: (value) => noBlobWrites.push(value)
+        });
+        await expect(noBlobService.detectForeignObjectRendererSupport()).resolves.toBe(false);
+        expect(noBlobWrites).toEqual([false]);
+    });
+
     it("recognizes DOM-like exception names", () => {
         const module = loadImageForeignRenderModule();
         const service = module.createService({});
 
+        class FakeDomError extends Error {}
+        const domModule = loadImageForeignRenderModule({ DOMException: FakeDomError });
+        const domService = domModule.createService({});
+
+        expect(domService.isDomExceptionLike(new FakeDomError("dom"))).toBe(true);
         expect(service.isDomExceptionLike({ name: "SecurityError" })).toBe(true);
         expect(service.isDomExceptionLike({ name: "TypeError" })).toBe(false);
+        expect(service.isDomExceptionLike(null)).toBe(false);
+    });
+
+    it("handles image constructor and font-ready fallback paths", async () => {
+        const module = loadImageForeignRenderModule({ Image: undefined });
+        const service = module.createService({});
+
+        await expect(service.loadImageElement("data:image/png;base64,xx")).rejects.toThrow("Image constructor unavailable");
+
+        const fontsModule = loadImageForeignRenderModule({
+            document: {
+                fonts: { ready: Promise.reject(new Error("font failure")) }
+            }
+        });
+        const fontsService = fontsModule.createService({});
+        await expect(fontsService.waitForDocumentFontsReady()).resolves.toBeUndefined();
     });
 
     it("throws when render target is missing", async () => {
@@ -126,5 +192,12 @@ describe("GTV image foreign render module", () => {
         const service = module.createService({});
 
         await expect(service.renderElementWithForeignObjectToPngDataUrl(null)).rejects.toThrow("Render element not found");
+    });
+
+    it("throws when DOM is unavailable for render", async () => {
+        const module = loadImageForeignRenderModule({ document: null });
+        const service = module.createService({});
+
+        await expect(service.renderElementWithForeignObjectToPngDataUrl({})).rejects.toThrow("DOM unavailable");
     });
 });

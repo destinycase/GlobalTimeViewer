@@ -171,4 +171,84 @@ describe("GTV main persistence snapshot services module", () => {
 
         expect(state.activeGroupIdByMainTab).toEqual({ live: 0, fixed: 0 });
     });
+
+    it("falls back safely when dependencies are missing", () => {
+        const moduleApi = loadMainPersistenceSnapshotServicesModule();
+        const service = moduleApi.createService(null);
+
+        const snapshot = service.getPersistenceSnapshot();
+
+        expect(snapshot.groups).toEqual([]);
+        expect(snapshot.baseTimezoneId).toBe("utc");
+        expect(snapshot.displayFormatOrder).toEqual([]);
+        expect(snapshot.copyFormatOrder).toEqual([]);
+        expect(snapshot.displayFormatEnabled).toEqual({});
+        expect(snapshot.copyFormatEnabled).toEqual({});
+        expect(snapshot.displayTimePartsEnabled).toEqual({});
+        expect(snapshot.copyTimePartsEnabled).toEqual({});
+        expect(snapshot.timeAdjustDayStepBySlot).toEqual([1, 1]);
+        expect(snapshot.multiRangeCount).toBe(1);
+        expect(snapshot.multiRangeTitle).toBe("subgroup");
+        expect(snapshot.multiRanges).toEqual([]);
+        expect(snapshot.multiRangeCollapsed).toEqual([]);
+        expect(snapshot.multiRangeStartEditEnabled).toEqual([]);
+        expect(snapshot.multiRangeEndEditEnabled).toEqual([]);
+    });
+
+    it("normalizes invalid state shapes through default sanitizers", () => {
+        const moduleApi = loadMainPersistenceSnapshotServicesModule();
+        const state = {
+            groups: [{ id: "g-1" }],
+            activeGroupId: 7,
+            currentMainTab: "fixed",
+            activeGroupIdByMainTab: "bad-shape",
+            slotCount: 2,
+            showCopyFormat: 1,
+            showTimeline: 0,
+            displayFormatOrder: "bad-order",
+            displayFormatEnabled: null,
+            displayTimePartsEnabled: null,
+            copyFormatOrder: null,
+            copyFormatEnabled: null,
+            copyTimePartsEnabled: null,
+            formatProfiles: null,
+            activeFormatProfileContext: "fixed",
+            multiRangeCount: "2.9",
+            multiRanges: [
+                { startUtcMs: Number.NaN, endUtcMs: 200 },
+                { startUtcMs: 100, endUtcMs: Number.NaN }
+            ],
+            multiRangeCollapsed: [0, 1],
+            multiRangeStartEditEnabled: [0, 1],
+            multiRangeEndEditEnabled: [1, 0]
+        };
+        const service = moduleApi.createService({
+            getState: () => state,
+            setState: (next) => Object.assign(state, next),
+            getGroups: () => "not-array",
+            now: () => 777
+        });
+
+        const snapshot = service.getPersistenceSnapshot();
+
+        expect(state.activeGroupIdByMainTab).toEqual({ fixed: 7 });
+        expect(state.formatProfiles).toEqual({});
+        expect(snapshot.groups).toEqual([]);
+        expect(snapshot.showCopyFormat).toBe(true);
+        expect(snapshot.showTimeline).toBe(false);
+        expect(snapshot.displayFormatOrder).toEqual([]);
+        expect(snapshot.displayFormatEnabled).toEqual({});
+        expect(snapshot.displayTimePartsEnabled).toEqual({});
+        expect(snapshot.copyFormatOrder).toEqual([]);
+        expect(snapshot.copyFormatEnabled).toEqual({});
+        expect(snapshot.copyTimePartsEnabled).toEqual({});
+        expect(snapshot.multiRangeCount).toBe(2);
+        expect(snapshot.multiRanges).toEqual([
+            { startUtcMs: 777, endUtcMs: 200 },
+            { startUtcMs: 100, endUtcMs: 777 }
+        ]);
+        expect(snapshot.multiRangeCollapsed).toEqual([false, true]);
+        expect(snapshot.multiRangeStartEditEnabled).toEqual([false, true]);
+        expect(snapshot.multiRangeEndEditEnabled).toEqual([true, false]);
+    });
 });

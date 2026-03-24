@@ -1563,3 +1563,63 @@ test("timezone image export prefers primary renderer when foreign object support
     expect(fallbackCalls).toBe(0);
 });
 
+test("main wrapper helpers delegate to service bridges", async () => {
+    const { run } = createMainContext();
+    run(`
+        __wrapperCalls = { toast: 0, initCalc: 0, copyText: 0, initApp: 0, fatal: 0 };
+        __lastToast = null;
+        __lastCopy = null;
+        __fatalMessage = "";
+
+        appFeedbackService = {
+            showToast(message, options) {
+                __wrapperCalls.toast += 1;
+                __lastToast = [message, options?.scope || ""];
+                return "toast-ok";
+            },
+            showFatalError(err) {
+                __wrapperCalls.fatal += 1;
+                __fatalMessage = err?.message || "";
+                return "fatal-ok";
+            }
+        };
+        calculatorActionsService = {
+            initCalculators() {
+                __wrapperCalls.initCalc += 1;
+                return "calc-ok";
+            },
+            async copyText(elementId, isInput) {
+                __wrapperCalls.copyText += 1;
+                __lastCopy = [elementId, isInput];
+                return "copy-ok";
+            }
+        };
+        mainAppBootstrapService = {
+            async initApp() {
+                __wrapperCalls.initApp += 1;
+                return "init-ok";
+            }
+        };
+    `);
+
+    expect(run(`showToast("hello", { scope: "tests" })`)).toBe("toast-ok");
+    run(`switchMainTab("fixed-time")`);
+    run("refreshOptionToggleDividers()");
+    expect(run("initCalculators()")).toBe("calc-ok");
+    expect(await run(`copyText("copy-field", true)`)).toBe("copy-ok");
+    expect(await run("initApp()")).toBe("init-ok");
+
+    run(`showFatalError(new Error("fatal-case"));`);
+
+    expect(run("__wrapperCalls.toast")).toBe(1);
+    expect(run("__wrapperCalls.initCalc")).toBe(1);
+    expect(run("__wrapperCalls.copyText")).toBe(1);
+    expect(run("__wrapperCalls.initApp")).toBe(1);
+    expect(run("__wrapperCalls.fatal")).toBe(1);
+    expect(run("__lastToast[0]")).toBe("hello");
+    expect(run("__lastToast[1]")).toBe("tests");
+    expect(run("__lastCopy[0]")).toBe("copy-field");
+    expect(run("__lastCopy[1]")).toBe(true);
+    expect(run("__fatalMessage")).toBe("fatal-case");
+});
+

@@ -374,4 +374,240 @@ describe("GTV data transfer module", () => {
         await serviceSaveFailed.handleSettingsImportFile({ target: input });
         expect(toasts).toContain("toast_storage_save_failed");
     });
+
+    it("exportSettingsToJSON creates a download anchor and emits success toast", () => {
+        const anchors = [];
+        const loaded = loadDataTransferModule({
+            document: {
+                getElementById() {
+                    return null;
+                },
+                createElement(tag) {
+                    if (tag !== "a") return {};
+                    return {
+                        href: "",
+                        download: "",
+                        clicked: 0,
+                        click() {
+                            this.clicked += 1;
+                        },
+                        remove() { }
+                    };
+                },
+                body: {
+                    appendChild(node) {
+                        anchors.push(node);
+                    }
+                }
+            }
+        });
+        const toasts = [];
+        const service = loaded.module.createService(createBaseDeps({
+            getPersistenceSnapshot: () => ({ groups: [{ name: "A" }] }),
+            getCurrentTheme: () => "light",
+            getCurrentLang: () => "en",
+            getCurrentUiScalePercent: () => 110,
+            showToast(message) {
+                toasts.push(String(message));
+            },
+            tFormat(key, payload) {
+                return `${key}:${payload?.filename || ""}`;
+            }
+        }));
+
+        service.exportSettingsToJSON();
+
+        expect(anchors).toHaveLength(1);
+        expect(anchors[0].download.startsWith("GlobalTimeViewer_settings_")).toBe(true);
+        expect(anchors[0].download.endsWith(".json")).toBe(true);
+        expect(anchors[0].clicked).toBe(1);
+        expect(toasts[0].startsWith("toast_settings_export_success:")).toBe(true);
+    });
+
+    it("exportGroupToJSON maps DOM failures to failure toast", () => {
+        const loaded = loadDataTransferModule({
+            document: {
+                getElementById() {
+                    return null;
+                },
+                createElement() {
+                    throw new Error("dom-create-failed");
+                },
+                body: {
+                    appendChild() { }
+                }
+            }
+        });
+        const toasts = [];
+        const service = loaded.module.createService(createBaseDeps({
+            showToast(message) {
+                toasts.push(String(message));
+            }
+        }));
+
+        service.exportGroupToJSON(0);
+
+        expect(toasts).toContain("toast_group_export_failed");
+        expect(loaded.logs.error.length).toBeGreaterThan(0);
+    });
+
+    it("triggerSubgroupImportFor clicks input for a valid subgroup target", () => {
+        let clickCount = 0;
+        const subgroupImportInput = {
+            value: "selected",
+            click() {
+                clickCount += 1;
+            }
+        };
+        const loaded = loadDataTransferModule({
+            document: {
+                getElementById(id) {
+                    if (id === "subgroup-import-file") return subgroupImportInput;
+                    return null;
+                }
+            }
+        });
+        const service = loaded.module.createService(createBaseDeps());
+
+        service.triggerSubgroupImportFor(0, "sg-1");
+
+        expect(subgroupImportInput.value).toBe("");
+        expect(clickCount).toBe(1);
+    });
+
+    it("handleGroupImportFile maps invalid payload type to invalid format toast", async () => {
+        const loaded = loadDataTransferModule();
+        const toasts = [];
+        const service = loaded.module.createService(createBaseDeps({
+            showToast(message) {
+                toasts.push(String(message));
+            }
+        }));
+        const input = {
+            value: "selected",
+            files: [{
+                name: "wrong-type.json",
+                async text() {
+                    return JSON.stringify({
+                        type: "subgroup",
+                        subgroup: {
+                            name: "S",
+                            multiRangeCount: 1,
+                            multiRanges: [{ startUtcMs: 1, endUtcMs: 2 }],
+                            multiRangeCollapsed: [false],
+                            multiRangeStartEditEnabled: [false],
+                            multiRangeEndEditEnabled: [true]
+                        }
+                    });
+                }
+            }]
+        };
+
+        await service.handleGroupImportFile({ target: input });
+
+        expect(toasts).toContain("toast_invalid_format");
+        expect(input.value).toBe("");
+    });
+
+    it("handleSubgroupImportFile maps invalid payload type to invalid format toast", async () => {
+        const loaded = loadDataTransferModule();
+        const toasts = [];
+        const service = loaded.module.createService(createBaseDeps({
+            showToast(message) {
+                toasts.push(String(message));
+            }
+        }));
+        const input = {
+            value: "selected",
+            files: [{
+                name: "wrong-type.json",
+                async text() {
+                    return JSON.stringify({
+                        type: "group",
+                        group: {
+                            name: "G",
+                            zones: []
+                        }
+                    });
+                }
+            }]
+        };
+
+        await service.handleSubgroupImportFile({ target: input });
+
+        expect(toasts).toContain("toast_invalid_format");
+        expect(input.value).toBe("");
+    });
+
+    it("handleSettingsImportFile maps unknown errors to settings import failed toast", async () => {
+        const loaded = loadDataTransferModule();
+        const toasts = [];
+        const service = loaded.module.createService(createBaseDeps({
+            applyImportedSettings: async () => {
+                throw new Error("unknown failure");
+            },
+            showToast(message) {
+                toasts.push(String(message));
+            }
+        }));
+        const input = {
+            value: "selected",
+            files: [{
+                name: "settings.json",
+                async text() {
+                    return JSON.stringify({ groups: [] });
+                }
+            }]
+        };
+
+        await service.handleSettingsImportFile({ target: input });
+
+        expect(toasts).toContain("toast_settings_import_failed");
+        expect(input.value).toBe("");
+    });
+
+    it("exportSubgroupToJSON creates a download anchor and emits success toast", () => {
+        const anchors = [];
+        const loaded = loadDataTransferModule({
+            document: {
+                getElementById() {
+                    return null;
+                },
+                createElement(tag) {
+                    if (tag !== "a") return {};
+                    return {
+                        href: "",
+                        download: "",
+                        clicked: 0,
+                        click() {
+                            this.clicked += 1;
+                        },
+                        remove() { }
+                    };
+                },
+                body: {
+                    appendChild(node) {
+                        anchors.push(node);
+                    }
+                }
+            }
+        });
+        const toasts = [];
+        const service = loaded.module.createService(createBaseDeps({
+            showToast(message) {
+                toasts.push(String(message));
+            },
+            tFormat(key, payload) {
+                return `${key}:${payload?.filename || ""}`;
+            }
+        }));
+
+        service.exportSubgroupToJSON(0, "sg-1");
+
+        expect(anchors).toHaveLength(1);
+        expect(anchors[0].download.startsWith("GlobalTimeViewer_subgroup_")).toBe(true);
+        expect(anchors[0].download.endsWith(".json")).toBe(true);
+        expect(anchors[0].clicked).toBe(1);
+        expect(toasts[0].startsWith("toast_subgroup_export_success:")).toBe(true);
+    });
 });
