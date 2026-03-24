@@ -22,7 +22,7 @@ export default defineConfig({
                 statements: 83.0,
                 lines: 83.0,
                 branches: 69.3,
-                functions: 59.0
+                functions: 61.4
             },
             include: [
                 'background.js',

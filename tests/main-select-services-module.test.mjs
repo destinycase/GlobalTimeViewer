@@ -154,4 +154,89 @@ describe("GTV main select services module", () => {
         expect(selectedBaseId).toBe("tz-a");
         expect(persistedCount).toBe(1);
     });
+
+    it("refreshes both select widths via documentRef fallback path", () => {
+        const moduleApi = loadMainSelectServicesModule();
+        const quickSelect = createSelectElement();
+        quickSelect.options = [{ textContent: "UTC" }, { textContent: "Pacific Time" }];
+        const baseSelect = createSelectElement();
+        baseSelect.options = [{ textContent: "UTC" }, { textContent: "Asia/Seoul" }];
+
+        const service = moduleApi.createService({
+            documentRef: {
+                getElementById: (id) => {
+                    if (id === "tz-quick-select") return quickSelect;
+                    if (id === "base-time-select") return baseSelect;
+                    return null;
+                },
+                createElement: (tag) => {
+                    if (tag === "canvas") {
+                        return {
+                            getContext: () => ({
+                                font: "",
+                                measureText: (text) => ({ width: text.length * 7 })
+                            })
+                        };
+                    }
+                    return createOptionElement();
+                }
+            }
+        });
+
+        service.refreshSelectWidths();
+
+        expect(quickSelect.style.width.endsWith("px")).toBe(true);
+        expect(baseSelect.style.width.endsWith("px")).toBe(true);
+    });
+
+    it("uses safe fallback dependencies when rendering base-time select", () => {
+        const moduleApi = loadMainSelectServicesModule();
+        const baseSelect = createSelectElement();
+        const service = moduleApi.createService({
+            documentRef: {
+                getElementById: (id) => (id === "base-time-select" ? baseSelect : null),
+                createElement: (tag) => {
+                    if (tag === "canvas") {
+                        return {
+                            getContext: () => ({
+                                font: "",
+                                measureText: (text) => ({ width: text.length * 6 })
+                            })
+                        };
+                    }
+                    return createOptionElement();
+                }
+            }
+        });
+
+        expect(() => service.renderBaseTimeSelect()).not.toThrow();
+        expect(baseSelect.options[0]?.value).toBe("utc");
+    });
+
+    it("falls back to no-op persistence and setter when selected id changes", () => {
+        const moduleApi = loadMainSelectServicesModule();
+        const baseSelect = createSelectElement();
+        const service = moduleApi.createService({
+            getDocumentRef: () => ({
+                getElementById: (id) => (id === "base-time-select" ? baseSelect : null),
+                createElement: (tag) => {
+                    if (tag === "canvas") {
+                        return {
+                            getContext: () => ({
+                                font: "",
+                                measureText: () => ({ width: 40 })
+                            })
+                        };
+                    }
+                    return createOptionElement();
+                }
+            }),
+            getCurrentGroupBaseTimezoneId: () => "missing-id",
+            getCurrentGroupZones: () => ([{ id: "tz-z", zone: "Z" }])
+        });
+
+        expect(() => service.renderBaseTimeSelect()).not.toThrow();
+        expect(baseSelect.value).toBe("utc");
+        expect(baseSelect.options.some((opt) => opt.value === "tz-z")).toBe(true);
+    });
 });

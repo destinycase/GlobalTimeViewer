@@ -96,4 +96,35 @@ describe("GTV main base timezone services module", () => {
         expect(timelineCount).toBe(2);
         expect(panelCount).toBe(2);
     });
+
+    it("returns false when group is unavailable", () => {
+        const moduleApi = loadMainBaseTimezoneServicesModule();
+        const service = moduleApi.createService({
+            getCurrentGroup: () => null
+        });
+
+        expect(service.setCurrentGroupBaseTimezoneId("tz-any")).toBe(false);
+    });
+
+    it("uses built-in sanitizer fallback and handles non-object options", () => {
+        const moduleApi = loadMainBaseTimezoneServicesModule();
+        const group = { baseTimezoneId: "tz-old", showUtcRow: false, utcRowOrder: 3 };
+        const service = moduleApi.createService({
+            getCurrentGroup: () => group
+        });
+
+        expect(service.setCurrentGroupBaseTimezoneId(" TZ-NEW ")).toBe(true);
+        expect(group.baseTimezoneId).toBe("tz-new");
+
+        service.applyCurrentGroupBaseTimezoneId("", null);
+        expect(group.baseTimezoneId).toBe("utc");
+        expect(group.showUtcRow).toBe(true);
+        expect(group.utcRowOrder).toBe(0);
+    });
+
+    it("uses default getCurrentGroup fallback when no deps are provided", () => {
+        const moduleApi = loadMainBaseTimezoneServicesModule();
+        const service = moduleApi.createService();
+        expect(service.setCurrentGroupBaseTimezoneId("tz-any")).toBe(false);
+    });
 });

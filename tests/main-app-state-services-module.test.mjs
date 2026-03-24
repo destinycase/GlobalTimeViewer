@@ -103,4 +103,102 @@ describe("GTV main app state services module", () => {
         const moduleApi = loadMainAppStateServicesModule();
         expect(() => moduleApi.createService({})).toThrow("Missing required module API: GTVAppStatePatcher.createService");
     });
+
+    it("wires realtime and format-profile bridge callbacks through persistence service", () => {
+        const moduleApi = loadMainAppStateServicesModule();
+        let patcherConfig = null;
+        let persistenceConfig = null;
+        const calls = [];
+        const stateSnapshot = { activeGroupId: 1 };
+
+        moduleApi.createService({
+            GTV_APP_STATE_PATCHER: {
+                createService: (cfg) => {
+                    patcherConfig = cfg;
+                    return {
+                        getStateSnapshot: () => stateSnapshot,
+                        applyStatePatch: (next) => {
+                            calls.push(["applyStatePatch", next]);
+                            return next;
+                        }
+                    };
+                }
+            },
+            GTV_APP_PERSISTENCE_STATE: {
+                createService: (cfg) => {
+                    persistenceConfig = cfg;
+                    return cfg;
+                }
+            },
+            getStateSource: () => ({ slotCount: 2 }),
+            setIsRealtimeState: (...args) => { calls.push(["setIsRealtimeState", ...args]); },
+            syncActiveFormatProfileFromState: (...args) => { calls.push(["syncActiveFormatProfileFromState", ...args]); },
+            ensureFormatProfiles: (...args) => { calls.push(["ensureFormatProfiles", ...args]); },
+            getCurrentFormatProfileState: (...args) => {
+                calls.push(["getCurrentFormatProfileState", ...args]);
+                return { order: ["time"], enabled: {}, timePartsEnabled: {} };
+            },
+            resolveFormatProfileContext: (...args) => {
+                calls.push(["resolveFormatProfileContext", ...args]);
+                return "fixed-extra";
+            },
+            applyFormatProfileState: (...args) => { calls.push(["applyFormatProfileState", ...args]); }
+        });
+
+        expect(patcherConfig.getStateSource()).toEqual({ slotCount: 2 });
+        patcherConfig.setIsRealtimeState(true);
+        persistenceConfig.setIsRealtimeState(false);
+        persistenceConfig.syncActiveFormatProfileFromState();
+        persistenceConfig.ensureFormatProfiles({ legacy: true });
+        expect(persistenceConfig.getCurrentFormatProfileState()).toEqual({
+            order: ["time"],
+            enabled: {},
+            timePartsEnabled: {}
+        });
+        expect(persistenceConfig.resolveFormatProfileContext("fixed-time", 2)).toBe("fixed-extra");
+        persistenceConfig.applyFormatProfileState({ order: ["timezone"] }, "fixed-time");
+        persistenceConfig.setState({ activeGroupId: 3 });
+
+        expect(calls.some(([name]) => name === "setIsRealtimeState")).toBe(true);
+        expect(calls.some(([name]) => name === "syncActiveFormatProfileFromState")).toBe(true);
+        expect(calls.some(([name]) => name === "ensureFormatProfiles")).toBe(true);
+        expect(calls.some(([name]) => name === "getCurrentFormatProfileState")).toBe(true);
+        expect(calls.some(([name]) => name === "resolveFormatProfileContext")).toBe(true);
+        expect(calls.some(([name]) => name === "applyFormatProfileState")).toBe(true);
+        expect(calls.some(([name]) => name === "applyStatePatch")).toBe(true);
+    });
+
+    it("provides safe defaults for optional callbacks when not supplied", () => {
+        const moduleApi = loadMainAppStateServicesModule();
+        let patcherConfig = null;
+        let persistenceConfig = null;
+
+        const services = moduleApi.createService({
+            GTV_APP_STATE_PATCHER: {
+                createService: (cfg) => {
+                    patcherConfig = cfg;
+                    return {
+                        getStateSnapshot: () => ({}),
+                        applyStatePatch: (next) => next
+                    };
+                }
+            },
+            GTV_APP_PERSISTENCE_STATE: {
+                createService: (cfg) => {
+                    persistenceConfig = cfg;
+                    return cfg;
+                }
+            }
+        });
+
+        expect(patcherConfig.getStateSource()).toEqual({});
+        expect(() => patcherConfig.setIsRealtimeState(true)).not.toThrow();
+        expect(() => persistenceConfig.setIsRealtimeState(false)).not.toThrow();
+        expect(() => persistenceConfig.syncActiveFormatProfileFromState()).not.toThrow();
+        expect(() => persistenceConfig.ensureFormatProfiles()).not.toThrow();
+        expect(persistenceConfig.getCurrentFormatProfileState()).toEqual({});
+        expect(persistenceConfig.resolveFormatProfileContext()).toBe("live");
+        expect(() => persistenceConfig.applyFormatProfileState({}, "live")).not.toThrow();
+        expect(services.appPersistenceStateService.getState()).toEqual({});
+    });
 });

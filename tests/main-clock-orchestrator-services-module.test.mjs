@@ -98,4 +98,58 @@ describe("GTV main clock orchestrator services module", () => {
         expect(previewCount).toBe(1);
         expect(timelineCount).toBe(1);
     });
+
+    it("renders multi-range path when active tab is multi", () => {
+        const moduleApi = loadMainClockOrchestratorServicesModule();
+        let fixedRenderCount = 0;
+        let multiRenderCount = 0;
+        let timelineRenderCount = 0;
+        let rowUpdateCount = 0;
+        const service = moduleApi.createService({
+            isFixedTimeTab: () => false,
+            isMultiTab: () => true,
+            renderFixedTimeTab: () => { fixedRenderCount += 1; },
+            renderMultiRanges: () => { multiRenderCount += 1; },
+            renderTimelineFrame: () => { timelineRenderCount += 1; },
+            updateRow: () => { rowUpdateCount += 1; }
+        });
+
+        service.updateClocks();
+
+        expect(fixedRenderCount).toBe(0);
+        expect(multiRenderCount).toBe(1);
+        expect(timelineRenderCount).toBe(1);
+        expect(rowUpdateCount).toBe(0);
+    });
+
+    it("uses safe no-op fallbacks when dependencies are omitted", () => {
+        const moduleApi = loadMainClockOrchestratorServicesModule();
+        const service = moduleApi.createService(null);
+        expect(() => service.updateClocks()).not.toThrow();
+    });
+
+    it("executes fallback callback branches for fixed/multi/copy paths", () => {
+        const moduleApi = loadMainClockOrchestratorServicesModule();
+
+        const fixedService = moduleApi.createService({
+            isFixedTimeTab: () => true
+        });
+        expect(() => fixedService.updateClocks()).not.toThrow();
+
+        const multiService = moduleApi.createService({
+            isFixedTimeTab: () => false,
+            isMultiTab: () => true
+        });
+        expect(() => multiService.updateClocks()).not.toThrow();
+
+        const copyPreviewService = moduleApi.createService({
+            isFixedTimeTab: () => false,
+            isMultiTab: () => false,
+            isShowCopyFormat: () => true,
+            getBaseTimezoneRef: () => ({ id: "utc" }),
+            getUTCRef: () => ({ id: "utc" }),
+            getCurrentGroupZones: () => []
+        });
+        expect(() => copyPreviewService.updateClocks()).not.toThrow();
+    });
 });

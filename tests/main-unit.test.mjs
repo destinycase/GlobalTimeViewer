@@ -1623,3 +1623,131 @@ test("main wrapper helpers delegate to service bridges", async () => {
     expect(run("__fatalMessage")).toBe("fatal-case");
 });
 
+test("main facade alias wrappers call delegated services broadly", async () => {
+    const { sandbox, run } = createMainContext();
+    run(`
+        __aliasCalls = [];
+        __makeAliasService = (prefix) => new Proxy({}, {
+            get(_, prop) {
+                return (...args) => {
+                    __aliasCalls.push(prefix + String(prop));
+                    return prefix + String(prop);
+                };
+            }
+        });
+        mainTimezoneFacadeService = __makeAliasService("tz:");
+        mainTimeAdjustFacadeService = __makeAliasService("adjust:");
+        mainTimezoneTableFacadeService = __makeAliasService("table:");
+        mainTimelineFacadeService = __makeAliasService("timeline:");
+        mainFixedTimeFacadeService = __makeAliasService("fixed:");
+        mainFixedTimeTabFacadeService = __makeAliasService("fixedTab:");
+        mainMultiRangeTabFacadeService = __makeAliasService("multi:");
+    `);
+
+    const anchorDate = new Date(Date.UTC(2026, 2, 7, 9, 0, 0));
+    const tz = { id: "tz-1", type: "standard", zone: "UTC", name: "UTC" };
+    const slot = { id: "ft-1", name: "A", time: "09:00" };
+    const row = { dataset: {} };
+
+    const syncCases = [
+        ["getUtcMinuteCacheKey", [anchorDate], "tz:getUtcMinuteCacheKey"],
+        ["setCappedRuntimeCache", [new Map(), "k", 1], "tz:setCappedRuntimeCache"],
+        ["getBetterAbbr", ["UTC", anchorDate], "tz:getBetterAbbr"],
+        ["isTimeZoneInDST", ["UTC", anchorDate], "tz:isTimeZoneInDST"],
+        ["getTimezoneOffset", ["UTC", anchorDate], "tz:getTimezoneOffset"],
+        ["getFixedOffsetForDisplayAtDate", [tz, anchorDate], "tz:getFixedOffsetForDisplayAtDate"],
+        ["getFixedOffsetForDisplay", [tz], "tz:getFixedOffsetForDisplay"],
+        ["getLocalizedTZLabel", [tz], "tz:getLocalizedTZLabel"],
+        ["getZoneDisplayName", [tz], "tz:getZoneDisplayName"],
+        ["sanitizeTimezoneId", [" tz-a "], "tz:sanitizeTimezoneId"],
+        ["sanitizeBaseTimezoneId", [" tz-b "], "tz:sanitizeBaseTimezoneId"],
+        ["setCurrentGroupBaseTimezoneId", ["utc"], "tz:setCurrentGroupBaseTimezoneId"],
+        ["applyCurrentGroupBaseTimezoneId", ["utc", { persist: false }], "tz:applyCurrentGroupBaseTimezoneId"],
+        ["getUsedTimezoneIds", [], "tz:getUsedTimezoneIds"],
+        ["createUniqueTimezoneId", ["tz"], "tz:createUniqueTimezoneId"],
+        ["getNextTimezoneIdSeed", [], "tz:getNextTimezoneIdSeed"],
+        ["getTimeAdjustDayStep", [0], "adjust:getTimeAdjustDayStep"],
+        ["setTimeAdjustDayStep", [0, 7], "adjust:setTimeAdjustDayStep"],
+        ["updateTimeAdjustPanel", [], "adjust:updateTimeAdjustPanel"],
+        ["renderTimeAdjustSet", [0, { compact: true }], "adjust:renderTimeAdjustSet"],
+        ["attachTimeAdjustToggleLabel", [{}, true, "x", () => { }], "adjust:attachTimeAdjustToggleLabel"],
+        ["renderMultiBulkToolSets", [], "adjust:renderMultiBulkToolSets"],
+        ["sanitizeTimeAdjustDayStep", [10], "adjust:sanitizeTimeAdjustDayStep"],
+        ["resolveTimeAdjustZoneAndOffset", [tz, 0], "adjust:resolveTimeAdjustZoneAndOffset"],
+        ["applyTimeAdjustAction", [0, "plus_hour"], "adjust:applyTimeAdjustAction"],
+        ["getAdjustedUtcDateByAction", [anchorDate, "plus_hour", 0, tz, 0], "adjust:getAdjustedUtcDateByAction"],
+        ["applyBulkRangeAllAction", [0, "plus_hour"], "adjust:applyBulkRangeAllAction"],
+        ["applyMultiRangeTimeAdjustAction", [0, 0, "plus_hour"], "adjust:applyMultiRangeTimeAdjustAction"],
+        ["createStandardTimezoneFromSelectableEntry", [{ zone: "UTC", kind: "standard_list" }], "table:createStandardTimezoneFromSelectableEntry"],
+        ["addTimezone", [tz], "table:addTimezone"],
+        ["removeTimezone", ["tz-1"], "table:removeTimezone"],
+        ["updateCopyFormatPreview", [], "table:updateCopyFormatPreview"],
+        ["isTimelineSupportedTab", [], "timeline:isTimelineSupportedTab"],
+        ["shouldRenderTimeline", [], "timeline:shouldRenderTimeline"],
+        ["resolveFixedTimeTimelineSourceDate", [0, tz, anchorDate], "timeline:resolveFixedTimeTimelineSourceDate"],
+        ["applyFixedTimeSlotTimelineRatio", [0, 0.5], "timeline:applyFixedTimeSlotTimelineRatio"],
+        ["getFixedTimeTimelineSlots", [], "timeline:getFixedTimeTimelineSlots"],
+        ["getFixedTimeTimelineSlotCount", [], "timeline:getFixedTimeTimelineSlotCount"],
+        ["getFixedTimeTimelineIndicatorToken", [], "timeline:getFixedTimeTimelineIndicatorToken"],
+        ["getFixedTimeSlotTimelineLabel", [slot, 0, 1], "timeline:getFixedTimeSlotTimelineLabel"],
+        ["getFixedTimeTimelineIndicatorColor", [0], "timeline:getFixedTimeTimelineIndicatorColor"],
+        ["stopTimelineDrag", [], "timeline:stopTimelineDrag"],
+        ["normalizeDayNightMarker", ["am"], "timeline:normalizeDayNightMarker"],
+        ["getDayNightGlyph", ["am"], "timeline:getDayNightGlyph"],
+        ["applyTimelineRatioToSlot", [0, 0.25, tz, { render: false }], "timeline:applyTimelineRatioToSlot"],
+        ["getTimelineIndicatorLabel", [0], "timeline:getTimelineIndicatorLabel"],
+        ["getTimelinePanelCount", [], "timeline:getTimelinePanelCount"],
+        ["getFixedTimeSlotParts", [slot], "fixed:getFixedTimeSlotParts"],
+        ["formatFixedTimeForTimezoneAtUtc", [anchorDate, tz], "fixed:formatFixedTimeForTimezoneAtUtc"],
+        ["getFixedTimeDisplayPartsEnabled", [], "fixed:getFixedTimeDisplayPartsEnabled"],
+        ["getLocalizedWeekdayNameByIndex", [2], "fixed:getLocalizedWeekdayNameByIndex"],
+        ["buildFixedTimeDisplayPayloadAtUtc", [anchorDate, tz], "fixed:buildFixedTimeDisplayPayloadAtUtc"],
+        ["formatFixedTimePayloadText", [{}, {}], "fixed:formatFixedTimePayloadText"],
+        ["getFixedTimeCopyState", [], "fixed:getFixedTimeCopyState"],
+        ["buildFixedTimeSnapshotForTimezoneSlot", [tz, anchorDate], "fixed:buildFixedTimeSnapshotForTimezoneSlot"],
+        ["formatFixedTimeCopyTextForTimezoneSlot", [tz, anchorDate, {}], "fixed:formatFixedTimeCopyTextForTimezoneSlot"],
+        ["getFixedTimeSlotUtcDateByIndex", [0], "fixed:getFixedTimeSlotUtcDateByIndex"],
+        ["getFixedTimePreviewCopyText", [], "fixed:getFixedTimePreviewCopyText"],
+        ["getAllFixedTimeRowsCopyText", [], "fixed:getAllFixedTimeRowsCopyText"],
+        ["buildFixedTimeCellInputValue", [anchorDate, tz], "fixed:buildFixedTimeCellInputValue"],
+        ["buildFixedTimeCellTimeParts", ["12:34"], "fixed:buildFixedTimeCellTimeParts"],
+        ["applyFixedTimeSlotByTimezoneInput", [0, tz, "12:34", anchorDate], "fixed:applyFixedTimeSlotByTimezoneInput"],
+        ["bindCustomDatePickerForInput", [{ value: "" }, {}, { preserveValue: true }], "fixed:bindCustomDatePickerForInput"],
+        ["renameFixedTimeSlot", [0], "fixed:renameFixedTimeSlot"],
+        ["updateFixedTimeSlotTime", [0, "13:00"], "fixed:updateFixedTimeSlotTime"],
+        ["addFixedTimeSlot", [], "fixed:addFixedTimeSlot"],
+        ["removeFixedTimeSlot", ["ft-1"], "fixed:removeFixedTimeSlot"],
+        ["renderFixedTimeControls", [null, { compact: true }], "fixedTab:renderFixedTimeControls"],
+        ["getFixedTimeSlotLayoutMetrics", [{ dn: true }], "fixedTab:getFixedTimeSlotLayoutMetrics"],
+        ["getFixedTimeDisplayColumns", [], "fixedTab:getFixedTimeDisplayColumns"],
+        ["getFixedTimeOffsetTextAtDate", [tz, anchorDate], "fixedTab:getFixedTimeOffsetTextAtDate"],
+        ["renderFixedTimeTable", [], "fixedTab:renderFixedTimeTable"],
+        ["buildTimezoneComputedSnapshotForRange", [tz, anchorDate, anchorDate], "multi:buildTimezoneComputedSnapshotForRange"],
+        ["applySnapshotToRow", [row, {}], "multi:applySnapshotToRow"],
+        ["formatRangeDurationText", [0, 60_000], "multi:formatRangeDurationText"]
+    ];
+
+    for (const [name, args, expected] of syncCases) {
+        expect(sandbox[name](...args)).toBe(expected);
+    }
+
+    const asyncCases = [
+        ["copyAllTimezones", [true], "table:copyAllTimezones"],
+        ["copyFixedTimeCellPayload", [{}, {}], "fixed:copyFixedTimeCellPayload"],
+        ["copyFixedTimeCellByTimezone", [tz, anchorDate], "fixed:copyFixedTimeCellByTimezone"],
+        ["copyFixedTimeSlotColumn", [0], "fixed:copyFixedTimeSlotColumn"],
+        ["copyMultiRangeRow", [0, "utc"], "multi:copyMultiRangeRow"],
+        ["copyAllMultiRangeTimezones", [], "multi:copyAllMultiRangeTimezones"]
+    ];
+
+    for (const [name, args, expected] of asyncCases) {
+        expect(await sandbox[name](...args)).toBe(expected);
+    }
+
+    const aliasCalls = run("__aliasCalls");
+    expect(aliasCalls.length).toBeGreaterThanOrEqual(syncCases.length + asyncCases.length);
+    expect(aliasCalls.includes("tz:getUtcMinuteCacheKey")).toBe(true);
+    expect(aliasCalls.includes("fixed:copyFixedTimeSlotColumn")).toBe(true);
+    expect(aliasCalls.includes("multi:copyAllMultiRangeTimezones")).toBe(true);
+});
+
