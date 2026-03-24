@@ -1,5 +1,8 @@
 # Global Time Viewer v3.11.5
 
+## 확장 프로그램
+- https://chromewebstore.google.com/detail/ojmkgfaeececindhbegihnonpndkbnho?utm_source=item-share-cb
+
 ## 주요 기능
 - 여러 시간대를 한 화면에서 비교 (`실시간`)
 - 기준 시간을 변경하여 시간대별 시간 확인 (`시간 변경`)

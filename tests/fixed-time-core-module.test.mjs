@@ -125,5 +125,111 @@ describe("GTV fixed time core module", () => {
         expect(service.getFixedTimeSlotHeaderLabel({ name: "Release" }, 0, 2)).toBe("Release");
         expect(service.getFixedTimeSlotHeaderLabel({ name: "" }, 1, 2)).toBe("Fixed Time 2");
     });
-});
 
+    it("exposes localized weekday fallback and timeline indicator palette wrapping", () => {
+        const module = loadFixedTimeCoreModule();
+        const service = module.createService({
+            I18N_DATA: {
+                en: { days: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] }
+            }
+        });
+
+        expect(service.getLocalizedWeekdayNameByIndex(0)).toBe("Sun");
+        expect(service.getLocalizedWeekdayNameByIndex(10)).toBe("");
+        expect(service.getFixedTimeTimelineIndicatorColor(0)).toBe("#ff4d4d");
+        expect(service.getFixedTimeTimelineIndicatorColor(5)).toBe("#ff4d4d");
+    });
+
+    it("parses slot parts and handles invalid slot time values", () => {
+        const module = loadFixedTimeCoreModule();
+        const service = module.createService({
+            DEFAULT_FIXED_TIME_VALUE: "09:00",
+            sanitizeFixedTimeValue: (value, fallback) => value || fallback
+        });
+
+        expect(service.getFixedTimeSlotParts({ time: "13:45" })).toEqual({ hour: 13, minute: 45 });
+        expect(service.getFixedTimeSlotParts({ time: "invalid" })).toBe(null);
+    });
+
+    it("resolveFixedTimeSlotUtcDate returns null for invalid inputs and dependency failures", () => {
+        const module = loadFixedTimeCoreModule();
+        const service = module.createService({
+            DEFAULT_FIXED_TIME_VALUE: "09:00",
+            sanitizeFixedTimeValue: () => "09:00",
+            getFixedOffsetForDisplayAtDate: () => 0,
+            getLocalPartsByTimezone: () => ({ year: 2026, month: 3, day: 7 }),
+            getUTCDateFromLocalParts: () => new Date("invalid")
+        });
+
+        expect(service.resolveFixedTimeSlotUtcDate(null, { zone: "UTC" })).toBe(null);
+        expect(service.resolveFixedTimeSlotUtcDate({ time: "09:00" }, null)).toBe(null);
+        expect(service.resolveFixedTimeSlotUtcDate({ time: "09:00" }, { zone: "UTC" })).toBe(null);
+
+        const throwService = module.createService({
+            DEFAULT_FIXED_TIME_VALUE: "09:00",
+            sanitizeFixedTimeValue: () => "09:00",
+            getFixedOffsetForDisplayAtDate: () => {
+                throw new Error("offset failure");
+            }
+        });
+        expect(throwService.resolveFixedTimeSlotUtcDate({ time: "09:00" }, { zone: "UTC" })).toBe(null);
+    });
+
+    it("resolveFixedTimeSlotUtcDate prefers fixed date parts over anchor local date", () => {
+        const module = loadFixedTimeCoreModule();
+        const captured = [];
+        const service = module.createService({
+            DEFAULT_FIXED_TIME_VALUE: "09:00",
+            sanitizeFixedTimeValue: (value, fallback) => value || fallback,
+            getFixedOffsetForDisplayAtDate: () => 0,
+            getLocalPartsByTimezone: () => ({ year: 2026, month: 3, day: 7 }),
+            getFixedDateParts: () => ({ year: 2027, month: 4, day: 8 }),
+            getUTCDateFromLocalParts: (parts) => {
+                captured.push(parts);
+                return new Date(Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second));
+            }
+        });
+
+        const result = service.resolveFixedTimeSlotUtcDate(
+            { time: "10:11" },
+            { zone: "UTC" },
+            new Date("2026-03-07T00:00:00.000Z")
+        );
+
+        expect(result.toISOString()).toBe("2027-04-08T10:11:00.000Z");
+        expect(captured[0]).toMatchObject({ year: 2027, month: 4, day: 8, hour: 10, minute: 11, second: 0 });
+    });
+
+    it("builds payload/night marker and handles payload formatting fallback", () => {
+        const module = loadFixedTimeCoreModule();
+        const service = module.createService({
+            I18N_DATA: {
+                en: { days: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] }
+            },
+            getCurrentLang: () => "en",
+            ...buildTimezoneDeps()
+        });
+        const nightUtc = new Date("2026-03-07T20:00:00.000Z");
+        const payload = service.buildFixedTimeDisplayPayloadAtUtc(nightUtc, { zone: "UTC" });
+
+        expect(payload.dayNightMarker).toBe("NIGHT");
+        expect(payload.dayNightGlyph).toBe("\uD83C\uDF19");
+        expect(service.formatFixedTimeForTimezoneAtUtc(nightUtc, { zone: "UTC" })).toMatch(/^\d{2}:\d{2}:\d{2}$/);
+        expect(service.formatFixedTimeForTimezoneAtUtc(new Date("invalid"), { zone: "UTC" })).toBe("--:--:--");
+    });
+
+    it("handles unknown marker glyphs and display part defaults", () => {
+        const module = loadFixedTimeCoreModule();
+        const service = module.createService({
+            sanitizeTimePartsEnabledForContext: () => null,
+            getDisplayTimePartsEnabled: () => null
+        });
+
+        expect(service.getDayNightGlyph("custom")).toBe("custom");
+        expect(service.getFixedTimeDisplayPartsEnabled()).toEqual({
+            dn: false,
+            time: false,
+            weekday: false
+        });
+    });
+});

@@ -230,6 +230,112 @@ describe("GTV state persistence module", () => {
         expect(loaded.logs.error.length).toBeGreaterThan(0);
     });
 
+    it("isQuotaExceededError matches known quota signatures", () => {
+        const loaded = loadStatePersistenceModule();
+        const service = loaded.module.createService(createBaseDeps());
+
+        expect(service.isQuotaExceededError({ code: 22 })).toBe(true);
+        expect(service.isQuotaExceededError({ code: 1014 })).toBe(true);
+        expect(service.isQuotaExceededError({ name: "QuotaExceededError" })).toBe(true);
+        expect(service.isQuotaExceededError({ name: "NS_ERROR_DOM_QUOTA_REACHED" })).toBe(true);
+        expect(service.isQuotaExceededError({ code: 99, name: "OtherError" })).toBe(false);
+    });
+
+    it("setStorageValue surfaces quota toast key and throttles repeated toasts", async () => {
+        const toastKeys = [];
+        const loaded = loadStatePersistenceModule({
+            localStorage: createFailingLocalStorageStub(),
+            chrome: {
+                storage: {
+                    local: {
+                        async set() {
+                            const error = new Error("quota exceeded");
+                            error.name = "QuotaExceededError";
+                            error.code = 22;
+                            throw error;
+                        }
+                    }
+                }
+            }
+        });
+        const service = loaded.module.createService(createBaseDeps({
+            showToast(message) {
+                toastKeys.push(message);
+            }
+        }));
+
+        const first = await service.setStorageValue("KEY_Q", "VALUE_Q");
+        const second = await service.setStorageValue("KEY_Q2", "VALUE_Q2");
+
+        expect(first.ok).toBe(false);
+        expect(second.ok).toBe(false);
+        expect(toastKeys[0]).toBe("toast_storage_quota_exceeded");
+        expect(toastKeys.length).toBe(1);
+    });
+
+    it("persistStorageSnapshot handles JSON stringify failure", async () => {
+        const toastKeys = [];
+        const loaded = loadStatePersistenceModule();
+        const service = loaded.module.createService(createBaseDeps({
+            showToast(message) {
+                toastKeys.push(message);
+            }
+        }));
+        const circular = {};
+        circular.self = circular;
+
+        const result = await service.persistStorageSnapshot(circular);
+
+        expect(result.ok).toBe(false);
+        expect(toastKeys).toContain("toast_storage_save_failed");
+        expect(loaded.logs.error.length).toBeGreaterThan(0);
+    });
+
+    it("getStorageValue prefers chrome storage when available", async () => {
+        const localStorage = createLocalStorageStub();
+        localStorage.setItem("KEY_PREF", "local-value");
+        const loaded = loadStatePersistenceModule({
+            localStorage,
+            chrome: {
+                storage: {
+                    local: {
+                        async get(key) {
+                            return { [key]: "chrome-value" };
+                        }
+                    }
+                }
+            }
+        });
+        const service = loaded.module.createService(createBaseDeps());
+
+        const value = await service.getStorageValue("KEY_PREF", null);
+
+        expect(value).toBe("chrome-value");
+    });
+
+    it("getStorageValue falls back to localStorage when chrome storage read fails", async () => {
+        const localStorage = createLocalStorageStub();
+        localStorage.setItem("KEY_FALLBACK", "fallback-value");
+        const loaded = loadStatePersistenceModule({
+            localStorage,
+            chrome: {
+                storage: {
+                    local: {
+                        async get() {
+                            throw new Error("chrome get failed");
+                        }
+                    }
+                }
+            }
+        });
+        const service = loaded.module.createService(createBaseDeps());
+
+        const value = await service.getStorageValue("KEY_FALLBACK", null);
+
+        expect(value).toBe("fallback-value");
+        expect(loaded.logs.warn.length).toBeGreaterThan(0);
+    });
+
     it("loadPersistence rewrites defaults when stored JSON is invalid", async () => {
         const localStorage = createLocalStorageStub();
         localStorage.setItem("TEST_STORAGE_KEY", "{not-json");
@@ -240,6 +346,58 @@ describe("GTV state persistence module", () => {
 
         expect(localStorage.getItem("TEST_STORAGE_KEY")).toBe("{}");
         expect(loaded.logs.warn.length).toBeGreaterThan(0);
+    });
+
+    it("loadPersistence applies default state when no persisted payload exists", async () => {
+        const localStorage = createLocalStorageStub();
+        let appliedState = null;
+        const loaded = loadStatePersistenceModule({ localStorage });
+        const service = loaded.module.createService(createBaseDeps({
+            setState(next) {
+                appliedState = next;
+            }
+        }));
+
+        await service.loadPersistence();
+
+        expect(appliedState).toBeTruthy();
+        expect(Array.isArray(appliedState.groups)).toBe(true);
+        expect(appliedState.activeGroupId).toBe(0);
+        expect(appliedState.currentMainTab).toBe("live");
+    });
+
+    it("loadPersistence reads legacy fallback keys when primary key is empty", async () => {
+        const legacyPayload = JSON.stringify({
+            groups: [{
+                name: "Legacy Group",
+                zones: [],
+                baseTimezoneId: "utc",
+                showUtcRow: true,
+                utcRowOrder: 0
+            }],
+            activeGroupId: 0,
+            currentMainTab: "fixed",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 },
+            slotCount: 1,
+            showCopyFormat: true,
+            showTimeline: true
+        });
+        const localStorage = createLocalStorageStub();
+        localStorage.setItem("LEGACY_KEY_A", legacyPayload);
+        let appliedState = null;
+        const loaded = loadStatePersistenceModule({ localStorage });
+        const service = loaded.module.createService(createBaseDeps({
+            LEGACY_STORAGE_KEYS: ["LEGACY_KEY_A"],
+            LEGACY_STORAGE_FALLBACK_KEYS: ["LEGACY_KEY_A"],
+            setState(next) {
+                appliedState = next;
+            }
+        }));
+
+        await service.loadPersistence();
+
+        expect(appliedState).toBeTruthy();
+        expect(appliedState.groups[0].name).toBe("Legacy Group");
     });
 
     it("savePersistence serializes writes so latest snapshot wins", async () => {
@@ -287,6 +445,30 @@ describe("GTV state persistence module", () => {
 
         const storedRaw = await service.getStorageValue("TEST_STORAGE_KEY", null);
         expect(JSON.parse(storedRaw).version).toBe(2);
+    });
+
+    it("resetExceptGroupsAndTimezones aborts early when confirmFn denies", async () => {
+        let setStateCalled = 0;
+        let syncCalled = 0;
+        const loaded = loadStatePersistenceModule({
+            confirm: () => {
+                throw new Error("global confirm should not be used");
+            }
+        });
+        const service = loaded.module.createService(createBaseDeps({
+            confirmFn: () => false,
+            syncCurrentMultiStateToActiveSubgroup() {
+                syncCalled += 1;
+            },
+            setState() {
+                setStateCalled += 1;
+            }
+        }));
+
+        await service.resetExceptGroupsAndTimezones();
+
+        expect(syncCalled).toBe(0);
+        expect(setStateCalled).toBe(0);
     });
 
     it("resetExceptGroupsAndTimezones handles non-array groups without crashing", async () => {

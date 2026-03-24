@@ -9,7 +9,6 @@ const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "tab-ui.js");
 function loadTabUiModule(options = {}) {
     const code = fs.readFileSync(MODULE_PATH, "utf8");
     const sandbox = {
-        window: {},
         globalThis: {},
         document: options.document || {
             getElementById() {
@@ -19,12 +18,42 @@ function loadTabUiModule(options = {}) {
                 return [];
             }
         },
-        console
+        console: options.console || console
     };
+    if (!options.noWindow) {
+        sandbox.window = {};
+    }
     sandbox.globalThis = sandbox;
     vm.createContext(sandbox);
     vm.runInContext(code, sandbox, { filename: "js/modules/tab-ui.js" });
-    return sandbox.window.GTVTabUI || sandbox.GTVTabUI || sandbox.globalThis.GTVTabUI;
+    return sandbox.window?.GTVTabUI || sandbox.GTVTabUI || sandbox.globalThis.GTVTabUI;
+}
+
+function createClassListState() {
+    const classes = new Set();
+    return {
+        add(name) {
+            classes.add(name);
+        },
+        remove(name) {
+            classes.delete(name);
+        },
+        toggle(name, enabled) {
+            if (enabled) classes.add(name);
+            else classes.delete(name);
+        },
+        has(name) {
+            return classes.has(name);
+        }
+    };
+}
+
+function createElementStub(extra = {}) {
+    return {
+        style: {},
+        classList: createClassListState(),
+        ...extra
+    };
 }
 
 describe("GTV tab UI module", () => {
@@ -213,5 +242,280 @@ describe("GTV tab UI module", () => {
         expect(timelineGroup.style.display).toBe("none");
         expect(fixedTimeSlotCountGroup.style.display).toBe("none");
         expect(fixedTimeDateGroup.style.display).toBe("none");
+    });
+
+    it("refreshOptionToggleDividers updates divider class only for visible groups", () => {
+        const group1 = createElementStub({ style: { display: "flex" } });
+        const group2 = createElementStub({ style: { display: "none" } });
+        const group3 = createElementStub({ style: { display: "" } });
+        const group4 = createElementStub({ style: { display: "block" } });
+        const optionRow = {
+            querySelectorAll() {
+                return [group1, group2, group3, group4];
+            }
+        };
+        const module = loadTabUiModule({
+            document: {
+                getElementById(id) {
+                    if (id === "control-option-row") return optionRow;
+                    return null;
+                }
+            }
+        });
+        const service = module.createService({});
+
+        service.refreshOptionToggleDividers();
+
+        expect(group1.classList.has("option-with-divider")).toBe(true);
+        expect(group2.classList.has("option-with-divider")).toBe(false);
+        expect(group3.classList.has("option-with-divider")).toBe(true);
+        expect(group4.classList.has("option-with-divider")).toBe(false);
+    });
+
+    it("switchMainTab drives multi-tab rendering path and toggle states", () => {
+        const navLive = createElementStub({ dataset: { tab: "live" } });
+        const navMulti = createElementStub({ dataset: { tab: "multi" } });
+        const timezoneSection = createElementStub();
+        const fixedTimeSection = createElementStub();
+        const multiRangeSection = createElementStub();
+        const calcSection = createElementStub();
+        const groupTabsContainer = createElementStub();
+        const topControlBar = createElementStub();
+        const optionRow = { style: {}, querySelectorAll() { return []; } };
+        const extraGroup = createElementStub();
+        const copyGroup = createElementStub();
+        const timelineGroup = createElementStub();
+        const extraToggle = { disabled: false, checked: false, closest: () => extraGroup };
+        const copyToggle = { checked: false, closest: () => copyGroup };
+        const timelineToggle = { checked: false, closest: () => timelineGroup };
+        const elements = {
+            "timezone-section": timezoneSection,
+            "fixed-time-section": fixedTimeSection,
+            "multi-range-section": multiRangeSection,
+            "calc-section": calcSection,
+            "group-tabs-container": groupTabsContainer,
+            "top-control-bar": topControlBar,
+            "control-option-row": optionRow,
+            "toggle-extra-time": extraToggle,
+            "toggle-copy-format": copyToggle,
+            "toggle-timeline": timelineToggle,
+            "copy-format-row": createElementStub(),
+            "fixed-time-slot-count-group": createElementStub(),
+            "fixed-time-date-group": createElementStub(),
+            "multi-range-count-group": createElementStub(),
+            "multi-tools-row": createElementStub(),
+            "multi-subgroup-row": createElementStub(),
+            "multi-controls-frame": createElementStub(),
+            "save-table-image-btn": createElementStub(),
+            "save-multi-range-titles-image-btn": createElementStub()
+        };
+        const module = loadTabUiModule({
+            document: {
+                getElementById(id) {
+                    return elements[id] || null;
+                },
+                querySelectorAll(selector) {
+                    if (selector === ".nav-item") return [navLive, navMulti];
+                    return [];
+                }
+            }
+        });
+
+        let currentMainTab = "live";
+        let activeGroupId = 2;
+        let activeGroupIdByMainTab = { live: 1, fixed: 3 };
+        let realtime = false;
+        const calls = [];
+        const service = module.createService({
+            sanitizeMainTab: () => "multi",
+            hideFloatingTooltip: () => calls.push("hideFloatingTooltip"),
+            syncCurrentMultiStateToActiveSubgroup: () => calls.push("syncCurrentMultiState"),
+            getCurrentMainTab: () => currentMainTab,
+            getActiveGroupId: () => activeGroupId,
+            getActiveGroupIdByMainTab: () => activeGroupIdByMainTab,
+            clampGroupIndex: (value) => Number(value),
+            setCurrentMainTab: (value) => {
+                currentMainTab = value;
+            },
+            setActiveGroupId: (value) => {
+                activeGroupId = value;
+            },
+            setActiveGroupIdByMainTab: (value) => {
+                activeGroupIdByMainTab = value;
+            },
+            normalizeGroupTabState: () => calls.push("normalizeGroupTabState"),
+            isMultiTab: () => currentMainTab === "multi",
+            isFixedTimeTab: () => currentMainTab === "fixed-time",
+            setIsRealtime: (value) => {
+                realtime = !!value;
+            },
+            getIsRealtime: () => realtime,
+            getSlotCount: () => 2,
+            getShowCopyFormat: () => true,
+            getShowTimeline: () => false,
+            renderTimelineFrame: () => calls.push("renderTimelineFrame"),
+            renderBaseTimeSelect: () => calls.push("renderBaseTimeSelect"),
+            loadCurrentMultiStateFromActiveSubgroup: () => calls.push("loadCurrentMultiState"),
+            renderGroups: () => calls.push("renderGroups"),
+            renderMultiSubgroups: () => calls.push("renderMultiSubgroups"),
+            renderMultiRanges: () => calls.push("renderMultiRanges"),
+            renderCopyFormatControls: () => calls.push("renderCopyFormatControls"),
+            savePersistence: () => calls.push("savePersistence"),
+            refreshMultiRangeControls: () => calls.push("refreshMultiRangeControls")
+        });
+
+        service.switchMainTab("multi");
+
+        expect(currentMainTab).toBe("multi");
+        expect(activeGroupId).toBe(2);
+        expect(activeGroupIdByMainTab).toMatchObject({ live: 2, fixed: 3 });
+        expect(extraToggle.disabled).toBe(true);
+        expect(extraToggle.checked).toBe(true);
+        expect(copyToggle.checked).toBe(true);
+        expect(timelineToggle.checked).toBe(false);
+        expect(navMulti.classList.has("active")).toBe(true);
+        expect(navLive.classList.has("active")).toBe(false);
+        expect(timezoneSection.classList.has("active")).toBe(false);
+        expect(multiRangeSection.classList.has("active")).toBe(true);
+        expect(calcSection.classList.has("active")).toBe(false);
+        expect(groupTabsContainer.style.display).toBe("flex");
+        expect(topControlBar.style.display).toBe("flex");
+        expect(calls).toContain("renderBaseTimeSelect");
+        expect(calls).toContain("loadCurrentMultiState");
+        expect(calls).toContain("renderMultiRanges");
+        expect(calls).toContain("savePersistence");
+        expect(calls).not.toContain("renderList");
+        expect(calls).not.toContain("renderFixedTimeTab");
+    });
+
+    it("switchMainTab live path enables realtime sync and calc path hides top controls", () => {
+        const timezoneSection = createElementStub();
+        const fixedTimeSection = createElementStub();
+        const multiRangeSection = createElementStub();
+        const calcSection = createElementStub();
+        const groupTabsContainer = createElementStub();
+        const topControlBar = createElementStub();
+        const optionRow = { style: {}, querySelectorAll() { return []; } };
+        const extraGroup = createElementStub();
+        const copyGroup = createElementStub();
+        const timelineGroup = createElementStub();
+        const extraToggle = { disabled: false, checked: true, closest: () => extraGroup };
+        const copyToggle = { checked: false, closest: () => copyGroup };
+        const timelineToggle = { checked: false, closest: () => timelineGroup };
+        const elements = {
+            "timezone-section": timezoneSection,
+            "fixed-time-section": fixedTimeSection,
+            "multi-range-section": multiRangeSection,
+            "calc-section": calcSection,
+            "group-tabs-container": groupTabsContainer,
+            "top-control-bar": topControlBar,
+            "control-option-row": optionRow,
+            "toggle-extra-time": extraToggle,
+            "toggle-copy-format": copyToggle,
+            "toggle-timeline": timelineToggle,
+            "copy-format-row": createElementStub(),
+            "fixed-time-slot-count-group": createElementStub(),
+            "fixed-time-date-group": createElementStub(),
+            "multi-range-count-group": createElementStub(),
+            "multi-tools-row": createElementStub(),
+            "multi-subgroup-row": createElementStub(),
+            "multi-controls-frame": createElementStub(),
+            "save-table-image-btn": createElementStub(),
+            "save-multi-range-titles-image-btn": createElementStub()
+        };
+        const module = loadTabUiModule({
+            document: {
+                getElementById(id) {
+                    return elements[id] || null;
+                },
+                querySelectorAll() {
+                    return [];
+                }
+            }
+        });
+
+        let currentMainTab = "fixed";
+        let realtime = false;
+        const calls = [];
+        const service = module.createService({
+            sanitizeMainTab: (tab) => tab,
+            getCurrentMainTab: () => currentMainTab,
+            getActiveGroupId: () => 0,
+            getActiveGroupIdByMainTab: () => ({ live: 0, fixed: 0 }),
+            setCurrentMainTab: (value) => {
+                currentMainTab = value;
+            },
+            setActiveGroupId: () => { },
+            setActiveGroupIdByMainTab: () => { },
+            normalizeGroupTabState: () => { },
+            isMultiTab: () => currentMainTab === "multi",
+            isFixedTimeTab: () => currentMainTab === "fixed-time",
+            setIsRealtime: (value) => {
+                realtime = !!value;
+            },
+            getIsRealtime: () => realtime,
+            syncRealtimeNow: () => calls.push("syncRealtimeNow"),
+            getSlotCount: () => 3,
+            getShowCopyFormat: () => false,
+            getShowTimeline: () => true,
+            renderTimelineFrame: () => calls.push("renderTimelineFrame"),
+            renderList: () => calls.push("renderList"),
+            updateTimeAdjustPanel: () => calls.push("updateTimeAdjustPanel"),
+            renderCopyFormatControls: () => calls.push("renderCopyFormatControls"),
+            savePersistence: () => calls.push("savePersistence"),
+            renderGroups: () => calls.push("renderGroups"),
+            renderMultiSubgroups: () => calls.push("renderMultiSubgroups"),
+            refreshMultiRangeControls: () => { }
+        });
+
+        service.switchMainTab("live");
+        expect(realtime).toBe(true);
+        expect(extraToggle.disabled).toBe(true);
+        expect(extraToggle.checked).toBe(false);
+        expect(calls).toContain("syncRealtimeNow");
+        expect(calls).toContain("renderList");
+        expect(calls).toContain("updateTimeAdjustPanel");
+        expect(groupTabsContainer.style.display).toBe("flex");
+        expect(topControlBar.style.display).toBe("flex");
+
+        calls.length = 0;
+        service.switchMainTab("calc");
+        expect(realtime).toBe(false);
+        expect(calcSection.classList.has("active")).toBe(true);
+        expect(groupTabsContainer.style.display).toBe("none");
+        expect(topControlBar.style.display).toBe("none");
+    });
+
+    it("warns and recovers when dependency throws inside switch flow", () => {
+        const warnings = [];
+        const consoleStub = {
+            warn(...args) {
+                warnings.push(args);
+            }
+        };
+        const module = loadTabUiModule({
+            console: consoleStub,
+            noWindow: true,
+            document: {
+                getElementById() {
+                    return null;
+                },
+                querySelectorAll() {
+                    return [];
+                }
+            }
+        });
+        const service = module.createService({
+            sanitizeMainTab: () => {
+                throw new Error("sanitize failed");
+            },
+            getCurrentMainTab: () => "live",
+            getActiveGroupId: () => 0,
+            getActiveGroupIdByMainTab: () => ({ live: 0, fixed: 0 })
+        });
+
+        expect(() => service.switchMainTab("fixed-time")).not.toThrow();
+        expect(warnings.length).toBeGreaterThan(0);
+        expect(String(warnings[0][0])).toContain("Dependency");
     });
 });

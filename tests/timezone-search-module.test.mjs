@@ -29,48 +29,117 @@ function createClassList() {
 }
 
 function createElementStub(tagName = "div") {
-    return {
+    const listeners = new Map();
+    const attributes = new Map();
+    const element = {
         tagName: String(tagName || "div").toUpperCase(),
         style: {},
         className: "",
         classList: createClassList(),
         dataset: {},
-        textContent: "",
         value: "",
         options: [],
         children: [],
+        onclick: null,
         appendChild(child) {
+            if (!child) return child;
+            child.parentNode = this;
+            child.parentElement = this;
             this.children.push(child);
             if (this.tagName === "SELECT" && child?.tagName === "OPTION") {
                 this.options.push(child);
             }
             return child;
         },
-        setAttribute() { },
-        addEventListener() { },
-        querySelectorAll() {
-            return [];
+        setAttribute(name, value) {
+            attributes.set(String(name), String(value));
         },
-        querySelector() {
-            return null;
+        getAttribute(name) {
+            return attributes.has(String(name)) ? attributes.get(String(name)) : null;
+        },
+        addEventListener(eventName, handler) {
+            if (!listeners.has(eventName)) listeners.set(eventName, []);
+            listeners.get(eventName).push(handler);
+        },
+        dispatchEvent(event) {
+            const evt = event || { type: "" };
+            if (typeof evt.preventDefault !== "function") evt.preventDefault = () => { };
+            if (typeof evt.stopPropagation !== "function") evt.stopPropagation = () => { };
+            if (!evt.target) evt.target = this;
+            const handlers = listeners.get(evt.type) || [];
+            handlers.forEach((handler) => handler(evt));
+            return true;
+        },
+        click() {
+            this.dispatchEvent({ type: "click", target: this });
+            if (typeof this.onclick === "function") {
+                this.onclick({ target: this, preventDefault() { }, stopPropagation() { } });
+            }
+        },
+        querySelectorAll(selector) {
+            if (typeof selector !== "string" || !selector.startsWith(".")) return [];
+            const className = selector.slice(1);
+            return this.children.filter((child) => child?.classList?.contains?.(className));
+        },
+        querySelector(selector) {
+            return this.querySelectorAll(selector)[0] || null;
+        }
+    };
+    let textContentValue = "";
+    Object.defineProperty(element, "textContent", {
+        get() {
+            return textContentValue;
+        },
+        set(value) {
+            textContentValue = String(value ?? "");
+            if (!textContentValue) {
+                element.children = [];
+                if (element.tagName === "SELECT") element.options = [];
+            }
+        }
+    });
+    return element;
+}
+
+function createDocumentStub(elementsById = {}) {
+    return {
+        getElementById(id) {
+            return elementsById[id] || null;
+        },
+        createElement(tag) {
+            return createElementStub(tag);
+        }
+    };
+}
+
+function createOffsetAndAbbrDeps() {
+    return {
+        getTimezoneOffset: (zone, date) => {
+            if (zone === "UTC") return 0;
+            if (zone === "Asia/Seoul") return 540;
+            if (zone === "America/New_York") return date.getUTCMonth() === 0 ? -300 : -240;
+            return Number.NaN;
+        },
+        getBetterAbbr: (zone, date) => {
+            if (zone === "UTC") return "UTC";
+            if (zone === "Asia/Seoul") return "KST";
+            if (zone === "America/New_York") return date.getUTCMonth() === 0 ? "EST" : "EDT";
+            return "";
         }
     };
 }
 
 function loadTimezoneSearchModule(options = {}) {
     const code = fs.readFileSync(MODULE_PATH, "utf8");
+    const windowStub = {
+        requestIdleCallback: options.requestIdleCallback,
+        setTimeout: options.setTimeout
+    };
     const sandbox = {
-        window: {},
+        window: windowStub,
         globalThis: {},
         Intl: options.Intl || Intl,
-        document: options.document || {
-            getElementById() {
-                return null;
-            },
-            createElement(tag) {
-                return createElementStub(tag);
-            }
-        },
+        document: options.document || createDocumentStub(),
         console
     };
     sandbox.globalThis = sandbox;
@@ -105,6 +174,99 @@ describe("GTV timezone search module", () => {
             fixedOffsetMinutes: 0
         });
         expect(result.id).toMatch(/^tz-/);
+    });
+
+    it("getAllSupportedTimezoneNames falls back to TZ database when Intl is unavailable", () => {
+        const module = loadTimezoneSearchModule({
+            Intl: {
+                supportedValuesOf() {
+                    throw new Error("unsupported");
+                }
+            }
+        });
+        const service = module.createService({
+            TZ_DATABASE: [
+                { zone: "Asia/Seoul" },
+                { zone: "America/New_York" },
+                { zone: "Asia/Seoul" }
+            ]
+        });
+
+        const names = service.getAllSupportedTimezoneNames();
+
+        expect(names).toContain("UTC");
+        expect(names).toContain("Asia/Seoul");
+        expect(names).toContain("America/New_York");
+    });
+
+    it("getStandardTimezoneEntries generates sorted entries and returns cloned cache entries", () => {
+        const module = loadTimezoneSearchModule({
+            Intl: {
+                supportedValuesOf() {
+                    return ["UTC", "Asia/Seoul", "America/New_York"];
+                }
+            }
+        });
+        const service = module.createService({
+            ...createOffsetAndAbbrDeps(),
+            TZ_DATABASE: []
+        });
+
+        const first = service.getStandardTimezoneEntries();
+        first[0].abbr = "MUTATED";
+        const second = service.getStandardTimezoneEntries();
+
+        expect(second[0].abbr).not.toBe("MUTATED");
+        const offsets = second.map((entry) => entry.fixedOffsetMinutes);
+        const sortedOffsets = [...offsets].sort((a, b) => a - b);
+        expect(offsets).toEqual(sortedOffsets);
+        expect(second.some((entry) => entry.zone === "UTC" && entry.fixedOffsetMinutes === 0)).toBe(true);
+    });
+
+    it("queueStandardTimezoneWarmup schedules only once via requestIdleCallback", () => {
+        let scheduled = 0;
+        let callback = null;
+        const module = loadTimezoneSearchModule({
+            requestIdleCallback(fn) {
+                scheduled += 1;
+                callback = fn;
+            },
+            Intl: {
+                supportedValuesOf() {
+                    return ["UTC"];
+                }
+            }
+        });
+        const service = module.createService({
+            ...createOffsetAndAbbrDeps(),
+            TZ_DATABASE: []
+        });
+
+        service.queueStandardTimezoneWarmup();
+        service.queueStandardTimezoneWarmup();
+        expect(scheduled).toBe(1);
+
+        callback();
+        service.queueStandardTimezoneWarmup();
+        expect(scheduled).toBe(1);
+    });
+
+    it("queueStandardTimezoneWarmup falls back to setTimeout when requestIdleCallback is absent", () => {
+        let delay = null;
+        let callback = null;
+        const module = loadTimezoneSearchModule({
+            setTimeout(fn, timeout) {
+                callback = fn;
+                delay = timeout;
+                return 1;
+            }
+        });
+        const service = module.createService({});
+
+        service.queueStandardTimezoneWarmup();
+
+        expect(delay).toBe(120);
+        expect(typeof callback).toBe("function");
     });
 
     it("addFromSearchWithData uses selectable entries and forwards addTimezone", () => {
@@ -290,6 +452,23 @@ describe("GTV timezone search module", () => {
         });
     });
 
+    it("getSelectableTZEntryByKey can resolve a standard-list key", () => {
+        const module = loadTimezoneSearchModule({
+            Intl: {
+                supportedValuesOf() {
+                    return ["UTC"];
+                }
+            }
+        });
+        const service = module.createService(createOffsetAndAbbrDeps());
+
+        const entry = service.getSelectableTZEntryByKey("std:UTC:0");
+
+        expect(entry).toBeTruthy();
+        expect(entry.kind).toBe("standard_list");
+        expect(entry.zone).toBe("UTC");
+    });
+
     it("updateTZDropdown exits safely when quick select element is missing", () => {
         const module = loadTimezoneSearchModule({
             document: {
@@ -338,6 +517,67 @@ describe("GTV timezone search module", () => {
         expect(saveCalls).toBe(1);
         expect(renderCalls).toBe(1);
         expect(quickSelect.value).toBe("");
+    });
+
+    it("initSearchAndSelect wires full overlay open/tab/close actions", () => {
+        const quickSelect = createElementStub("select");
+        const placeholder = createElementStub("option");
+        quickSelect.options = [placeholder];
+        const showAllBtn = createElementStub("button");
+        const overlay = createElementStub("div");
+        overlay.style.display = "none";
+        const list = createElementStub("div");
+        const standardTabBtn = createElementStub("button");
+        const countryTabBtn = createElementStub("button");
+        const closeOverlayBtn = createElementStub("button");
+        const doc = createDocumentStub({
+            "tz-quick-select": quickSelect,
+            "show-all-tz": showAllBtn,
+            "full-tz-overlay": overlay,
+            "full-tz-list": list,
+            "tz-tab-standard": standardTabBtn,
+            "tz-tab-country": countryTabBtn,
+            "close-overlay": closeOverlayBtn
+        });
+
+        const module = loadTimezoneSearchModule({
+            document: doc,
+            Intl: {
+                supportedValuesOf() {
+                    return ["UTC", "Asia/Seoul"];
+                }
+            }
+        });
+        const service = module.createService({
+            TZ_DATABASE: [
+                {
+                    zone: "Asia/Seoul",
+                    name: "Korea",
+                    city: "Seoul",
+                    name_en: "Korea",
+                    city_en: "Seoul"
+                }
+            ],
+            ZONE_MAP: {
+                "Asia/Seoul": "KST"
+            },
+            ...createOffsetAndAbbrDeps()
+        });
+
+        service.initSearchAndSelect();
+        showAllBtn.onclick();
+
+        expect(overlay.style.display).toBe("flex");
+        expect(list.children.length).toBeGreaterThan(0);
+        expect(standardTabBtn.classList.contains("active")).toBe(true);
+        expect(standardTabBtn.getAttribute("aria-selected")).toBe("true");
+
+        countryTabBtn.dispatchEvent({ type: "click", target: countryTabBtn });
+        expect(countryTabBtn.classList.contains("active")).toBe(true);
+        expect(countryTabBtn.getAttribute("aria-selected")).toBe("true");
+
+        closeOverlayBtn.onclick();
+        expect(overlay.style.display).toBe("none");
     });
 
     it("getTimezoneEntryTitle returns localized standard label", () => {

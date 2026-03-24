@@ -66,6 +66,7 @@ function createElement(tagName = "div") {
         appendChild(child) {
             if (!child) return child;
             child.parentNode = el;
+            child.parentElement = el;
             el.children.push(child);
             return child;
         },
@@ -98,6 +99,7 @@ function createElement(tagName = "div") {
         },
         closest(selector) {
             if (selector === ".cdp-cell" && el.classList.contains("cdp-cell")) return el;
+            if (selector === ".cdp-time-item" && el.classList.contains("cdp-time-item")) return el;
             return null;
         },
         focus() { },
@@ -261,4 +263,84 @@ test("destroy detaches popup and removes marker class", () => {
 
     expect(input.classList.contains("custom-date-picker-input")).toBe(false);
     expect(picker.popup.parentNode).toBe(null);
+});
+
+test("setLang falls back to English when unsupported language is provided", () => {
+    const sandbox = createSandbox();
+    const input = sandbox.document.createElement("input");
+    const picker = new sandbox.CustomDatePicker(input, { type: "datetime", lang: "ko" });
+
+    picker.setLang("unknown-lang");
+
+    expect(picker.lang).toBe("en");
+    expect(input.placeholder).toBe("YYYY-MM-DD HH:mm:ss");
+    expect(picker.clearBtn.textContent).toBe("Clear");
+    expect(picker.todayBtn.textContent).toBe("Today");
+});
+
+test("_parseInputValue validates date/time/datetime ranges", () => {
+    const sandbox = createSandbox();
+
+    const datePicker = new sandbox.CustomDatePicker(sandbox.document.createElement("input"), { type: "date", lang: "en" });
+    expect(datePicker._parseInputValue("2026-02-29")).toBe(null);
+    const validDate = datePicker._parseInputValue("2024-02-29");
+    expect(validDate.getFullYear()).toBe(2024);
+    expect(validDate.getMonth()).toBe(1);
+    expect(validDate.getDate()).toBe(29);
+
+    const timePicker = new sandbox.CustomDatePicker(sandbox.document.createElement("input"), { type: "time", lang: "en" });
+    expect(timePicker._parseInputValue("24:00:00")).toBe(null);
+    const validTime = timePicker._parseInputValue("09:10");
+    expect(validTime.getHours()).toBe(9);
+    expect(validTime.getMinutes()).toBe(10);
+    expect(validTime.getSeconds()).toBe(0);
+
+    const datetimePicker = new sandbox.CustomDatePicker(sandbox.document.createElement("input"), { type: "datetime", lang: "en" });
+    expect(datetimePicker._parseInputValue("2026-02-30 10:00:00")).toBe(null);
+    const validDateTime = datetimePicker._parseInputValue("2026-03-07T09:10:11");
+    expect(validDateTime.getFullYear()).toBe(2026);
+    expect(validDateTime.getMonth()).toBe(2);
+    expect(validDateTime.getDate()).toBe(7);
+    expect(validDateTime.getHours()).toBe(9);
+});
+
+test("outside document click closes popup while inside click keeps it open", () => {
+    const sandbox = createSandbox();
+    const input = sandbox.document.createElement("input");
+    const picker = new sandbox.CustomDatePicker(input, { type: "date", lang: "en" });
+    const outside = sandbox.document.createElement("div");
+
+    picker.open();
+    sandbox.document.dispatchEvent({ type: "click", target: picker.popup });
+    expect(picker.isOpen).toBe(true);
+
+    sandbox.document.dispatchEvent({ type: "click", target: outside });
+    expect(picker.isOpen).toBe(false);
+});
+
+test("open with invalid input falls back to current time and opens popup", () => {
+    const sandbox = createSandbox();
+    const input = sandbox.document.createElement("input");
+    input.value = "not-a-date";
+    const picker = new sandbox.CustomDatePicker(input, { type: "datetime", lang: "en" });
+
+    picker.open();
+
+    expect(picker.isOpen).toBe(true);
+    expect(picker.selectedDate).toBeTruthy();
+    expect(Number.isNaN(picker.selectedDate.getTime())).toBe(false);
+});
+
+test("_positionPopup clamps left to viewport minimum", () => {
+    const sandbox = createSandbox();
+    sandbox.innerWidth = 120;
+    const input = sandbox.document.createElement("input");
+    input.getBoundingClientRect = () => ({ left: -30, right: 80, top: 5, bottom: 20, width: 110, height: 15 });
+    const picker = new sandbox.CustomDatePicker(input, { type: "date", lang: "en" });
+    picker.popup.getBoundingClientRect = () => ({ left: 0, right: 0, top: 0, bottom: 0, width: 250, height: 200 });
+
+    picker._positionPopup();
+
+    expect(parseInt(picker.popup.style.left, 10)).toBe(10);
+    expect(picker.popup.style.display).toBe("flex");
 });
