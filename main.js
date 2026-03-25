@@ -8,23 +8,32 @@ let showTimeline = false;
 const GTV_GLOBAL = (typeof window !== "undefined" && window) ? window : globalThis;
 const fallbackTranslate = (key) => String(key ?? "");
 const resolveTranslate = () => (typeof GTV_GLOBAL.t === "function" ? GTV_GLOBAL.t : fallbackTranslate);
-const t = (...args) => resolveTranslate()(...args);
-const I18N_DATA = (GTV_GLOBAL.I18N_DATA && typeof GTV_GLOBAL.I18N_DATA === "object")
+const gtvT = (...args) => resolveTranslate()(...args);
+const MAIN_I18N_DATA = (GTV_GLOBAL.I18N_DATA && typeof GTV_GLOBAL.I18N_DATA === "object")
     ? GTV_GLOBAL.I18N_DATA
     : { ko: {}, en: {} };
-let currentLang = (typeof GTV_GLOBAL.currentLang === "string" && GTV_GLOBAL.currentLang.trim())
-    ? GTV_GLOBAL.currentLang
-    : "ko";
+let mainCurrentLang = "ko";
+function getRuntimeCurrentLangValue() {
+    const runtimeLang = (typeof GTV_GLOBAL.currentLang === "string" && GTV_GLOBAL.currentLang.trim())
+        ? GTV_GLOBAL.currentLang
+        : "";
+    if (runtimeLang) {
+        mainCurrentLang = runtimeLang;
+        return runtimeLang;
+    }
+    return (typeof mainCurrentLang === "string" && mainCurrentLang.trim()) ? mainCurrentLang : "ko";
+}
+mainCurrentLang = getRuntimeCurrentLangValue();
 
 function syncCurrentLang(next) {
     const normalized = String(next ?? "").trim() || "ko";
-    currentLang = normalized;
+    mainCurrentLang = normalized;
     try {
         GTV_GLOBAL.currentLang = normalized;
     } catch (_error) {
         // noop: non-writable global in sandbox/test environments
     }
-    return currentLang;
+    return mainCurrentLang;
 }
 const GTV_MAIN_CONSTANTS = (typeof window !== "undefined" ? window.GTVMainConstants : globalThis.GTVMainConstants);
 if (!GTV_MAIN_CONSTANTS || typeof GTV_MAIN_CONSTANTS !== "object") {
@@ -64,7 +73,7 @@ if (!GTV_MAIN_APP_STATE_VARS || typeof GTV_MAIN_APP_STATE_VARS.createService !==
     throw new Error("Missing required module API: GTVMainAppStateVars.createService");
 }
 const mainAppStateVarsService = GTV_MAIN_APP_STATE_VARS.createService({
-    t,
+    t: gtvT,
     copyFormatKeys: COPY_FORMAT_KEYS,
     defaultDisplayFormatEnabled: DEFAULT_DISPLAY_FORMAT_ENABLED,
     defaultCopyFormatEnabled: DEFAULT_COPY_FORMAT_ENABLED,
@@ -116,7 +125,7 @@ let multiRangeCount = Number.isFinite(Number(initialMainState.multiRangeCount))
     : 1;
 let multiRangeTitle = String(
     initialMainState.multiRangeTitle
-    || t("placeholder_range_title")
+    || gtvT("placeholder_range_title")
     || DEFAULT_MULTI_RANGE_TITLE
 );
 let multiRanges = Array.isArray(initialMainState.multiRanges) ? [...initialMainState.multiRanges] : [];
@@ -265,7 +274,7 @@ function warnMissingServiceMethod(serviceName, methodName) {
 function showMissingFeatureToastOnce(featureKey = "") {
     const key = String(featureKey || "").trim();
     if (!key) return;
-    const message = (currentLang === "ko")
+    const message = (getRuntimeCurrentLangValue() === "ko")
         ? "필수 기능 모듈이 준비되지 않았습니다. 새로고침 후 다시 시도해 주세요."
         : "A required feature module is unavailable. Refresh and try again.";
     callServiceMethod(
@@ -515,7 +524,7 @@ function buildPatchedStateFallbackSnapshot() {
         showCopyFormat,
         showTimeline,
         currentTheme,
-        currentLang,
+        currentLang: getRuntimeCurrentLangValue(),
         displayFormatOrder,
         displayFormatEnabled,
         displayTimePartsEnabled,
@@ -694,7 +703,7 @@ function getUpdateClocksRef() {
 }
 
 function getTranslatorRef() {
-    return t;
+    return gtvT;
 }
 
 function getSavePersistenceSafelyRef() {
@@ -842,7 +851,7 @@ function getCurrentThemeStateRef() {
 }
 
 function getCurrentLangStateRef() {
-    return currentLang;
+    return getRuntimeCurrentLangValue();
 }
 
 function resolveLocalDatePartsViaTimeService(date, timezone, timezoneId, fallback) {
@@ -862,7 +871,7 @@ function getSnapshotFormatServiceRef() {
 }
 
 function getI18nDataRef() {
-    return I18N_DATA;
+    return MAIN_I18N_DATA;
 }
 
 function getImageExportBridgeServiceRef() {
@@ -1205,7 +1214,7 @@ const mainCoreServices = GTV_MAIN_CORE_SERVICE_ASSEMBLY.createService({
     MIN_MULTI_RANGE_COUNT,
     MAX_MULTI_RANGE_COUNT,
     DEFAULT_MULTI_RANGE_TITLE,
-    t,
+    t: gtvT,
     showToast: deferDynamicCall(getShowToastRef),
     sanitizeUtcMs: bindFacadeMethod(getTimeCoreRef, "sanitizeUtcMs"),
     getGlobalTimesState,
@@ -1233,7 +1242,7 @@ const mainCoreServices = GTV_MAIN_CORE_SERVICE_ASSEMBLY.createService({
     THEME_LIST,
     THEME_STORAGE_KEY,
     UI_SCALE_STORAGE_KEY,
-    I18N_DATA,
+    I18N_DATA: MAIN_I18N_DATA,
     getStorageValue: bindFacadeMethod(getPersistenceServiceRef, "getStorageValue"),
     setStorageValue: bindFacadeMethod(getPersistenceServiceRef, "setStorageValue"),
     getUiScaleState,
@@ -1283,7 +1292,7 @@ const mainFoundationServices = GTV_MAIN_FOUNDATION_SERVICES.createService({
     GTV_UI_SETTINGS_ACTIONS,
     GTV_CALCULATOR,
     PERIOD_RESULT_IDS,
-    t,
+    t: gtvT,
     showToast: deferDynamicCall(getShowToastRef),
     getPersistenceService: getPersistenceServiceRef,
     confirmFn: confirmRuntime,
@@ -1465,7 +1474,7 @@ function getSignedDurationDayHourMinute(a, b) {
     return timeService.formatDuration(
         parseLocalDateTimeToUtcMs(a),
         parseLocalDateTimeToUtcMs(b),
-        currentLang
+        getRuntimeCurrentLangValue()
     );
 }
 
@@ -1483,7 +1492,7 @@ function updateTimeAdjustPanelSafely() {
 }
 
 function getUTCRef() {
-    return { id: "utc", type: "standard", zone: "UTC", name: t("utc_name") };
+    return { id: "utc", type: "standard", zone: "UTC", name: gtvT("utc_name") };
 }
 
 function getCurrentGroup() {
@@ -1554,7 +1563,7 @@ function formatUtcOffsetLabel(totalMinutes = 0) {
 
 function normalizeCustomAbbr(value) {
     const trimmed = (value || "").trim();
-    if (!trimmed) return t("label_custom");
+    if (!trimmed) return gtvT("label_custom");
     return trimmed.toUpperCase().slice(0, 12);
 }
 
@@ -1907,7 +1916,7 @@ const mainSelectServices = mainCoreServices.createMainSelectServices({
     getZoneDisplayName,
     setCurrentGroupBaseTimezoneId,
     savePersistence: savePersistenceSafely,
-    t
+    t: gtvT
 });
 const {
     adjustSelectWidthForContent,
@@ -1920,7 +1929,7 @@ const {
 const timezoneSearchService = mainCoreServices.createTimezoneSearchService({
     TZ_DATABASE,
     getZoneMap: getZoneMapRef,
-    t,
+    t: gtvT,
     getCurrentLang: getPatchedCurrentLangState,
     getBetterAbbr,
     getTimezoneOffset,
@@ -1935,8 +1944,8 @@ const timezoneSearchService = mainCoreServices.createTimezoneSearchService({
 
 const snapshotFormatService = mainCoreServices.createSnapshotFormatService({
     DEFAULT_COPY_TIME_PARTS_ENABLED,
-    I18N_DATA,
-    t,
+    I18N_DATA: MAIN_I18N_DATA,
+    t: gtvT,
     getCurrentLang: getPatchedCurrentLangState,
     getUTCRef,
     getBaseTimezoneRef,
@@ -2034,12 +2043,12 @@ const mainRowViewServices = mainCoreServices.createMainRowViewServices({
     getSlotCount: getPatchedSlotCountState,
     normalizeDayNightMarker,
     getDayNightGlyph,
-    t
+    t: gtvT
 });
 const { updateRow } = mainRowViewServices;
 
 const tableRenderService = mainCoreServices.createTableRenderService({
-    t,
+    t: gtvT,
     sanitizeCopyFormatOrder,
     getDisplayFormatOrder: getPatchedDisplayFormatOrderState,
     getDisplayFormatEnabled: getPatchedDisplayFormatEnabledState,
@@ -2117,7 +2126,7 @@ const mainImageRuntimeServices = mainCoreServices.createMainImageRuntimeServices
     drawExportCellText,
     cloneTableForImageExport,
     renderElementWithForeignObjectToPngDataUrl,
-    t,
+    t: gtvT,
     ensureMultiRangeState,
     getBaseTimezoneRef,
     getMultiRanges: getPatchedMultiRangesState,
@@ -2138,8 +2147,8 @@ const mainFixedTimeServices = mainCoreServices.createMainFixedTimeServices({
     DEFAULT_FIXED_TIME_VALUE,
     MIN_FIXED_TIME_SLOT_COUNT,
     TIMELINE_TOTAL_SECONDS,
-    I18N_DATA,
-    t,
+    I18N_DATA: MAIN_I18N_DATA,
+    t: gtvT,
     getCurrentLang: getPatchedCurrentLangState,
     sanitizeFixedTimeValue,
     getFixedOffsetForDisplayAtDate,
@@ -2186,8 +2195,8 @@ const mainMultiRangeServices = mainCoreServices.createMainMultiRangeServices({
     GTV_MULTI_RANGE_RENDER,
     GTV_MULTI_RANGE_COPY,
     GTV_COPY_ACTIONS,
-    I18N_DATA,
-    t,
+    I18N_DATA: MAIN_I18N_DATA,
+    t: gtvT,
     getCurrentLang: getPatchedCurrentLangState,
     pad,
     getCustomOffsetMinutes,
@@ -2260,7 +2269,7 @@ const mainTimeAdjustServices = mainCoreServices.createMainTimeAdjustServices({
     MIN_TIME_ADJUST_DAY_STEP,
     MAX_TIME_ADJUST_DAY_STEP,
     DEFAULT_TIME_ADJUST_DAY_STEP,
-    t,
+    t: gtvT,
     savePersistence: savePersistenceSafely,
     applyTimeAdjustAction,
     getCurrentMainTab: getPatchedMainTabState,
@@ -2310,7 +2319,7 @@ const mainTabServices = mainCoreServices.createMainTabServices({
     serviceBootstrap,
     COPY_FORMAT_KEYS,
     TIME_PART_KEYS,
-    t,
+    t: gtvT,
     sanitizeCopyFormatOrder,
     renderList: deferDynamicCall(getRenderListRef),
     updateCopyFormatPreview,
@@ -2408,7 +2417,7 @@ const mainGroupStateServices = mainCoreServices.createMainGroupStateServices({
     GTV_MULTI_STATE,
     serviceBootstrap,
     MIN_MULTI_RANGE_COUNT,
-    t,
+    t: gtvT,
     getGroups: getGroupsStateSnapshot,
     getDefaultMultiRangeBounds,
     sanitizeMultiRangeCount,
@@ -2434,7 +2443,7 @@ const mainImageExportNamingProxy = mainCoreServices.createMainImageExportNamingP
     getBaseTimezoneRef,
     getGroups: getGroupsStateSnapshot,
     getActiveGroupId: getPatchedActiveGroupIdState,
-    t,
+    t: gtvT,
     getZoneAbbreviation,
     getBaseTime: getBaseTimeSnapshot,
     sanitizeMultiSubgroupName: sanitizeMultiSubgroupNameForExport,
@@ -2452,7 +2461,7 @@ const mainImageExportServices = mainCoreServices.createMainImageExportServices({
     GTV_IMAGE_EXPORT_NAMING,
     GTV_IMAGE_EXPORT_ACTIONS,
     imageExportApi: GTV_IMAGE_EXPORT,
-    t,
+    t: gtvT,
     pad,
     timeService,
     getCustomOffsetMinutes,
@@ -2510,7 +2519,7 @@ const mainAppStateServices = mainCoreServices.createMainAppStateServices({
         multiRangeEndEditEnabled,
         isRealtime: getIsRealtimeState(),
         currentTheme,
-        currentLang
+        currentLang: getRuntimeCurrentLangValue()
     }),
     stateSetters: directStateSetters,
     setIsRealtimeState,
@@ -2651,7 +2660,7 @@ const mainPersistenceCompositionServices = mainCoreServices.createMainPersistenc
     GTV_MAIN_PERSISTENCE_SERVICES,
     groupTabsConfig: {
         GTV_GROUP_TABS,
-        t,
+        t: gtvT,
         showToast: deferDynamicCall(getShowToastRef),
         confirmFn: confirmFnViaMainFoundation,
         getState: getPersistenceState,
@@ -2714,7 +2723,7 @@ const mainPersistenceCompositionServices = mainCoreServices.createMainPersistenc
         COPY_FORMAT_KEYS,
         DEFAULT_TIME_ADJUST_DAY_STEP,
         MIN_MULTI_RANGE_COUNT,
-        I18N_DATA,
+        I18N_DATA: MAIN_I18N_DATA,
         VERSION,
         getDefaultFixedTimes,
         getDefaultFixedDate,
@@ -2747,7 +2756,7 @@ const mainPersistenceCompositionServices = mainCoreServices.createMainPersistenc
         refreshSelectWidths,
         switchMainTab,
         showToast: deferDynamicCall(getShowToastRef),
-        t,
+        t: gtvT,
         confirmFn: confirmFnViaMainFoundation,
         tFormat,
         applyVersionBranding,
@@ -2828,7 +2837,7 @@ const mainRuntimeCompositionServices = mainCoreServices.createMainRuntimeComposi
         getUiSettingsActionsService: getUiSettingsActionsServiceRef
     },
     actions: {
-        t,
+        t: gtvT,
         isMultiTab,
         isFixedTimeTab,
         getBaseTimezoneRef,
