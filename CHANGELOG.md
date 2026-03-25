@@ -1,5 +1,16 @@
 # 변경 이력 (Changelog)
 
+## [3.11.6] - 2026-03-26
+### 변경됨
+- 저장소 무결성 강화: state persistence payload를 envelope(`revision`, `updatedAt`, `data`) 형식으로 확장하고, `chrome.storage.local`/`localStorage` 후보를 비교해 최신 스냅샷을 우선 복원하도록 개선했습니다.
+- 렌더링 안정성 강화: 테이블 재렌더링 전에 DatePicker 인스턴스를 정리(`destroy`)하도록 변경해 장시간 사용 시 누수 가능성을 줄였습니다.
+- 테스트 훅 안정성 강화: `main.js` 테스트 훅 내부 `eval` 접근을 제거하고 화이트리스트 레지스트리 기반 접근으로 교체했습니다.
+- 빌드 성능/품질 강화: `build_extension.ps1`에 번들 minify(`terser`)와 번들 크기 게이트(900KB)를 추가했습니다.
+
+### 테스트
+- 상태 영속화 회귀 테스트를 추가해 stale chrome 데이터가 최신 local 데이터를 덮어쓰지 않음을 검증했습니다.
+- `npm run lint`, `npm run test:coverage`(108 files / 601 tests), `npm run build:strict` 통과를 확인했습니다.
+
 ## [3.11.5] - 2026-03-22
 ### 변경됨
 - `main.js`에 집중되어 있던 전역 상태 변수(`globalTimes` 등)와 서비스 의존성 조립기(`GTV_MAIN_MODULE_RESOLVER`) 로직을 각각 `main-app-state-vars.js`, `main-core-service-assembly.js`로 분리해 추출했습니다.

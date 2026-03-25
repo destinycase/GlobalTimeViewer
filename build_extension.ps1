@@ -121,6 +121,22 @@ try {
     $bundlePath = "$PSScriptRoot\js\bundle.js"
     [System.IO.File]::WriteAllText($bundlePath, $bundleContent, $utf8NoBOM)
 
+    Write-Host "Minifying concatenated bundle..." -ForegroundColor Cyan
+    cmd.exe /c "npx terser ""$bundlePath"" --compress --mangle --ecma 2020 --comments false --output ""$bundlePath"""
+    $minifyExitCode = $LASTEXITCODE
+    if ($minifyExitCode -ne 0) {
+        Write-Host "Bundle minification failed! Aborting." -ForegroundColor Red
+        exit 1
+    }
+
+    $maxBundleBytes = 900KB
+    $bundleSizeBytes = (Get-Item $bundlePath).Length
+    if ($bundleSizeBytes -gt $maxBundleBytes) {
+        Write-Host "Bundle size gate failed: $bundleSizeBytes bytes (max: $maxBundleBytes)." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  Bundle size after minify: $bundleSizeBytes bytes" -ForegroundColor DarkGray
+
     $tempHtmlName = "vite-index.html"
     $tempHtmlPath = "$PSScriptRoot\$tempHtmlName"
 

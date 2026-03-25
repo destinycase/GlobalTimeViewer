@@ -4,6 +4,8 @@
     function createService(deps) {
         let lastPersistenceErrorToastAt = 0;
         let persistenceWriteQueue = Promise.resolve();
+        let persistenceRevision = 0;
+        const PERSISTENCE_ENVELOPE_VERSION = 1;
         const confirmFn = (typeof deps.confirmFn === "function")
             ? deps.confirmFn
             : ((message) => {
@@ -41,6 +43,94 @@
             } catch (e) {
                 return null;
             }
+        }
+
+        function sanitizePersistenceRevision(value) {
+            const parsed = Number.parseInt(value, 10);
+            if (!Number.isFinite(parsed) || parsed < 0) return 0;
+            return parsed;
+        }
+
+        function parsePersistenceUpdatedAtMs(value) {
+            const asMs = Number(value);
+            if (Number.isFinite(asMs) && asMs > 0) return asMs;
+            const parsed = Date.parse(value || "");
+            if (Number.isFinite(parsed) && parsed > 0) return parsed;
+            return 0;
+        }
+
+        function createPersistenceEnvelope(snapshot, revision = 0) {
+            return {
+                __gtvStorageEnvelope: PERSISTENCE_ENVELOPE_VERSION,
+                meta: {
+                    revision: sanitizePersistenceRevision(revision),
+                    updatedAt: new Date().toISOString()
+                },
+                data: snapshot
+            };
+        }
+
+        function unwrapPersistenceEnvelope(parsed) {
+            if (!parsed || typeof parsed !== "object") return null;
+
+            if (
+                parsed.__gtvStorageEnvelope === PERSISTENCE_ENVELOPE_VERSION
+                && parsed.data
+                && typeof parsed.data === "object"
+            ) {
+                return {
+                    snapshot: parsed.data,
+                    revision: sanitizePersistenceRevision(parsed?.meta?.revision),
+                    updatedAtMs: parsePersistenceUpdatedAtMs(parsed?.meta?.updatedAt),
+                    hasEnvelope: true
+                };
+            }
+
+            return {
+                snapshot: parsed,
+                revision: 0,
+                updatedAtMs: 0,
+                hasEnvelope: false
+            };
+        }
+
+        function parseSerializedPersistencePayload(serialized, source = "unknown") {
+            if (typeof serialized !== "string" || !serialized.trim()) return null;
+            try {
+                const parsed = JSON.parse(serialized);
+                const unwrapped = unwrapPersistenceEnvelope(parsed);
+                if (!unwrapped || !unwrapped.snapshot || typeof unwrapped.snapshot !== "object") return null;
+                return {
+                    source,
+                    serialized,
+                    snapshot: unwrapped.snapshot,
+                    revision: unwrapped.revision,
+                    updatedAtMs: unwrapped.updatedAtMs,
+                    hasEnvelope: unwrapped.hasEnvelope
+                };
+            } catch (_err) {
+                return null;
+            }
+        }
+
+        function choosePreferredPersistenceCandidate(primaryCandidate, secondaryCandidate) {
+            if (primaryCandidate && secondaryCandidate) {
+                if (primaryCandidate.revision !== secondaryCandidate.revision) {
+                    return primaryCandidate.revision > secondaryCandidate.revision
+                        ? primaryCandidate
+                        : secondaryCandidate;
+                }
+                if (primaryCandidate.updatedAtMs !== secondaryCandidate.updatedAtMs) {
+                    return primaryCandidate.updatedAtMs > secondaryCandidate.updatedAtMs
+                        ? primaryCandidate
+                        : secondaryCandidate;
+                }
+                if (primaryCandidate.hasEnvelope !== secondaryCandidate.hasEnvelope) {
+                    return primaryCandidate.hasEnvelope ? primaryCandidate : secondaryCandidate;
+                }
+                return primaryCandidate;
+            }
+            return primaryCandidate || secondaryCandidate || null;
         }
 
         function safeLocalStorageGet(key, fallback = null) {
@@ -114,13 +204,20 @@
         function persistStorageSnapshot(snapshot, options = {}) {
             let serialized = "";
             try {
-                serialized = JSON.stringify(snapshot);
+                const nextRevision = persistenceRevision + 1;
+                const envelopedSnapshot = createPersistenceEnvelope(snapshot, nextRevision);
+                serialized = JSON.stringify(envelopedSnapshot);
             } catch (err) {
                 console.error("Failed to serialize persistence snapshot.", err);
                 if (!options?.suppressToast) showPersistenceErrorToast(err);
                 return { ok: false, error: err };
             }
-            return setStorageValue(deps.STORAGE_KEY, serialized, options);
+            return setStorageValue(deps.STORAGE_KEY, serialized, options).then((result) => {
+                if (result?.ok) {
+                    persistenceRevision += 1;
+                }
+                return result;
+            });
         }
 
         function enqueuePersistenceWrite(taskFn) {
@@ -397,11 +494,23 @@
 
         async function loadPersistence() {
             let serialized = null;
+            let selectedCandidate = null;
 
             try {
                 if (hasChromeStorage()) {
                     const data = await chrome.storage.local.get(deps.STORAGE_KEY);
-                    serialized = data[deps.STORAGE_KEY];
+                    const chromeSerialized = data[deps.STORAGE_KEY];
+                    const localSerialized = safeLocalStorageGet(deps.STORAGE_KEY);
+                    const chromeCandidate = parseSerializedPersistencePayload(chromeSerialized, "chrome");
+                    const localCandidate = parseSerializedPersistencePayload(localSerialized, "local");
+                    selectedCandidate = choosePreferredPersistenceCandidate(chromeCandidate, localCandidate);
+                    if (selectedCandidate?.serialized) {
+                        serialized = selectedCandidate.serialized;
+                    } else if (chromeSerialized) {
+                        serialized = chromeSerialized;
+                    } else if (localSerialized) {
+                        serialized = localSerialized;
+                    }
                 }
             } catch (err) {
                 console.warn("Chrome storage error during loadPersistence. Falling back to localStorage.", err);
@@ -409,6 +518,7 @@
 
             if (!serialized) {
                 serialized = safeLocalStorageGet(deps.STORAGE_KEY);
+                selectedCandidate = parseSerializedPersistencePayload(serialized, "local");
             }
 
             const legacyFallbackKeys = Array.isArray(deps.LEGACY_STORAGE_FALLBACK_KEYS)
@@ -430,12 +540,32 @@
             }
 
             try {
-                const parsed = JSON.parse(serialized);
-                const nextState = normalizeParsedPersistenceState(parsed);
+                let parsedPayload = null;
+                if (selectedCandidate && selectedCandidate.serialized === serialized) {
+                    parsedPayload = selectedCandidate.snapshot;
+                } else {
+                    const parsedCandidate = parseSerializedPersistencePayload(serialized, "unknown");
+                    if (parsedCandidate) {
+                        selectedCandidate = parsedCandidate;
+                        parsedPayload = parsedCandidate.snapshot;
+                    } else {
+                        parsedPayload = JSON.parse(serialized);
+                    }
+                }
+                const nextState = normalizeParsedPersistenceState(parsedPayload);
                 deps.setState(nextState);
 
                 deps.loadCurrentMultiStateFromActiveSubgroup();
                 deps.ensureBaseTimezoneSelection();
+
+                persistenceRevision = Math.max(
+                    persistenceRevision,
+                    sanitizePersistenceRevision(selectedCandidate?.revision)
+                );
+
+                if (selectedCandidate?.source === "local" && hasChromeStorage()) {
+                    void setStorageValue(deps.STORAGE_KEY, selectedCandidate.serialized, { suppressToast: true });
+                }
             } catch (err) {
                 console.warn("Failed to parse persisted data. Falling back to defaults.", err);
                 applyDefaultPersistenceState();

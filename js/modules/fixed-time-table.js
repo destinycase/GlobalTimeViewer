@@ -36,6 +36,20 @@
             return value instanceof Date && Number.isFinite(value.getTime());
         }
 
+        function destroyDatePickersInRoot(root) {
+            if (!root || typeof root.querySelectorAll !== "function") return;
+            const inputs = asArray(root.querySelectorAll(".time-input"));
+            inputs.forEach((input) => {
+                const picker = input?._cdp;
+                if (picker && typeof picker.destroy === "function") {
+                    picker.destroy();
+                }
+                if (input && Object.prototype.hasOwnProperty.call(input, "_cdp")) {
+                    input._cdp = null;
+                }
+            });
+        }
+
         function getFixedTimeSlotLayoutMetrics(partsEnabled) {
             const safeParts = (partsEnabled && typeof partsEnabled === "object")
                 ? partsEnabled
@@ -211,6 +225,7 @@
                 });
             });
 
+            destroyDatePickersInRoot(body);
             body.textContent = "";
             const baseRef = invokeDep("getBaseTimezoneRef");
             if (!baseRef) return;

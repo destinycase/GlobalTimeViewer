@@ -44,6 +44,20 @@
             return value instanceof Date && Number.isFinite(value.getTime());
         }
 
+        function destroyDatePickersInRoot(root) {
+            if (!root || typeof root.querySelectorAll !== "function") return;
+            const inputs = asArray(root.querySelectorAll(".time-input"));
+            inputs.forEach((input) => {
+                const picker = input?._cdp;
+                if (picker && typeof picker.destroy === "function") {
+                    picker.destroy();
+                }
+                if (input && Object.prototype.hasOwnProperty.call(input, "_cdp")) {
+                    input._cdp = null;
+                }
+            });
+        }
+
         function getZoneDisplayNameForUiAtDate(tz, anchorDate) {
             const safeAnchorDate = isValidDate(anchorDate) ? anchorDate : new Date();
             const uiName = invokeDep("getZoneDisplayNameForUiAtDate", tz, safeAnchorDate);
@@ -293,6 +307,7 @@
 
             const baseRef = invokeDep("getBaseTimezoneRef");
             if (!baseRef) {
+                destroyDatePickersInRoot(container);
                 container.innerHTML = "";
                 return;
             }
@@ -303,6 +318,7 @@
             const multiRangeCountRaw = Number(invokeDep("getMultiRangeCount"));
             const multiRangeCount = Number.isFinite(multiRangeCountRaw) ? multiRangeCountRaw : multiRanges.length;
 
+            destroyDatePickersInRoot(container);
             container.innerHTML = "";
             multiRanges.forEach((range, rangeIdx) => {
                 const rangeAnchorDate = new Date(range?.startUtcMs);

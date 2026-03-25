@@ -1,4 +1,4 @@
-# Global Time Viewer v3.11.5
+# Global Time Viewer v3.11.6
 
 ## 확장 프로그램
 - https://chromewebstore.google.com/detail/ojmkgfaeececindhbegihnonpndkbnho?utm_source=item-share-cb
@@ -34,6 +34,7 @@
 ## 변경 이력
 - 자세한 변경 사항은 `CHANGELOG.md`를 참고하세요.
 
-## 최근 변경 (v3.11.5)
-- `main.js`의 전역 상태 변수와 서비스 조립기(Module Resolver) 로직을 독립 모듈(`main-app-state-vars.js`, `main-core-service-assembly.js`)로 완벽히 추출했습니다.
-- 도메인별 파사드 분리에 이어 전역 상태까지 분리함으로써 `main.js`의 크기와 의존성 결합도를 획기적으로 낮췄습니다.
+## 최근 변경 (v3.11.6)
+- 저장소 무결성을 강화해 `chrome.storage.local`/`localStorage` 복원 시 최신 스냅샷(`revision`, `updatedAt`)을 우선 선택하도록 개선했습니다.
+- 테이블 재렌더링 전에 DatePicker 인스턴스를 정리해 장시간 사용 시 누수 가능성을 줄였습니다.
+- 빌드 파이프라인에 번들 minify(`terser`)와 크기 게이트(900KB)를 추가해 배포 품질을 강화했습니다.

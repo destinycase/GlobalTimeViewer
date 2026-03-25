@@ -34,6 +34,20 @@
             return new Date();
         }
 
+        function destroyDatePickersInRoot(root) {
+            if (!root || typeof root.querySelectorAll !== "function") return;
+            const inputs = Array.from(root.querySelectorAll(".time-input") || []);
+            inputs.forEach((input) => {
+                const picker = input?._cdp;
+                if (picker && typeof picker.destroy === "function") {
+                    picker.destroy();
+                }
+                if (input && Object.prototype.hasOwnProperty.call(input, "_cdp")) {
+                    input._cdp = null;
+                }
+            });
+        }
+
         function getZoneDisplayNameForUiAtDate(tz, anchorDate = getSlotZeroAnchorDate()) {
             const uiName = invokeDep("getZoneDisplayNameForUiAtDate", tz, anchorDate);
             if (typeof uiName === "string" && uiName.trim()) return uiName;
@@ -358,6 +372,7 @@
 
             const container = doc.getElementById?.("clocks-container");
             if (!container) return;
+            destroyDatePickersInRoot(container);
             container.textContent = "";
 
             if (typeof doc.createElement !== "function") return;

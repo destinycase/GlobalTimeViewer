@@ -41,6 +41,39 @@ function createFailingLocalStorageStub() {
     };
 }
 
+function createStoredPersistenceEnvelope(data, revision = 1, updatedAt = "2026-01-01T00:00:00.000Z") {
+    return JSON.stringify({
+        __gtvStorageEnvelope: 1,
+        meta: {
+            revision,
+            updatedAt
+        },
+        data
+    });
+}
+
+function unwrapStoredPersistencePayload(raw) {
+    const parsed = JSON.parse(raw || "null");
+    if (
+        parsed
+        && typeof parsed === "object"
+        && parsed.__gtvStorageEnvelope === 1
+        && parsed.data
+        && typeof parsed.data === "object"
+    ) {
+        return {
+            isEnvelope: true,
+            meta: parsed.meta || {},
+            data: parsed.data
+        };
+    }
+    return {
+        isEnvelope: false,
+        meta: null,
+        data: parsed
+    };
+}
+
 function loadStatePersistenceModule(options = {}) {
     const logs = {
         error: [],
@@ -381,7 +414,10 @@ describe("GTV state persistence module", () => {
 
         await service.loadPersistence();
 
-        expect(localStorage.getItem("TEST_STORAGE_KEY")).toBe("{}");
+        const stored = unwrapStoredPersistencePayload(localStorage.getItem("TEST_STORAGE_KEY"));
+        expect(stored.isEnvelope).toBe(true);
+        expect(stored.data).toEqual({});
+        expect(Number(stored.meta?.revision)).toBeGreaterThanOrEqual(1);
         expect(loaded.logs.warn.length).toBeGreaterThan(0);
     });
 
@@ -446,8 +482,9 @@ describe("GTV state persistence module", () => {
                     local: {
                         async set(payload) {
                             const raw = payload.TEST_STORAGE_KEY;
-                            const parsed = JSON.parse(raw || "{}");
-                            if (parsed.version === 1) {
+                            const stored = unwrapStoredPersistencePayload(raw);
+                            const payloadData = stored.data || {};
+                            if (payloadData.version === 1) {
                                 await new Promise((resolve) => {
                                     releaseFirstWrite = resolve;
                                 });
@@ -481,7 +518,76 @@ describe("GTV state persistence module", () => {
         await Promise.all([first, second]);
 
         const storedRaw = await service.getStorageValue("TEST_STORAGE_KEY", null);
-        expect(JSON.parse(storedRaw).version).toBe(2);
+        const stored = unwrapStoredPersistencePayload(storedRaw);
+        expect(stored.isEnvelope).toBe(true);
+        expect(stored.data.version).toBe(2);
+        expect(Number(stored.meta?.revision)).toBeGreaterThanOrEqual(2);
+    });
+
+    it("loadPersistence prefers newer local envelope when chrome has stale legacy payload", async () => {
+        const staleChromePayload = JSON.stringify({
+            groups: [{
+                name: "Chrome Legacy Group",
+                zones: [],
+                baseTimezoneId: "utc",
+                showUtcRow: true,
+                utcRowOrder: 0
+            }],
+            activeGroupId: 0,
+            currentMainTab: "fixed",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 },
+            slotCount: 1,
+            showCopyFormat: false,
+            showTimeline: false
+        });
+        const freshLocalPayload = {
+            groups: [{
+                name: "Local Fresh Group",
+                zones: [],
+                baseTimezoneId: "utc",
+                showUtcRow: true,
+                utcRowOrder: 0
+            }],
+            activeGroupId: 0,
+            currentMainTab: "live",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 },
+            slotCount: 1,
+            showCopyFormat: true,
+            showTimeline: true
+        };
+        const localStorage = createLocalStorageStub();
+        localStorage.setItem(
+            "TEST_STORAGE_KEY",
+            createStoredPersistenceEnvelope(freshLocalPayload, 7, "2026-03-26T00:00:00.000Z")
+        );
+
+        let appliedState = null;
+        const loaded = loadStatePersistenceModule({
+            localStorage,
+            chrome: {
+                storage: {
+                    local: {
+                        async get(key) {
+                            return { [key]: staleChromePayload };
+                        },
+                        async set() {
+                            return undefined;
+                        }
+                    }
+                }
+            }
+        });
+        const service = loaded.module.createService(createBaseDeps({
+            setState(next) {
+                appliedState = next;
+            }
+        }));
+
+        await service.loadPersistence();
+
+        expect(appliedState).toBeTruthy();
+        expect(appliedState.groups[0].name).toBe("Local Fresh Group");
+        expect(appliedState.currentMainTab).toBe("live");
     });
 
     it("resetExceptGroupsAndTimezones aborts early when confirmFn denies", async () => {
