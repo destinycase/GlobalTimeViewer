@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 
-import { afterAll, beforeAll, expect, test } from "vitest";
+import { afterAll, beforeAll, expect, test, vi } from "vitest";
 
 const require = createRequire(import.meta.url);
 const PROJECT_ROOT = path.resolve(process.cwd());
@@ -95,7 +95,9 @@ function installGlobalStubs() {
         "applyTranslations",
         "currentLang",
         "I18N_DATA",
-        "luxon"
+        "luxon",
+        "__GTV_ENABLE_MAIN_TEST_HOOKS__",
+        "__GTVMainTestHooks"
     ];
     const previous = new Map();
     keys.forEach((key) => {
@@ -134,6 +136,7 @@ function installGlobalStubs() {
         ko: { days: ["일", "월", "화", "수", "목", "금", "토"] }
     });
     setGlobalValue("luxon", require("luxon"));
+    setGlobalValue("__GTV_ENABLE_MAIN_TEST_HOOKS__", true);
 
     return () => {
         keys.forEach((key) => {
@@ -157,7 +160,8 @@ beforeAll(() => {
     require(path.join(PROJECT_ROOT, "background.js"));
 });
 
-afterAll(() => {
+afterAll(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 25));
     if (typeof restoreGlobals === "function") restoreGlobals();
 });
 
@@ -166,4 +170,99 @@ test("coverage smoke imports runtime scripts without boot errors", () => {
     expect(globalThis.GTVMainConstants).toBeTruthy();
     expect(globalThis.GTVTimeService).toBeTruthy();
     expect(typeof globalThis.isRealtime).toBe("boolean");
+});
+
+test("coverage smoke invokes main internals through guarded test hook", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(NOOP);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(NOOP);
+    const hooks = globalThis.__GTVMainTestHooks;
+    expect(hooks).toBeTruthy();
+    expect(typeof hooks.invoke).toBe("function");
+
+    const timezoneRef = {
+        id: "tz-utc",
+        type: "standard",
+        zone: "UTC",
+        name_ko: "UTC",
+        name_en: "UTC"
+    };
+    const drawContext = {
+        save: NOOP,
+        restore: NOOP,
+        fillText: NOOP,
+        measureText: () => ({ width: 10 })
+    };
+    const argsByFunctionName = {
+        setIsRealtimeState: [false],
+        getGlobalTimeState: [0],
+        setGlobalTimeState: [0, new Date(Date.UTC(2026, 0, 1, 0, 0, 0))],
+        applyDirectStatePatch: [{
+            groups: [],
+            activeGroupId: 0,
+            currentMainTab: "live",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 },
+            slotCount: 2,
+            showCopyFormat: true,
+            showTimeline: true,
+            displayFormatOrder: ["datetime"],
+            displayFormatEnabled: { datetime: true },
+            displayTimePartsEnabled: { hour24: true, minute: true },
+            copyFormatOrder: ["datetime"],
+            copyFormatEnabled: { datetime: true },
+            copyTimePartsEnabled: { hour24: true, minute: true },
+            formatProfiles: {},
+            activeFormatProfileContext: "live",
+            timeAdjustDayStepBySlot: [1, 1],
+            multiRangeCount: 1,
+            multiRangeTitle: "Range",
+            multiRanges: [],
+            multiRangeCollapsed: [],
+            multiRangeStartEditEnabled: [],
+            multiRangeEndEditEnabled: [],
+            currentTheme: "dark",
+            currentLang: "en",
+            isRealtime: false
+        }],
+        warnMissingServiceMethod: ["svc", "method"],
+        showMissingFeatureToastOnce: ["missing.feature"],
+        getServiceMethod: ["svc", { ok: () => 1 }, "ok"],
+        callServiceMethod: ["svc", { ok: () => 1 }, "ok", []],
+        parseDateTimeParts: ["2026-03-10 10:20:30", "datetime"],
+        parseLocalDateTimeToUtcMs: ["2026-03-10 10:20:30"],
+        getSignedDurationDayHourMinute: ["2026-03-10 10:00:00", "2026-03-10 11:00:00"],
+        getLocalPartsByTimezone: [new Date(Date.UTC(2026, 0, 1, 0, 0, 0)), timezoneRef, null],
+        getUTCDateFromLocalParts: [{ year: 2026, month: 1, day: 1, hour: 0, minute: 0, second: 0 }, timezoneRef, null],
+        drawExportCellText: [drawContext, "txt", 0, 0, 10, 10, {}],
+        handleTimeChange: ["2026-03-10 10:20:30", timezoneRef, 0, null, "datetime"],
+        handleMultiRangeTimeChange: [0, "2026-03-10 10:20:30", timezoneRef, 0, null, "datetime"],
+        formatSnapshotText: [{}, ["datetime"], { datetime: true }, { hour24: true }],
+        formatTimeTextByParts: [{ hour24: "10", minute: "20" }, { hour24: true, minute: true }],
+        sanitizeGroup: [{ name: "G", zones: [], baseTimezoneId: "utc", showUtcRow: true, utcRowOrder: 0 }, 0, null],
+        showFatalError: [new Error("sweep")]
+    };
+    const skipFunctions = new Set(["initApp", "prepareExportCanvas"]);
+    const mainSource = fs.readFileSync(path.join(PROJECT_ROOT, "main.js"), "utf8");
+    const functionNames = [...mainSource.matchAll(/^function\s+([A-Za-z0-9_]+)/gm)].map((match) => match[1]);
+
+    const failed = [];
+    let invoked = 0;
+    functionNames.forEach((name) => {
+        if (skipFunctions.has(name)) return;
+        invoked += 1;
+        try {
+            const args = argsByFunctionName[name] || [];
+            const result = hooks.invoke(name, ...args);
+            if (result && typeof result.then === "function") {
+                void result.catch(() => { });
+            }
+        } catch (error) {
+            failed.push({ name, error });
+        }
+    });
+
+    expect(invoked).toBeGreaterThanOrEqual(145);
+    expect(failed).toEqual([]);
+
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
 });

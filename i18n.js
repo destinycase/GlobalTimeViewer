@@ -580,9 +580,20 @@ if (!I18N_DATA[currentLang]) {
     currentLang = "ko";
 }
 
+function syncCurrentLangGlobal() {
+    try {
+        globalThis.currentLang = currentLang;
+    } catch (_error) {
+        // noop: non-writable global in constrained runtimes
+    }
+}
+
+syncCurrentLangGlobal();
+
 function setLanguage(lang) {
     if (!I18N_DATA[lang]) return;
     currentLang = lang;
+    syncCurrentLangGlobal();
     safeLocalStorageSet("GTV_Lang", lang);
     applyTranslations();
 }
