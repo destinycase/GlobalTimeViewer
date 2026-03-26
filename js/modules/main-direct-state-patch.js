@@ -25,6 +25,8 @@
         "multiRangeStartEditEnabled",
         "multiRangeEndEditEnabled",
         "currentTheme",
+        "dayStartHour",
+        "nightStartHour",
         "currentLang"
     ]);
 

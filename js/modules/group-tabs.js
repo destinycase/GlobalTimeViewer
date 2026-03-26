@@ -250,7 +250,7 @@
             if (!container || !addBtn) return;
 
             const state = getState();
-            const { groups, activeGroupId } = state;
+            const { activeGroupId } = state;
             container.textContent = "";
 
             getStateGroups(state).forEach((group, idx) => {

@@ -53,6 +53,15 @@
             return days[weekdayIndex] || "";
         }
 
+        function resolveDayNightMarkerByHour(hour) {
+            const marker = invokeDep("getDayNightMarkerByHour", hour);
+            const normalized = normalizeDayNightMarker(marker);
+            if (normalized) return normalized;
+            const numericHour = Number.parseInt(hour, 10);
+            const safeHour = ((Number.isFinite(numericHour) ? numericHour : 0) % 24 + 24) % 24;
+            return (safeHour >= 6 && safeHour < 18) ? "DAY" : "NIGHT";
+        }
+
         function getFixedTimeSlotParts(slot) {
             const defaultValue = String(safeDeps.DEFAULT_FIXED_TIME_VALUE || "09:00");
             const safeTime = invokeDep("sanitizeFixedTimeValue", slot?.time, defaultValue) || defaultValue;
@@ -101,7 +110,7 @@
                     Math.max(0, localParts.month - 1),
                     localParts.day
                 )).getUTCDay();
-                const dayNightMarker = (localParts.hour >= 6 && localParts.hour <= 18) ? "DAY" : "NIGHT";
+                const dayNightMarker = resolveDayNightMarkerByHour(localParts.hour);
                 return {
                     clock: `${pad2(localParts.hour)}:${pad2(localParts.minute)}:${pad2(localParts.second)}`,
                     dayNightMarker,

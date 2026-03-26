@@ -4,6 +4,103 @@
     function createService(deps) {
         let pendingGroupImportIndex = null;
         let pendingSubgroupImportTarget = null;
+        const filePickerFocusSettleMs = Number.isFinite(Number(deps.FILE_PICKER_FOCUS_SETTLE_MS))
+            ? Math.max(0, Math.trunc(Number(deps.FILE_PICKER_FOCUS_SETTLE_MS)))
+            : 50;
+
+        function getWindowRef() {
+            if (
+                deps.window
+                && typeof deps.window.addEventListener === "function"
+                && typeof deps.window.removeEventListener === "function"
+            ) {
+                return deps.window;
+            }
+            if (
+                typeof window === "object"
+                && window
+                && typeof window.addEventListener === "function"
+                && typeof window.removeEventListener === "function"
+            ) {
+                return window;
+            }
+            return null;
+        }
+
+        function getDocumentRef() {
+            if (deps.document && typeof deps.document === "object") {
+                return deps.document;
+            }
+            const win = getWindowRef();
+            if (win?.document && typeof win.document === "object") {
+                return win.document;
+            }
+            if (typeof document === "object" && document) {
+                return document;
+            }
+            return null;
+        }
+
+        function triggerJsonDownload(fileName, payload) {
+            const doc = getDocumentRef();
+            if (
+                !doc
+                || typeof doc.createElement !== "function"
+                || !doc.body
+                || typeof doc.body.appendChild !== "function"
+            ) {
+                throw new Error("Document download API unavailable");
+            }
+
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            try {
+                const anchor = doc.createElement("a");
+                anchor.href = url;
+                anchor.download = fileName;
+                doc.body.appendChild(anchor);
+                if (typeof anchor.click === "function") {
+                    anchor.click();
+                }
+                if (typeof anchor.remove === "function") {
+                    anchor.remove();
+                } else if (anchor.parentNode && typeof anchor.parentNode.removeChild === "function") {
+                    anchor.parentNode.removeChild(anchor);
+                }
+            } finally {
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        function clearPendingGroupImport() {
+            pendingGroupImportIndex = null;
+        }
+
+        function clearPendingSubgroupImport() {
+            pendingSubgroupImportTarget = null;
+        }
+
+        function schedulePendingImportResetOnDialogClose(fileInput, clearPendingFn) {
+            const win = getWindowRef();
+            if (!win || typeof clearPendingFn !== "function") return;
+            let timerId = null;
+            const cleanup = () => {
+                win.removeEventListener("focus", onFocus, true);
+                if (timerId !== null) {
+                    clearTimeout(timerId);
+                    timerId = null;
+                }
+            };
+            const onFocus = () => {
+                timerId = setTimeout(() => {
+                    timerId = null;
+                    const hasSelectedFile = Number(fileInput?.files?.length) > 0;
+                    if (!hasSelectedFile) clearPendingFn();
+                    cleanup();
+                }, filePickerFocusSettleMs);
+            };
+            win.addEventListener("focus", onFocus, true);
+        }
 
         async function ensurePersistenceSaved() {
             const ok = await deps.savePersistence();
@@ -171,15 +268,7 @@
                     group: JSON.parse(JSON.stringify(groupPayload))
                 };
 
-                const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json;charset=utf-8" });
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement("a");
-                anchor.href = url;
-                anchor.download = fileName;
-                document.body.appendChild(anchor);
-                anchor.click();
-                anchor.remove();
-                URL.revokeObjectURL(url);
+                triggerJsonDownload(fileName, exportPayload);
                 deps.showToast(deps.tFormat("toast_group_export_success", { filename: fileName }));
             } catch (err) {
                 console.error("exportGroupToJSON failed:", err);
@@ -191,10 +280,11 @@
             const groups = Array.isArray(deps.getGroups()) ? deps.getGroups() : [];
             if (!groups.length) return;
             const safeIdx = Math.min(Math.max(parseInt(groupIdx, 10) || 0, 0), groups.length - 1);
-            const groupImportFile = document.getElementById("group-import-file");
+            const groupImportFile = getDocumentRef()?.getElementById?.("group-import-file");
             if (!groupImportFile) return;
             pendingGroupImportIndex = safeIdx;
             groupImportFile.value = "";
+            schedulePendingImportResetOnDialogClose(groupImportFile, clearPendingGroupImport);
             groupImportFile.click();
         }
 
@@ -202,7 +292,7 @@
             const input = event?.target;
             const file = input?.files?.[0];
             if (!file) {
-                pendingGroupImportIndex = null;
+                clearPendingGroupImport();
                 if (input) input.value = "";
                 return;
             }
@@ -228,7 +318,7 @@
                     deps.showToast(deps.t("toast_group_import_failed"));
                 }
             } finally {
-                pendingGroupImportIndex = null;
+                clearPendingGroupImport();
                 if (input) input.value = "";
             }
         }
@@ -266,15 +356,7 @@
                     subgroup: JSON.parse(JSON.stringify(subgroupPayload))
                 };
 
-                const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json;charset=utf-8" });
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement("a");
-                anchor.href = url;
-                anchor.download = fileName;
-                document.body.appendChild(anchor);
-                anchor.click();
-                anchor.remove();
-                URL.revokeObjectURL(url);
+                triggerJsonDownload(fileName, exportPayload);
                 deps.showToast(deps.tFormat("toast_subgroup_export_success", { filename: fileName }));
             } catch (err) {
                 console.error("exportSubgroupToJSON failed:", err);
@@ -293,10 +375,11 @@
             const exists = group.multiSubgroups.some((item) => item.id === targetSubgroupId);
             if (!exists) return;
 
-            const subgroupImportFile = document.getElementById("subgroup-import-file");
+            const subgroupImportFile = getDocumentRef()?.getElementById?.("subgroup-import-file");
             if (!subgroupImportFile) return;
             pendingSubgroupImportTarget = { groupIdx: safeGroupIdx, subgroupId: targetSubgroupId };
             subgroupImportFile.value = "";
+            schedulePendingImportResetOnDialogClose(subgroupImportFile, clearPendingSubgroupImport);
             subgroupImportFile.click();
         }
 
@@ -304,7 +387,7 @@
             const input = event?.target;
             const file = input?.files?.[0];
             if (!file) {
-                pendingSubgroupImportTarget = null;
+                clearPendingSubgroupImport();
                 if (input) input.value = "";
                 return;
             }
@@ -331,7 +414,7 @@
                     deps.showToast(deps.t("toast_subgroup_import_failed"));
                 }
             } finally {
-                pendingSubgroupImportTarget = null;
+                clearPendingSubgroupImport();
                 if (input) input.value = "";
             }
         }
@@ -340,28 +423,61 @@
             try {
                 const fileName = getSettingsExportFileName();
                 const currentLang = deps.getCurrentLang();
+                const snapshot = deps.getPersistenceSnapshot();
+                const parsedDayStartHour = Number.parseInt(
+                    (typeof deps.getDayStartHour === "function")
+                        ? deps.getDayStartHour()
+                        : snapshot?.dayStartHour,
+                    10
+                );
+                const parsedNightStartHour = Number.parseInt(
+                    (typeof deps.getNightStartHour === "function")
+                        ? deps.getNightStartHour()
+                        : snapshot?.nightStartHour,
+                    10
+                );
+                const defaultDayStartHour = Number.parseInt(deps.DEFAULT_DAY_START_HOUR, 10);
+                const defaultNightStartHour = Number.parseInt(deps.DEFAULT_NIGHT_START_HOUR, 10);
+                const dayStartHour = Math.min(
+                    23,
+                    Math.max(
+                        0,
+                        Number.isFinite(parsedDayStartHour)
+                            ? parsedDayStartHour
+                            : (Number.isFinite(defaultDayStartHour) ? defaultDayStartHour : 6)
+                    )
+                );
+                const nightStartHour = Math.min(
+                    23,
+                    Math.max(
+                        0,
+                        Number.isFinite(parsedNightStartHour)
+                            ? parsedNightStartHour
+                            : (Number.isFinite(defaultNightStartHour) ? defaultNightStartHour : 18)
+                    )
+                );
+                const normalizedDayNightRange = (nightStartHour <= dayStartHour)
+                    ? {
+                        dayStartHour: Number.isFinite(defaultDayStartHour) ? Math.min(23, Math.max(0, defaultDayStartHour)) : 6,
+                        nightStartHour: Number.isFinite(defaultNightStartHour) ? Math.min(23, Math.max(0, defaultNightStartHour)) : 18
+                    }
+                    : { dayStartHour, nightStartHour };
                 const exportPayload = {
                     app: "GlobalTimeViewer",
                     formatVersion: 1,
                     version: deps.VERSION,
                     exportedAt: new Date().toISOString(),
-                    data: deps.getPersistenceSnapshot(),
+                    data: snapshot,
                     preferences: {
                         theme: deps.sanitizeTheme(deps.getCurrentTheme()),
                         language: deps.I18N_DATA[currentLang] ? currentLang : "ko",
-                        uiScale: deps.getCurrentUiScalePercent()
+                        uiScale: deps.getCurrentUiScalePercent(),
+                        dayStartHour: normalizedDayNightRange.dayStartHour,
+                        nightStartHour: normalizedDayNightRange.nightStartHour
                     }
                 };
 
-                const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json;charset=utf-8" });
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement("a");
-                anchor.href = url;
-                anchor.download = fileName;
-                document.body.appendChild(anchor);
-                anchor.click();
-                anchor.remove();
-                URL.revokeObjectURL(url);
+                triggerJsonDownload(fileName, exportPayload);
                 deps.showToast(deps.tFormat("toast_settings_export_success", { filename: fileName }));
             } catch (err) {
                 console.error("exportSettingsToJSON failed:", err);
@@ -410,9 +526,11 @@
             getSubgroupExportFileName,
             exportGroupToJSON,
             triggerGroupImportFor,
+            clearPendingGroupImport,
             handleGroupImportFile,
             exportSubgroupToJSON,
             triggerSubgroupImportFor,
+            clearPendingSubgroupImport,
             handleSubgroupImportFile,
             exportSettingsToJSON,
             handleSettingsImportFile

@@ -30,6 +30,8 @@
                 COPY_FORMAT_KEYS: cfg.COPY_FORMAT_KEYS,
                 DEFAULT_TIME_ADJUST_DAY_STEP: cfg.DEFAULT_TIME_ADJUST_DAY_STEP,
                 MIN_MULTI_RANGE_COUNT: cfg.MIN_MULTI_RANGE_COUNT,
+                DEFAULT_DAY_START_HOUR: cfg.DEFAULT_DAY_START_HOUR,
+                DEFAULT_NIGHT_START_HOUR: cfg.DEFAULT_NIGHT_START_HOUR,
                 I18N_DATA: cfg.I18N_DATA,
                 getDefaultFixedTimes: cfg.getDefaultFixedTimes,
                 getState: cfg.getState,
@@ -73,6 +75,8 @@
                 THEME_STORAGE_KEY: cfg.THEME_STORAGE_KEY,
                 LANG_STORAGE_KEY: cfg.LANG_STORAGE_KEY,
                 UI_SCALE_STORAGE_KEY: cfg.UI_SCALE_STORAGE_KEY,
+                DEFAULT_DAY_START_HOUR: cfg.DEFAULT_DAY_START_HOUR,
+                DEFAULT_NIGHT_START_HOUR: cfg.DEFAULT_NIGHT_START_HOUR,
                 t: cfg.t,
                 getGroups: cfg.getGroups,
                 getCurrentTheme: cfg.getCurrentTheme,
@@ -103,7 +107,10 @@
                 applyTranslations: cfg.applyTranslations,
                 applyVersionBranding: cfg.applyVersionBranding,
                 populateUiScaleSelect: cfg.populateUiScaleSelect,
+                populateDayNightHourSelect: cfg.populateDayNightHourSelect,
                 getCurrentUiScalePercent: cfg.getCurrentUiScalePercent,
+                getDayStartHour: cfg.getDayStartHour,
+                getNightStartHour: cfg.getNightStartHour,
                 refreshMultiRangeControls: cfg.refreshMultiRangeControls,
                 updateTZDropdown: cfg.updateTZDropdown,
                 refreshSelectWidths: cfg.refreshSelectWidths,
@@ -113,11 +120,15 @@
             const dataTransferService = dataTransferApi.createService({
                 VERSION: cfg.VERSION,
                 MIN_MULTI_RANGE_COUNT: cfg.MIN_MULTI_RANGE_COUNT,
+                DEFAULT_DAY_START_HOUR: cfg.DEFAULT_DAY_START_HOUR,
+                DEFAULT_NIGHT_START_HOUR: cfg.DEFAULT_NIGHT_START_HOUR,
                 I18N_DATA: cfg.I18N_DATA,
                 getGroups: cfg.getGroups,
                 getActiveGroupId: cfg.getActiveGroupId,
                 getCurrentTheme: cfg.getCurrentTheme,
                 getCurrentLang: cfg.getCurrentLang,
+                getDayStartHour: cfg.getDayStartHour,
+                getNightStartHour: cfg.getNightStartHour,
                 getPersistenceSnapshot: cfg.getPersistenceSnapshot,
                 getCurrentUiScalePercent: cfg.getCurrentUiScalePercent,
                 sanitizeTheme: cfg.sanitizeTheme,
@@ -143,7 +154,9 @@
                 isQuotaExceededError: (err) => persistenceService.isQuotaExceededError(err),
                 showToast: cfg.showToast,
                 t: cfg.t,
-                tFormat: cfg.tFormat
+                tFormat: cfg.tFormat,
+                document: cfg.document,
+                window: cfg.window
             });
 
             const uiSettingsActionsService = uiSettingsActionsApi.createService({
@@ -152,6 +165,18 @@
                 handleSettingsImportFile: (event) => dataTransferService.handleSettingsImportFile(event),
                 handleGroupImportFile: (event) => dataTransferService.handleGroupImportFile(event),
                 handleSubgroupImportFile: (event) => dataTransferService.handleSubgroupImportFile(event),
+                clearPendingGroupImport: () => {
+                    if (typeof dataTransferService.clearPendingGroupImport === "function") {
+                        return dataTransferService.clearPendingGroupImport();
+                    }
+                    return undefined;
+                },
+                clearPendingSubgroupImport: () => {
+                    if (typeof dataTransferService.clearPendingSubgroupImport === "function") {
+                        return dataTransferService.clearPendingSubgroupImport();
+                    }
+                    return undefined;
+                },
                 resetExceptGroupsAndTimezones: () => persistenceService.resetExceptGroupsAndTimezones(),
                 resetAllSettings: () => persistenceService.resetAllSettings()
             });

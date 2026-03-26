@@ -10,6 +10,12 @@
         const defaultDisplayTimePartsEnabled = (safeDeps.defaultDisplayTimePartsEnabled && typeof safeDeps.defaultDisplayTimePartsEnabled === "object") ? safeDeps.defaultDisplayTimePartsEnabled : {};
         const defaultCopyTimePartsEnabled = (safeDeps.defaultCopyTimePartsEnabled && typeof safeDeps.defaultCopyTimePartsEnabled === "object") ? safeDeps.defaultCopyTimePartsEnabled : {};
         const defaultTimeAdjustDayStep = Number.isFinite(Number(safeDeps.defaultTimeAdjustDayStep)) ? Number(safeDeps.defaultTimeAdjustDayStep) : 1;
+        const defaultDayStartHour = Number.isFinite(Number(safeDeps.defaultDayStartHour))
+            ? Math.min(23, Math.max(0, Math.trunc(Number(safeDeps.defaultDayStartHour))))
+            : 6;
+        const defaultNightStartHour = Number.isFinite(Number(safeDeps.defaultNightStartHour))
+            ? Math.min(23, Math.max(0, Math.trunc(Number(safeDeps.defaultNightStartHour))))
+            : 18;
 
         const initialState = Object.freeze({
             isRealtime: true,
@@ -36,6 +42,8 @@
             currentMainTab: "live",
             activeGroupIdByMainTab: { live: 0, fixed: 0 },
             currentTheme: "dark",
+            dayStartHour: defaultDayStartHour,
+            nightStartHour: defaultNightStartHour,
             canUseForeignObjectRenderer: null,
             fixedTimeIdSeed: 0,
             groups: [],
@@ -73,6 +81,8 @@
                 multiRangeStartEditEnabled: (value) => { setByKey("multiRangeStartEditEnabled", value); },
                 multiRangeEndEditEnabled: (value) => { setByKey("multiRangeEndEditEnabled", value); },
                 currentTheme: (value) => { setByKey("currentTheme", value); },
+                dayStartHour: (value) => { setByKey("dayStartHour", value); },
+                nightStartHour: (value) => { setByKey("nightStartHour", value); },
                 currentLang: (value) => { setByKey("currentLang", value); }
             });
         }

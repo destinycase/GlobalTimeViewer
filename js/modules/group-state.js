@@ -4,6 +4,11 @@
     function createService(deps) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const timeZoneValidationCache = new Map();
+        const maxTimeZoneValidationCacheSize = (() => {
+            const parsed = Number.parseInt(safeDeps.MAX_TIMEZONE_VALIDATION_CACHE_SIZE, 10);
+            if (!Number.isFinite(parsed) || parsed < 1) return 512;
+            return Math.min(5000, Math.max(1, parsed));
+        })();
         let generatedIdCounter = 0;
 
         function callDep(name, fallback, ...args) {
@@ -38,6 +43,11 @@
                 valid = false;
             }
 
+            while (timeZoneValidationCache.size >= maxTimeZoneValidationCacheSize) {
+                const oldestKey = timeZoneValidationCache.keys().next().value;
+                if (oldestKey === undefined) break;
+                timeZoneValidationCache.delete(oldestKey);
+            }
             timeZoneValidationCache.set(normalized, valid);
             return valid;
         }

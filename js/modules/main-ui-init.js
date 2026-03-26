@@ -5,7 +5,11 @@
         const t = deps.t || ((key) => key);
         const switchMainTab = deps.switchMainTab;
         const populateUiScaleSelect = deps.populateUiScaleSelect;
+        const populateDayNightHourSelect = deps.populateDayNightHourSelect;
         const getUiScale = deps.getUiScale;
+        const getDayStartHour = deps.getDayStartHour;
+        const getNightStartHour = deps.getNightStartHour;
+        const setDayNightRange = deps.setDayNightRange;
         const applyUiScale = deps.applyUiScale;
         const getMultiRangeCount = deps.getMultiRangeCount;
         const setMultiRangeCount = deps.setMultiRangeCount;
@@ -75,6 +79,71 @@
                 uiScaleSelect.addEventListener("change", (e) => {
                     applyUiScale(e.target.value);
                     uiScaleSelect.value = String(Math.round(getUiScale() * 100));
+                });
+            }
+
+            const dayStartSelect = document.getElementById("day-start-select");
+            const nightStartSelect = document.getElementById("night-start-select");
+            const syncDayNightSelectValues = (values = null) => {
+                const safeValues = (values && typeof values === "object")
+                    ? values
+                    : {
+                        dayStartHour: Number(getDayStartHour()),
+                        nightStartHour: Number(getNightStartHour())
+                    };
+                if (dayStartSelect) dayStartSelect.value = String(safeValues.dayStartHour);
+                if (nightStartSelect) nightStartSelect.value = String(safeValues.nightStartHour);
+            };
+            const getDayNightSelectionKey = (values = null) => {
+                const safeValues = (values && typeof values === "object")
+                    ? values
+                    : {
+                        dayStartHour: Number(dayStartSelect?.value ?? getDayStartHour()),
+                        nightStartHour: Number(nightStartSelect?.value ?? getNightStartHour())
+                    };
+                return `${String(safeValues.dayStartHour)}|${String(safeValues.nightStartHour)}`;
+            };
+            if (dayStartSelect) {
+                populateDayNightHourSelect(dayStartSelect);
+            }
+            if (nightStartSelect) {
+                populateDayNightHourSelect(nightStartSelect);
+            }
+            if (dayStartSelect || nightStartSelect) {
+                syncDayNightSelectValues();
+                let dayNightCommitToken = 0;
+                let pendingDayNightSelectionKey = "";
+                let lastAppliedDayNightSelectionKey = getDayNightSelectionKey();
+                const commitDayNightRange = async () => {
+                    const requestedSelectionKey = getDayNightSelectionKey();
+                    if (
+                        requestedSelectionKey === lastAppliedDayNightSelectionKey
+                        || requestedSelectionKey === pendingDayNightSelectionKey
+                    ) {
+                        return;
+                    }
+
+                    pendingDayNightSelectionKey = requestedSelectionKey;
+                    const commitToken = ++dayNightCommitToken;
+
+                    try {
+                        const result = await setDayNightRange(
+                            dayStartSelect?.value,
+                            nightStartSelect?.value,
+                            { persist: true, rerender: true, showToast: true }
+                        );
+                        if (commitToken !== dayNightCommitToken) return;
+                        syncDayNightSelectValues(result);
+                        lastAppliedDayNightSelectionKey = getDayNightSelectionKey(result);
+                    } finally {
+                        if (pendingDayNightSelectionKey === requestedSelectionKey) {
+                            pendingDayNightSelectionKey = "";
+                        }
+                    }
+                };
+                ["input", "change"].forEach((eventName) => {
+                    dayStartSelect?.addEventListener?.(eventName, commitDayNightRange);
+                    nightStartSelect?.addEventListener?.(eventName, commitDayNightRange);
                 });
             }
 

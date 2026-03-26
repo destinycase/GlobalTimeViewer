@@ -68,6 +68,7 @@ function createRuntime(options = {}) {
     const i18nElements = options.i18nElements || [];
     const titleElements = options.titleElements || [];
     const langSelect = options.langSelect || null;
+    const windowStub = options.window || {};
     const documentStub = options.document || {
         title: "",
         documentElement: { lang: "" },
@@ -104,8 +105,8 @@ function createRuntime(options = {}) {
         };`
     );
 
-    const runtime = runtimeFactory(localStorageStub, documentStub, {}, consoleStub);
-    return { runtime, documentStub, localStorageStub, langSelect };
+    const runtime = runtimeFactory(localStorageStub, documentStub, windowStub, consoleStub);
+    return { runtime, documentStub, localStorageStub, langSelect, windowStub };
 }
 
 describe("i18n runtime module", () => {
@@ -197,9 +198,38 @@ describe("i18n runtime module", () => {
         expect(documentStub.title.length).toBeGreaterThan(0);
     });
 
+    it("applyTranslations safely no-ops when document is unavailable", () => {
+        const writes = [];
+        const { runtime } = createRuntime({
+            document: {},
+            localStorage: {
+                getItem: () => "ko",
+                setItem: (k, v) => writes.push([k, v])
+            }
+        });
+
+        expect(() => runtime.applyTranslations()).not.toThrow();
+        runtime.setLanguage("en");
+        expect(runtime.getCurrentLang()).toBe("en");
+        expect(writes).toEqual([["GTV_Lang", "en"]]);
+    });
+
     it("tFormat interpolates token placeholders", () => {
         const { runtime } = createRuntime();
         const text = runtime.tFormat("toast_group_export_success", { filename: "sample.json" });
         expect(text.includes("sample.json")).toBe(true);
+    });
+
+    it("exposes i18n globals to runtime window for downstream modules", () => {
+        const { windowStub, runtime } = createRuntime({ window: {} });
+
+        expect(typeof windowStub.t).toBe("function");
+        expect(typeof windowStub.tFormat).toBe("function");
+        expect(typeof windowStub.setLanguage).toBe("function");
+        expect(typeof windowStub.applyTranslations).toBe("function");
+        expect(windowStub.I18N_DATA?.en?.days?.[0]).toBe("Sun");
+
+        runtime.setLanguage("en");
+        expect(windowStub.currentLang).toBe("en");
     });
 });

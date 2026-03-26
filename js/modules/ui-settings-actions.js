@@ -48,12 +48,18 @@
                 groupImportFile.addEventListener("change", (event) => {
                     invokeDep("handleGroupImportFile", event);
                 });
+                groupImportFile.addEventListener("cancel", () => {
+                    invokeDep("clearPendingGroupImport");
+                });
             }
 
             const subgroupImportFile = doc.getElementById("subgroup-import-file");
             if (subgroupImportFile?.addEventListener) {
                 subgroupImportFile.addEventListener("change", (event) => {
                     invokeDep("handleSubgroupImportFile", event);
+                });
+                subgroupImportFile.addEventListener("cancel", () => {
+                    invokeDep("clearPendingSubgroupImport");
                 });
             }
         }

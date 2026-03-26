@@ -73,7 +73,9 @@ describe("GTV main persistence snapshot services module", () => {
             multiRanges: [{ startUtcMs: NaN, endUtcMs: 200 }],
             multiRangeCollapsed: [0],
             multiRangeStartEditEnabled: [1],
-            multiRangeEndEditEnabled: [0]
+            multiRangeEndEditEnabled: [0],
+            dayStartHour: 7,
+            nightStartHour: 20
         };
         let fixedTimesEnsureCount = 0;
         let subgroupEnsureCount = 0;
@@ -99,7 +101,13 @@ describe("GTV main persistence snapshot services module", () => {
             sanitizeMultiRangeTitle: (value) => `title:${value}`,
             getCurrentMultiSubgroupName: () => "Subgroup 1",
             sanitizeUtcMs: (value, fallbackMs) => (Number.isFinite(value) ? value : fallbackMs),
-            now: () => 123
+            now: () => 123,
+            DEFAULT_DAY_START_HOUR: 6,
+            DEFAULT_NIGHT_START_HOUR: 18,
+            sanitizeDayNightHour: (value, fallbackHour) => {
+                const parsed = Number.parseInt(value, 10);
+                return Number.isFinite(parsed) ? parsed : fallbackHour;
+            }
         });
 
         const snapshot = service.getPersistenceSnapshot();
@@ -114,6 +122,8 @@ describe("GTV main persistence snapshot services module", () => {
         expect(snapshot.multiRangeCollapsed).toEqual([false]);
         expect(snapshot.multiRangeStartEditEnabled).toEqual([true]);
         expect(snapshot.multiRangeEndEditEnabled).toEqual([false]);
+        expect(snapshot.dayStartHour).toBe(7);
+        expect(snapshot.nightStartHour).toBe(20);
         expect(fixedTimesEnsureCount).toBe(1);
         expect(subgroupEnsureCount).toBe(1);
     });
@@ -193,6 +203,8 @@ describe("GTV main persistence snapshot services module", () => {
         expect(snapshot.multiRangeCollapsed).toEqual([]);
         expect(snapshot.multiRangeStartEditEnabled).toEqual([]);
         expect(snapshot.multiRangeEndEditEnabled).toEqual([]);
+        expect(snapshot.dayStartHour).toBe(6);
+        expect(snapshot.nightStartHour).toBe(18);
     });
 
     it("normalizes invalid state shapes through default sanitizers", () => {
@@ -220,7 +232,9 @@ describe("GTV main persistence snapshot services module", () => {
             ],
             multiRangeCollapsed: [0, 1],
             multiRangeStartEditEnabled: [0, 1],
-            multiRangeEndEditEnabled: [1, 0]
+            multiRangeEndEditEnabled: [1, 0],
+            dayStartHour: 22,
+            nightStartHour: 5
         };
         const service = moduleApi.createService({
             getState: () => state,
@@ -250,5 +264,7 @@ describe("GTV main persistence snapshot services module", () => {
         expect(snapshot.multiRangeCollapsed).toEqual([false, true]);
         expect(snapshot.multiRangeStartEditEnabled).toEqual([false, true]);
         expect(snapshot.multiRangeEndEditEnabled).toEqual([true, false]);
+        expect(snapshot.dayStartHour).toBe(6);
+        expect(snapshot.nightStartHour).toBe(18);
     });
 });

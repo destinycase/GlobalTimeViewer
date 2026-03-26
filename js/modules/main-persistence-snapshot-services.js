@@ -76,6 +76,20 @@
         const now = (typeof safeDeps.now === "function")
             ? safeDeps.now
             : (() => Date.now());
+        const DEFAULT_DAY_START_HOUR = Number.isFinite(Number(safeDeps.DEFAULT_DAY_START_HOUR))
+            ? Math.min(23, Math.max(0, Math.trunc(Number(safeDeps.DEFAULT_DAY_START_HOUR))))
+            : 6;
+        const DEFAULT_NIGHT_START_HOUR = Number.isFinite(Number(safeDeps.DEFAULT_NIGHT_START_HOUR))
+            ? Math.min(23, Math.max(0, Math.trunc(Number(safeDeps.DEFAULT_NIGHT_START_HOUR))))
+            : 18;
+        const sanitizeDayNightHour = (typeof safeDeps.sanitizeDayNightHour === "function")
+            ? safeDeps.sanitizeDayNightHour
+            : ((value, fallbackHour) => {
+                const parsed = Number.parseInt(value, 10);
+                const fallback = Number.parseInt(fallbackHour, 10);
+                const base = Number.isFinite(parsed) ? parsed : (Number.isFinite(fallback) ? fallback : 0);
+                return Math.min(23, Math.max(0, base));
+            });
 
         function getPersistenceSnapshot() {
             const before = getState() || {};
@@ -116,6 +130,10 @@
             const safeCollapsed = Array.isArray(state.multiRangeCollapsed) ? state.multiRangeCollapsed : [];
             const safeStartEditFlags = Array.isArray(state.multiRangeStartEditEnabled) ? state.multiRangeStartEditEnabled : [];
             const safeEndEditFlags = Array.isArray(state.multiRangeEndEditEnabled) ? state.multiRangeEndEditEnabled : [];
+            const dayStartHour = sanitizeDayNightHour(state.dayStartHour, DEFAULT_DAY_START_HOUR);
+            const nightStartHour = sanitizeDayNightHour(state.nightStartHour, DEFAULT_NIGHT_START_HOUR);
+            const safeDayStartHour = (nightStartHour <= dayStartHour) ? DEFAULT_DAY_START_HOUR : dayStartHour;
+            const safeNightStartHour = (nightStartHour <= dayStartHour) ? DEFAULT_NIGHT_START_HOUR : nightStartHour;
 
             return {
                 groups,
@@ -146,7 +164,9 @@
                 })),
                 multiRangeCollapsed: safeCollapsed.map((flag) => !!flag),
                 multiRangeStartEditEnabled: safeStartEditFlags.map((flag) => !!flag),
-                multiRangeEndEditEnabled: safeEndEditFlags.map((flag) => !!flag)
+                multiRangeEndEditEnabled: safeEndEditFlags.map((flag) => !!flag),
+                dayStartHour: safeDayStartHour,
+                nightStartHour: safeNightStartHour
             };
         }
 

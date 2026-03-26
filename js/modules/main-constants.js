@@ -15,6 +15,9 @@
     const MIN_FIXED_TIME_SLOT_COUNT = 1;
     const MAX_FIXED_TIME_SLOT_COUNT = 5;
     const DEFAULT_FIXED_TIME_VALUE = "09:00";
+    const DEFAULT_DAY_START_HOUR = 6;
+    const DEFAULT_NIGHT_START_HOUR = 18;
+    const DAY_NIGHT_HOUR_OPTIONS = Object.freeze(Array.from({ length: 24 }, (_, hour) => hour));
     const DEFAULT_MULTI_RANGE_TITLE = "Range";
     const DEFAULT_DISPLAY_FORMAT_ENABLED = Object.freeze({
         timezone: true,
@@ -61,6 +64,9 @@
         MIN_FIXED_TIME_SLOT_COUNT,
         MAX_FIXED_TIME_SLOT_COUNT,
         DEFAULT_FIXED_TIME_VALUE,
+        DEFAULT_DAY_START_HOUR,
+        DEFAULT_NIGHT_START_HOUR,
+        DAY_NIGHT_HOUR_OPTIONS,
         DEFAULT_MULTI_RANGE_TITLE,
         DEFAULT_DISPLAY_FORMAT_ENABLED,
         DEFAULT_COPY_FORMAT_ENABLED,

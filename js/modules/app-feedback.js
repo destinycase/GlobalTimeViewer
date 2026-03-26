@@ -49,6 +49,44 @@
             return "Reset all settings?";
         }
 
+        let boundResetButton = null;
+        let boundResetHandler = null;
+
+        function bindFatalResetButtonHandler(resetBtn) {
+            if (!resetBtn || typeof resetBtn !== "object") return;
+
+            const nextHandler = async () => {
+                const confirmFn = getConfirmFn();
+                const confirmMsg = getResetConfirmMessage();
+                if (confirmFn && !confirmFn(confirmMsg)) return;
+                if (typeof safeDeps.resetAllSettings === "function") {
+                    await safeDeps.resetAllSettings();
+                }
+                const locationRef = getLocationRef();
+                if (locationRef) locationRef.reload();
+            };
+
+            if (typeof resetBtn.addEventListener === "function") {
+                if (
+                    boundResetButton
+                    && boundResetButton !== resetBtn
+                    && typeof boundResetButton.removeEventListener === "function"
+                    && typeof boundResetHandler === "function"
+                ) {
+                    boundResetButton.removeEventListener("click", boundResetHandler);
+                }
+                if (typeof boundResetHandler === "function" && typeof resetBtn.removeEventListener === "function") {
+                    resetBtn.removeEventListener("click", boundResetHandler);
+                }
+                boundResetButton = resetBtn;
+                boundResetHandler = nextHandler;
+                resetBtn.addEventListener("click", boundResetHandler);
+                return;
+            }
+
+            resetBtn.onclick = nextHandler;
+        }
+
         function showFatalError(err) {
             logFatalError(err);
             const doc = getDocumentRef();
@@ -59,17 +97,7 @@
             banner.style.display = "flex";
             const resetBtn = doc.getElementById("fatal-error-reset-btn");
             if (!resetBtn) return;
-
-            resetBtn.onclick = async () => {
-                const confirmFn = getConfirmFn();
-                const confirmMsg = getResetConfirmMessage();
-                if (confirmFn && !confirmFn(confirmMsg)) return;
-                if (typeof safeDeps.resetAllSettings === "function") {
-                    await safeDeps.resetAllSettings();
-                }
-                const locationRef = getLocationRef();
-                if (locationRef) locationRef.reload();
-            };
+            bindFatalResetButtonHandler(resetBtn);
         }
 
         function showToast(message, options = {}) {

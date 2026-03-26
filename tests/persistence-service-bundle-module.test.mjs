@@ -127,7 +127,9 @@ describe("GTV persistence service bundle module", () => {
             getStorageValue: 0,
             setStorageValue: 0,
             savePersistence: 0,
-            applyImportedSettings: 0
+            applyImportedSettings: 0,
+            clearPendingGroupImport: 0,
+            clearPendingSubgroupImport: 0
         };
         let settingsIoConfig = null;
         let dataTransferConfig = null;
@@ -167,7 +169,15 @@ describe("GTV persistence service bundle module", () => {
             exportSettingsToJSON: () => "exported",
             handleSettingsImportFile: (event) => `settings:${event?.type || "none"}`,
             handleGroupImportFile: (event) => `group:${event?.type || "none"}`,
-            handleSubgroupImportFile: (event) => `subgroup:${event?.type || "none"}`
+            handleSubgroupImportFile: (event) => `subgroup:${event?.type || "none"}`,
+            clearPendingGroupImport: () => {
+                calls.clearPendingGroupImport += 1;
+                return "cleared-group";
+            },
+            clearPendingSubgroupImport: () => {
+                calls.clearPendingSubgroupImport += 1;
+                return "cleared-subgroup";
+            }
         };
 
         const bundleFactory = module.createService({
@@ -191,7 +201,10 @@ describe("GTV persistence service bundle module", () => {
             }
         });
 
-        const bundle = bundleFactory.createBundle(null);
+        const bundle = bundleFactory.createBundle({
+            document: { id: "doc-ref" },
+            window: { id: "win-ref" }
+        });
         expect(bundle.persistenceService).toBe(persistenceService);
         expect(bundle.settingsIoService).toBe(settingsIoService);
         expect(bundle.dataTransferService).toBe(dataTransferService);
@@ -220,11 +233,15 @@ describe("GTV persistence service bundle module", () => {
             importedRoot: { group: "A" }
         });
         expect(dataTransferConfig.isQuotaExceededError({ code: "QUOTA" })).toBe(true);
+        expect(dataTransferConfig.document).toEqual({ id: "doc-ref" });
+        expect(dataTransferConfig.window).toEqual({ id: "win-ref" });
 
         expect(bundle.uiSettingsActionsService.exportSettingsToJSON()).toBe("exported");
         expect(bundle.uiSettingsActionsService.handleSettingsImportFile({ type: "settings-file" })).toBe("settings:settings-file");
         expect(bundle.uiSettingsActionsService.handleGroupImportFile({ type: "group-file" })).toBe("group:group-file");
         expect(bundle.uiSettingsActionsService.handleSubgroupImportFile({ type: "subgroup-file" })).toBe("subgroup:subgroup-file");
+        expect(bundle.uiSettingsActionsService.clearPendingGroupImport()).toBe("cleared-group");
+        expect(bundle.uiSettingsActionsService.clearPendingSubgroupImport()).toBe("cleared-subgroup");
 
         expect(calls.normalizeImportedPayload).toBe(1);
         expect(calls.persistStorageSnapshot).toBe(1);
@@ -232,5 +249,7 @@ describe("GTV persistence service bundle module", () => {
         expect(calls.setStorageValue).toBe(1);
         expect(calls.savePersistence).toBe(2);
         expect(calls.applyImportedSettings).toBe(1);
+        expect(calls.clearPendingGroupImport).toBe(1);
+        expect(calls.clearPendingSubgroupImport).toBe(1);
     });
 });

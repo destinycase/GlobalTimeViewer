@@ -28,7 +28,8 @@
             getDisplayTimePartsEnabled: safeDeps.getDisplayTimePartsEnabled,
             getDefaultFixedTimeName: safeDeps.getDefaultFixedTimeName,
             sanitizeFixedTimeName: safeDeps.sanitizeFixedTimeName,
-            getFixedDateParts: safeDeps.getFixedDateParts
+            getFixedDateParts: safeDeps.getFixedDateParts,
+            getDayNightMarkerByHour: safeDeps.getDayNightMarkerByHour
         });
 
         const fixedTimeTimelineService = fixedTimeTimelineApi.createService({

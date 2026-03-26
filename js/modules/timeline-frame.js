@@ -386,6 +386,14 @@
             return axisTrack;
         }
 
+        function resolveDayNightMarkerByHour(hour) {
+            const marker = String(invokeDep("getDayNightMarkerByHour", hour) || "").trim().toUpperCase();
+            if (marker === "DAY" || marker === "NIGHT") return marker;
+            const numericHour = Number.parseInt(hour, 10);
+            const safeHour = ((Number.isFinite(numericHour) ? numericHour : 0) % 24 + 24) % 24;
+            return (safeHour >= 6 && safeHour < 18) ? "DAY" : "NIGHT";
+        }
+
         function createTimelineRow(doc, slotIdx, tz, baseDayStartUtcMs) {
             const row = doc.createElement("div");
             row.className = "timeline-timezone-row";
@@ -403,17 +411,18 @@
                 const fixedOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", tz, utcPoint);
                 const localParts = invokeDep("getLocalPartsByTimezone", utcPoint, tz, fixedOffsetMinutes);
                 const localHour = Number(localParts?.hour) || 0;
-                const isDay = (localHour >= 6 && localHour < 18);
+                const marker = resolveDayNightMarkerByHour(localHour);
+                const prevHour = (localHour + 23) % 24;
+                const prevMarker = resolveDayNightMarkerByHour(prevHour);
+                const isDay = marker === "DAY";
 
                 const box = doc.createElement("div");
                 box.className = `timeline-hour-box ${isDay ? "day" : "night"}`;
 
-                const isDayBoundary = localHour === 6 || localHour === 17;
-                const isNightBoundary = localHour === 18 || localHour === 5;
-                if (isDayBoundary || isNightBoundary) {
+                if (marker !== prevMarker) {
                     const icon = doc.createElement("span");
                     icon.className = "timeline-hour-icon";
-                    icon.textContent = isDayBoundary ? "\u2600\uFE0F" : "\uD83C\uDF19";
+                    icon.textContent = marker === "DAY" ? "\u2600\uFE0F" : "\uD83C\uDF19";
                     box.appendChild(icon);
                 }
 
@@ -556,6 +565,12 @@
                 const offsetToken = Number.isFinite(fixedOffsetMinutes) ? String(fixedOffsetMinutes) : "auto";
                 return `${tz.id}:${offsetToken}`;
             });
+            const dayNightToken = Array.from({ length: TIMELINE_TOTAL_HOURS }, (_, hour) => {
+                const marker = resolveDayNightMarkerByHour(hour);
+                if (marker === "DAY") return "D";
+                if (marker === "NIGHT") return "N";
+                return "?";
+            }).join("");
 
             return [
                 getCurrentMainTab(),
@@ -565,6 +580,7 @@
                 invokeDep("getCurrentTheme"),
                 rowKeys.join(","),
                 slotDayKeys.join("|"),
+                dayNightToken,
                 fixedIndicatorToken
             ].join("::");
         }

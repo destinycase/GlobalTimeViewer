@@ -150,3 +150,30 @@ test("sanitizeTimezoneZone rejects invalid standard zone names", () => {
     });
     expect(sanitized).toBe(null);
 });
+
+test("isValidTimeZone evicts oldest cache entries when max size is reached", () => {
+    const originalDateTimeFormat = Intl.DateTimeFormat;
+    let validationCalls = 0;
+    Intl.DateTimeFormat = function patchedDateTimeFormat(locale, options) {
+        if (options && typeof options === "object" && typeof options.timeZone === "string") {
+            validationCalls += 1;
+        }
+        return new originalDateTimeFormat(locale, options);
+    };
+    Intl.DateTimeFormat.prototype = originalDateTimeFormat.prototype;
+
+    try {
+        const service = createService({
+            ...createDepsStub(),
+            MAX_TIMEZONE_VALIDATION_CACHE_SIZE: 2
+        });
+        expect(service.isValidTimeZone("UTC")).toBe(true);
+        expect(service.isValidTimeZone("Asia/Seoul")).toBe(true);
+        expect(service.isValidTimeZone("UTC")).toBe(true);
+        expect(service.isValidTimeZone("Europe/London")).toBe(true);
+        expect(service.isValidTimeZone("UTC")).toBe(true);
+        expect(validationCalls).toBe(4);
+    } finally {
+        Intl.DateTimeFormat = originalDateTimeFormat;
+    }
+});

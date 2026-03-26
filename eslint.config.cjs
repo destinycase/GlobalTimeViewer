@@ -10,6 +10,24 @@ const semanticSafetyRules = Object.freeze({
     "valid-typeof": "error"
 });
 
+const deliveryQualityRules = Object.freeze({
+    "no-console": ["error", { allow: ["warn", "error"] }]
+});
+
+const moduleUnusedVarRules = Object.freeze({
+    "no-unused-vars": ["error", {
+        args: "none",
+        caughtErrors: "none",
+        ignoreRestSiblings: true,
+        varsIgnorePattern: "^_"
+    }]
+});
+
+const baseRules = Object.freeze({
+    ...semanticSafetyRules,
+    ...deliveryQualityRules
+});
+
 module.exports = [
     {
         ignores: [
@@ -26,7 +44,7 @@ module.exports = [
             ecmaVersion: "latest",
             sourceType: "module"
         },
-        rules: semanticSafetyRules
+        rules: baseRules
     },
     {
         files: ["**/*.mjs"],
@@ -34,6 +52,10 @@ module.exports = [
             ecmaVersion: "latest",
             sourceType: "module"
         },
-        rules: semanticSafetyRules
+        rules: baseRules
+    },
+    {
+        files: ["js/modules/**/*.js"],
+        rules: moduleUnusedVarRules
     }
 ];

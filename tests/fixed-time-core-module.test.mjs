@@ -253,6 +253,22 @@ describe("GTV fixed time core module", () => {
         expect(service.formatFixedTimeForTimezoneAtUtc(new Date("invalid"), { zone: "UTC" })).toBe("--:--:--");
     });
 
+    it("uses injected day/night marker resolver when provided", () => {
+        const module = loadFixedTimeCoreModule();
+        const service = module.createService({
+            I18N_DATA: {
+                en: { days: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] }
+            },
+            getCurrentLang: () => "en",
+            getDayNightMarkerByHour: (hour) => (Number(hour) === 9 ? "NIGHT" : "DAY"),
+            ...buildTimezoneDeps()
+        });
+
+        const utcDate = new Date("2026-03-07T00:00:00.000Z");
+        const payload = service.buildFixedTimeDisplayPayloadAtUtc(utcDate, { zone: "Asia/Seoul" });
+        expect(payload.dayNightMarker).toBe("NIGHT");
+    });
+
     it("handles unknown marker glyphs and display part defaults", () => {
         const module = loadFixedTimeCoreModule();
         const service = module.createService({

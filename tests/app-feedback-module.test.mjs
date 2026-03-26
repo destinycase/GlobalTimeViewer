@@ -31,6 +31,7 @@ function installGlobalScaffold() {
 }
 
 function createElementStub(tagName = "div") {
+    const listeners = new Map();
     const element = {
         tagName: String(tagName || "div").toUpperCase(),
         className: "",
@@ -39,11 +40,39 @@ function createElementStub(tagName = "div") {
         children: [],
         isConnected: true,
         parentNode: null,
+        onclick: null,
         classList: {
             add(...names) {
                 const merged = new Set((element.className || "").split(/\s+/).filter(Boolean));
                 names.forEach((name) => merged.add(name));
                 element.className = [...merged].join(" ");
+            }
+        },
+        addEventListener(type, handler) {
+            const key = String(type || "");
+            if (!key || typeof handler !== "function") return;
+            if (!listeners.has(key)) listeners.set(key, new Set());
+            listeners.get(key).add(handler);
+        },
+        removeEventListener(type, handler) {
+            const key = String(type || "");
+            if (!key || typeof handler !== "function") return;
+            if (!listeners.has(key)) return;
+            listeners.get(key).delete(handler);
+        },
+        listenerCount(type) {
+            const key = String(type || "");
+            if (!listeners.has(key)) return 0;
+            return listeners.get(key).size;
+        },
+        async trigger(type, event = {}) {
+            const key = String(type || "");
+            const handlers = listeners.has(key) ? [...listeners.get(key)] : [];
+            for (const handler of handlers) {
+                await handler.call(element, event);
+            }
+            if (key === "click" && typeof element.onclick === "function") {
+                await element.onclick(event);
             }
         },
         appendChild(child) {
@@ -172,9 +201,9 @@ describe("GTV app feedback module", () => {
 
         service.showFatalError(new Error("boom"));
         expect(banner.style.display).toBe("flex");
-        expect(typeof resetBtn.onclick).toBe("function");
+        expect(resetBtn.listenerCount("click")).toBe(1);
 
-        await resetBtn.onclick();
+        await resetBtn.trigger("click");
         expect(confirmCount).toBe(1);
         expect(resetCount).toBe(1);
         expect(reloadCount).toBe(1);
@@ -208,9 +237,50 @@ describe("GTV app feedback module", () => {
         });
 
         service.showFatalError(new Error("boom"));
-        await resetBtn.onclick();
+        await resetBtn.trigger("click");
         expect(resetCount).toBe(0);
         expect(reloadCount).toBe(0);
+    });
+
+    it("showFatalError rebinds reset click handler without stacking listeners", async () => {
+        const module = loadAppFeedbackModule();
+        const banner = createElementStub("div");
+        const resetBtn = createElementStub("button");
+        let confirmCount = 0;
+        let resetCount = 0;
+        let reloadCount = 0;
+        const service = module.createService({
+            document: {
+                getElementById(id) {
+                    if (id === "fatal-error-banner") return banner;
+                    if (id === "fatal-error-reset-btn") return resetBtn;
+                    return null;
+                }
+            },
+            confirmFn: () => {
+                confirmCount += 1;
+                return true;
+            },
+            resetAllSettings: async () => {
+                resetCount += 1;
+            },
+            location: {
+                reload() {
+                    reloadCount += 1;
+                }
+            },
+            t: () => "",
+            logError: () => {}
+        });
+
+        service.showFatalError(new Error("boom-1"));
+        service.showFatalError(new Error("boom-2"));
+        expect(resetBtn.listenerCount("click")).toBe(1);
+
+        await resetBtn.trigger("click");
+        expect(confirmCount).toBe(1);
+        expect(resetCount).toBe(1);
+        expect(reloadCount).toBe(1);
     });
 
     it("showFatalError falls back to global console and no-op DOM when unavailable", () => {

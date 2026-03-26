@@ -20,6 +20,7 @@
             t: safeDeps.t,
             getCurrentLang: safeDeps.getCurrentLang,
             pad: safeDeps.pad,
+            getDayNightMarkerByHour: safeDeps.getDayNightMarkerByHour,
             getCustomOffsetMinutes: safeDeps.getCustomOffsetMinutes,
             getFixedOffsetForDisplayAtDate: safeDeps.getFixedOffsetForDisplayAtDate,
             normalizeCustomAbbr: safeDeps.normalizeCustomAbbr,

@@ -108,7 +108,7 @@ describe("GTV UI settings actions module", () => {
             "group-import-file": createEventElement(),
             "subgroup-import-file": createEventElement()
         };
-        const observed = { group: 0, subgroup: 0 };
+        const observed = { group: 0, subgroup: 0, clearGroup: 0, clearSubgroup: 0 };
         const service = module.createService({
             document: {
                 getElementById(id) {
@@ -116,15 +116,21 @@ describe("GTV UI settings actions module", () => {
                 }
             },
             handleGroupImportFile: () => { observed.group += 1; },
-            handleSubgroupImportFile: () => { observed.subgroup += 1; }
+            handleSubgroupImportFile: () => { observed.subgroup += 1; },
+            clearPendingGroupImport: () => { observed.clearGroup += 1; },
+            clearPendingSubgroupImport: () => { observed.clearSubgroup += 1; }
         });
 
         service.bindTransferControls();
         elements["group-import-file"].trigger("change", { target: { files: [] } });
         elements["subgroup-import-file"].trigger("change", { target: { files: [] } });
+        elements["group-import-file"].trigger("cancel", { type: "cancel" });
+        elements["subgroup-import-file"].trigger("cancel", { type: "cancel" });
 
         expect(observed.group).toBe(1);
         expect(observed.subgroup).toBe(1);
+        expect(observed.clearGroup).toBe(1);
+        expect(observed.clearSubgroup).toBe(1);
     });
 
     it("binds reset controls and delegates to persistence actions", () => {

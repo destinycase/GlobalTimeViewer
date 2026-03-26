@@ -28,6 +28,8 @@ const EN_I18N = {
     tooltip_copy_format_desc: "You can configure what is shown and copied. Drag to reorder display and copy formats.",
     tooltip_range_count_max: "Maximum range count is 12.",
     tooltip_ui_scale_desc: "Changes the size of UI elements. Default: 100%.",
+    tooltip_day_start_desc: "Set the hour when daytime starts.",
+    tooltip_night_start_desc: "Set the hour when nighttime starts.",
     tooltip_theme_desc: "Selects the theme. Default: Dark.",
     tooltip_language_desc: "Sets the application display language. Default: Korean.",
     tooltip_export_settings_desc: "Exports groups and all settings to an external file.",
@@ -59,13 +61,15 @@ const EN_I18N = {
     label_theme: "Theme",
     label_language: "Language",
     label_ui_scale: "UI Scale",
+    label_day_start: "Day Start",
+    label_night_start: "Night Start",
     theme_dark: "Dark",
     theme_light: "Light",
 
     btn_export_settings: "Export All",
     btn_import_settings: "Import All",
     btn_reset_except_group_tz: "Reset Settings Only",
-    btn_reset_all_settings: "Reset All",
+    btn_reset_all_settings: "Reset All Settings",
     btn_reset_all: "Reset All",
     confirm_reset_all: "Are you sure you want to reset all settings and groups? This action cannot be undone.",
     btn_copy_all: "📋 Copy All",
@@ -233,8 +237,8 @@ const EN_I18N = {
     tooltip_remove_fixed_time: "Remove slot",
     tooltip_reset_except_group_tz_desc: "Resets settings only, while keeping groups and timezones.",
 
-    dn_day: "Day (06:00~18:00)",
-    dn_night: "Night (18:01~05:59) 🌙",
+    dn_day: "Day",
+    dn_night: "Night 🌙",
     days: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
 
     toast_copy_success: "Copied to clipboard.",
@@ -243,6 +247,7 @@ const EN_I18N = {
     toast_invalid_timezone: "Invalid timezone.",
     toast_timezone_duplicate: "This timezone already exists in this group.",
     toast_invalid_date: "Invalid date format.",
+    toast_day_night_invalid_order: "Night start must be later than day start.",
     toast_input_name: "Please enter a name.",
     toast_custom_timezone_duplicate: "Custom timezone abbreviation already exists in this group.",
     toast_group_deleted: "Group deleted.",
@@ -322,6 +327,8 @@ const KO_OVERRIDES = {
     tooltip_copy_format_desc: "화면 표기와 복사 항목을 설정하고 드래그로 순서를 변경할 수 있습니다.",
     tooltip_range_count_max: "구간의 최대 수량은 12개 입니다.",
     tooltip_ui_scale_desc: "UI 항목의 크기를 변경합니다. 기본 값: 100%",
+    tooltip_day_start_desc: "낮이 시작되는 시각을 설정합니다.",
+    tooltip_night_start_desc: "밤이 시작되는 시각을 설정합니다.",
     tooltip_theme_desc: "테마를 선택합니다. 기본 값: 다크",
     tooltip_language_desc: "어플리케이션 출력 언어를 설정합니다. 기본 값: 한국어",
     tooltip_export_settings_desc: "그룹 및 모든 설정 값을 외부 파일로 내보냅니다.",
@@ -348,6 +355,8 @@ const KO_OVERRIDES = {
     label_theme: "테마",
     label_language: "언어",
     label_ui_scale: "UI 스케일",
+    label_day_start: "낮 시작",
+    label_night_start: "밤 시작",
     theme_dark: "다크",
     theme_light: "라이트",
 
@@ -355,6 +364,7 @@ const KO_OVERRIDES = {
     btn_import_settings: "전체 가져오기",
     btn_reset_except_group_tz: "설정만 초기화",
     btn_reset_all_settings: "전체 초기화",
+    btn_reset_all: "전체 초기화",
     btn_copy_all: "📋 전체 복사",
     btn_save_table_image: "🖼️ 이미지 저장",
     btn_save_image_tz: "🖼️ 이미지 저장",
@@ -504,8 +514,8 @@ const KO_OVERRIDES = {
     tooltip_add_subgroup: "새 보조 그룹 추가",
     tooltip_reset_except_group_tz_desc: "그룹과 시간대를 제외한 설정 값만 초기화 합니다.",
 
-    dn_day: "낮 (06:00~18:00)",
-    dn_night: "밤 (18:01~05:59) 🌙",
+    dn_day: "낮",
+    dn_night: "밤 🌙",
     days: ["일", "월", "화", "수", "목", "금", "토"],
 
     toast_copy_success: "클립보드에 복사했습니다.",
@@ -514,6 +524,7 @@ const KO_OVERRIDES = {
     toast_invalid_timezone: "유효하지 않은 시간대입니다.",
     toast_timezone_duplicate: "해당 그룹에 동일한 시간대가 이미 존재합니다.",
     toast_invalid_date: "유효하지 않은 날짜 형식입니다.",
+    toast_day_night_invalid_order: "밤 시작은 낮 시작보다 늦어야 합니다.",
     toast_input_name: "이름을 입력해주세요.",
     toast_custom_timezone_duplicate: "해당 그룹에 동일한 커스텀 시간대 약자가 이미 존재합니다.",
     toast_group_deleted: "그룹을 삭제했습니다.",
@@ -556,6 +567,12 @@ const I18N_DATA = {
     en: { ...EN_I18N }
 };
 
+function getRuntimeGlobalRef() {
+    if (typeof window === "object" && window) return window;
+    if (typeof globalThis === "object" && globalThis) return globalThis;
+    return null;
+}
+
 function safeLocalStorageGet(key, fallback = null) {
     try {
         return localStorage.getItem(key) ?? fallback;
@@ -581,14 +598,30 @@ if (!I18N_DATA[currentLang]) {
 }
 
 function syncCurrentLangGlobal() {
+    const runtimeGlobal = getRuntimeGlobalRef();
+    if (!runtimeGlobal) return;
     try {
-        globalThis.currentLang = currentLang;
+        runtimeGlobal.currentLang = currentLang;
     } catch (_error) {
         // noop: non-writable global in constrained runtimes
     }
 }
 
 syncCurrentLangGlobal();
+
+function exposeI18nGlobals() {
+    const runtimeGlobal = getRuntimeGlobalRef();
+    if (!runtimeGlobal) return;
+    try {
+        runtimeGlobal.I18N_DATA = I18N_DATA;
+        runtimeGlobal.t = t;
+        runtimeGlobal.tFormat = tFormat;
+        runtimeGlobal.setLanguage = setLanguage;
+        runtimeGlobal.applyTranslations = applyTranslations;
+    } catch (_error) {
+        // noop: non-writable global in constrained runtimes
+    }
+}
 
 function setLanguage(lang) {
     if (!I18N_DATA[lang]) return;
@@ -610,10 +643,32 @@ function tFormat(key, vars = {}) {
     }, base);
 }
 
-function applyTranslations() {
-    document.documentElement.lang = currentLang;
+function resolveDocumentRef(explicitDocument = null) {
+    if (explicitDocument && typeof explicitDocument.querySelectorAll === "function") {
+        return explicitDocument;
+    }
+    if (typeof document === "object" && document && typeof document.querySelectorAll === "function") {
+        return document;
+    }
+    if (typeof window === "object" && window?.document && typeof window.document.querySelectorAll === "function") {
+        return window.document;
+    }
+    if (typeof globalThis === "object" && globalThis?.document && typeof globalThis.document.querySelectorAll === "function") {
+        return globalThis.document;
+    }
+    return null;
+}
 
-    document.querySelectorAll("[data-i18n]").forEach((el) => {
+function applyTranslations(docRef = null) {
+    const doc = resolveDocumentRef(docRef);
+    if (!doc) return;
+
+    if (doc.documentElement) {
+        doc.documentElement.lang = currentLang;
+    }
+
+    const i18nElements = Array.from(doc.querySelectorAll?.("[data-i18n]") || []);
+    i18nElements.forEach((el) => {
         const key = el.getAttribute("data-i18n");
         const translation = t(key);
         if (el.tagName === "INPUT" && (el.type === "text" || el.type === "number")) {
@@ -625,7 +680,8 @@ function applyTranslations() {
         }
     });
 
-    document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    const i18nTitleElements = Array.from(doc.querySelectorAll?.("[data-i18n-title]") || []);
+    i18nTitleElements.forEach((el) => {
         const key = el.getAttribute("data-i18n-title");
         const translation = t(key);
         el.setAttribute("data-tooltip", translation);
@@ -636,7 +692,7 @@ function applyTranslations() {
         }
     });
 
-    const langSelect = document.getElementById("lang-select");
+    const langSelect = doc.getElementById?.("lang-select");
     if (langSelect) {
         const koOption = langSelect.querySelector('option[value="ko"]');
         const enOption = langSelect.querySelector('option[value="en"]');
@@ -645,6 +701,8 @@ function applyTranslations() {
     }
 
     if (I18N_DATA[currentLang].app_title) {
-        document.title = I18N_DATA[currentLang].app_title;
+        doc.title = I18N_DATA[currentLang].app_title;
     }
 }
+
+exposeI18nGlobals();

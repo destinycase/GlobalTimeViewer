@@ -56,6 +56,11 @@ describe("GTV main persistence services module", () => {
         let config = null;
         let translationsCalled = 0;
         let subgroupCalled = 0;
+        const documentRef = { getElementById: () => null };
+        const windowRef = {
+            addEventListener() { },
+            removeEventListener() { }
+        };
 
         const services = moduleApi.createService({
             persistenceServiceBundleFactory: {
@@ -138,7 +143,8 @@ describe("GTV main persistence services module", () => {
             sanitizeMultiSubgroupName: (v) => v,
             getDefaultMultiSubgroupName: () => "Subgroup 1",
             getCurrentMultiSubgroup: () => null,
-            document: { getElementById: () => null }
+            document: documentRef,
+            window: windowRef
         });
 
         expect(services.persistenceService.id).toBe("persistence");
@@ -152,6 +158,8 @@ describe("GTV main persistence services module", () => {
         expect(translationsCalled).toBe(1);
         config.ensureGroupMultiSubgroups({}, {});
         expect(subgroupCalled).toBe(1);
+        expect(config.document).toBe(documentRef);
+        expect(config.window).toBe(windowRef);
     });
 
     it("throws when bundle factory is missing", () => {

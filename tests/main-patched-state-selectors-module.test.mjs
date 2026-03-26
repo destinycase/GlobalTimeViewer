@@ -59,6 +59,8 @@ describe("GTV main patched state selectors module", () => {
                 if (key === "slotCount") return 0;
                 if (key === "activeGroupId") return -3;
                 if (key === "multiRangeCount") return -1;
+                if (key === "dayStartHour") return 7;
+                if (key === "nightStartHour") return 20;
                 return fallbackValue;
             },
             getPatchedBooleanStateValue: (_key, fallbackValue) => fallbackValue,
@@ -76,6 +78,8 @@ describe("GTV main patched state selectors module", () => {
                 showCopyFormat: false,
                 showTimeline: false,
                 currentTheme: "dark",
+                dayStartHour: 6,
+                nightStartHour: 18,
                 currentLang: "ko",
                 activeGroupId: 1,
                 multiRangeCount: 2,
@@ -88,6 +92,8 @@ describe("GTV main patched state selectors module", () => {
         expect(service.getPatchedActiveGroupIdState()).toBe(0);
         expect(service.getPatchedMultiRangeCountState()).toBe(1);
         expect(service.getPatchedCurrentThemeState()).toBe("light");
+        expect(service.getPatchedDayStartHourState()).toBe(7);
+        expect(service.getPatchedNightStartHourState()).toBe(20);
         expect(service.getPatchedCurrentLangState()).toBe("en");
     });
 
@@ -126,6 +132,8 @@ describe("GTV main patched state selectors module", () => {
         expect(service.getPatchedShowCopyFormatState()).toBe(false);
         expect(service.getPatchedShowTimelineState()).toBe(false);
         expect(service.getPatchedCurrentThemeState()).toBe("dark");
+        expect(service.getPatchedDayStartHourState()).toBe(6);
+        expect(service.getPatchedNightStartHourState()).toBe(18);
         expect(service.getPatchedCurrentLangState()).toBe("ko");
         expect(service.getPatchedDisplayFormatOrderState()).toEqual([]);
         expect(service.getPatchedDisplayFormatEnabledState()).toEqual({});

@@ -36,6 +36,44 @@
             return safeDeps.I18N_DATA?.[lang]?.days || safeDeps.I18N_DATA?.en?.days || [];
         }
 
+        function normalizeDayNightMarker(marker) {
+            const raw = String(marker || "").trim().toUpperCase();
+            if (raw === "DAY") return "DAY";
+            if (raw === "NIGHT" || raw === "MOON") return "NIGHT";
+            return "";
+        }
+
+        function resolveDayNightMarkerByHour(hour) {
+            const marker = callDep("getDayNightMarkerByHour", "", hour);
+            const normalized = normalizeDayNightMarker(marker);
+            if (normalized) return normalized;
+            const numericHour = Number.parseInt(hour, 10);
+            const safeHour = ((Number.isFinite(numericHour) ? numericHour : 0) % 24 + 24) % 24;
+            return (safeHour >= 6 && safeHour < 18) ? "DAY" : "NIGHT";
+        }
+
+        function computeWeekdayIndexFromYmd(year, month, day) {
+            const safeYear = Number.isFinite(year) ? Math.trunc(year) : 1970;
+            const safeMonth = Number.isFinite(month) ? Math.trunc(month) : 1;
+            const safeDay = Number.isFinite(day) ? Math.trunc(day) : 1;
+            if (safeMonth < 1 || safeMonth > 12) return 0;
+            if (safeDay < 1 || safeDay > 31) return 0;
+
+            // Tomohiko Sakamoto algorithm (0=Sunday ... 6=Saturday).
+            const monthOffsets = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
+            let adjustedYear = safeYear;
+            if (safeMonth < 3) adjustedYear -= 1;
+            const weekday = (
+                adjustedYear
+                + Math.floor(adjustedYear / 4)
+                - Math.floor(adjustedYear / 100)
+                + Math.floor(adjustedYear / 400)
+                + monthOffsets[safeMonth - 1]
+                + safeDay
+            ) % 7;
+            return (weekday + 7) % 7;
+        }
+
         function getTimezoneRefById(id) {
             if (!id) return null;
             if (id === "utc") return callDep("getUTCRef", null);
@@ -120,19 +158,14 @@
                 const clockStr = `${safePad(hour)}:${safePad(minute)}:${safePad(second)}`;
 
                 // 요일 계산 시 추가 시간대 변환 호출을 피하려고 로컬 달력 날짜 파트를 사용한다.
-                const weekdayDate = new Date(Date.UTC(
-                    Math.max(1, year),
-                    Math.max(0, month - 1),
-                    Math.max(1, day)
-                ));
-                const weekdayIndex = Number.isFinite(weekdayDate.getTime()) ? weekdayDate.getUTCDay() : 0;
+                const weekdayIndex = computeWeekdayIndexFromYmd(year, month, day);
 
                 timeValues.push(timeStr);
                 dateValues.push(dateStr);
                 clockValues.push(clockStr);
                 dayIndexes.push(weekdayIndex);
                 dayNameValues.push(dayNamesByLang[weekdayIndex] || "");
-                dayNightIconValues.push(hour >= 6 && hour <= 18 ? "DAY" : "NIGHT");
+                dayNightIconValues.push(resolveDayNightMarkerByHour(hour));
             });
 
             let periodDaysText = "";

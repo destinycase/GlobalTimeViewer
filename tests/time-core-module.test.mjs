@@ -80,10 +80,28 @@ test("buildStrictUtcDateFromParts accepts exact UTC parts and rejects overflow",
         minute: 0,
         second: 0
     });
+    const badApril = api.buildStrictUtcDateFromParts({
+        year: 2026,
+        month: 4,
+        day: 31,
+        hour: 12,
+        minute: 0,
+        second: 0
+    });
+    const badNonLeap = api.buildStrictUtcDateFromParts({
+        year: 2025,
+        month: 2,
+        day: 29,
+        hour: 12,
+        minute: 0,
+        second: 0
+    });
 
     expect(ok).toBeInstanceOf(Date);
     expect(ok.toISOString()).toBe("2024-02-29T23:59:59.000Z");
     expect(bad).toBe(null);
+    expect(badApril).toBe(null);
+    expect(badNonLeap).toBe(null);
 });
 
 test("sanitizeUtcMs prefers numeric/date values and falls back when invalid", () => {

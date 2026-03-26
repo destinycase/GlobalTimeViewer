@@ -130,6 +130,34 @@
             const groups = sanitizeImportedGroups(payload);
             const activeGroupId = clampGroupIndex(payload?.activeGroupId, groups.length, 0);
             const currentMainTab = sanitizeImportedMainTab(payload?.currentMainTab);
+            const parsedDayStartHour = Number.parseInt(payload?.dayStartHour, 10);
+            const parsedNightStartHour = Number.parseInt(payload?.nightStartHour, 10);
+            const defaultDayStartHour = Number.parseInt(deps.DEFAULT_DAY_START_HOUR, 10);
+            const defaultNightStartHour = Number.parseInt(deps.DEFAULT_NIGHT_START_HOUR, 10);
+            const safeDayStartHour = Math.min(
+                23,
+                Math.max(
+                    0,
+                    Number.isFinite(parsedDayStartHour)
+                        ? parsedDayStartHour
+                        : (Number.isFinite(defaultDayStartHour) ? defaultDayStartHour : 6)
+                )
+            );
+            const safeNightStartHour = Math.min(
+                23,
+                Math.max(
+                    0,
+                    Number.isFinite(parsedNightStartHour)
+                        ? parsedNightStartHour
+                        : (Number.isFinite(defaultNightStartHour) ? defaultNightStartHour : 18)
+                )
+            );
+            const dayNightRange = (safeNightStartHour <= safeDayStartHour)
+                ? {
+                    dayStartHour: Number.isFinite(defaultDayStartHour) ? Math.min(23, Math.max(0, defaultDayStartHour)) : 6,
+                    nightStartHour: Number.isFinite(defaultNightStartHour) ? Math.min(23, Math.max(0, defaultNightStartHour)) : 18
+                }
+                : { dayStartHour: safeDayStartHour, nightStartHour: safeNightStartHour };
 
             const rawGroupMap = (payload?.activeGroupIdByMainTab && typeof payload.activeGroupIdByMainTab === "object")
                 ? payload.activeGroupIdByMainTab
@@ -171,6 +199,8 @@
                 formatProfiles: payload?.formatProfiles,
                 activeFormatProfileContext: payload?.activeFormatProfileContext,
                 timeAdjustDayStepBySlot: payload?.timeAdjustDayStepBySlot,
+                dayStartHour: dayNightRange.dayStartHour,
+                nightStartHour: dayNightRange.nightStartHour,
                 multiRangeCount: payload?.multiRangeCount,
                 multiRangeTitle: payload?.multiRangeTitle,
                 multiRanges: payload?.multiRanges,
@@ -193,14 +223,25 @@
         }
 
         async function applyImportedSettings(importedRoot) {
-            const payload = (importedRoot && typeof importedRoot === "object" && importedRoot.data && typeof importedRoot.data === "object")
+            const rawPayload = (importedRoot && typeof importedRoot === "object" && importedRoot.data && typeof importedRoot.data === "object")
                 ? importedRoot.data
                 : importedRoot;
-            if (!payload || typeof payload !== "object") {
+            if (!rawPayload || typeof rawPayload !== "object") {
                 throw new Error("Invalid settings payload");
             }
-            if (!Array.isArray(payload.groups)) {
+            if (!Array.isArray(rawPayload.groups)) {
                 throw new Error("Invalid settings payload: groups is required");
+            }
+
+            const pref = (importedRoot && typeof importedRoot === "object" && importedRoot.preferences && typeof importedRoot.preferences === "object")
+                ? importedRoot.preferences
+                : importedRoot;
+            const payload = { ...rawPayload };
+            if (payload.dayStartHour === undefined && pref && pref.dayStartHour !== undefined) {
+                payload.dayStartHour = pref.dayStartHour;
+            }
+            if (payload.nightStartHour === undefined && pref && pref.nightStartHour !== undefined) {
+                payload.nightStartHour = pref.nightStartHour;
             }
 
             const sanitizedPayload = normalizeImportPayload(payload);
@@ -208,10 +249,6 @@
             if (!writeResult.ok) {
                 throw createPersistenceWriteError("Failed to persist imported settings payload", writeResult.error);
             }
-
-            const pref = (importedRoot && typeof importedRoot === "object" && importedRoot.preferences && typeof importedRoot.preferences === "object")
-                ? importedRoot.preferences
-                : importedRoot;
 
             if (pref && typeof pref === "object") {
                 if (typeof pref.theme === "string") {
@@ -248,6 +285,24 @@
             if (uiScaleSelect) {
                 deps.populateUiScaleSelect(uiScaleSelect);
                 uiScaleSelect.value = String(deps.getCurrentUiScalePercent());
+            }
+            const dayStartSelect = document.getElementById("day-start-select");
+            if (dayStartSelect) {
+                if (typeof deps.populateDayNightHourSelect === "function") {
+                    deps.populateDayNightHourSelect(dayStartSelect);
+                }
+                if (typeof deps.getDayStartHour === "function") {
+                    dayStartSelect.value = String(deps.getDayStartHour());
+                }
+            }
+            const nightStartSelect = document.getElementById("night-start-select");
+            if (nightStartSelect) {
+                if (typeof deps.populateDayNightHourSelect === "function") {
+                    deps.populateDayNightHourSelect(nightStartSelect);
+                }
+                if (typeof deps.getNightStartHour === "function") {
+                    nightStartSelect.value = String(deps.getNightStartHour());
+                }
             }
             deps.refreshMultiRangeControls();
 

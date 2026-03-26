@@ -26,7 +26,7 @@ function loadDataTransferModule(options = {}) {
         }
     };
     const globalPatches = {
-        window: {},
+        window: options.window || {},
         document: options.document || {
             getElementById() {
                 return null;
@@ -274,6 +274,82 @@ describe("GTV data transfer module", () => {
         expect(clickCount).toBe(1);
     });
 
+    it("clearPendingGroupImport resets pending target before import handling", async () => {
+        const groupImportInput = {
+            value: "selected",
+            click() { }
+        };
+        const loaded = loadDataTransferModule({
+            document: {
+                getElementById(id) {
+                    if (id === "group-import-file") return groupImportInput;
+                    return null;
+                }
+            }
+        });
+        const targetIndexes = [];
+        const groups = [
+            {
+                name: "Group A",
+                zones: [],
+                baseTimezoneId: "utc",
+                showUtcRow: true,
+                utcRowOrder: 0,
+                fixedTimes: [],
+                activeMultiSubgroupId: "sg-1",
+                multiSubgroups: [{ id: "sg-1", name: "Subgroup 1" }]
+            },
+            {
+                name: "Group B",
+                zones: [],
+                baseTimezoneId: "utc",
+                showUtcRow: true,
+                utcRowOrder: 0,
+                fixedTimes: [],
+                activeMultiSubgroupId: "sg-b",
+                multiSubgroups: [{ id: "sg-b", name: "Subgroup B" }]
+            }
+        ];
+        const service = loaded.module.createService(createBaseDeps({
+            getGroups: () => groups,
+            getActiveGroupId: () => 0,
+            sanitizeGroup: (group, idx) => {
+                targetIndexes.push(idx);
+                return {
+                    name: group?.name || `Imported ${idx}`,
+                    zones: Array.isArray(group?.zones) ? group.zones : [],
+                    baseTimezoneId: "utc",
+                    showUtcRow: true,
+                    utcRowOrder: 0,
+                    fixedTimes: [],
+                    activeMultiSubgroupId: "sg-1",
+                    multiSubgroups: [{ id: "sg-1", name: "Subgroup 1" }]
+                };
+            }
+        }));
+        const selectedFileInput = {
+            value: "selected",
+            files: [{
+                name: "group.json",
+                async text() {
+                    return JSON.stringify({
+                        type: "group",
+                        group: {
+                            name: "Imported Group",
+                            zones: []
+                        }
+                    });
+                }
+            }]
+        };
+
+        service.triggerGroupImportFor(1);
+        service.clearPendingGroupImport();
+        await service.handleGroupImportFile({ target: selectedFileInput });
+
+        expect(targetIndexes).toEqual([0]);
+    });
+
     it("triggerSubgroupImportFor does not click file input for invalid target subgroup", () => {
         let clickCount = 0;
         const subgroupImportInput = {
@@ -451,6 +527,64 @@ describe("GTV data transfer module", () => {
         expect(loaded.logs.error.length).toBeGreaterThan(0);
     });
 
+    it("export group/subgroup uses injected document dependency instead of global document", () => {
+        const anchors = [];
+        const loaded = loadDataTransferModule({
+            document: {
+                getElementById() {
+                    return null;
+                },
+                createElement() {
+                    throw new Error("global-document-should-not-be-used");
+                },
+                body: {
+                    appendChild() { }
+                }
+            }
+        });
+        const toasts = [];
+        const service = loaded.module.createService(createBaseDeps({
+            document: {
+                getElementById() {
+                    return null;
+                },
+                createElement(tag) {
+                    if (tag !== "a") return {};
+                    return {
+                        href: "",
+                        download: "",
+                        clicked: 0,
+                        click() {
+                            this.clicked += 1;
+                        },
+                        remove() { }
+                    };
+                },
+                body: {
+                    appendChild(node) {
+                        anchors.push(node);
+                    }
+                }
+            },
+            showToast(message) {
+                toasts.push(String(message));
+            },
+            tFormat(key, payload) {
+                return `${key}:${payload?.filename || ""}`;
+            }
+        }));
+
+        service.exportGroupToJSON(0);
+        service.exportSubgroupToJSON(0, "sg-1");
+
+        expect(anchors).toHaveLength(2);
+        expect(anchors[0].clicked).toBe(1);
+        expect(anchors[1].clicked).toBe(1);
+        expect(toasts.some((msg) => msg.startsWith("toast_group_export_success:"))).toBe(true);
+        expect(toasts.some((msg) => msg.startsWith("toast_subgroup_export_success:"))).toBe(true);
+        expect(loaded.logs.error).toHaveLength(0);
+    });
+
     it("triggerSubgroupImportFor clicks input for a valid subgroup target", () => {
         let clickCount = 0;
         const subgroupImportInput = {
@@ -473,6 +607,90 @@ describe("GTV data transfer module", () => {
 
         expect(subgroupImportInput.value).toBe("");
         expect(clickCount).toBe(1);
+    });
+
+    it("clearPendingSubgroupImport resets pending target before import handling", async () => {
+        const subgroupImportInput = {
+            value: "selected",
+            click() { }
+        };
+        const loaded = loadDataTransferModule({
+            document: {
+                getElementById(id) {
+                    if (id === "subgroup-import-file") return subgroupImportInput;
+                    return null;
+                }
+            }
+        });
+        const groups = [
+            {
+                name: "Group A",
+                zones: [],
+                baseTimezoneId: "utc",
+                showUtcRow: true,
+                utcRowOrder: 0,
+                fixedTimes: [],
+                activeMultiSubgroupId: "sg-1",
+                multiSubgroups: [{
+                    id: "sg-1",
+                    name: "Subgroup 1",
+                    multiRangeCount: 1,
+                    multiRanges: [{ startUtcMs: 1, endUtcMs: 2 }],
+                    multiRangeCollapsed: [false],
+                    multiRangeStartEditEnabled: [false],
+                    multiRangeEndEditEnabled: [true]
+                }]
+            },
+            {
+                name: "Group B",
+                zones: [],
+                baseTimezoneId: "utc",
+                showUtcRow: true,
+                utcRowOrder: 0,
+                fixedTimes: [],
+                activeMultiSubgroupId: "sg-b",
+                multiSubgroups: [{
+                    id: "sg-b",
+                    name: "Subgroup B",
+                    multiRangeCount: 1,
+                    multiRanges: [{ startUtcMs: 10, endUtcMs: 20 }],
+                    multiRangeCollapsed: [false],
+                    multiRangeStartEditEnabled: [false],
+                    multiRangeEndEditEnabled: [true]
+                }]
+            }
+        ];
+        const service = loaded.module.createService(createBaseDeps({
+            getGroups: () => groups,
+            getActiveGroupId: () => 0,
+            getCurrentMultiSubgroup: () => ({ id: "sg-1" })
+        }));
+        const selectedFileInput = {
+            value: "selected",
+            files: [{
+                name: "subgroup.json",
+                async text() {
+                    return JSON.stringify({
+                        type: "subgroup",
+                        subgroup: {
+                            name: "Imported Subgroup",
+                            multiRangeCount: 1,
+                            multiRanges: [{ startUtcMs: 3, endUtcMs: 4 }],
+                            multiRangeCollapsed: [false],
+                            multiRangeStartEditEnabled: [false],
+                            multiRangeEndEditEnabled: [true]
+                        }
+                    });
+                }
+            }]
+        };
+
+        service.triggerSubgroupImportFor(1, "sg-b");
+        service.clearPendingSubgroupImport();
+        await service.handleSubgroupImportFile({ target: selectedFileInput });
+
+        expect(groups[0].multiSubgroups[0].name).toBe("Imported Subgroup");
+        expect(groups[1].multiSubgroups[0].name).toBe("Subgroup B");
     });
 
     it("handleGroupImportFile maps invalid payload type to invalid format toast", async () => {

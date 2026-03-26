@@ -1,5 +1,12 @@
 # 변경 이력 (Changelog)
 
+## [3.11.7] - 2026-03-27
+### 변경됨
+- 버전 메타데이터를 `3.11.7`로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`)
+- `data-transfer.js`의 그룹/보조그룹/전체 설정 export 경로에서 전역 `document` 직접 참조를 제거하고, 의존성 주입 기반 `document/window` 해석 경로로 통일했습니다.
+- persistence 조립 계층에서 `data-transfer`로 `document/window`를 전달하도록 연결해 런타임/테스트 환경 일관성을 강화했습니다.
+- 관련 회귀 테스트를 추가해 DOM 의존성 주입 경로가 실제로 사용되는지 검증했습니다.
+
 ## [3.11.6] - 2026-03-26
 ### 변경됨
 - 저장소 무결성 강화: state persistence payload를 envelope(`revision`, `updatedAt`, `data`) 형식으로 확장하고, `chrome.storage.local`/`localStorage` 후보를 비교해 최신 스냅샷을 우선 복원하도록 개선했습니다.

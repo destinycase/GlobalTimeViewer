@@ -164,3 +164,15 @@ test("buildTimezoneComputedSnapshotForDates correctly applies custom timezone of
     expect(snapshot.offset).toBe("UTC+09:00");
     expect(snapshot.times[0]).toBe("2026-01-01 09:00:00");
 });
+
+test("buildTimezoneComputedSnapshotForDates honors injected day/night marker resolver", () => {
+    const service = createService({
+        ...createDepsStub(),
+        getDayNightMarkerByHour: () => "NIGHT"
+    });
+    const tz = { id: "base", type: "standard", zone: "Asia/Seoul", name_en: "Seoul" };
+
+    const snapshot = service.buildTimezoneComputedSnapshotForDates(tz, [new Date("2026-01-01T00:00:00Z")]);
+
+    expect(snapshot.dayNightIcons[0]).toBe("NIGHT");
+});

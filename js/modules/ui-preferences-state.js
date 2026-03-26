@@ -19,7 +19,9 @@
                 return {
                     uiScale: 1.0,
                     currentTheme: "dark",
-                    currentLang: "ko"
+                    currentLang: "ko",
+                    dayStartHour: getDefaultDayStartHour(),
+                    nightStartHour: getDefaultNightStartHour()
                 };
             }
             return state;
@@ -49,6 +51,124 @@
             return Array.isArray(safeDeps.UI_SCALE_PERCENT_OPTIONS)
                 ? safeDeps.UI_SCALE_PERCENT_OPTIONS
                 : [50, 75, 100, 125, 150, 175, 200];
+        }
+
+        function getDefaultDayStartHour() {
+            const parsed = Number.parseInt(safeDeps.DEFAULT_DAY_START_HOUR, 10);
+            if (!Number.isFinite(parsed)) return 6;
+            return Math.min(23, Math.max(0, parsed));
+        }
+
+        function getDefaultNightStartHour() {
+            const parsed = Number.parseInt(safeDeps.DEFAULT_NIGHT_START_HOUR, 10);
+            if (!Number.isFinite(parsed)) return 18;
+            return Math.min(23, Math.max(0, parsed));
+        }
+
+        function getDayNightHourOptions() {
+            const source = Array.isArray(safeDeps.DAY_NIGHT_HOUR_OPTIONS)
+                ? safeDeps.DAY_NIGHT_HOUR_OPTIONS
+                : Array.from({ length: 24 }, (_, hour) => hour);
+            const normalized = source
+                .map((value) => Number.parseInt(value, 10))
+                .filter((value) => Number.isFinite(value) && value >= 0 && value <= 23)
+                .filter((value, idx, list) => list.indexOf(value) === idx)
+                .sort((a, b) => a - b);
+            return normalized.length ? normalized : Array.from({ length: 24 }, (_, hour) => hour);
+        }
+
+        function sanitizeDayNightHour(value, fallback = getDefaultDayStartHour()) {
+            const parsed = Number.parseInt(value, 10);
+            const fallbackHour = Number.parseInt(fallback, 10);
+            const base = Number.isFinite(parsed)
+                ? parsed
+                : (Number.isFinite(fallbackHour) ? fallbackHour : getDefaultDayStartHour());
+            const clamped = Math.min(23, Math.max(0, base));
+            const options = getDayNightHourOptions();
+            return options.reduce((closest, hour) => (
+                Math.abs(hour - clamped) < Math.abs(closest - clamped) ? hour : closest
+            ), options[0]);
+        }
+
+        function resolveCurrentDayNightHours() {
+            const state = readState();
+            const fallbackDay = getDefaultDayStartHour();
+            const fallbackNight = getDefaultNightStartHour();
+            const dayStartHour = sanitizeDayNightHour(state.dayStartHour, fallbackDay);
+            const nightStartHour = sanitizeDayNightHour(state.nightStartHour, fallbackNight);
+            if (nightStartHour <= dayStartHour) {
+                return { dayStartHour: fallbackDay, nightStartHour: fallbackNight };
+            }
+            return { dayStartHour, nightStartHour };
+        }
+
+        function pad2(value) {
+            return String(Math.max(0, Math.trunc(Number(value) || 0))).padStart(2, "0");
+        }
+
+        function populateDayNightHourSelect(selectEl) {
+            if (!selectEl) return;
+            selectEl.textContent = "";
+            getDayNightHourOptions().forEach((hour) => {
+                const option = document.createElement("option");
+                option.value = String(hour);
+                option.textContent = `${pad2(hour)}:00`;
+                selectEl.appendChild(option);
+            });
+        }
+
+        function getDayStartHour() {
+            return resolveCurrentDayNightHours().dayStartHour;
+        }
+
+        function getNightStartHour() {
+            return resolveCurrentDayNightHours().nightStartHour;
+        }
+
+        function getDayNightMarkerByHour(hourValue) {
+            const hourRaw = Number.parseInt(hourValue, 10);
+            const normalizedHour = ((Number.isFinite(hourRaw) ? hourRaw : 0) % 24 + 24) % 24;
+            const { dayStartHour, nightStartHour } = resolveCurrentDayNightHours();
+            return (normalizedHour >= dayStartHour && normalizedHour < nightStartHour) ? "DAY" : "NIGHT";
+        }
+
+        async function setDayNightRange(dayStartHourInput, nightStartHourInput, options = {}) {
+            const safeOptions = (options && typeof options === "object") ? options : {};
+            const current = resolveCurrentDayNightHours();
+            const nextDayStartHour = sanitizeDayNightHour(dayStartHourInput, current.dayStartHour);
+            const nextNightStartHour = sanitizeDayNightHour(nightStartHourInput, current.nightStartHour);
+            if (nextNightStartHour <= nextDayStartHour) {
+                if (safeOptions.showToast !== false) {
+                    const toastMessage = invokeDep("t", "toast_day_night_invalid_order") || "Invalid day/night order";
+                    invokeDep("showToast", toastMessage, { type: "error" });
+                }
+                return {
+                    ok: false,
+                    dayStartHour: current.dayStartHour,
+                    nightStartHour: current.nightStartHour
+                };
+            }
+
+            patchState({
+                dayStartHour: nextDayStartHour,
+                nightStartHour: nextNightStartHour
+            });
+
+            if (safeOptions.rerender !== false) {
+                invokeDep("updateClocks");
+            }
+            if (safeOptions.persist !== false) {
+                const saveResult = invokeDep("savePersistence");
+                if (saveResult && typeof saveResult.then === "function") {
+                    await saveResult;
+                }
+            }
+
+            return {
+                ok: true,
+                dayStartHour: nextDayStartHour,
+                nightStartHour: nextNightStartHour
+            };
         }
 
         function sanitizeUiScalePercent(value) {
@@ -131,6 +251,12 @@
             applyUiScale,
             loadUiScalePreference,
             populateUiScaleSelect,
+            sanitizeDayNightHour,
+            populateDayNightHourSelect,
+            getDayStartHour,
+            getNightStartHour,
+            getDayNightMarkerByHour,
+            setDayNightRange,
             sanitizeTheme,
             applyTheme,
             loadThemePreference,

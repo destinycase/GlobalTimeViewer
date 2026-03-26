@@ -201,7 +201,7 @@
             }
         }
 
-        function persistStorageSnapshot(snapshot, options = {}) {
+        async function persistStorageSnapshotNow(snapshot, options = {}) {
             let serialized = "";
             try {
                 const nextRevision = persistenceRevision + 1;
@@ -212,12 +212,11 @@
                 if (!options?.suppressToast) showPersistenceErrorToast(err);
                 return { ok: false, error: err };
             }
-            return setStorageValue(deps.STORAGE_KEY, serialized, options).then((result) => {
-                if (result?.ok) {
-                    persistenceRevision += 1;
-                }
-                return result;
-            });
+            const result = await setStorageValue(deps.STORAGE_KEY, serialized, options);
+            if (result?.ok) {
+                persistenceRevision += 1;
+            }
+            return result;
         }
 
         function enqueuePersistenceWrite(taskFn) {
@@ -227,11 +226,15 @@
             return nextWrite;
         }
 
+        function persistStorageSnapshot(snapshot, options = {}) {
+            return enqueuePersistenceWrite(() => persistStorageSnapshotNow(snapshot, options));
+        }
+
         async function savePersistence(options = {}) {
             return enqueuePersistenceWrite(async () => {
                 try {
                     const snapshot = deps.getPersistenceSnapshot();
-                    const result = await persistStorageSnapshot(snapshot, options);
+                    const result = await persistStorageSnapshotNow(snapshot, options);
                     return !!result?.ok;
                 } catch (err) {
                     console.error("savePersistence failed during snapshot generation.", err);
@@ -266,6 +269,41 @@
             return Math.min(Math.max(parsed, 0), maxIndex);
         }
 
+        function getDefaultDayStartHour() {
+            const parsed = Number.parseInt(deps.DEFAULT_DAY_START_HOUR, 10);
+            if (!Number.isFinite(parsed)) return 6;
+            return Math.min(23, Math.max(0, parsed));
+        }
+
+        function getDefaultNightStartHour() {
+            const parsed = Number.parseInt(deps.DEFAULT_NIGHT_START_HOUR, 10);
+            if (!Number.isFinite(parsed)) return 18;
+            return Math.min(23, Math.max(0, parsed));
+        }
+
+        function sanitizeDayNightHour(value, fallbackHour) {
+            const parsed = Number.parseInt(value, 10);
+            const fallback = Number.parseInt(fallbackHour, 10);
+            const base = Number.isFinite(parsed)
+                ? parsed
+                : (Number.isFinite(fallback) ? fallback : 0);
+            return Math.min(23, Math.max(0, base));
+        }
+
+        function normalizeDayNightRange(dayStartHourInput, nightStartHourInput) {
+            const defaultDayStartHour = getDefaultDayStartHour();
+            const defaultNightStartHour = getDefaultNightStartHour();
+            const dayStartHour = sanitizeDayNightHour(dayStartHourInput, defaultDayStartHour);
+            const nightStartHour = sanitizeDayNightHour(nightStartHourInput, defaultNightStartHour);
+            if (nightStartHour <= dayStartHour) {
+                return {
+                    dayStartHour: defaultDayStartHour,
+                    nightStartHour: defaultNightStartHour
+                };
+            }
+            return { dayStartHour, nightStartHour };
+        }
+
         function applyDefaultPersistenceState({ includeMultiState = false } = {}) {
             const baseState = {
                 groups: getDefaultGroups(),
@@ -283,6 +321,8 @@
                 copyFormatOrder: [...deps.COPY_FORMAT_KEYS],
                 copyFormatEnabled: deps.sanitizeCopyFormatEnabled(null, "copy"),
                 copyTimePartsEnabled: deps.sanitizeTimePartsEnabled(null, "copy"),
+                dayStartHour: getDefaultDayStartHour(),
+                nightStartHour: getDefaultNightStartHour(),
                 isRealtime: true
             };
             if (typeof deps.sanitizeFormatProfiles === "function") {
@@ -326,6 +366,15 @@
                 deps.populateUiScaleSelect(uiScaleSelect);
                 uiScaleSelect.value = String(deps.getCurrentUiScalePercent());
             }
+            const currentState = (typeof deps.getState === "function") ? (deps.getState() || {}) : {};
+            const dayNightRange = normalizeDayNightRange(
+                currentState.dayStartHour,
+                currentState.nightStartHour
+            );
+            const dayStartSelect = document.getElementById("day-start-select");
+            if (dayStartSelect) dayStartSelect.value = String(dayNightRange.dayStartHour);
+            const nightStartSelect = document.getElementById("night-start-select");
+            if (nightStartSelect) nightStartSelect.value = String(dayNightRange.nightStartHour);
 
             deps.refreshMultiRangeControls();
             deps.updateTZDropdown();
@@ -376,6 +425,7 @@
 
             const showCopyFormat = !!parsed?.showCopyFormat;
             const showTimeline = !!parsed?.showTimeline;
+            const dayNightRange = normalizeDayNightRange(parsed?.dayStartHour, parsed?.nightStartHour);
             const rawTimeAdjustStep = Array.isArray(parsed?.timeAdjustDayStepBySlot) ? parsed.timeAdjustDayStepBySlot : [];
             const timeAdjustDayStepBySlot = [
                 deps.sanitizeTimeAdjustDayStep(rawTimeAdjustStep[0]),
@@ -439,6 +489,8 @@
                 multiRangeCollapsed: [],
                 multiRangeStartEditEnabled: [],
                 multiRangeEndEditEnabled: [],
+                dayStartHour: dayNightRange.dayStartHour,
+                nightStartHour: dayNightRange.nightStartHour,
                 isRealtime: (currentMainTab === "live")
             };
             if (formatProfiles && typeof formatProfiles === "object") {
@@ -476,6 +528,8 @@
                 copyFormatEnabled: normalizedState.copyFormatEnabled,
                 copyTimePartsEnabled: normalizedState.copyTimePartsEnabled,
                 timeAdjustDayStepBySlot: normalizedState.timeAdjustDayStepBySlot,
+                dayStartHour: normalizedState.dayStartHour,
+                nightStartHour: normalizedState.nightStartHour,
                 multiRangeCount: deps.MIN_MULTI_RANGE_COUNT,
                 multiRangeTitle: deps.t("placeholder_range_title"),
                 multiRanges: [],
@@ -521,11 +575,17 @@
                 selectedCandidate = parseSerializedPersistencePayload(serialized, "local");
             }
 
-            const legacyFallbackKeys = Array.isArray(deps.LEGACY_STORAGE_FALLBACK_KEYS)
+            const explicitLegacyFallbackReadKeys = Array.isArray(deps.LEGACY_STORAGE_FALLBACK_KEYS)
                 ? deps.LEGACY_STORAGE_FALLBACK_KEYS
-                : deps.LEGACY_STORAGE_KEYS;
+                    .map((key) => (typeof key === "string" ? key.trim() : ""))
+                    .filter(Boolean)
+                : [];
+            const legacyReadKeys = explicitLegacyFallbackReadKeys.length
+                ? explicitLegacyFallbackReadKeys
+                : (Array.isArray(deps.LEGACY_STORAGE_KEYS) ? deps.LEGACY_STORAGE_KEYS : []);
+            const dedupedLegacyReadKeys = [...new Set(legacyReadKeys)];
             if (!serialized) {
-                for (const key of legacyFallbackKeys) {
+                for (const key of dedupedLegacyReadKeys) {
                     const legacy = safeLocalStorageGet(key);
                     if (legacy) {
                         serialized = legacy;
@@ -641,6 +701,8 @@
                 copyFormatOrder: [...deps.COPY_FORMAT_KEYS],
                 copyFormatEnabled: deps.sanitizeCopyFormatEnabled(null, "copy"),
                 copyTimePartsEnabled: deps.sanitizeTimePartsEnabled(null, "copy"),
+                dayStartHour: getDefaultDayStartHour(),
+                nightStartHour: getDefaultNightStartHour(),
                 multiRangeCount: deps.MIN_MULTI_RANGE_COUNT,
                 multiRangeTitle: deps.t("placeholder_range_title"),
                 multiRanges: [],

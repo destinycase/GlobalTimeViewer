@@ -92,6 +92,16 @@
             return getPatchedStringStateValue("currentTheme", getFallbackValue("currentTheme", "dark"));
         }
 
+        function getPatchedDayStartHourState() {
+            const value = getPatchedIntegerStateValue("dayStartHour", getFallbackValue("dayStartHour", 6));
+            return Math.min(23, Math.max(0, value));
+        }
+
+        function getPatchedNightStartHourState() {
+            const value = getPatchedIntegerStateValue("nightStartHour", getFallbackValue("nightStartHour", 18));
+            return Math.min(23, Math.max(0, value));
+        }
+
         function getPatchedCurrentLangState() {
             return getPatchedStringStateValue("currentLang", getFallbackValue("currentLang", "ko"));
         }
@@ -171,6 +181,8 @@
             getPatchedShowTimelineState,
             setPatchedShowTimelineState,
             getPatchedCurrentThemeState,
+            getPatchedDayStartHourState,
+            getPatchedNightStartHourState,
             getPatchedCurrentLangState,
             getPatchedDisplayFormatOrderState,
             getPatchedDisplayFormatEnabledState,

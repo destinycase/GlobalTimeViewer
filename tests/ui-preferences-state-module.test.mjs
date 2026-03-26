@@ -180,4 +180,62 @@ describe("GTV ui preferences state module", () => {
         expect(statePatches).toContainEqual({ currentLang: "ko" });
         expect(doc.documentElement.lang).toBe("ko");
     });
+
+    it("applies day/night range changes with validation and rerender hooks", async () => {
+        const moduleApi = loadUiPreferencesStateModule();
+        const doc = createDocumentStub();
+        globalThis.document = doc;
+
+        const state = {
+            uiScale: 1,
+            currentTheme: "dark",
+            currentLang: "ko",
+            dayStartHour: 6,
+            nightStartHour: 18
+        };
+        const toasts = [];
+        let updateClocksCount = 0;
+        let savePersistenceCount = 0;
+        const service = moduleApi.createService({
+            DEFAULT_DAY_START_HOUR: 6,
+            DEFAULT_NIGHT_START_HOUR: 18,
+            DAY_NIGHT_HOUR_OPTIONS: Array.from({ length: 24 }, (_, hour) => hour),
+            t: (key) => key,
+            showToast: (message) => { toasts.push(String(message)); },
+            updateClocks: () => { updateClocksCount += 1; },
+            savePersistence: async () => { savePersistenceCount += 1; },
+            getState: () => state,
+            setState: (next) => Object.assign(state, next)
+        });
+
+        const daySelect = {
+            textContent: "",
+            children: [],
+            appendChild(child) {
+                this.children.push(child);
+                return child;
+            }
+        };
+        service.populateDayNightHourSelect(daySelect);
+        expect(daySelect.children.length).toBe(24);
+        expect(daySelect.children[0].textContent).toBe("00:00");
+        expect(daySelect.children[23].textContent).toBe("23:00");
+
+        const applied = await service.setDayNightRange("7", "20", { persist: true, rerender: true, showToast: true });
+        expect(applied).toEqual({ ok: true, dayStartHour: 7, nightStartHour: 20 });
+        expect(state.dayStartHour).toBe(7);
+        expect(state.nightStartHour).toBe(20);
+        expect(updateClocksCount).toBe(1);
+        expect(savePersistenceCount).toBe(1);
+        expect(service.getDayNightMarkerByHour(8)).toBe("DAY");
+        expect(service.getDayNightMarkerByHour(2)).toBe("NIGHT");
+
+        const rejected = await service.setDayNightRange("22", "5", { persist: true, rerender: true, showToast: true });
+        expect(rejected.ok).toBe(false);
+        expect(state.dayStartHour).toBe(7);
+        expect(state.nightStartHour).toBe(20);
+        expect(updateClocksCount).toBe(1);
+        expect(savePersistenceCount).toBe(1);
+        expect(toasts).toContain("toast_day_night_invalid_order");
+    });
 });

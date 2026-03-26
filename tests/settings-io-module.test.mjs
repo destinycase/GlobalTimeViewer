@@ -328,6 +328,8 @@ describe("GTV settings IO module", () => {
         expect(persisted.slotCount).toBe(2);
         expect(persisted.showCopyFormat).toBe(true);
         expect(persisted.showTimeline).toBe(true);
+        expect(persisted.dayStartHour).toBe(6);
+        expect(persisted.nightStartHour).toBe(18);
     });
 
     it("keeps sanitized base timezone when active group contains matching zone id", async () => {

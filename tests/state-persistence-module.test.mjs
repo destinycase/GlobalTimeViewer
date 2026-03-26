@@ -473,6 +473,40 @@ describe("GTV state persistence module", () => {
         expect(appliedState.groups[0].name).toBe("Legacy Group");
     });
 
+    it("loadPersistence falls back to LEGACY_STORAGE_KEYS when fallback key list is empty", async () => {
+        const legacyPayload = JSON.stringify({
+            groups: [{
+                name: "Legacy Via Main Keys",
+                zones: [],
+                baseTimezoneId: "utc",
+                showUtcRow: true,
+                utcRowOrder: 0
+            }],
+            activeGroupId: 0,
+            currentMainTab: "fixed",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 },
+            slotCount: 1,
+            showCopyFormat: true,
+            showTimeline: true
+        });
+        const localStorage = createLocalStorageStub();
+        localStorage.setItem("LEGACY_KEY_MAIN", legacyPayload);
+        let appliedState = null;
+        const loaded = loadStatePersistenceModule({ localStorage });
+        const service = loaded.module.createService(createBaseDeps({
+            LEGACY_STORAGE_KEYS: ["LEGACY_KEY_MAIN"],
+            LEGACY_STORAGE_FALLBACK_KEYS: [],
+            setState(next) {
+                appliedState = next;
+            }
+        }));
+
+        await service.loadPersistence();
+
+        expect(appliedState).toBeTruthy();
+        expect(appliedState.groups[0].name).toBe("Legacy Via Main Keys");
+    });
+
     it("savePersistence serializes writes so latest snapshot wins", async () => {
         let releaseFirstWrite = null;
         const storageData = {};
@@ -516,6 +550,53 @@ describe("GTV state persistence module", () => {
         expect(typeof releaseFirstWrite).toBe("function");
         releaseFirstWrite();
         await Promise.all([first, second]);
+
+        const storedRaw = await service.getStorageValue("TEST_STORAGE_KEY", null);
+        const stored = unwrapStoredPersistencePayload(storedRaw);
+        expect(stored.isEnvelope).toBe(true);
+        expect(stored.data.version).toBe(2);
+        expect(Number(stored.meta?.revision)).toBeGreaterThanOrEqual(2);
+    });
+
+    it("persistStorageSnapshot serializes direct writes so later payload wins", async () => {
+        let releaseFirstWrite = null;
+        const storageData = {};
+        const loaded = loadStatePersistenceModule({
+            chrome: {
+                storage: {
+                    local: {
+                        async set(payload) {
+                            const raw = payload.TEST_STORAGE_KEY;
+                            const stored = unwrapStoredPersistencePayload(raw);
+                            const payloadData = stored.data || {};
+                            if (payloadData.version === 1) {
+                                await new Promise((resolve) => {
+                                    releaseFirstWrite = resolve;
+                                });
+                            }
+                            Object.assign(storageData, payload);
+                        },
+                        async get(key) {
+                            return { [key]: storageData[key] };
+                        }
+                    }
+                }
+            }
+        });
+        const service = loaded.module.createService(createBaseDeps());
+
+        const first = service.persistStorageSnapshot({ version: 1 });
+        const second = service.persistStorageSnapshot({ version: 2 });
+
+        for (let i = 0; i < 10 && typeof releaseFirstWrite !== "function"; i++) {
+            await Promise.resolve();
+        }
+        expect(typeof releaseFirstWrite).toBe("function");
+        releaseFirstWrite();
+
+        const [firstResult, secondResult] = await Promise.all([first, second]);
+        expect(firstResult.ok).toBe(true);
+        expect(secondResult.ok).toBe(true);
 
         const storedRaw = await service.getStorageValue("TEST_STORAGE_KEY", null);
         const stored = unwrapStoredPersistencePayload(storedRaw);

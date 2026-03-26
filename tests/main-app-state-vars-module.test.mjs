@@ -60,7 +60,9 @@ describe("GTV main app state vars module", () => {
             defaultCopyFormatEnabled: { time: true },
             defaultDisplayTimePartsEnabled: { sec: false },
             defaultCopyTimePartsEnabled: { sec: true },
-            defaultTimeAdjustDayStep: 3
+            defaultTimeAdjustDayStep: 3,
+            defaultDayStartHour: 7,
+            defaultNightStartHour: 20
         });
 
         expect(service.initialState.isRealtime).toBe(true);
@@ -68,6 +70,8 @@ describe("GTV main app state vars module", () => {
         expect(service.initialState.copyFormatEnabled).toEqual({ time: true });
         expect(service.initialState.timeAdjustDayStepBySlot).toEqual([3, 3]);
         expect(service.initialState.multiRangeTitle).toBe("RangeTitle");
+        expect(service.initialState.dayStartHour).toBe(7);
+        expect(service.initialState.nightStartHour).toBe(20);
     });
 
     it("creates direct state setters with coercion and safe no-op behavior", () => {
@@ -118,6 +122,8 @@ describe("GTV main app state vars module", () => {
             "multiRangeStartEditEnabled",
             "multiRangeEndEditEnabled",
             "currentTheme",
+            "dayStartHour",
+            "nightStartHour",
             "currentLang"
         ];
 
@@ -155,6 +161,8 @@ describe("GTV main app state vars module", () => {
         setters.multiRangeStartEditEnabled([true]);
         setters.multiRangeEndEditEnabled([false]);
         setters.currentTheme("light");
+        setters.dayStartHour(7);
+        setters.nightStartHour(19);
         setters.currentLang("ko");
 
         expect(calls.length).toBe(handledKeys.length);

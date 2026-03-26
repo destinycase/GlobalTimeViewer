@@ -60,6 +60,9 @@ const MAX_MULTI_RANGE_COUNT = Number(GTV_MAIN_CONSTANTS.MAX_MULTI_RANGE_COUNT ||
 const MIN_FIXED_TIME_SLOT_COUNT = Number(GTV_MAIN_CONSTANTS.MIN_FIXED_TIME_SLOT_COUNT || 1);
 const MAX_FIXED_TIME_SLOT_COUNT = Number(GTV_MAIN_CONSTANTS.MAX_FIXED_TIME_SLOT_COUNT || 5);
 const DEFAULT_FIXED_TIME_VALUE = String(GTV_MAIN_CONSTANTS.DEFAULT_FIXED_TIME_VALUE || "09:00");
+const DEFAULT_DAY_START_HOUR = Number(GTV_MAIN_CONSTANTS.DEFAULT_DAY_START_HOUR || 6);
+const DEFAULT_NIGHT_START_HOUR = Number(GTV_MAIN_CONSTANTS.DEFAULT_NIGHT_START_HOUR || 18);
+const DAY_NIGHT_HOUR_OPTIONS = [...(GTV_MAIN_CONSTANTS.DAY_NIGHT_HOUR_OPTIONS || Array.from({ length: 24 }, (_, hour) => hour))];
 const DEFAULT_MULTI_RANGE_TITLE = String(GTV_MAIN_CONSTANTS.DEFAULT_MULTI_RANGE_TITLE || "Range");
 const DEFAULT_DISPLAY_FORMAT_ENABLED = { ...(GTV_MAIN_CONSTANTS.DEFAULT_DISPLAY_FORMAT_ENABLED || {}) };
 const DEFAULT_COPY_FORMAT_ENABLED = { ...(GTV_MAIN_CONSTANTS.DEFAULT_COPY_FORMAT_ENABLED || {}) };
@@ -79,7 +82,9 @@ const mainAppStateVarsService = GTV_MAIN_APP_STATE_VARS.createService({
     defaultCopyFormatEnabled: DEFAULT_COPY_FORMAT_ENABLED,
     defaultDisplayTimePartsEnabled: DEFAULT_DISPLAY_TIME_PARTS_ENABLED,
     defaultCopyTimePartsEnabled: DEFAULT_COPY_TIME_PARTS_ENABLED,
-    defaultTimeAdjustDayStep: DEFAULT_TIME_ADJUST_DAY_STEP
+    defaultTimeAdjustDayStep: DEFAULT_TIME_ADJUST_DAY_STEP,
+    defaultDayStartHour: DEFAULT_DAY_START_HOUR,
+    defaultNightStartHour: DEFAULT_NIGHT_START_HOUR
 });
 if (!mainAppStateVarsService || typeof mainAppStateVarsService.createDirectStateSetters !== "function") {
     throw new Error("Missing required module API: GTVMainAppStateVars.createDirectStateSetters");
@@ -99,6 +104,34 @@ const initialDisplayTimePartsEnabled = (
 const initialCopyTimePartsEnabled = (
     initialMainState.copyTimePartsEnabled && typeof initialMainState.copyTimePartsEnabled === "object"
 ) ? initialMainState.copyTimePartsEnabled : DEFAULT_COPY_TIME_PARTS_ENABLED;
+function sanitizeDayNightHourValue(value, fallbackHour = DEFAULT_DAY_START_HOUR) {
+    const parsed = Number.parseInt(value, 10);
+    const fallbackParsed = Number.parseInt(fallbackHour, 10);
+    const base = Number.isFinite(parsed)
+        ? parsed
+        : (Number.isFinite(fallbackParsed) ? fallbackParsed : 0);
+    const clamped = Math.min(23, Math.max(0, base));
+    const options = Array.isArray(DAY_NIGHT_HOUR_OPTIONS) && DAY_NIGHT_HOUR_OPTIONS.length
+        ? DAY_NIGHT_HOUR_OPTIONS
+        : Array.from({ length: 24 }, (_, hour) => hour);
+    return options.reduce((closest, hourRaw) => {
+        const hour = Number.parseInt(hourRaw, 10);
+        if (!Number.isFinite(hour)) return closest;
+        return Math.abs(hour - clamped) < Math.abs(closest - clamped) ? hour : closest;
+    }, Number.parseInt(options[0], 10) || 0);
+}
+
+function normalizeDayNightRangeValues(dayStartHourInput, nightStartHourInput) {
+    const dayStartHour = sanitizeDayNightHourValue(dayStartHourInput, DEFAULT_DAY_START_HOUR);
+    const nightStartHour = sanitizeDayNightHourValue(nightStartHourInput, DEFAULT_NIGHT_START_HOUR);
+    if (nightStartHour <= dayStartHour) {
+        return {
+            dayStartHour: sanitizeDayNightHourValue(DEFAULT_DAY_START_HOUR, 6),
+            nightStartHour: sanitizeDayNightHourValue(DEFAULT_NIGHT_START_HOUR, 18)
+        };
+    }
+    return { dayStartHour, nightStartHour };
+}
 
 isRealtime = !!initialMainState.isRealtime;
 if (typeof window !== "undefined" && window) window.isRealtime = isRealtime;
@@ -141,6 +174,12 @@ let activeGroupIdByMainTab = (
     initialMainState.activeGroupIdByMainTab && typeof initialMainState.activeGroupIdByMainTab === "object"
 ) ? { ...initialMainState.activeGroupIdByMainTab } : { live: 0, fixed: 0 };
 let currentTheme = String(initialMainState.currentTheme || "dark");
+const initialDayNightRange = normalizeDayNightRangeValues(
+    initialMainState.dayStartHour,
+    initialMainState.nightStartHour
+);
+let dayStartHour = initialDayNightRange.dayStartHour;
+let nightStartHour = initialDayNightRange.nightStartHour;
 let canUseForeignObjectRenderer = Object.prototype.hasOwnProperty.call(initialMainState, "canUseForeignObjectRenderer")
     ? initialMainState.canUseForeignObjectRenderer
     : null;
@@ -204,6 +243,16 @@ const directStateSetters = mainAppStateVarsService.createDirectStateSetters({
     multiRangeStartEditEnabled: (value) => { multiRangeStartEditEnabled = value; },
     multiRangeEndEditEnabled: (value) => { multiRangeEndEditEnabled = value; },
     currentTheme: (value) => { currentTheme = value; },
+    dayStartHour: (value) => {
+        const normalized = normalizeDayNightRangeValues(value, nightStartHour);
+        dayStartHour = normalized.dayStartHour;
+        nightStartHour = normalized.nightStartHour;
+    },
+    nightStartHour: (value) => {
+        const normalized = normalizeDayNightRangeValues(dayStartHour, value);
+        dayStartHour = normalized.dayStartHour;
+        nightStartHour = normalized.nightStartHour;
+    },
     currentLang: (value) => { syncCurrentLang(value); }
 });
 
@@ -256,6 +305,14 @@ function applyDirectStatePatch(next = {}) {
         }
         setter(next[key]);
     });
+    if (
+        Object.prototype.hasOwnProperty.call(next, "dayStartHour")
+        || Object.prototype.hasOwnProperty.call(next, "nightStartHour")
+    ) {
+        const normalized = normalizeDayNightRangeValues(dayStartHour, nightStartHour);
+        dayStartHour = normalized.dayStartHour;
+        nightStartHour = normalized.nightStartHour;
+    }
     if (Object.prototype.hasOwnProperty.call(next, "isRealtime")) {
         setIsRealtimeState(next.isRealtime);
     }
@@ -518,12 +575,15 @@ const TABLE_IMAGE_EXPORT_WIDTH = GTV_APP_CONFIG.TABLE_IMAGE_EXPORT_WIDTH;
 const EXPORT_MONO_FONT_FAMILY = GTV_APP_CONFIG.EXPORT_MONO_FONT_FAMILY;
 
 function buildPatchedStateFallbackSnapshot() {
+    const dayNightRange = normalizeDayNightRangeValues(dayStartHour, nightStartHour);
     return {
         currentMainTab,
         slotCount,
         showCopyFormat,
         showTimeline,
         currentTheme,
+        dayStartHour: dayNightRange.dayStartHour,
+        nightStartHour: dayNightRange.nightStartHour,
         currentLang: getRuntimeCurrentLangValue(),
         displayFormatOrder,
         displayFormatEnabled,
@@ -607,6 +667,20 @@ function setUiPreferencesState(next = {}) {
     if (!next || typeof next !== "object") return;
     if (Object.prototype.hasOwnProperty.call(next, "uiScale")) uiScale = next.uiScale;
     if (Object.prototype.hasOwnProperty.call(next, "currentTheme")) currentTheme = next.currentTheme;
+    if (Object.prototype.hasOwnProperty.call(next, "dayStartHour")) {
+        dayStartHour = sanitizeDayNightHourValue(next.dayStartHour, dayStartHour);
+    }
+    if (Object.prototype.hasOwnProperty.call(next, "nightStartHour")) {
+        nightStartHour = sanitizeDayNightHourValue(next.nightStartHour, nightStartHour);
+    }
+    if (
+        Object.prototype.hasOwnProperty.call(next, "dayStartHour")
+        || Object.prototype.hasOwnProperty.call(next, "nightStartHour")
+    ) {
+        const normalized = normalizeDayNightRangeValues(dayStartHour, nightStartHour);
+        dayStartHour = normalized.dayStartHour;
+        nightStartHour = normalized.nightStartHour;
+    }
     if (Object.prototype.hasOwnProperty.call(next, "currentLang")) syncCurrentLang(next.currentLang);
 }
 
@@ -848,6 +922,21 @@ function getActiveFormatProfileContextStateRef() {
 
 function getCurrentThemeStateRef() {
     return currentTheme;
+}
+
+function getDayStartHourStateRef() {
+    return sanitizeDayNightHourValue(dayStartHour, DEFAULT_DAY_START_HOUR);
+}
+
+function getNightStartHourStateRef() {
+    return sanitizeDayNightHourValue(nightStartHour, DEFAULT_NIGHT_START_HOUR);
+}
+
+function getDayNightMarkerByHour(hour) {
+    const normalized = normalizeDayNightRangeValues(getDayStartHourStateRef(), getNightStartHourStateRef());
+    const numericHour = Number.parseInt(hour, 10);
+    const safeHour = ((Number.isFinite(numericHour) ? numericHour : 0) % 24 + 24) % 24;
+    return (safeHour >= normalized.dayStartHour && safeHour < normalized.nightStartHour) ? "DAY" : "NIGHT";
 }
 
 function getCurrentLangStateRef() {
@@ -1239,6 +1328,9 @@ const mainCoreServices = GTV_MAIN_CORE_SERVICE_ASSEMBLY.createService({
     MAX_UI_SCALE_PERCENT,
     DEFAULT_UI_SCALE_PERCENT,
     UI_SCALE_PERCENT_OPTIONS,
+    DEFAULT_DAY_START_HOUR,
+    DEFAULT_NIGHT_START_HOUR,
+    DAY_NIGHT_HOUR_OPTIONS,
     THEME_LIST,
     THEME_STORAGE_KEY,
     UI_SCALE_STORAGE_KEY,
@@ -1247,6 +1339,8 @@ const mainCoreServices = GTV_MAIN_CORE_SERVICE_ASSEMBLY.createService({
     setStorageValue: bindFacadeMethod(getPersistenceServiceRef, "setStorageValue"),
     getUiScaleState,
     getCurrentThemeState: getCurrentThemeStateRef,
+    getDayStartHourState: getDayStartHourStateRef,
+    getNightStartHourState: getNightStartHourStateRef,
     getRuntimeCurrentLangState: getPatchedCurrentLangState,
     getCurrentLangState: getCurrentLangStateRef,
     setUiPreferencesState,
@@ -1833,6 +1927,14 @@ function populateUiScaleSelect(selectEl) {
     return uiPreferencesStateService.populateUiScaleSelect(selectEl);
 }
 
+function populateDayNightHourSelect(selectEl) {
+    return uiPreferencesStateService.populateDayNightHourSelect(selectEl);
+}
+
+function setDayNightRange(dayStartHourValue, nightStartHourValue, options = {}) {
+    return uiPreferencesStateService.setDayNightRange(dayStartHourValue, nightStartHourValue, options);
+}
+
 function sanitizeTheme(theme) {
     return uiPreferencesStateService.sanitizeTheme(theme);
 }
@@ -1953,6 +2055,7 @@ const snapshotFormatService = mainCoreServices.createSnapshotFormatService({
     getGlobalTimes: getGlobalTimesState,
     getSlotCount: getPatchedSlotCountState,
     isRealtime: getIsRealtimeState,
+    getDayNightMarkerByHour,
     getFixedOffsetForDisplay,
     normalizeCustomAbbr,
     getCustomOffsetMinutes,
@@ -2160,6 +2263,7 @@ const mainFixedTimeServices = mainCoreServices.createMainFixedTimeServices({
     getDefaultFixedTimeName,
     sanitizeFixedTimeName,
     getFixedDateParts: getFixedDatePartsFromGroup,
+    getDayNightMarkerByHour,
     getCurrentGroup,
     ensureGroupFixedTimes,
     getGlobalTime: getGlobalTimeState,
@@ -2199,6 +2303,7 @@ const mainMultiRangeServices = mainCoreServices.createMainMultiRangeServices({
     t: gtvT,
     getCurrentLang: getPatchedCurrentLangState,
     pad,
+    getDayNightMarkerByHour,
     getCustomOffsetMinutes,
     getFixedOffsetForDisplayAtDate,
     normalizeCustomAbbr,
@@ -2519,6 +2624,8 @@ const mainAppStateServices = mainCoreServices.createMainAppStateServices({
         multiRangeEndEditEnabled,
         isRealtime: getIsRealtimeState(),
         currentTheme,
+        dayStartHour,
+        nightStartHour,
         currentLang: getRuntimeCurrentLangValue()
     }),
     stateSetters: directStateSetters,
@@ -2596,6 +2703,14 @@ function setPatchedShowTimelineState(next) {
 
 function getPatchedCurrentThemeState() {
     return mainPatchedStateSelectorsService.getPatchedCurrentThemeState();
+}
+
+function getPatchedDayStartHourState() {
+    return mainPatchedStateSelectorsService.getPatchedDayStartHourState();
+}
+
+function getPatchedNightStartHourState() {
+    return mainPatchedStateSelectorsService.getPatchedNightStartHourState();
 }
 
 function getPatchedCurrentLangState() {
@@ -2708,6 +2823,9 @@ const mainPersistenceCompositionServices = mainCoreServices.createMainPersistenc
         getTimeAdjustDayStep,
         sanitizeMultiRangeCount,
         sanitizeMultiRangeTitle,
+        DEFAULT_DAY_START_HOUR,
+        DEFAULT_NIGHT_START_HOUR,
+        sanitizeDayNightHour: sanitizeDayNightHourValue,
         getCurrentMultiSubgroupName,
         sanitizeUtcMs: sanitizeUtcMsViaTimeCore,
         now: getRuntimeNowMs
@@ -2718,6 +2836,8 @@ const mainPersistenceCompositionServices = mainCoreServices.createMainPersistenc
         THEME_STORAGE_KEY,
         LANG_STORAGE_KEY,
         UI_SCALE_STORAGE_KEY,
+        DEFAULT_DAY_START_HOUR,
+        DEFAULT_NIGHT_START_HOUR,
         LEGACY_STORAGE_KEYS,
         LEGACY_STORAGE_FALLBACK_KEYS,
         COPY_FORMAT_KEYS,
@@ -2767,6 +2887,9 @@ const mainPersistenceCompositionServices = mainCoreServices.createMainPersistenc
         sanitizeUtcRowOrder: sanitizeUtcRowOrderViaTimeCore,
         sanitizeTheme,
         sanitizeUiScalePercent,
+        populateDayNightHourSelect,
+        getDayStartHour: getPatchedDayStartHourState,
+        getNightStartHour: getPatchedNightStartHourState,
         setCurrentLang,
         loadPersistence,
         localizeAutoGeneratedNamesForCurrentLanguage,
@@ -2817,6 +2940,8 @@ const mainRuntimeCompositionServices = mainCoreServices.createMainRuntimeComposi
         getCurrentLang: getPatchedCurrentLangState,
         getCurrentTheme: getPatchedCurrentThemeState,
         getUiScale: getUiScaleState,
+        getDayStartHour: getPatchedDayStartHourState,
+        getNightStartHour: getPatchedNightStartHourState,
         getMultiRangeCount: getPatchedMultiRangeCountState,
         getShowCopyFormat: getPatchedShowCopyFormatState,
         setShowCopyFormat: setPatchedShowCopyFormatState,
@@ -2855,6 +2980,7 @@ const mainRuntimeCompositionServices = mainCoreServices.createMainRuntimeComposi
         getZoneDisplayNameForUiAtDate,
         getFixedOffsetForDisplayAtDate,
         getLocalPartsByTimezone,
+        getDayNightMarkerByHour,
         getUTCDateFromLocalParts,
         clampNumber,
         pad,
@@ -2883,7 +3009,9 @@ const mainRuntimeCompositionServices = mainCoreServices.createMainRuntimeComposi
         upgradeNativeTitleTooltips,
         switchMainTab,
         populateUiScaleSelect,
+        populateDayNightHourSelect,
         applyUiScale,
+        setDayNightRange,
         setMultiRangeCount,
         refreshMultiRangeControls,
         getFixedTimeSlotCountForCurrentGroup,

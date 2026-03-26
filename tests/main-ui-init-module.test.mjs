@@ -227,6 +227,7 @@ describe("GTV main ui init module", () => {
         const calls = {
             switchTabs: [],
             uiScaleApplied: [],
+            dayNightRange: [],
             multiRangeCount: [],
             fixedSlotCount: [],
             fixedDate: [],
@@ -265,6 +266,8 @@ describe("GTV main ui init module", () => {
         let slotCount = 1;
         let showCopyFormat = false;
         let showTimeline = true;
+        let dayStartHour = 6;
+        let nightStartHour = 18;
         let currentTheme = "dark";
         let currentLang = "ko";
         let currentGroup = { fixedDate: "2026-01-02" };
@@ -274,6 +277,8 @@ describe("GTV main ui init module", () => {
         const infoTip = createNode();
 
         const uiScaleSelect = createNode({ id: "ui-scale-select", value: "100" });
+        const dayStartSelect = createNode({ id: "day-start-select", value: "6" });
+        const nightStartSelect = createNode({ id: "night-start-select", value: "18" });
         const multiRangeCountInput = createNode({ id: "multi-range-count-input", value: "1a2" });
         const multiRangeDecreaseBtn = createNode({ id: "multi-range-count-decrease" });
         const multiRangeIncreaseBtn = createNode({ id: "multi-range-count-increase" });
@@ -303,6 +308,8 @@ describe("GTV main ui init module", () => {
 
         const elementsById = new Map([
             ["ui-scale-select", uiScaleSelect],
+            ["day-start-select", dayStartSelect],
+            ["night-start-select", nightStartSelect],
             ["multi-range-count-input", multiRangeCountInput],
             ["multi-range-count-decrease", multiRangeDecreaseBtn],
             ["multi-range-count-increase", multiRangeIncreaseBtn],
@@ -351,7 +358,22 @@ describe("GTV main ui init module", () => {
             t: (key) => key,
             switchMainTab: (tab) => calls.switchTabs.push(tab),
             populateUiScaleSelect: () => {},
+            populateDayNightHourSelect: () => {},
             getUiScale: () => uiScale,
+            getDayStartHour: () => dayStartHour,
+            getNightStartHour: () => nightStartHour,
+            setDayNightRange: async (nextDayStartHour, nextNightStartHour) => {
+                const parsedDay = Number(nextDayStartHour);
+                const parsedNight = Number(nextNightStartHour);
+                if (parsedNight <= parsedDay) {
+                    calls.toasts.push("toast_day_night_invalid_order");
+                    return { ok: false, dayStartHour, nightStartHour };
+                }
+                dayStartHour = parsedDay;
+                nightStartHour = parsedNight;
+                calls.dayNightRange.push([parsedDay, parsedNight]);
+                return { ok: true, dayStartHour, nightStartHour };
+            },
             applyUiScale: (value) => {
                 uiScale = Number(value) / 100;
                 calls.uiScaleApplied.push(String(value));
@@ -505,6 +527,16 @@ describe("GTV main ui init module", () => {
         await uiScaleSelect.dispatch("change");
         expect(calls.uiScaleApplied).toEqual(["125"]);
         expect(uiScaleSelect.value).toBe("125");
+        dayStartSelect.value = "7";
+        nightStartSelect.value = "19";
+        await dayStartSelect.dispatch("change");
+        expect(calls.dayNightRange).toContainEqual([7, 19]);
+        dayStartSelect.value = "22";
+        nightStartSelect.value = "5";
+        await nightStartSelect.dispatch("change");
+        expect(calls.toasts).toContain("toast_day_night_invalid_order");
+        expect(dayStartSelect.value).toBe("7");
+        expect(nightStartSelect.value).toBe("19");
 
         await multiRangeCountInput.dispatch("input");
         expect(multiRangeCountInput.value).toBe("12");

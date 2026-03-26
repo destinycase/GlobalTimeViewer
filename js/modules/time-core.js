@@ -28,6 +28,20 @@
         return fallbackMs;
     }
 
+    function isLeapYear(year) {
+        if (!Number.isInteger(year)) return false;
+        if (year % 400 === 0) return true;
+        if (year % 100 === 0) return false;
+        return year % 4 === 0;
+    }
+
+    function getMaxDayOfMonth(year, month) {
+        if (!Number.isInteger(month) || month < 1 || month > 12) return 31;
+        if (month === 2) return isLeapYear(year) ? 29 : 28;
+        if ([4, 6, 9, 11].includes(month)) return 30;
+        return 31;
+    }
+
     function buildStrictUtcDateFromParts(parts) {
         const year = parseInt(parts?.year, 10);
         const month = parseInt(parts?.month, 10);
@@ -37,7 +51,7 @@
         const second = parseInt(parts?.second, 10);
         if (!Number.isInteger(year)) return null;
         if (!Number.isInteger(month) || month < 1 || month > 12) return null;
-        if (!Number.isInteger(day) || day < 1 || day > 31) return null;
+        if (!Number.isInteger(day) || day < 1 || day > getMaxDayOfMonth(year, month)) return null;
         if (!Number.isInteger(hour) || hour < 0 || hour > 23) return null;
         if (!Number.isInteger(minute) || minute < 0 || minute > 59) return null;
         if (!Number.isInteger(second) || second < 0 || second > 59) return null;

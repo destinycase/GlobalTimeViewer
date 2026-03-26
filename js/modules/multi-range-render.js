@@ -71,6 +71,14 @@
             return marker;
         }
 
+        function resolveDayNightMarkerByHour(hour) {
+            const marker = String(invokeDep("getDayNightMarkerByHour", hour) || "").trim().toUpperCase();
+            if (marker === "DAY" || marker === "NIGHT") return marker;
+            const numericHour = Number.parseInt(hour, 10);
+            const safeHour = ((Number.isFinite(numericHour) ? numericHour : 0) % 24 + 24) % 24;
+            return (safeHour >= 6 && safeHour < 18) ? "DAY" : "NIGHT";
+        }
+
         function applyZoneCodeKindClass(zoneCodeEl, timezoneRef = null) {
             if (!zoneCodeEl || !zoneCodeEl.classList || typeof zoneCodeEl.classList.toggle !== "function") return;
             const isCustom = !!(timezoneRef && timezoneRef.type === "custom");
@@ -97,7 +105,7 @@
                 dayIndex,
                 hour,
                 dayName: snapshot.dayNames?.[0] || "",
-                dayNightIcon: snapshot.dayNightIcons?.[0] || (hour >= 6 && hour <= 18 ? "DAY" : "NIGHT")
+                dayNightIcon: snapshot.dayNightIcons?.[0] || resolveDayNightMarkerByHour(hour)
             };
         }
 
