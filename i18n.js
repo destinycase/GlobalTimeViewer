@@ -570,18 +570,20 @@ Object.assign(EN_I18N, {
     btn_retry: "Retry",
     btn_copy_error_code: "Copy",
     error_more_details: "More details",
-    toast_error_code_copied: "Error code copied."
+    toast_error_code_copied: "Error code copied.",
+    toast_required_feature_module_missing: "A required feature module is unavailable. Refresh and try again."
 });
 
 Object.assign(KO_OVERRIDES, {
-    error_fatal_desc_module_load: "A required script failed to load. Please reload the extension.",
-    error_fatal_desc_persistence: "Saved data could not be restored. You can retry or reset settings.",
-    error_fatal_desc_state: "Application state initialization failed. You can retry or reset settings.",
-    error_code_label: "Error code",
-    btn_retry: "Retry",
-    btn_copy_error_code: "Copy",
-    error_more_details: "More details",
-    toast_error_code_copied: "Error code copied."
+    error_fatal_desc_module_load: "\uD544\uC218 \uC2A4\uD06C\uB9BD\uD2B8\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uD655\uC7A5 \uD504\uB85C\uADF8\uB7A8\uC744 \uB2E4\uC2DC \uB85C\uB4DC\uD574 \uC8FC\uC138\uC694.",
+    error_fatal_desc_persistence: "\uC800\uC7A5\uB41C \uB370\uC774\uD130\uB97C \uBCF5\uC6D0\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uC7AC\uC2DC\uB3C4\uD558\uAC70\uB098 \uC124\uC815\uC744 \uCD08\uAE30\uD654\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    error_fatal_desc_state: "\uC560\uD50C\uB9AC\uCF00\uC774\uC158 \uC0C1\uD0DC \uCD08\uAE30\uD654\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uC7AC\uC2DC\uB3C4\uD558\uAC70\uB098 \uC124\uC815\uC744 \uCD08\uAE30\uD654\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    error_code_label: "\uC624\uB958 \uCF54\uB4DC",
+    btn_retry: "\uC7AC\uC2DC\uB3C4",
+    btn_copy_error_code: "\uBCF5\uC0AC",
+    error_more_details: "\uC0C1\uC138 \uC815\uBCF4",
+    toast_error_code_copied: "\uC624\uB958 \uCF54\uB4DC\uAC00 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    toast_required_feature_module_missing: "\uD544\uC218 \uAE30\uB2A5 \uBAA8\uB4C8\uC774 \uC900\uBE44\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uC0C8\uB85C\uACE0\uCE68 \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694."
 });
 
 const I18N_DATA = {

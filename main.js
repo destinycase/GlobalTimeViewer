@@ -336,8 +336,10 @@ function warnMissingServiceMethod(serviceName, methodName) {
 function showMissingFeatureToastOnce(featureKey = "") {
     const key = String(featureKey || "").trim();
     if (!key) return;
-    const message = (getRuntimeCurrentLangValue() === "ko")
-        ? "\uD544\uC218 \uAE30\uB2A5 \uBAA8\uB4C8\uC774 \uC900\uBE44\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uC0C8\uB85C\uACE0\uCE68 \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694."
+    const messageKey = "toast_required_feature_module_missing";
+    const localized = gtvT(messageKey);
+    const message = (typeof localized === "string" && localized !== messageKey)
+        ? localized
         : "A required feature module is unavailable. Refresh and try again.";
     callServiceMethod(
         "appFeedbackService",
