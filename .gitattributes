@@ -1,1 +1,16 @@
 * text=auto
+.gitattributes text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.mjs text eol=lf
+*.js text eol=lf
+
+# Windows build script
+*.ps1 text eol=crlf
+
+# Legacy CRLF entrypoints kept stable to avoid one-shot massive churn
+main.js text eol=crlf
+js/modules/format-controls.js text eol=crlf
+js/modules/time-adjust-ui.js text eol=crlf
