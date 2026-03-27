@@ -11,6 +11,17 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const groupTabsApi = requireCreateServiceModule(safeDeps.GTV_GROUP_TABS, "GTVGroupTabs");
+        const serviceInvokeUtils = (
+            safeDeps.GTV_SERVICE_INVOKE_UTILS
+            && typeof safeDeps.GTV_SERVICE_INVOKE_UTILS === "object"
+        )
+            ? safeDeps.GTV_SERVICE_INVOKE_UTILS
+            : (
+                globalObj.GTVServiceInvokeUtils
+                && typeof globalObj.GTVServiceInvokeUtils === "object"
+            )
+                ? globalObj.GTVServiceInvokeUtils
+                : null;
 
         const getPersistenceService = (typeof safeDeps.getPersistenceService === "function")
             ? safeDeps.getPersistenceService
@@ -21,6 +32,24 @@
         const getActiveGroupId = (typeof safeDeps.getActiveGroupId === "function")
             ? safeDeps.getActiveGroupId
             : (() => 0);
+
+        function resolveExternalService(getter) {
+            if (serviceInvokeUtils && typeof serviceInvokeUtils.resolveService === "function") {
+                return serviceInvokeUtils.resolveService(getter);
+            }
+            if (typeof getter !== "function") return null;
+            const service = getter();
+            return (service && typeof service === "object") ? service : null;
+        }
+
+        function invokeExternalService(getter, methodName, args = [], fallback = undefined) {
+            if (serviceInvokeUtils && typeof serviceInvokeUtils.invokeGetterMethod === "function") {
+                return serviceInvokeUtils.invokeGetterMethod(getter, methodName, args, fallback);
+            }
+            const service = resolveExternalService(getter);
+            if (!service || typeof service[methodName] !== "function") return fallback;
+            return service[methodName](...args);
+        }
 
         let groupTabsService = null;
         groupTabsService = groupTabsApi.createService({
@@ -37,11 +66,8 @@
             normalizeGroupTabState: safeDeps.normalizeGroupTabState,
             syncCurrentMultiStateToActiveSubgroup: safeDeps.syncCurrentMultiStateToActiveSubgroup,
             loadCurrentMultiStateFromActiveSubgroup: safeDeps.loadCurrentMultiStateFromActiveSubgroup,
-            savePersistence: (options = {}) => {
-                const persistenceService = getPersistenceService();
-                if (!persistenceService || typeof persistenceService.savePersistence !== "function") return;
-                return persistenceService.savePersistence(options);
-            },
+            savePersistence: (options = {}) =>
+                invokeExternalService(getPersistenceService, "savePersistence", [options]),
             renderGroups: () => groupTabsService.renderGroups(),
             renderMultiSubgroups: () => groupTabsService.renderMultiSubgroups(),
             renderBaseTimeSelect: safeDeps.renderBaseTimeSelect,
@@ -58,26 +84,14 @@
             createMultiSubgroupState: safeDeps.createMultiSubgroupState,
             sanitizeMultiSubgroupName: safeDeps.sanitizeMultiSubgroupName,
             sanitizeMultiRangeTitle: safeDeps.sanitizeMultiRangeTitle,
-            exportGroupToJSON: (groupIdx = getActiveGroupId()) => {
-                const dataTransferService = getDataTransferService();
-                if (!dataTransferService || typeof dataTransferService.exportGroupToJSON !== "function") return;
-                return dataTransferService.exportGroupToJSON(groupIdx);
-            },
-            triggerGroupImportFor: (groupIdx = getActiveGroupId()) => {
-                const dataTransferService = getDataTransferService();
-                if (!dataTransferService || typeof dataTransferService.triggerGroupImportFor !== "function") return;
-                return dataTransferService.triggerGroupImportFor(groupIdx);
-            },
-            exportSubgroupToJSON: (groupIdx = getActiveGroupId(), subgroupId = "") => {
-                const dataTransferService = getDataTransferService();
-                if (!dataTransferService || typeof dataTransferService.exportSubgroupToJSON !== "function") return;
-                return dataTransferService.exportSubgroupToJSON(groupIdx, subgroupId);
-            },
-            triggerSubgroupImportFor: (groupIdx = getActiveGroupId(), subgroupId = "") => {
-                const dataTransferService = getDataTransferService();
-                if (!dataTransferService || typeof dataTransferService.triggerSubgroupImportFor !== "function") return;
-                return dataTransferService.triggerSubgroupImportFor(groupIdx, subgroupId);
-            }
+            exportGroupToJSON: (groupIdx = getActiveGroupId()) =>
+                invokeExternalService(getDataTransferService, "exportGroupToJSON", [groupIdx]),
+            triggerGroupImportFor: (groupIdx = getActiveGroupId()) =>
+                invokeExternalService(getDataTransferService, "triggerGroupImportFor", [groupIdx]),
+            exportSubgroupToJSON: (groupIdx = getActiveGroupId(), subgroupId = "") =>
+                invokeExternalService(getDataTransferService, "exportSubgroupToJSON", [groupIdx, subgroupId]),
+            triggerSubgroupImportFor: (groupIdx = getActiveGroupId(), subgroupId = "") =>
+                invokeExternalService(getDataTransferService, "triggerSubgroupImportFor", [groupIdx, subgroupId])
         });
 
         return Object.freeze({

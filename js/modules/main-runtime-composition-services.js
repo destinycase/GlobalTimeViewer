@@ -34,15 +34,38 @@
         const services = (safeDeps.services && typeof safeDeps.services === "object")
             ? safeDeps.services
             : {};
+        const serviceInvokeUtils = (
+            safeDeps.GTV_SERVICE_INVOKE_UTILS
+            && typeof safeDeps.GTV_SERVICE_INVOKE_UTILS === "object"
+        )
+            ? safeDeps.GTV_SERVICE_INVOKE_UTILS
+            : (
+                globalObj.GTVServiceInvokeUtils
+                && typeof globalObj.GTVServiceInvokeUtils === "object"
+            )
+                ? globalObj.GTVServiceInvokeUtils
+                : null;
         const environment = (safeDeps.environment && typeof safeDeps.environment === "object")
             ? safeDeps.environment
             : {};
 
         function getService(name) {
+            if (serviceInvokeUtils && typeof serviceInvokeUtils.resolveService === "function") {
+                return serviceInvokeUtils.resolveService(services[name]);
+            }
             const getter = services[name];
             if (typeof getter !== "function") return null;
             const value = getter();
             return (value && typeof value === "object") ? value : null;
+        }
+
+        function invokeService(name, methodName, args = [], fallback = undefined) {
+            if (serviceInvokeUtils && typeof serviceInvokeUtils.invokeServiceMethod === "function") {
+                return serviceInvokeUtils.invokeServiceMethod(getService(name), methodName, args, fallback);
+            }
+            const service = getService(name);
+            if (!service || typeof service[methodName] !== "function") return fallback;
+            return service[methodName](...args);
         }
 
         const mainUiRuntimeServices = mainUiRuntimeApi.createService({
@@ -83,12 +106,7 @@
             getCurrentLang: state.getCurrentLang,
             getCurrentTheme: state.getCurrentTheme,
             updateClocks: actions.updateClocks,
-            savePersistence: () => {
-                const persistenceService = getService("getPersistenceService");
-                if (persistenceService && typeof persistenceService.savePersistence === "function") {
-                    persistenceService.savePersistence();
-                }
-            },
+            savePersistence: () => invokeService("getPersistenceService", "savePersistence", []),
             getTimelineFrameElement: () => {
                 const documentRef = (typeof environment.getDocumentRef === "function")
                     ? environment.getDocumentRef()
@@ -103,13 +121,8 @@
             getDisplayFormatEnabled: actions.getDisplayFormatEnabled,
             sanitizeCopyFormatOrderForContext: actions.sanitizeCopyFormatOrderForContext,
             sanitizeCopyFormatEnabledForContext: actions.sanitizeCopyFormatEnabledForContext,
-            getRenderableTimezoneRows: (baseRef) => {
-                const tableRenderService = getService("getTableRenderService");
-                if (!tableRenderService || typeof tableRenderService.getRenderableTimezoneRows !== "function") {
-                    return [];
-                }
-                return tableRenderService.getRenderableTimezoneRows(baseRef);
-            },
+            getRenderableTimezoneRows: (baseRef) =>
+                invokeService("getTableRenderService", "getRenderableTimezoneRows", [baseRef], []),
             resolveFixedTimeSlotUtcDate: actions.resolveFixedTimeSlotUtcDate,
             getFixedTimeTimelineIndicatorColor: actions.getFixedTimeTimelineIndicatorColor,
             getFixedTimeSlotHeaderLabel: actions.getFixedTimeSlotHeaderLabel,
@@ -150,12 +163,8 @@
             setSlotCount: state.setSlotCount,
             activateFormatProfileForCurrentContext: actions.activateFormatProfileForCurrentContext,
             renderList: actions.renderList,
-            renderCopyFormatControls: () => {
-                const formatControlsService = getService("getFormatControlsService");
-                if (formatControlsService && typeof formatControlsService.renderCopyFormatControls === "function") {
-                    formatControlsService.renderCopyFormatControls();
-                }
-            },
+            renderCopyFormatControls: () =>
+                invokeService("getFormatControlsService", "renderCopyFormatControls", []),
             updateCopyFormatPreview: actions.updateCopyFormatPreview,
             getShowCopyFormat: state.getShowCopyFormat,
             setShowCopyFormat: state.setShowCopyFormat,
@@ -165,18 +174,8 @@
             resetDisplayFormatForActiveContext: actions.resetDisplayFormatForActiveContext,
             resetCopyFormatForActiveContext: actions.resetCopyFormatForActiveContext,
             applyCurrentGroupBaseTimezoneId: actions.applyCurrentGroupBaseTimezoneId,
-            addGroup: () => {
-                const groupTabsService = getService("getGroupTabsService");
-                if (groupTabsService && typeof groupTabsService.addGroup === "function") {
-                    groupTabsService.addGroup();
-                }
-            },
-            addMultiSubgroup: () => {
-                const groupTabsService = getService("getGroupTabsService");
-                if (groupTabsService && typeof groupTabsService.addMultiSubgroup === "function") {
-                    groupTabsService.addMultiSubgroup();
-                }
-            },
+            addGroup: () => invokeService("getGroupTabsService", "addGroup", []),
+            addMultiSubgroup: () => invokeService("getGroupTabsService", "addMultiSubgroup", []),
             copyAllTimezones: actions.copyAllTimezones,
             saveTimezoneTableImage: actions.saveTimezoneTableImage,
             saveMultiRangeTitlesImage: actions.saveMultiRangeTitlesImage,
@@ -204,38 +203,13 @@
             },
             localizeAutoGeneratedNamesForCurrentLanguage: actions.localizeAutoGeneratedNamesForCurrentLanguage,
             applyVersionBranding: actions.applyVersionBranding,
-            updateTZDropdown: () => {
-                const timezoneSearchService = getService("getTimezoneSearchService");
-                if (timezoneSearchService && typeof timezoneSearchService.updateTZDropdown === "function") {
-                    timezoneSearchService.updateTZDropdown();
-                }
-            },
-            renderGroups: () => {
-                const groupTabsService = getService("getGroupTabsService");
-                if (groupTabsService && typeof groupTabsService.renderGroups === "function") {
-                    groupTabsService.renderGroups();
-                }
-            },
-            renderMultiSubgroups: () => {
-                const groupTabsService = getService("getGroupTabsService");
-                if (groupTabsService && typeof groupTabsService.renderMultiSubgroups === "function") {
-                    groupTabsService.renderMultiSubgroups();
-                }
-            },
-            updateTimeAdjustPanel: () => {
-                const timeAdjustUiService = getService("getTimeAdjustUiService");
-                if (timeAdjustUiService && typeof timeAdjustUiService.updateTimeAdjustPanel === "function") {
-                    timeAdjustUiService.updateTimeAdjustPanel();
-                }
-            },
+            updateTZDropdown: () => invokeService("getTimezoneSearchService", "updateTZDropdown", []),
+            renderGroups: () => invokeService("getGroupTabsService", "renderGroups", []),
+            renderMultiSubgroups: () => invokeService("getGroupTabsService", "renderMultiSubgroups", []),
+            updateTimeAdjustPanel: () => invokeService("getTimeAdjustUiService", "updateTimeAdjustPanel", []),
             refreshSelectWidths: actions.refreshSelectWidths,
             renderBaseTimeSelect: actions.renderBaseTimeSelect,
-            updateOptionRowVisibility: () => {
-                const tabUiService = getService("getTabUiService");
-                if (tabUiService && typeof tabUiService.updateOptionRowVisibility === "function") {
-                    tabUiService.updateOptionRowVisibility();
-                }
-            }
+            updateOptionRowVisibility: () => invokeService("getTabUiService", "updateOptionRowVisibility", [])
         });
 
         const mainClockOrchestratorService = mainClockOrchestratorApi.createService({
@@ -243,12 +217,7 @@
             renderFixedTimeTab: actions.renderFixedTimeTab,
             renderTimelineFrame: actions.renderTimelineFrame,
             isMultiTab: actions.isMultiTab,
-            renderMultiRanges: () => {
-                const multiRangeRenderService = getService("getMultiRangeRenderService");
-                if (multiRangeRenderService && typeof multiRangeRenderService.renderMultiRanges === "function") {
-                    multiRangeRenderService.renderMultiRanges();
-                }
-            },
+            renderMultiRanges: () => invokeService("getMultiRangeRenderService", "renderMultiRanges", []),
             getBaseTimezoneRef: actions.getBaseTimezoneRef,
             getUTCRef: actions.getUTCRef,
             updateRow: actions.updateRow,

@@ -1,11 +1,18 @@
 let isRealtime = true;
-if (typeof window !== "undefined" && window) window.isRealtime = isRealtime;
+const GTV_GLOBAL = (typeof window !== "undefined" && window) ? window : globalThis;
+function syncRealtimeFlagToGlobal(value) {
+    try {
+        GTV_GLOBAL.isRealtime = !!value;
+    } catch (_error) {
+        // noop: non-writable global in sandbox/test environments
+    }
+}
+syncRealtimeFlagToGlobal(isRealtime);
 let globalTimes = [new Date(), new Date()];
 let slotCount = 1;
 let uiScale = 1.0;
 let showCopyFormat = false;
 let showTimeline = false;
-const GTV_GLOBAL = (typeof window !== "undefined" && window) ? window : globalThis;
 const fallbackTranslate = (key) => String(key ?? "");
 const resolveTranslate = () => (typeof GTV_GLOBAL.t === "function" ? GTV_GLOBAL.t : fallbackTranslate);
 const gtvT = (...args) => resolveTranslate()(...args);
@@ -35,7 +42,7 @@ function syncCurrentLang(next) {
     }
     return mainCurrentLang;
 }
-const GTV_MAIN_CONSTANTS = (typeof window !== "undefined" ? window.GTVMainConstants : globalThis.GTVMainConstants);
+const GTV_MAIN_CONSTANTS = GTV_GLOBAL.GTVMainConstants;
 if (!GTV_MAIN_CONSTANTS || typeof GTV_MAIN_CONSTANTS !== "object") {
     throw new Error("Missing required module: GTVMainConstants");
 }
@@ -69,9 +76,7 @@ const DEFAULT_COPY_FORMAT_ENABLED = { ...(GTV_MAIN_CONSTANTS.DEFAULT_COPY_FORMAT
 const DEFAULT_DISPLAY_TIME_PARTS_ENABLED = { ...(GTV_MAIN_CONSTANTS.DEFAULT_DISPLAY_TIME_PARTS_ENABLED || {}) };
 const DEFAULT_COPY_TIME_PARTS_ENABLED = { ...(GTV_MAIN_CONSTANTS.DEFAULT_COPY_TIME_PARTS_ENABLED || {}) };
 const FORMAT_PROFILE_CONTEXT_KEYS = [...(GTV_MAIN_CONSTANTS.FORMAT_PROFILE_CONTEXT_KEYS || [])];
-const GTV_MAIN_APP_STATE_VARS = (typeof window !== "undefined"
-    ? window.GTVMainAppStateVars
-    : globalThis.GTVMainAppStateVars);
+const GTV_MAIN_APP_STATE_VARS = GTV_GLOBAL.GTVMainAppStateVars;
 if (!GTV_MAIN_APP_STATE_VARS || typeof GTV_MAIN_APP_STATE_VARS.createService !== "function") {
     throw new Error("Missing required module API: GTVMainAppStateVars.createService");
 }
@@ -134,7 +139,7 @@ function normalizeDayNightRangeValues(dayStartHourInput, nightStartHourInput) {
 }
 
 isRealtime = !!initialMainState.isRealtime;
-if (typeof window !== "undefined" && window) window.isRealtime = isRealtime;
+syncRealtimeFlagToGlobal(isRealtime);
 globalTimes = Array.isArray(initialMainState.globalTimes) ? [...initialMainState.globalTimes] : [new Date(), new Date()];
 slotCount = Number.isFinite(Number(initialMainState.slotCount)) ? Number(initialMainState.slotCount) : 1;
 uiScale = Number.isFinite(Number(initialMainState.uiScale)) ? Number(initialMainState.uiScale) : 1.0;
@@ -258,7 +263,7 @@ const directStateSetters = mainAppStateVarsService.createDirectStateSetters({
 
 function setIsRealtimeState(next) {
     isRealtime = !!next;
-    if (typeof window !== "undefined" && window) window.isRealtime = isRealtime;
+    syncRealtimeFlagToGlobal(isRealtime);
     return isRealtime;
 }
 
@@ -332,7 +337,7 @@ function showMissingFeatureToastOnce(featureKey = "") {
     const key = String(featureKey || "").trim();
     if (!key) return;
     const message = (getRuntimeCurrentLangValue() === "ko")
-        ? "필수 기능 모듈이 준비되지 않았습니다. 새로고침 후 다시 시도해 주세요."
+        ? "\uD544\uC218 \uAE30\uB2A5 \uBAA8\uB4C8\uC774 \uC900\uBE44\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uC0C8\uB85C\uACE0\uCE68 \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694."
         : "A required feature module is unavailable. Refresh and try again.";
     callServiceMethod(
         "appFeedbackService",
@@ -372,7 +377,13 @@ function savePersistenceSafely(...args) {
 }
 
 function renderMultiRangesSafely() {
-    return mainMultiRangeTabFacadeService.renderMultiRanges();
+    return callServiceMethod(
+        "mainMultiRangeTabFacadeService",
+        mainMultiRangeTabFacadeService,
+        "renderMultiRanges",
+        [],
+        { fallback: undefined }
+    );
 }
 
 function resolveRequiredBootstrapServiceRef(serviceName = "") {
@@ -445,15 +456,11 @@ const timezoneOffsetCache = new Map();
 const timezoneDstCache = new Map();
 const zoneAbbrCache = new Map();
 const rowViewCache = new Map();
-const GTV_MAIN_MODULE_RESOLVER = (typeof window !== "undefined"
-    ? window.GTVMainModuleResolver
-    : globalThis.GTVMainModuleResolver);
+const GTV_MAIN_MODULE_RESOLVER = GTV_GLOBAL.GTVMainModuleResolver;
 if (!GTV_MAIN_MODULE_RESOLVER || typeof GTV_MAIN_MODULE_RESOLVER.resolveModules !== "function") {
     throw new Error("Missing required module API: GTVMainModuleResolver.resolveModules");
 }
-const GTV_MAIN_MODULE_SPEC = (typeof window !== "undefined"
-    ? window.GTVMainModuleSpec
-    : globalThis.GTVMainModuleSpec);
+const GTV_MAIN_MODULE_SPEC = GTV_GLOBAL.GTVMainModuleSpec;
 if (!GTV_MAIN_MODULE_SPEC || typeof GTV_MAIN_MODULE_SPEC.createSpecMap !== "function") {
     throw new Error("Missing required module API: GTVMainModuleSpec.createSpecMap");
 }
@@ -632,7 +639,23 @@ function getGlobalThisRefOrNull() {
 }
 
 function getLuxonGlobalRef() {
-    return (typeof window !== "undefined") ? window.luxon : globalThis.luxon;
+    return GTV_GLOBAL.luxon;
+}
+
+function getComputedStyleSafely(target) {
+    if (GTV_GLOBAL && typeof GTV_GLOBAL.getComputedStyle === "function") {
+        try {
+            return GTV_GLOBAL.getComputedStyle(target);
+        } catch (_error) {
+            // noop: fallback below
+        }
+    }
+    return {
+        fontStyle: "",
+        fontWeight: "",
+        fontSize: "14px",
+        fontFamily: "sans-serif"
+    };
 }
 
 function getRuntimeNowMs() {
@@ -693,11 +716,23 @@ function escapeHtmlViaSharedUtils(value) {
 }
 
 function getRenderableTimezoneRowsFromTableRender(baseRef) {
-    return tableRenderService.getRenderableTimezoneRows(baseRef);
+    return callServiceMethod(
+        "tableRenderService",
+        tableRenderService,
+        "getRenderableTimezoneRows",
+        [baseRef],
+        { fallback: [] }
+    );
 }
 
 function getMultiDisplayColumnHeaderFromTableRender(colKey) {
-    return tableRenderService.getMultiDisplayColumnHeader(colKey);
+    return callServiceMethod(
+        "tableRenderService",
+        tableRenderService,
+        "getMultiDisplayColumnHeader",
+        [colKey],
+        { fallback: "" }
+    );
 }
 
 function getTimezoneRefByIdFromSnapshotService(id) {
@@ -709,11 +744,23 @@ function normalizeZoneAbbreviationViaSearch(value) {
 }
 
 function getDefaultMultiSubgroupNameViaState(index = 0) {
-    return multiStateService.getDefaultMultiSubgroupName(index);
+    return callServiceMethod(
+        "multiStateService",
+        multiStateService,
+        "getDefaultMultiSubgroupName",
+        [index],
+        { fallback: "" }
+    );
 }
 
 function sanitizeMultiSubgroupIdViaState(value) {
-    return multiStateService.sanitizeMultiSubgroupId(value);
+    return callServiceMethod(
+        "multiStateService",
+        multiStateService,
+        "sanitizeMultiSubgroupId",
+        [value],
+        { fallback: value }
+    );
 }
 
 function getBaseTimeSnapshot() {
@@ -992,7 +1039,13 @@ function getImageExportNamingServiceRef() {
 }
 
 function getMultiRangeTitleTextFromRenderService(rangeIdx, range, baseRef) {
-    return multiRangeRenderService.getMultiRangeTitleText(rangeIdx, range, baseRef);
+    return callServiceMethod(
+        "multiRangeRenderService",
+        multiRangeRenderService,
+        "getMultiRangeTitleText",
+        [rangeIdx, range, baseRef],
+        { fallback: "" }
+    );
 }
 
 function buildTimezoneComputedSnapshotForDatesViaSnapshotService(tz, slotDates, options = {}) {
@@ -1004,19 +1057,43 @@ function formatSnapshotTextViaSnapshotService(snapshot, order, enabled, timePart
 }
 
 function sanitizeMultiSubgroupNameViaState(value, fallback = "") {
-    return multiStateService.sanitizeMultiSubgroupName(value, fallback);
+    return callServiceMethod(
+        "multiStateService",
+        multiStateService,
+        "sanitizeMultiSubgroupName",
+        [value, fallback],
+        { fallback }
+    );
 }
 
 function sanitizeMultiSubgroupNameForExport(value, fallback = "subgroup") {
-    return multiStateService.sanitizeMultiSubgroupName(value, fallback);
+    return callServiceMethod(
+        "multiStateService",
+        multiStateService,
+        "sanitizeMultiSubgroupName",
+        [value, fallback],
+        { fallback }
+    );
 }
 
 function buildStaticRowCellFromTableRender(colKey, slotCountToRender, zoneNameHtml = "") {
-    return tableRenderService.buildStaticRowCell(colKey, slotCountToRender, zoneNameHtml);
+    return callServiceMethod(
+        "tableRenderService",
+        tableRenderService,
+        "buildStaticRowCell",
+        [colKey, slotCountToRender, zoneNameHtml],
+        { fallback: "" }
+    );
 }
 
 function buildDynamicRowCellFromTableRender(colKey, slotCountToRender) {
-    return tableRenderService.buildDynamicRowCell(colKey, slotCountToRender);
+    return callServiceMethod(
+        "tableRenderService",
+        tableRenderService,
+        "buildDynamicRowCell",
+        [colKey, slotCountToRender],
+        { fallback: "" }
+    );
 }
 
 function getRowFormattedTextViaSnapshotService(
@@ -1041,15 +1118,33 @@ function applyFirstRangeStartAdjustAction(slotIdx, action) {
 }
 
 function ensureGroupMultiSubgroupsViaState(group, options = {}) {
-    return multiStateService.ensureGroupMultiSubgroups(group, options);
+    return callServiceMethod(
+        "multiStateService",
+        multiStateService,
+        "ensureGroupMultiSubgroups",
+        [group, options],
+        { fallback: [] }
+    );
 }
 
 function createMultiSubgroupStateViaState(name = "", index = 0, state = null) {
-    return multiStateService.createMultiSubgroupState(name, index, state);
+    return callServiceMethod(
+        "multiStateService",
+        multiStateService,
+        "createMultiSubgroupState",
+        [name, index, state],
+        { fallback: null }
+    );
 }
 
 function sanitizeMultiStatePayloadViaState(rawState = null, fallbackState = null) {
-    return multiStateService.sanitizeMultiStatePayload(rawState, fallbackState);
+    return callServiceMethod(
+        "multiStateService",
+        multiStateService,
+        "sanitizeMultiStatePayload",
+        [rawState, fallbackState],
+        { fallback: fallbackState }
+    );
 }
 
 function getPersistenceServiceRef() {
@@ -1413,8 +1508,35 @@ const fixedTimeStateService = mainCoreServices.fixedTimeStateService;
 const uiPreferencesStateService = mainCoreServices.uiPreferencesStateService;
 const timerEngineService = mainCoreServices.timerEngineService;
 const timeService = mainCoreServices.timeService;
-function bindFacadeMethod(getFacade, methodName) {
-    return (...args) => getFacade()[methodName](...args);
+function deriveFacadeServiceName(getFacade, fallbackName = "facadeService") {
+    if (typeof getFacade !== "function") return fallbackName;
+    const getterName = (typeof getFacade.name === "string") ? getFacade.name.trim() : "";
+    if (!getterName) return fallbackName;
+
+    const withoutGetPrefix = getterName.startsWith("get")
+        ? getterName.slice(3)
+        : getterName;
+    const withoutRefSuffix = withoutGetPrefix.endsWith("Ref")
+        ? withoutGetPrefix.slice(0, -3)
+        : withoutGetPrefix;
+    if (!withoutRefSuffix) return fallbackName;
+
+    return withoutRefSuffix.charAt(0).toLowerCase() + withoutRefSuffix.slice(1);
+}
+
+function bindFacadeMethod(getFacade, methodName, options = {}) {
+    const safeOptions = (options && typeof options === "object") ? options : {};
+    const serviceName = String(
+        safeOptions.serviceName || deriveFacadeServiceName(getFacade)
+    ).trim() || "facadeService";
+
+    return (...args) => callServiceMethod(
+        serviceName,
+        (typeof getFacade === "function") ? getFacade() : null,
+        methodName,
+        args,
+        safeOptions
+    );
 }
 
 const sanitizeUtcRowOrderViaTimeCore = bindFacadeMethod(getTimeCoreRef, "sanitizeUtcRowOrder");
@@ -1433,21 +1555,19 @@ var getZoneDisplayName = bindFacadeMethod(getMainTimezoneFacadeServiceRef, "getZ
 var sanitizeTimezoneId = bindFacadeMethod(getMainTimezoneFacadeServiceRef, "sanitizeTimezoneId");
 var sanitizeBaseTimezoneId = bindFacadeMethod(getMainTimezoneFacadeServiceRef, "sanitizeBaseTimezoneId");
 var setCurrentGroupBaseTimezoneId = bindFacadeMethod(getMainTimezoneFacadeServiceRef, "setCurrentGroupBaseTimezoneId");
-var applyCurrentGroupBaseTimezoneId = (nextBaseId, options = {}) =>
-    mainTimezoneFacadeService.applyCurrentGroupBaseTimezoneId(nextBaseId, options);
+var applyCurrentGroupBaseTimezoneId = bindFacadeMethod(getMainTimezoneFacadeServiceRef, "applyCurrentGroupBaseTimezoneId");
 var getUsedTimezoneIds = bindFacadeMethod(getMainTimezoneFacadeServiceRef, "getUsedTimezoneIds");
-var createUniqueTimezoneId = (prefix = "tz") => mainTimezoneFacadeService.createUniqueTimezoneId(prefix);
+var createUniqueTimezoneId = bindFacadeMethod(getMainTimezoneFacadeServiceRef, "createUniqueTimezoneId");
 var getNextTimezoneIdSeed = bindFacadeMethod(getMainTimezoneFacadeServiceRef, "getNextTimezoneIdSeed");
 
 var getTimeAdjustDayStep = bindFacadeMethod(getMainTimeAdjustFacadeServiceRef, "getTimeAdjustDayStep");
 var setTimeAdjustDayStep = bindFacadeMethod(getMainTimeAdjustFacadeServiceRef, "setTimeAdjustDayStep");
 var updateTimeAdjustPanel = bindFacadeMethod(getMainTimeAdjustFacadeServiceRef, "updateTimeAdjustPanel");
-var renderTimeAdjustSet = (slotIdx, options = {}) => mainTimeAdjustFacadeService.renderTimeAdjustSet(slotIdx, options);
+var renderTimeAdjustSet = bindFacadeMethod(getMainTimeAdjustFacadeServiceRef, "renderTimeAdjustSet");
 var attachTimeAdjustToggleLabel = bindFacadeMethod(getMainTimeAdjustFacadeServiceRef, "attachTimeAdjustToggleLabel");
 var renderMultiBulkToolSets = bindFacadeMethod(getMainTimeAdjustFacadeServiceRef, "renderMultiBulkToolSets");
 var sanitizeTimeAdjustDayStep = bindFacadeMethod(getMainTimeAdjustFacadeServiceRef, "sanitizeTimeAdjustDayStep");
-var resolveTimeAdjustZoneAndOffset = (baseRef, fixedOffsetMinutes = null) =>
-    mainTimeAdjustFacadeService.resolveTimeAdjustZoneAndOffset(baseRef, fixedOffsetMinutes);
+var resolveTimeAdjustZoneAndOffset = bindFacadeMethod(getMainTimeAdjustFacadeServiceRef, "resolveTimeAdjustZoneAndOffset");
 var applyTimeAdjustAction = bindFacadeMethod(getMainTimeAdjustFacadeServiceRef, "applyTimeAdjustAction");
 var getAdjustedUtcDateByAction = bindFacadeMethod(getMainTimeAdjustFacadeServiceRef, "getAdjustedUtcDateByAction");
 var applyBulkRangeAllAction = bindFacadeMethod(getMainTimeAdjustFacadeServiceRef, "applyBulkRangeAllAction");
@@ -1464,20 +1584,17 @@ var copyAllTimezones = bindFacadeMethod(getMainTimezoneTableFacadeServiceRef, "c
 
 var isTimelineSupportedTab = bindFacadeMethod(getMainTimelineFacadeServiceRef, "isTimelineSupportedTab");
 var shouldRenderTimeline = bindFacadeMethod(getMainTimelineFacadeServiceRef, "shouldRenderTimeline");
-var resolveFixedTimeTimelineSourceDate = (slotIdx, baseRef, anchorDate = getGlobalTimeState(0)) =>
-    mainTimelineFacadeService.resolveFixedTimeTimelineSourceDate(slotIdx, baseRef, anchorDate);
+var resolveFixedTimeTimelineSourceDate = bindFacadeMethod(getMainTimelineFacadeServiceRef, "resolveFixedTimeTimelineSourceDate");
 var applyFixedTimeSlotTimelineRatio = bindFacadeMethod(getMainTimelineFacadeServiceRef, "applyFixedTimeSlotTimelineRatio");
 var getFixedTimeTimelineSlots = bindFacadeMethod(getMainTimelineFacadeServiceRef, "getFixedTimeTimelineSlots");
 var getFixedTimeTimelineSlotCount = bindFacadeMethod(getMainTimelineFacadeServiceRef, "getFixedTimeTimelineSlotCount");
 var getFixedTimeTimelineIndicatorToken = bindFacadeMethod(getMainTimelineFacadeServiceRef, "getFixedTimeTimelineIndicatorToken");
-var getFixedTimeSlotTimelineLabel = (slot, slotIdx, slotCount = 1) =>
-    mainTimelineFacadeService.getFixedTimeSlotTimelineLabel(slot, slotIdx, slotCount);
+var getFixedTimeSlotTimelineLabel = bindFacadeMethod(getMainTimelineFacadeServiceRef, "getFixedTimeSlotTimelineLabel");
 var getFixedTimeTimelineIndicatorColor = bindFacadeMethod(getMainTimelineFacadeServiceRef, "getFixedTimeTimelineIndicatorColor");
 var stopTimelineDrag = bindFacadeMethod(getMainTimelineFacadeServiceRef, "stopTimelineDrag");
 var normalizeDayNightMarker = bindFacadeMethod(getMainTimelineFacadeServiceRef, "normalizeDayNightMarker");
 var getDayNightGlyph = bindFacadeMethod(getMainTimelineFacadeServiceRef, "getDayNightGlyph");
-var applyTimelineRatioToSlot = (slotIdx, ratio, baseRef, options = {}) =>
-    mainTimelineFacadeService.applyTimelineRatioToSlot(slotIdx, ratio, baseRef, options);
+var applyTimelineRatioToSlot = bindFacadeMethod(getMainTimelineFacadeServiceRef, "applyTimelineRatioToSlot");
 var getTimelineIndicatorLabel = bindFacadeMethod(getMainTimelineFacadeServiceRef, "getTimelineIndicatorLabel");
 var getTimelinePanelCount = bindFacadeMethod(getMainTimelineFacadeServiceRef, "getTimelinePanelCount");
 
@@ -1492,8 +1609,7 @@ var buildFixedTimeSnapshotForTimezoneSlot = bindFacadeMethod(
     getMainFixedTimeFacadeServiceRef,
     "buildFixedTimeSnapshotForTimezoneSlot"
 );
-var formatFixedTimeCopyTextForTimezoneSlot = (tz, slotUtcDate, copyState = null) =>
-    mainFixedTimeFacadeService.formatFixedTimeCopyTextForTimezoneSlot(tz, slotUtcDate, copyState);
+var formatFixedTimeCopyTextForTimezoneSlot = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "formatFixedTimeCopyTextForTimezoneSlot");
 var getFixedTimeSlotUtcDateByIndex = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "getFixedTimeSlotUtcDateByIndex");
 var getFixedTimePreviewCopyText = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "getFixedTimePreviewCopyText");
 var getAllFixedTimeRowsCopyText = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "getAllFixedTimeRowsCopyText");
@@ -1502,15 +1618,14 @@ var copyFixedTimeCellByTimezone = bindFacadeMethod(getMainFixedTimeFacadeService
 var buildFixedTimeCellInputValue = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "buildFixedTimeCellInputValue");
 var buildFixedTimeCellTimeParts = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "buildFixedTimeCellTimeParts");
 var applyFixedTimeSlotByTimezoneInput = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "applyFixedTimeSlotByTimezoneInput");
-var bindCustomDatePickerForInput = (input, triggerBtn, options = {}) =>
-    mainFixedTimeFacadeService.bindCustomDatePickerForInput(input, triggerBtn, options);
+var bindCustomDatePickerForInput = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "bindCustomDatePickerForInput");
 var copyFixedTimeSlotColumn = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "copyFixedTimeSlotColumn");
 var renameFixedTimeSlot = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "renameFixedTimeSlot");
 var updateFixedTimeSlotTime = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "updateFixedTimeSlotTime");
 var addFixedTimeSlot = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "addFixedTimeSlot");
 var removeFixedTimeSlot = bindFacadeMethod(getMainFixedTimeFacadeServiceRef, "removeFixedTimeSlot");
 
-var renderFixedTimeControls = (group = null, options = {}) => mainFixedTimeTabFacadeService.renderFixedTimeControls(group, options);
+var renderFixedTimeControls = bindFacadeMethod(getMainFixedTimeTabFacadeServiceRef, "renderFixedTimeControls");
 var getFixedTimeSlotLayoutMetrics = bindFacadeMethod(getMainFixedTimeTabFacadeServiceRef, "getFixedTimeSlotLayoutMetrics");
 var getFixedTimeDisplayColumns = bindFacadeMethod(getMainFixedTimeTabFacadeServiceRef, "getFixedTimeDisplayColumns");
 var getFixedTimeOffsetTextAtDate = bindFacadeMethod(getMainFixedTimeTabFacadeServiceRef, "getFixedTimeOffsetTextAtDate");
@@ -1525,10 +1640,10 @@ var formatRangeDurationText = bindFacadeMethod(getMainMultiRangeTabFacadeService
 var copyMultiRangeRow = bindFacadeMethod(getMainMultiRangeTabFacadeServiceRef, "copyMultiRangeRow");
 var copyAllMultiRangeTimezones = bindFacadeMethod(getMainMultiRangeTabFacadeServiceRef, "copyAllMultiRangeTimezones");
 
-// --- 통합 코어 유틸리티 ---
+// --- Shared Core Utilities ---
 
 /**
- * 표 이미지 내보내기를 위한 공통 캔버스 상태를 준비한다.
+ * Prepare shared canvas state used by export renderers.
  */
 function prepareExportCanvas(sourceWidth, sourceHeight, pageBg) {
     if (!mainSharedUtilsService || typeof mainSharedUtilsService.prepareExportCanvas !== "function") {
@@ -1538,7 +1653,7 @@ function prepareExportCanvas(sourceWidth, sourceHeight, pageBg) {
 }
 
 /**
- * 공통 스타일 옵션을 적용해 내보내기 셀 텍스트를 그린다.
+ * Draw text in an export cell with shared style options.
  */
 function drawExportCellText(ctx, text, x, y, w, h, options = {}) {
     if (!mainSharedUtilsService || typeof mainSharedUtilsService.drawExportCellText !== "function") {
@@ -1548,7 +1663,7 @@ function drawExportCellText(ctx, text, x, y, w, h, options = {}) {
 }
 
 /**
- * 입력 모드에 맞춰 날짜/시간 입력 문자열을 숫자 파트로 파싱한다.
+ * Parse date/time input text into numeric parts by input mode.
  */
 function parseDateTimeParts(val, inputMode) {
     if (!mainSharedUtilsService || typeof mainSharedUtilsService.parseDateTimeParts !== "function") {
@@ -1610,10 +1725,22 @@ function ensureBaseTimezoneSelection() {
 }
 
 function getZoneAbbreviation(tz, date = getGlobalTimeState(0)) {
-    return mainTimezoneFacadeService.getZoneAbbreviation(tz, date);
+    return callServiceMethod(
+        "mainTimezoneFacadeService",
+        mainTimezoneFacadeService,
+        "getZoneAbbreviation",
+        [tz, date],
+        { fallback: "" }
+    );
 }
 function getZoneDisplayNameForUiAtDate(tz, anchorDate = getGlobalTimeState(0)) {
-    return mainTimezoneFacadeService.getZoneDisplayNameForUiAtDate(tz, anchorDate);
+    return callServiceMethod(
+        "mainTimezoneFacadeService",
+        mainTimezoneFacadeService,
+        "getZoneDisplayNameForUiAtDate",
+        [tz, anchorDate],
+        { fallback: "" }
+    );
 }
 
 const pad = GTV_TIME_CORE.pad;
@@ -2009,7 +2136,7 @@ function setPersistenceState(next = {}) {
 
 const mainSelectServices = mainCoreServices.createMainSelectServices({
     getDocumentRef: getDocumentRefOrNull,
-    getComputedStyle: (target) => window.getComputedStyle(target),
+    getComputedStyle: getComputedStyleSafely,
     ensureBaseTimezoneSelection,
     getCurrentGroupBaseTimezoneId,
     isCurrentGroupUtcRowVisible,
@@ -2026,7 +2153,7 @@ const {
     renderBaseTimeSelect
 } = mainSelectServices;
 
-// --- 그룹 데이터 구조 ---
+// --- Group Data Structures ---
 
 const timezoneSearchService = mainCoreServices.createTimezoneSearchService({
     TZ_DATABASE,
@@ -3110,32 +3237,66 @@ function showToast(message, options = {}) {
 }
 
 function switchMainTab(tab) {
-    return tabOrchestratorService.switchMainTab(tab);
+    return callServiceMethod(
+        "tabOrchestratorService",
+        tabOrchestratorService,
+        "switchMainTab",
+        [tab]
+    );
 }
 
 function refreshOptionToggleDividers() {
-    return tabOrchestratorService.refreshOptionToggleDividers();
+    return callServiceMethod(
+        "tabOrchestratorService",
+        tabOrchestratorService,
+        "refreshOptionToggleDividers",
+        []
+    );
 }
 
 function getCopyFieldLabel(key) {
     const safeKey = (typeof key === "string") ? key : "";
-    return formatControlsService.getCopyFieldLabel(safeKey);
+    return callServiceMethod(
+        "formatControlsService",
+        formatControlsService,
+        "getCopyFieldLabel",
+        [safeKey],
+        { fallback: safeKey }
+    );
 }
 
 function getTimePartLabel(partKey) {
     const safePartKey = (typeof partKey === "string") ? partKey : "";
-    return formatControlsService.getTimePartLabel(safePartKey);
+    return callServiceMethod(
+        "formatControlsService",
+        formatControlsService,
+        "getTimePartLabel",
+        [safePartKey],
+        { fallback: safePartKey }
+    );
 }
 
 function getDisplayColumns(effectiveSlotCount) {
     const safeSlotCount = Number.isFinite(Number(effectiveSlotCount))
         ? Number(effectiveSlotCount)
         : getPatchedSlotCountState();
-    return tableRenderService.getDisplayColumns(safeSlotCount);
+    return callServiceMethod(
+        "tableRenderService",
+        tableRenderService,
+        "getDisplayColumns",
+        [safeSlotCount],
+        { fallback: [] }
+    );
 }
 
 function getDisplayTimeInputMode() {
-    const mode = tableRenderService.getDisplayTimeInputMode();
+    const mode = callServiceMethod(
+        "tableRenderService",
+        tableRenderService,
+        "getDisplayTimeInputMode",
+        [],
+        { fallback: "datetime" }
+    );
     return mode;
 }
 
@@ -3143,31 +3304,67 @@ function buildRowActionCells(copyButtonTitle, removeButtonText, removeButtonTitl
     const safeCopyTitle = String(copyButtonTitle ?? "");
     const safeRemoveText = String(removeButtonText ?? "");
     const safeRemoveTitle = String(removeButtonTitle ?? "");
-    return tableRenderService.buildRowActionCells(safeCopyTitle, safeRemoveText, safeRemoveTitle);
+    return callServiceMethod(
+        "tableRenderService",
+        tableRenderService,
+        "buildRowActionCells",
+        [safeCopyTitle, safeRemoveText, safeRemoveTitle],
+        { fallback: "" }
+    );
 }
 
-// --- 목록 렌더링(동적 슬롯) ---
+// --- List Rendering (dynamic slots) ---
 function renderList() {
-    return mainTimezoneTableFacadeService.renderList();
+    return callServiceMethod(
+        "mainTimezoneTableFacadeService",
+        mainTimezoneTableFacadeService,
+        "renderList",
+        [],
+        { fallback: undefined }
+    );
 }
 
 function renderTimelineFrame() {
-    return mainTimelineFacadeService.renderTimelineFrame();
+    return callServiceMethod(
+        "mainTimelineFacadeService",
+        mainTimelineFacadeService,
+        "renderTimelineFrame",
+        [],
+        { fallback: undefined }
+    );
 }
 
 function resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate = getGlobalTimeState(0)) {
-    return mainFixedTimeFacadeService.resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate);
+    return callServiceMethod(
+        "mainFixedTimeFacadeService",
+        mainFixedTimeFacadeService,
+        "resolveFixedTimeSlotUtcDate",
+        [slot, baseRef, anchorDate],
+        { fallback: null }
+    );
 }
 
 function getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount = 1) {
-    return mainFixedTimeFacadeService.getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount);
+    return callServiceMethod(
+        "mainFixedTimeFacadeService",
+        mainFixedTimeFacadeService,
+        "getFixedTimeSlotHeaderLabel",
+        [slot, slotIdx, slotCount],
+        { fallback: "" }
+    );
 }
 
 function renderFixedTimeTab() {
-    return mainFixedTimeTabFacadeService.renderFixedTimeTab();
+    return callServiceMethod(
+        "mainFixedTimeTabFacadeService",
+        mainFixedTimeTabFacadeService,
+        "renderFixedTimeTab",
+        [],
+        { fallback: undefined }
+    );
 }
 
-// --- 시계 로직 ---
+// --- Clock Logic ---
 function updateClocks() {
     return mainOrchestrationFlowServices.updateClocks();
 }
@@ -3236,7 +3433,13 @@ function getPersistenceSnapshot() {
 function sanitizeGroup(group, idx, legacyMultiState = null) {
     if (!group || typeof group !== "object") return null;
     const safeIdx = Number.isInteger(idx) && idx >= 0 ? idx : 0;
-    return groupStateService.sanitizeGroup(group, safeIdx, legacyMultiState);
+    return callServiceMethod(
+        "groupStateService",
+        groupStateService,
+        "sanitizeGroup",
+        [group, safeIdx, legacyMultiState],
+        { fallback: null }
+    );
 }
 
 async function loadPersistence() {
@@ -3543,5 +3746,5 @@ function resolveMainInternalForTest(name) {
     });
 })(typeof window !== "undefined" ? window : globalThis);
 
-// --- main.js 끝 ---
+// --- main.js ??---
 
