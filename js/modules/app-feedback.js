@@ -1,8 +1,12 @@
 (function initGtvAppFeedback(globalObj) {
     "use strict";
 
+    const BOOTSTRAP_ERROR_LOG_KEY = "GTV_BOOTSTRAP_ERRORS";
+    const MAX_BOOTSTRAP_ERROR_LOGS = 10;
+
     function createService(deps) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+        const boundClickHandlers = new WeakMap();
 
         function invokeDep(name, ...args) {
             if (typeof safeDeps[name] !== "function") return undefined;
@@ -27,18 +31,67 @@
             return (typeof location === "object" && typeof location.reload === "function") ? location : null;
         }
 
+        function getStorageRef() {
+            if (
+                safeDeps.storage
+                && typeof safeDeps.storage.getItem === "function"
+                && typeof safeDeps.storage.setItem === "function"
+            ) {
+                return safeDeps.storage;
+            }
+            if (
+                typeof localStorage === "object"
+                && localStorage
+                && typeof localStorage.getItem === "function"
+                && typeof localStorage.setItem === "function"
+            ) {
+                return localStorage;
+            }
+            return null;
+        }
+
         function getConfirmFn() {
             if (typeof safeDeps.confirmFn === "function") return safeDeps.confirmFn;
             if (typeof confirm === "function") return confirm;
             return null;
         }
 
-        function logFatalError(err) {
+        function getUserAgent() {
+            if (
+                typeof navigator === "object"
+                && navigator
+                && typeof navigator.userAgent === "string"
+            ) {
+                return navigator.userAgent;
+            }
+            return "";
+        }
+
+        async function writeClipboardText(text) {
+            if (typeof safeDeps.writeClipboard === "function") {
+                return await safeDeps.writeClipboard(text);
+            }
+            if (
+                typeof navigator === "object"
+                && navigator
+                && navigator.clipboard
+                && typeof navigator.clipboard.writeText === "function"
+            ) {
+                return await navigator.clipboard.writeText(text);
+            }
+            throw new Error("Clipboard API unavailable");
+        }
+
+        function logFatalError(err, errorRecord = null) {
             if (typeof safeDeps.logError === "function") {
-                safeDeps.logError("FATAL ERROR during app initialization:", err);
+                safeDeps.logError("FATAL ERROR during app initialization:", err, errorRecord);
                 return;
             }
             if (typeof console === "object" && console && typeof console.error === "function") {
+                if (errorRecord) {
+                    console.error("FATAL ERROR during app initialization:", err, errorRecord);
+                    return;
+                }
                 console.error("FATAL ERROR during app initialization:", err);
             }
         }
@@ -49,13 +102,107 @@
             return "Reset all settings?";
         }
 
-        let boundResetButton = null;
-        let boundResetHandler = null;
+        function classifyFatalErrorType(err) {
+            const message = String(err?.message || "").toLowerCase();
+            if (message.includes("missing required module") || message.includes("missing required services")) {
+                return "module_load";
+            }
+            if (message.includes("storage") || message.includes("persist") || message.includes("quota")) {
+                return "persistence";
+            }
+            if (message.includes("state")) {
+                return "state_init";
+            }
+            return "unknown";
+        }
+
+        function getFatalErrorDescKey(type) {
+            switch (type) {
+                case "module_load":
+                    return "error_fatal_desc_module_load";
+                case "persistence":
+                    return "error_fatal_desc_persistence";
+                case "state_init":
+                    return "error_fatal_desc_state";
+                default:
+                    return "error_fatal_desc";
+            }
+        }
+
+        function createFatalErrorCode(type) {
+            const safeType = String(type || "unknown")
+                .toUpperCase()
+                .replace(/[^A-Z0-9]/g, "")
+                .slice(0, 12) || "UNKNOWN";
+            const timestampToken = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
+            const randomToken = Math.random().toString(36).slice(2, 8).toUpperCase();
+            return `GTV-${safeType}-${timestampToken}-${randomToken}`;
+        }
+
+        function buildFatalErrorRecord(err) {
+            const errorObj = (err && typeof err === "object") ? err : new Error(String(err || "Unknown error"));
+            const type = classifyFatalErrorType(errorObj);
+            const message = (typeof errorObj.message === "string" && errorObj.message.trim())
+                ? errorObj.message.trim()
+                : "Unknown error";
+            return {
+                errorCode: createFatalErrorCode(type),
+                type,
+                message,
+                name: (typeof errorObj.name === "string" && errorObj.name) ? errorObj.name : "Error",
+                stack: (typeof errorObj.stack === "string") ? errorObj.stack : "",
+                timestamp: new Date().toISOString(),
+                userAgent: getUserAgent()
+            };
+        }
+
+        function storeFatalErrorRecord(errorRecord) {
+            const storageRef = getStorageRef();
+            if (!storageRef || !errorRecord || typeof errorRecord !== "object") return;
+
+            try {
+                const raw = storageRef.getItem(BOOTSTRAP_ERROR_LOG_KEY);
+                const parsed = JSON.parse(raw || "[]");
+                const logs = Array.isArray(parsed) ? parsed : [];
+                logs.push(errorRecord);
+                const trimmed = logs.slice(-MAX_BOOTSTRAP_ERROR_LOGS);
+                storageRef.setItem(BOOTSTRAP_ERROR_LOG_KEY, JSON.stringify(trimmed));
+            } catch (_storageErr) {
+                // Ignore storage failures and continue with UI fallback.
+            }
+        }
+
+        function setLocalizedText(element, key, fallbackText) {
+            if (!element || typeof element !== "object") return;
+            if (typeof key === "string" && key) {
+                if (typeof element.setAttribute === "function") {
+                    element.setAttribute("data-i18n", key);
+                }
+                const translated = invokeDep("t", key);
+                if (typeof translated === "string" && translated.trim()) {
+                    element.textContent = translated;
+                    return;
+                }
+            }
+            element.textContent = String(fallbackText || "");
+        }
+
+        function bindClickHandler(button, handler) {
+            if (!button || typeof button !== "object" || typeof handler !== "function") return;
+            if (typeof button.addEventListener === "function") {
+                const prevHandler = boundClickHandlers.get(button);
+                if (typeof prevHandler === "function" && typeof button.removeEventListener === "function") {
+                    button.removeEventListener("click", prevHandler);
+                }
+                boundClickHandlers.set(button, handler);
+                button.addEventListener("click", handler);
+                return;
+            }
+            button.onclick = handler;
+        }
 
         function bindFatalResetButtonHandler(resetBtn) {
-            if (!resetBtn || typeof resetBtn !== "object") return;
-
-            const nextHandler = async () => {
+            bindClickHandler(resetBtn, async () => {
                 const confirmFn = getConfirmFn();
                 const confirmMsg = getResetConfirmMessage();
                 if (confirmFn && !confirmFn(confirmMsg)) return;
@@ -64,40 +211,71 @@
                 }
                 const locationRef = getLocationRef();
                 if (locationRef) locationRef.reload();
-            };
+            });
+        }
 
-            if (typeof resetBtn.addEventListener === "function") {
-                if (
-                    boundResetButton
-                    && boundResetButton !== resetBtn
-                    && typeof boundResetButton.removeEventListener === "function"
-                    && typeof boundResetHandler === "function"
-                ) {
-                    boundResetButton.removeEventListener("click", boundResetHandler);
-                }
-                if (typeof boundResetHandler === "function" && typeof resetBtn.removeEventListener === "function") {
-                    resetBtn.removeEventListener("click", boundResetHandler);
-                }
-                boundResetButton = resetBtn;
-                boundResetHandler = nextHandler;
-                resetBtn.addEventListener("click", boundResetHandler);
-                return;
-            }
+        function bindFatalRetryButtonHandler(retryBtn) {
+            bindClickHandler(retryBtn, () => {
+                const locationRef = getLocationRef();
+                if (locationRef) locationRef.reload();
+            });
+        }
 
-            resetBtn.onclick = nextHandler;
+        function bindFatalCopyButtonHandler(copyBtn, errorCode) {
+            bindClickHandler(copyBtn, async () => {
+                try {
+                    await writeClipboardText(String(errorCode || ""));
+                    showToast(invokeDep("t", "toast_error_code_copied") || "Error code copied.", { type: "success" });
+                } catch (_err) {
+                    // Clipboard can be unavailable in restricted contexts.
+                }
+            });
         }
 
         function showFatalError(err) {
-            logFatalError(err);
+            const errorRecord = buildFatalErrorRecord(err);
+            logFatalError(err, errorRecord);
+            storeFatalErrorRecord(errorRecord);
+
             const doc = getDocumentRef();
             if (!doc) return;
+
             const banner = doc.getElementById("fatal-error-banner");
             if (!banner) return;
-
             banner.style.display = "flex";
+
+            const titleEl = doc.getElementById("fatal-error-title");
+            setLocalizedText(titleEl, "error_fatal_title", "Application Initialization Failed");
+
+            const descEl = doc.getElementById("fatal-error-desc");
+            const descKey = getFatalErrorDescKey(errorRecord.type);
+            setLocalizedText(descEl, descKey, "An error occurred while loading data.");
+
+            const codeWrapEl = doc.getElementById("fatal-error-code-wrap");
+            const codeEl = doc.getElementById("fatal-error-code");
+            if (codeEl) codeEl.textContent = errorRecord.errorCode;
+            if (codeWrapEl && codeEl && codeEl.textContent) {
+                codeWrapEl.style.display = "flex";
+            }
+
+            const detailsEl = doc.getElementById("fatal-error-details-content");
+            if (detailsEl) {
+                detailsEl.textContent = JSON.stringify({
+                    errorCode: errorRecord.errorCode,
+                    type: errorRecord.type,
+                    message: errorRecord.message,
+                    timestamp: errorRecord.timestamp
+                }, null, 2);
+            }
+
+            const retryBtn = doc.getElementById("fatal-error-retry-btn");
+            bindFatalRetryButtonHandler(retryBtn);
+
             const resetBtn = doc.getElementById("fatal-error-reset-btn");
-            if (!resetBtn) return;
             bindFatalResetButtonHandler(resetBtn);
+
+            const copyBtn = doc.getElementById("fatal-error-copy-btn");
+            bindFatalCopyButtonHandler(copyBtn, errorRecord.errorCode);
         }
 
         function showToast(message, options = {}) {

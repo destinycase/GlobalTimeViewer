@@ -562,6 +562,28 @@ const KO_OVERRIDES = {
     error_fatal_desc: "데이터를 불러오는 중 오류가 발생했습니다. 확장 프로그램을 새로고침하거나 설정을 초기화해 보세요."
 };
 
+Object.assign(EN_I18N, {
+    error_fatal_desc_module_load: "A required script failed to load. Please reload the extension.",
+    error_fatal_desc_persistence: "Saved data could not be restored. You can retry or reset settings.",
+    error_fatal_desc_state: "Application state initialization failed. You can retry or reset settings.",
+    error_code_label: "Error code",
+    btn_retry: "Retry",
+    btn_copy_error_code: "Copy",
+    error_more_details: "More details",
+    toast_error_code_copied: "Error code copied."
+});
+
+Object.assign(KO_OVERRIDES, {
+    error_fatal_desc_module_load: "A required script failed to load. Please reload the extension.",
+    error_fatal_desc_persistence: "Saved data could not be restored. You can retry or reset settings.",
+    error_fatal_desc_state: "Application state initialization failed. You can retry or reset settings.",
+    error_code_label: "Error code",
+    btn_retry: "Retry",
+    btn_copy_error_code: "Copy",
+    error_more_details: "More details",
+    toast_error_code_copied: "Error code copied."
+});
+
 const I18N_DATA = {
     ko: { ...EN_I18N, ...KO_OVERRIDES },
     en: { ...EN_I18N }

@@ -283,6 +283,77 @@ describe("GTV app feedback module", () => {
         expect(reloadCount).toBe(1);
     });
 
+    it("showFatalError populates error metadata and wires retry/copy actions", async () => {
+        const module = loadAppFeedbackModule();
+        const banner = createElementStub("div");
+        const resetBtn = createElementStub("button");
+        const retryBtn = createElementStub("button");
+        const copyBtn = createElementStub("button");
+        const titleEl = createElementStub("h2");
+        const descEl = createElementStub("p");
+        const codeWrap = createElementStub("div");
+        const codeEl = createElementStub("code");
+        const detailsEl = createElementStub("pre");
+        let reloadCount = 0;
+        const copied = [];
+        const storageState = new Map();
+
+        const service = module.createService({
+            document: {
+                getElementById(id) {
+                    if (id === "fatal-error-banner") return banner;
+                    if (id === "fatal-error-reset-btn") return resetBtn;
+                    if (id === "fatal-error-retry-btn") return retryBtn;
+                    if (id === "fatal-error-copy-btn") return copyBtn;
+                    if (id === "fatal-error-title") return titleEl;
+                    if (id === "fatal-error-desc") return descEl;
+                    if (id === "fatal-error-code-wrap") return codeWrap;
+                    if (id === "fatal-error-code") return codeEl;
+                    if (id === "fatal-error-details-content") return detailsEl;
+                    return null;
+                },
+                createElement(tag) {
+                    return createElementStub(tag);
+                }
+            },
+            storage: {
+                getItem(key) {
+                    return storageState.has(key) ? storageState.get(key) : null;
+                },
+                setItem(key, value) {
+                    storageState.set(key, value);
+                }
+            },
+            writeClipboard: async (value) => {
+                copied.push(value);
+            },
+            location: {
+                reload() {
+                    reloadCount += 1;
+                }
+            },
+            t: (key) => key,
+            logError: () => {}
+        });
+
+        service.showFatalError(new Error("Missing required module API: boom"));
+        expect(titleEl.textContent).toBe("error_fatal_title");
+        expect(descEl.textContent).toBe("error_fatal_desc_module_load");
+        expect(codeEl.textContent).toMatch(/^GTV-MODULELOAD-/);
+        expect(codeWrap.style.display).toBe("flex");
+        expect(detailsEl.textContent).toContain("Missing required module API: boom");
+
+        const storedLogs = JSON.parse(storageState.get("GTV_BOOTSTRAP_ERRORS"));
+        expect(storedLogs).toHaveLength(1);
+        expect(storedLogs[0].type).toBe("module_load");
+
+        await retryBtn.trigger("click");
+        expect(reloadCount).toBe(1);
+
+        await copyBtn.trigger("click");
+        expect(copied).toEqual([codeEl.textContent]);
+    });
+
     it("showFatalError falls back to global console and no-op DOM when unavailable", () => {
         const module = loadAppFeedbackModule();
         let loggedArgs = null;

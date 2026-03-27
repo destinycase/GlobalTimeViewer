@@ -11,13 +11,25 @@
 
 <body>
     <div id="fatal-error-banner" class="fatal-error-banner" style="display: none;">
-        <div class="error-content">
-            <span class="error-icon">⚠️</span>
+        <div class="error-content" role="alert" aria-live="assertive">
+            <span class="error-icon" aria-hidden="true">&#9888;</span>
             <div class="error-text">
-                <h2 data-i18n="error_fatal_title">애플리케이션 초기화 실패</h2>
-                <p data-i18n="error_fatal_desc">데이터를 불러오는 중 오류가 발생했습니다. 확장 프로그램을 새로고침하거나 설정을 초기화해 보세요.</p>
+                <h2 id="fatal-error-title" data-i18n="error_fatal_title">Application Initialization Failed</h2>
+                <p id="fatal-error-desc" data-i18n="error_fatal_desc">An error occurred while loading data.</p>
+                <div id="fatal-error-code-wrap" class="fatal-error-code-wrap" style="display: none;">
+                    <span class="fatal-error-code-label" data-i18n="error_code_label">Error code</span>
+                    <code id="fatal-error-code"></code>
+                    <button id="fatal-error-copy-btn" class="sm-btn" type="button" data-i18n="btn_copy_error_code">Copy</button>
+                </div>
+                <details id="fatal-error-details" class="fatal-error-details">
+                    <summary data-i18n="error_more_details">More details</summary>
+                    <pre id="fatal-error-details-content"></pre>
+                </details>
             </div>
-            <button id="fatal-error-reset-btn" class="sm-btn danger" data-i18n="btn_reset_all">전체 초기화</button>
+            <div class="fatal-error-actions">
+                <button id="fatal-error-retry-btn" class="sm-btn" type="button" data-i18n="btn_retry">Retry</button>
+                <button id="fatal-error-reset-btn" class="sm-btn danger" type="button" data-i18n="btn_reset_all">Reset All</button>
+            </div>
         </div>
     </div>
     <div class="app-layout">
@@ -745,4 +757,5 @@
 </body>
 
 </html>
+
 

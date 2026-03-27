@@ -3420,3 +3420,88 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .custom-date-picker-input {
     cursor: pointer;
 }
+
+/* Fatal bootstrap error UI */
+.fatal-error-banner {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.66);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.fatal-error-banner .error-content {
+    width: min(560px, 100%);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    padding: 16px;
+}
+
+.fatal-error-banner .error-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: rgba(244, 63, 94, 0.2);
+    color: #f43f5e;
+    margin-bottom: 8px;
+}
+
+.fatal-error-banner .error-text h2 {
+    margin: 0 0 8px 0;
+}
+
+.fatal-error-banner .error-text p {
+    margin: 0;
+    color: var(--text-dim);
+}
+
+.fatal-error-code-wrap {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.fatal-error-code-wrap code {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 12px;
+    background: rgba(148, 163, 184, 0.2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 6px;
+    user-select: all;
+}
+
+.fatal-error-details {
+    margin-top: 10px;
+}
+
+.fatal-error-details pre {
+    margin: 8px 0 0 0;
+    max-height: 160px;
+    overflow: auto;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: rgba(15, 23, 42, 0.2);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.fatal-error-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.fatal-error-actions .sm-btn {
+    flex: 1 1 0;
+}
