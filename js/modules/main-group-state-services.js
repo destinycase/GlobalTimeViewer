@@ -41,6 +41,7 @@
             sanitizeMultiSubgroupId: (value) => multiStateService.sanitizeMultiSubgroupId(value),
             sanitizeFixedTimes: safeDeps.sanitizeFixedTimes,
             sanitizeFixedDateValue: safeDeps.sanitizeFixedDateValue,
+            sanitizeFixedTimeShowLiveNow: safeDeps.sanitizeFixedTimeShowLiveNow,
             ensureGroupMultiSubgroups: (group, options = {}) =>
                 multiStateService.ensureGroupMultiSubgroups(group, options)
         });

@@ -254,6 +254,7 @@
                 fixedDate: (typeof deps.getDefaultFixedDate === "function")
                     ? deps.getDefaultFixedDate()
                     : "",
+                fixedTimeShowLiveNow: false,
                 fixedTimes: (typeof deps.getDefaultFixedTimes === "function")
                     ? deps.getDefaultFixedTimes()
                     : []
@@ -634,7 +635,7 @@
         }
 
         async function resetAllSettings() {
-            if (!confirmFn(deps.t("confirm_reset_all_settings"))) return;
+            if (!confirmFn(deps.t("confirm_reset_all_settings"))) return false;
 
             const keysToRemove = [
                 deps.STORAGE_KEY,
@@ -655,10 +656,11 @@
             keysToRemove.forEach((key) => safeLocalStorageRemove(key));
             applyDefaultPersistenceState({ includeMultiState: true });
             await syncUiAfterSettingsReset();
+            return true;
         }
 
         async function resetExceptGroupsAndTimezones() {
-            if (!confirmFn(deps.t("confirm_reset_except_group_tz"))) return;
+            if (!confirmFn(deps.t("confirm_reset_except_group_tz"))) return false;
 
             deps.syncCurrentMultiStateToActiveSubgroup();
             const currentState = (typeof deps.getState === "function") ? (deps.getState() || {}) : {};
@@ -673,6 +675,7 @@
                             showUtcRow: group?.showUtcRow,
                             utcRowOrder: group?.utcRowOrder,
                             fixedDate: group?.fixedDate,
+                            fixedTimeShowLiveNow: group?.fixedTimeShowLiveNow,
                             fixedTimes: group?.fixedTimes
                         }, idx, null);
                     } catch (err) {
@@ -737,6 +740,7 @@
             keysToRemove.forEach((key) => safeLocalStorageRemove(key));
             safeLocalStorageRemove(deps.STORAGE_KEY);
             await syncUiAfterSettingsReset();
+            return true;
         }
 
         return Object.freeze({

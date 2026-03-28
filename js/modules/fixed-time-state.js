@@ -47,6 +47,32 @@
             return true;
         }
 
+        function getCurrentGroupFixedTimeShowLiveNow(group = invokeDep("getCurrentGroup")) {
+            const safeGroup = (group && typeof group === "object") ? group : null;
+            if (!safeGroup) return false;
+            invokeDep("ensureGroupFixedTimes", safeGroup);
+            const sanitized = invokeDep("sanitizeFixedTimeShowLiveNow", safeGroup.fixedTimeShowLiveNow, false);
+            if (sanitized === undefined) return !!safeGroup.fixedTimeShowLiveNow;
+            return !!sanitized;
+        }
+
+        function setCurrentGroupFixedTimeShowLiveNow(enabled, options = {}) {
+            const { persist = true, rerender = true } = options;
+            const group = invokeDep("getCurrentGroup");
+            if (!group) return false;
+            invokeDep("ensureGroupFixedTimes", group);
+            const sanitized = invokeDep("sanitizeFixedTimeShowLiveNow", enabled, false);
+            const nextEnabled = (sanitized === undefined) ? !!enabled : !!sanitized;
+            if (!!group.fixedTimeShowLiveNow === nextEnabled) return false;
+            group.fixedTimeShowLiveNow = nextEnabled;
+            if (rerender && invokeDep("isFixedTimeTab")) {
+                invokeDep("renderFixedTimeTab");
+                invokeDep("renderTimelineFrame");
+            }
+            if (persist) invokeDep("savePersistence");
+            return true;
+        }
+
         function refreshFixedTimeSlotCountControls() {
             const group = invokeDep("getCurrentGroup");
             const countInput = document.getElementById("fixed-time-slot-count-input");
@@ -113,6 +139,8 @@
         return Object.freeze({
             getFixedTimeSlotCount,
             setCurrentGroupFixedDate,
+            getCurrentGroupFixedTimeShowLiveNow,
+            setCurrentGroupFixedTimeShowLiveNow,
             refreshFixedTimeSlotCountControls,
             setFixedTimeSlotCount
         });

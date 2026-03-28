@@ -148,6 +148,9 @@
             const fixedDate = (typeof safeDeps.sanitizeFixedDateValue === "function")
                 ? callDep("sanitizeFixedDateValue", "", group.fixedDate, "")
                 : "";
+            const fixedTimeShowLiveNow = (typeof safeDeps.sanitizeFixedTimeShowLiveNow === "function")
+                ? !!callDep("sanitizeFixedTimeShowLiveNow", false, group.fixedTimeShowLiveNow, false)
+                : !!group.fixedTimeShowLiveNow;
             const sanitizedGroup = {
                 name,
                 zones,
@@ -156,6 +159,7 @@
                 utcRowOrder,
                 fixedTimes,
                 fixedDate,
+                fixedTimeShowLiveNow,
                 activeMultiSubgroupId,
                 multiSubgroups
             };

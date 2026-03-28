@@ -133,6 +133,7 @@
             getCurrentGroup: deps.getCurrentGroup,
             ensureGroupFixedTimes: deps.ensureGroupFixedTimes,
             refreshFixedTimeSlotCountControls: deps.refreshFixedTimeSlotCountControls,
+            getCurrentGroupFixedTimeShowLiveNow: deps.getCurrentGroupFixedTimeShowLiveNow,
             getDocumentRef: deps.getDocumentRef,
             renderBaseTimeSelect: deps.renderBaseTimeSelect,
         });
@@ -277,6 +278,7 @@
             getCurrentGroup: deps.getCurrentGroup,
             ensureGroupFixedTimes: deps.ensureGroupFixedTimes,
             sanitizeFixedDateValue: deps.sanitizeFixedDateValue,
+            sanitizeFixedTimeShowLiveNow: deps.sanitizeFixedTimeShowLiveNow,
             sanitizeFixedTimeSlotCount: deps.sanitizeFixedTimeSlotCount,
             isFixedTimeTab: deps.isFixedTimeTab,
             renderFixedTimeTab: deps.renderFixedTimeTab,
@@ -316,7 +318,9 @@
 
         const timerEngineService = deps.GTV_TIMER_ENGINE.createService({
             DEFAULT_REALTIME_TICK_MS: deps.DEFAULT_REALTIME_TICK_MS,
-            shouldTick: deps.getIsRealtimeState,
+            shouldTick: (typeof deps.shouldRunRealtimeTick === "function")
+                ? deps.shouldRunRealtimeTick
+                : deps.getIsRealtimeState,
             onTick: () => {
                 deps.setGlobalTimeState(0, new Date());
                 deps.updateClocks();

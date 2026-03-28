@@ -123,6 +123,48 @@
             zoneCodeEl.classList.toggle("zone-code-standard", !isCustom);
         }
 
+        function appendReadonlyTimeDisplay(targetCell, payload, displayPartsEnabled) {
+            if (!targetCell) return;
+            const safeParts = (displayPartsEnabled && typeof displayPartsEnabled === "object")
+                ? displayPartsEnabled
+                : {};
+            const wrapper = document.createElement("div");
+            wrapper.className = "fixed-time-display";
+
+            if (safeParts.dn) {
+                const dnEl = document.createElement("span");
+                dnEl.className = "dn-icon";
+                dnEl.textContent = payload?.dayNightGlyph || "";
+                wrapper.appendChild(dnEl);
+            }
+
+            if (safeParts.time) {
+                const clockEl = document.createElement("span");
+                clockEl.className = "fixed-time-clock";
+                clockEl.textContent = payload?.clock || "--:--:--";
+                wrapper.appendChild(clockEl);
+            }
+
+            if (safeParts.weekday && payload?.dayName) {
+                const weekdayIdx = Number(payload.weekdayIndex);
+                const dayEl = document.createElement("span");
+                const isSun = weekdayIdx === 0;
+                const isSat = weekdayIdx === 6;
+                dayEl.className = `day-badge${isSun ? " day-sun" : (isSat ? " day-sat" : "")}`;
+                dayEl.textContent = payload.dayName;
+                wrapper.appendChild(dayEl);
+            }
+
+            if (!wrapper.children.length) {
+                const emptyEl = document.createElement("span");
+                emptyEl.className = "fixed-time-empty";
+                emptyEl.textContent = payload?.clock || "--:--:--";
+                wrapper.appendChild(emptyEl);
+            }
+
+            targetCell.appendChild(wrapper);
+        }
+
         function renderFixedTimeTable() {
             if (typeof document !== "object" || !document) return;
             const headRow = document.querySelector("#fixed-time-table-head tr");
@@ -132,6 +174,7 @@
 
             invokeDep("ensureGroupFixedTimes", group);
             const fixedTimes = asArray(group.fixedTimes);
+            const showLiveNowColumn = !!group.fixedTimeShowLiveNow;
             const displayPartsEnabled = invokeDep("getFixedTimeDisplayPartsEnabled") || {};
             const slotLayout = getFixedTimeSlotLayoutMetrics(displayPartsEnabled);
             const displayColumns = getFixedTimeDisplayColumns();
@@ -167,6 +210,14 @@
                 }
                 if (colKey !== "time_slots") return;
 
+                if (showLiveNowColumn) {
+                    const liveNowHead = document.createElement("th");
+                    liveNowHead.className = "dynamic-col";
+                    liveNowHead.style.width = "170px";
+                    liveNowHead.textContent = translate("th_fixed_time_live_now");
+                    headRow.appendChild(liveNowHead);
+                }
+
                 fixedTimes.forEach((slot, slotIdx) => {
                     const slotHead = document.createElement("th");
                     slotHead.className = "dynamic-col fixed-time-slot-head-cell";
@@ -190,6 +241,11 @@
                     const slotTitle = document.createElement("span");
                     slotTitle.className = "fixed-time-slot-title";
                     slotTitle.textContent = invokeDep("getFixedTimeSlotHeaderLabel", slot, slotIdx, fixedTimes.length) || "";
+
+                    const slotTitleWrap = document.createElement("span");
+                    slotTitleWrap.className = "fixed-time-slot-title-wrap";
+                    slotTitleWrap.appendChild(markerWrap);
+                    slotTitleWrap.appendChild(slotTitle);
 
                     const renameBtn = document.createElement("button");
                     renameBtn.type = "button";
@@ -215,8 +271,7 @@
                     actionsWrap.appendChild(renameBtn);
                     actionsWrap.appendChild(copySlotBtn);
 
-                    slotHeadTop.appendChild(markerWrap);
-                    slotHeadTop.appendChild(slotTitle);
+                    slotHeadTop.appendChild(slotTitleWrap);
                     slotHeadTop.appendChild(actionsWrap);
 
                     slotHeadWrap.appendChild(slotHeadTop);
@@ -234,6 +289,7 @@
                 ? invokeDep("getGlobalTime", 0)
                 : new Date();
             const slotUtcDates = fixedTimes.map((slot) => invokeDep("resolveFixedTimeSlotUtcDate", slot, baseRef, anchorDate));
+            const liveNowUtcDate = new Date();
 
             rows.forEach((tz) => {
                 const row = document.createElement("tr");
@@ -284,6 +340,15 @@
                     }
 
                     if (colKey !== "time_slots") return;
+
+                    if (showLiveNowColumn) {
+                        const liveNowCell = document.createElement("td");
+                        liveNowCell.className = "fixed-time-time fixed-time-live-now";
+                        const liveNowPayload = invokeDep("buildFixedTimeDisplayPayloadAtUtc", liveNowUtcDate, tz);
+                        appendReadonlyTimeDisplay(liveNowCell, liveNowPayload, displayPartsEnabled);
+                        row.appendChild(liveNowCell);
+                    }
+
                     slotUtcDates.forEach((utcDate, slotIdx) => {
                         const timeCell = document.createElement("td");
                         timeCell.className = "fixed-time-time";

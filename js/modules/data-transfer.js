@@ -4,6 +4,9 @@
     function createService(deps) {
         let pendingGroupImportIndex = null;
         let pendingSubgroupImportTarget = null;
+        const maxImportFileBytes = Number.isFinite(Number(deps.MAX_IMPORT_FILE_BYTES))
+            ? Math.max(1024, Math.trunc(Number(deps.MAX_IMPORT_FILE_BYTES)))
+            : 5 * 1024 * 1024;
         const filePickerFocusSettleMs = Number.isFinite(Number(deps.FILE_PICKER_FOCUS_SETTLE_MS))
             ? Math.max(0, Math.trunc(Number(deps.FILE_PICKER_FOCUS_SETTLE_MS)))
             : 50;
@@ -70,6 +73,46 @@
             } finally {
                 URL.revokeObjectURL(url);
             }
+        }
+
+        function getImportFileSizeBytes(file) {
+            const size = Number(file?.size);
+            return Number.isFinite(size) && size >= 0 ? size : 0;
+        }
+
+        function isImportFileTooLarge(file) {
+            return getImportFileSizeBytes(file) > maxImportFileBytes;
+        }
+
+        function showImportFileTooLargeToast() {
+            deps.showToast(deps.t("toast_import_file_too_large"));
+        }
+
+        function isPlainObject(value) {
+            return !!value && typeof value === "object" && !Array.isArray(value);
+        }
+
+        function hasMinimalGroupImportShape(payload) {
+            const source = (isPlainObject(payload?.group)) ? payload.group : payload;
+            if (!isPlainObject(source)) return false;
+            if (typeof source.name !== "string" || !source.name.trim()) return false;
+            if (!Array.isArray(source.zones)) return false;
+            return true;
+        }
+
+        function hasMinimalSubgroupImportShape(payload) {
+            const source = (isPlainObject(payload?.subgroup)) ? payload.subgroup : payload;
+            if (!isPlainObject(source)) return false;
+            if (typeof source.name !== "string" || !source.name.trim()) return false;
+            if (!Array.isArray(source.multiRanges) || !source.multiRanges.length) return false;
+            const count = Number.parseInt(source.multiRangeCount, 10);
+            if (!Number.isFinite(count) || count < deps.MIN_MULTI_RANGE_COUNT) return false;
+            return true;
+        }
+
+        function hasMinimalSettingsImportShape(payload) {
+            const source = isPlainObject(payload?.data) ? payload.data : payload;
+            return !!(isPlainObject(source) && Array.isArray(source.groups));
         }
 
         function clearPendingGroupImport() {
@@ -254,6 +297,7 @@
                     showUtcRow: sourceGroup.showUtcRow,
                     utcRowOrder: sourceGroup.utcRowOrder,
                     fixedDate: sourceGroup.fixedDate,
+                    fixedTimeShowLiveNow: sourceGroup.fixedTimeShowLiveNow,
                     fixedTimes: sourceGroup.fixedTimes,
                     activeMultiSubgroupId: sourceGroup.activeMultiSubgroupId,
                     multiSubgroups: sourceGroup.multiSubgroups
@@ -296,6 +340,11 @@
                 if (input) input.value = "";
                 return;
             }
+            if (isImportFileTooLarge(file)) {
+                showImportFileTooLargeToast();
+                if (input) input.value = "";
+                return;
+            }
 
             try {
                 const raw = await file.text();
@@ -303,6 +352,10 @@
                 try {
                     parsed = JSON.parse(raw);
                 } catch (jsonErr) {
+                    deps.showToast(deps.t("toast_invalid_format"));
+                    return;
+                }
+                if (!hasMinimalGroupImportShape(parsed)) {
                     deps.showToast(deps.t("toast_invalid_format"));
                     return;
                 }
@@ -391,6 +444,11 @@
                 if (input) input.value = "";
                 return;
             }
+            if (isImportFileTooLarge(file)) {
+                showImportFileTooLargeToast();
+                if (input) input.value = "";
+                return;
+            }
 
             try {
                 const raw = await file.text();
@@ -398,6 +456,10 @@
                 try {
                     parsed = JSON.parse(raw);
                 } catch (jsonErr) {
+                    deps.showToast(deps.t("toast_invalid_format"));
+                    return;
+                }
+                if (!hasMinimalSubgroupImportShape(parsed)) {
                     deps.showToast(deps.t("toast_invalid_format"));
                     return;
                 }
@@ -489,6 +551,11 @@
             const input = event?.target;
             const file = input?.files?.[0];
             if (!file) return;
+            if (isImportFileTooLarge(file)) {
+                showImportFileTooLargeToast();
+                if (input) input.value = "";
+                return;
+            }
 
             try {
                 const raw = await file.text();
@@ -496,6 +563,10 @@
                 try {
                     parsed = JSON.parse(raw);
                 } catch (jsonErr) {
+                    deps.showToast(deps.t("toast_invalid_format"));
+                    return;
+                }
+                if (!hasMinimalSettingsImportShape(parsed)) {
                     deps.showToast(deps.t("toast_invalid_format"));
                     return;
                 }

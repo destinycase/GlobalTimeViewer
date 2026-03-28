@@ -53,8 +53,12 @@ describe("background service worker module", () => {
             clickHandler = handler;
         });
         const create = vi.fn().mockResolvedValue({ id: 1 });
+        const setBadgeText = vi.fn().mockResolvedValue(undefined);
         globalThis.chrome = {
-            action: { onClicked: { addListener } },
+            action: {
+                onClicked: { addListener },
+                setBadgeText
+            },
             tabs: { create },
             runtime: { getURL: (pathValue) => `chrome-extension://test/${pathValue}` }
         };
@@ -70,6 +74,7 @@ describe("background service worker module", () => {
         expect(create).toHaveBeenCalledWith({
             url: "chrome-extension://test/index.html"
         });
+        expect(setBadgeText).toHaveBeenCalledWith({ text: "" });
     });
 
     it("logs a structured error when tab creation fails", async () => {
@@ -79,14 +84,23 @@ describe("background service worker module", () => {
         });
         const create = vi.fn().mockRejectedValue(new Error("blocked"));
         const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        const setBadgeText = vi.fn().mockResolvedValue(undefined);
+        const setBadgeBackgroundColor = vi.fn().mockResolvedValue(undefined);
+        const setTitle = vi.fn().mockResolvedValue(undefined);
         globalThis.chrome = {
-            action: { onClicked: { addListener } },
+            action: {
+                onClicked: { addListener },
+                setBadgeText,
+                setBadgeBackgroundColor,
+                setTitle
+            },
             tabs: { create },
             runtime: { getURL: (pathValue) => `chrome-extension://test/${pathValue}` }
         };
 
         loadBackgroundModule();
         clickHandler();
+        await Promise.resolve();
         await Promise.resolve();
 
         expect(consoleSpy).toHaveBeenCalledWith(
@@ -95,6 +109,8 @@ describe("background service worker module", () => {
                 message: "blocked"
             })
         );
+        expect(setBadgeText).toHaveBeenCalledWith({ text: "ERR" });
+        expect(setBadgeBackgroundColor).toHaveBeenCalledWith({ color: "#D93025" });
     });
 
     it("logs when chrome action API is unavailable", () => {

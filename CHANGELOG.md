@@ -1,5 +1,9 @@
 # 변경 이력 (Changelog)
 
+## [3.11.8] - 2026-03-28
+### 변경됨
+- 버전 메타데이터를 `3.11.8`로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`)
+
 ## [3.11.7] - 2026-03-27
 ### 변경됨
 - 버전 메타데이터를 `3.11.7`로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`)

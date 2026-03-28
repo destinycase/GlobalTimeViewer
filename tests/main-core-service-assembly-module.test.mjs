@@ -54,6 +54,7 @@ describe("GTV main core service assembly module", () => {
     it("assembles core services using provided module APIs", () => {
         const moduleApi = loadMainCoreServiceAssemblyModule();
         const calls = {};
+        const shouldRunRealtimeTick = () => false;
         const makeApi = (name) => ({
             createService: (deps) => {
                 calls[name] = deps;
@@ -275,6 +276,7 @@ describe("GTV main core service assembly module", () => {
             setUiPreferencesState: () => {},
             DEFAULT_REALTIME_TICK_MS: 1000,
             getIsRealtimeState: () => true,
+            shouldRunRealtimeTick,
             setGlobalTimeState: () => {},
             maxRuntimeCacheSize: 4096,
             updateClocks: () => {},
@@ -312,6 +314,7 @@ describe("GTV main core service assembly module", () => {
         expect(calls.fixedTimeState).toHaveProperty("sanitizeFixedTimeSlotCount");
         expect(calls.uiPrefs).toHaveProperty("MIN_UI_SCALE_PERCENT");
         expect(calls.timerEngine).toHaveProperty("DEFAULT_REALTIME_TICK_MS");
+        expect(calls.timerEngine.shouldTick).toBe(shouldRunRealtimeTick);
         expect(calls.timeService).toHaveProperty("luxon");
         expect(assembled.createMainSelectServices({ a: 1 })).toEqual({ name: "selectServices" });
         expect(assembled.createTimezoneSearchService({ a: 1 })).toEqual({ name: "timezoneSearch" });

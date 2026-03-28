@@ -405,6 +405,64 @@ describe("GTV data transfer module", () => {
         expect(input.value).toBe("");
     });
 
+    it("handleGroupImportFile rejects oversized file before reading contents", async () => {
+        let textReadCount = 0;
+        const loaded = loadDataTransferModule();
+        const toasts = [];
+        const service = loaded.module.createService(createBaseDeps({
+            MAX_IMPORT_FILE_BYTES: 1024,
+            showToast(message) {
+                toasts.push(String(message));
+            }
+        }));
+        const input = {
+            value: "selected",
+            files: [{
+                name: "group.json",
+                size: 2048,
+                async text() {
+                    textReadCount += 1;
+                    return JSON.stringify({});
+                }
+            }]
+        };
+
+        await service.handleGroupImportFile({ target: input });
+
+        expect(textReadCount).toBe(0);
+        expect(toasts).toContain("toast_import_file_too_large");
+        expect(input.value).toBe("");
+    });
+
+    it("handleSettingsImportFile rejects oversized file before reading contents", async () => {
+        let textReadCount = 0;
+        const loaded = loadDataTransferModule();
+        const toasts = [];
+        const service = loaded.module.createService(createBaseDeps({
+            MAX_IMPORT_FILE_BYTES: 1024,
+            showToast(message) {
+                toasts.push(String(message));
+            }
+        }));
+        const input = {
+            value: "selected",
+            files: [{
+                name: "settings.json",
+                size: 4096,
+                async text() {
+                    textReadCount += 1;
+                    return JSON.stringify({ groups: [] });
+                }
+            }]
+        };
+
+        await service.handleSettingsImportFile({ target: input });
+
+        expect(textReadCount).toBe(0);
+        expect(toasts).toContain("toast_import_file_too_large");
+        expect(input.value).toBe("");
+    });
+
     it("handleSettingsImportFile maps persistence and quota failures to proper toasts", async () => {
         const loaded = loadDataTransferModule();
         const toasts = [];

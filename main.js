@@ -793,6 +793,21 @@ function getFixedTimeSlotCountForCurrentGroup() {
     return getFixedTimeSlotCount(getCurrentGroup());
 }
 
+function getCurrentGroupFixedTimeShowLiveNow() {
+    const group = getCurrentGroup();
+    if (!group) return false;
+    if (!fixedTimeStateService || typeof fixedTimeStateService.getCurrentGroupFixedTimeShowLiveNow !== "function") {
+        return !!group.fixedTimeShowLiveNow;
+    }
+    return !!fixedTimeStateService.getCurrentGroupFixedTimeShowLiveNow(group);
+}
+
+function shouldRunRealtimeTick() {
+    if (getIsRealtimeState()) return true;
+    if (!isFixedTimeTab()) return false;
+    return getCurrentGroupFixedTimeShowLiveNow();
+}
+
 function getTimeAdjustDayStepValue(slotIdx) {
     return getTimeAdjustDayStepBySlotSnapshot()[slotIdx];
 }
@@ -1330,6 +1345,7 @@ const mainCoreServices = GTV_MAIN_CORE_SERVICE_ASSEMBLY.createService({
     getCurrentGroup,
     ensureGroupFixedTimes,
     refreshFixedTimeSlotCountControls,
+    getCurrentGroupFixedTimeShowLiveNow,
     getDocumentRef: getDocumentRefOrNull,
     renderBaseTimeSelect: invokeRenderBaseTimeSelect,
     getMultiRangeRenderService: getMultiRangeRenderServiceRef,
@@ -1417,6 +1433,7 @@ const mainCoreServices = GTV_MAIN_CORE_SERVICE_ASSEMBLY.createService({
     buildStrictUtcDateFromParts,
     getNextFixedTimeSeed,
     sanitizeFixedDateValue,
+    sanitizeFixedTimeShowLiveNow,
     sanitizeFixedTimeSlotCount,
     renderTimelineFrame: deferDynamicCall(getRenderTimelineFrameRef),
     createUniqueFixedTimeId,
@@ -1443,6 +1460,7 @@ const mainCoreServices = GTV_MAIN_CORE_SERVICE_ASSEMBLY.createService({
     setUiPreferencesState,
     DEFAULT_REALTIME_TICK_MS,
     getIsRealtimeState,
+    shouldRunRealtimeTick,
     setGlobalTimeState,
     maxRuntimeCacheSize: MAX_RUNTIME_CACHE_SIZE,
     updateClocks: deferDynamicCall(getUpdateClocksRef),
@@ -1916,6 +1934,10 @@ function sanitizeFixedDateValue(value, fallback = "") {
     return fixedTimeSlotUtilsService.sanitizeFixedDateValue(value, fallback);
 }
 
+function sanitizeFixedTimeShowLiveNow(value, fallback = false) {
+    return fixedTimeSlotUtilsService.sanitizeFixedTimeShowLiveNow(value, fallback);
+}
+
 function getFixedDatePartsFromGroup(group = getCurrentGroup()) {
     return fixedTimeSlotUtilsService.getFixedDatePartsFromGroup(group);
 }
@@ -2014,6 +2036,10 @@ function getFixedTimeSlotCount(group = getCurrentGroup()) {
 
 function setCurrentGroupFixedDate(rawValue, options = {}) {
     return fixedTimeStateService.setCurrentGroupFixedDate(rawValue, options);
+}
+
+function setCurrentGroupFixedTimeShowLiveNow(enabled, options = {}) {
+    return fixedTimeStateService.setCurrentGroupFixedTimeShowLiveNow(enabled, options);
 }
 
 function refreshFixedTimeSlotCountControls() {
@@ -2664,7 +2690,8 @@ const mainGroupStateServices = mainCoreServices.createMainGroupStateServices({
     sanitizeBaseTimezoneId,
     sanitizeUtcRowOrder: sanitizeUtcRowOrderViaTimeCore,
     sanitizeFixedTimes,
-    sanitizeFixedDateValue
+    sanitizeFixedDateValue,
+    sanitizeFixedTimeShowLiveNow
 });
 multiStateService = mainGroupStateServices.multiStateService;
 groupStateService = mainGroupStateServices.groupStateService;
@@ -3147,6 +3174,8 @@ const mainRuntimeCompositionServices = mainCoreServices.createMainRuntimeComposi
         setFixedTimeSlotCount,
         refreshFixedTimeSlotCountControls,
         setCurrentGroupFixedDate,
+        getCurrentGroupFixedTimeShowLiveNow,
+        setCurrentGroupFixedTimeShowLiveNow,
         sanitizeFixedDateValue,
         showToast: deferDynamicCall(getShowToastRef),
         normalizeCustomAbbr,
@@ -3622,6 +3651,7 @@ const MAIN_TEST_HOOK_REGISTRY = Object.freeze({
     sanitizeFixedTimeName,
     sanitizeFixedTimeValue,
     sanitizeFixedDateValue,
+    sanitizeFixedTimeShowLiveNow,
     getFixedDatePartsFromGroup,
     sanitizeFixedTimes,
     ensureGroupFixedTimes,
@@ -3647,6 +3677,8 @@ const MAIN_TEST_HOOK_REGISTRY = Object.freeze({
     setMultiRangeCount,
     getFixedTimeSlotCount,
     setCurrentGroupFixedDate,
+    getCurrentGroupFixedTimeShowLiveNow,
+    setCurrentGroupFixedTimeShowLiveNow,
     refreshFixedTimeSlotCountControls,
     setFixedTimeSlotCount,
     toggleMultiRangeCollapsed,
@@ -3686,6 +3718,7 @@ const MAIN_TEST_HOOK_REGISTRY = Object.freeze({
     setPatchedShowTimelineState,
     getPatchedCurrentThemeState,
     getPatchedCurrentLangState,
+    shouldRunRealtimeTick,
     getPatchedDisplayFormatOrderState,
     getPatchedDisplayFormatEnabledState,
     getPatchedDisplayTimePartsEnabledState,

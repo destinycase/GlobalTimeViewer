@@ -616,6 +616,16 @@ input[type=number] {
     padding: 4px 0;
 }
 
+#fixed-time-date-group .fixed-time-live-now-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 4px;
+    font-size: 14px;
+    color: var(--text-dim);
+    cursor: pointer;
+}
+
 .control-label {
     font-size: 16px;
     color: var(--accent);
@@ -721,10 +731,18 @@ input[type=number] {
 
 .fixed-time-slot-head-top {
     display: grid;
-    grid-template-columns: 52px minmax(0, 1fr) 52px;
+    grid-template-columns: minmax(0, 1fr) 52px;
     align-items: center;
     gap: 6px;
     width: 100%;
+    min-width: 0;
+}
+
+.fixed-time-slot-title-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     min-width: 0;
 }
 
@@ -753,9 +771,8 @@ input[type=number] {
 
 .fixed-time-slot-title {
     display: block;
-    width: 100%;
+    width: auto;
     text-align: center;
-    justify-self: center;
     font-size: 16px;
     line-height: 1.2;
     font-weight: 700;

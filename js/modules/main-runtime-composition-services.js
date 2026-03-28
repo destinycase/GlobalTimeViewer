@@ -153,6 +153,8 @@
             setFixedTimeSlotCount: actions.setFixedTimeSlotCount,
             refreshFixedTimeSlotCountControls: actions.refreshFixedTimeSlotCountControls,
             setCurrentGroupFixedDate: actions.setCurrentGroupFixedDate,
+            getCurrentGroupFixedTimeShowLiveNow: actions.getCurrentGroupFixedTimeShowLiveNow,
+            setCurrentGroupFixedTimeShowLiveNow: actions.setCurrentGroupFixedTimeShowLiveNow,
             sanitizeFixedDateValue: actions.sanitizeFixedDateValue,
             showToast: actions.showToast,
             normalizeCustomAbbr: actions.normalizeCustomAbbr,

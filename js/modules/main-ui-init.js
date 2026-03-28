@@ -21,6 +21,8 @@
         const getCurrentGroup = deps.getCurrentGroup;
         const ensureGroupFixedTimes = deps.ensureGroupFixedTimes;
         const setCurrentGroupFixedDate = deps.setCurrentGroupFixedDate;
+        const getCurrentGroupFixedTimeShowLiveNow = deps.getCurrentGroupFixedTimeShowLiveNow;
+        const setCurrentGroupFixedTimeShowLiveNow = deps.setCurrentGroupFixedTimeShowLiveNow;
         const sanitizeFixedDateValue = deps.sanitizeFixedDateValue;
         const showToast = deps.showToast;
         const normalizeCustomAbbr = deps.normalizeCustomAbbr;
@@ -182,6 +184,7 @@
             const fixedTimeSlotIncreaseBtn = document.getElementById("fixed-time-slot-count-increase");
             const fixedTimeDateInput = document.getElementById("fixed-time-date-input");
             const fixedTimeDateTrigger = document.getElementById("fixed-time-date-trigger");
+            const fixedTimeLiveNowToggle = document.getElementById("fixed-time-live-now-toggle");
             if (fixedTimeSlotCountInput) {
                 const commitFixedTimeSlotCount = () => {
                     setFixedTimeSlotCount(fixedTimeSlotCountInput.value, { persist: true, rerender: true, showBoundaryToast: true });
@@ -242,6 +245,36 @@
                     if (e.key !== "Enter") return;
                     commitFixedDate();
                     fixedTimeDateInput.blur();
+                });
+            }
+            if (fixedTimeLiveNowToggle) {
+                const syncFixedTimeLiveNowToggle = () => {
+                    const group = getCurrentGroup();
+                    if (!group) {
+                        fixedTimeLiveNowToggle.checked = false;
+                        fixedTimeLiveNowToggle.disabled = true;
+                        return;
+                    }
+                    fixedTimeLiveNowToggle.disabled = false;
+                    if (typeof getCurrentGroupFixedTimeShowLiveNow === "function") {
+                        fixedTimeLiveNowToggle.checked = !!getCurrentGroupFixedTimeShowLiveNow(group);
+                    } else {
+                        fixedTimeLiveNowToggle.checked = !!group.fixedTimeShowLiveNow;
+                    }
+                };
+                syncFixedTimeLiveNowToggle();
+                fixedTimeLiveNowToggle.addEventListener("change", () => {
+                    if (typeof setCurrentGroupFixedTimeShowLiveNow === "function") {
+                        setCurrentGroupFixedTimeShowLiveNow(!!fixedTimeLiveNowToggle.checked, {
+                            persist: true,
+                            rerender: true
+                        });
+                        return;
+                    }
+                    const group = getCurrentGroup();
+                    if (!group) return;
+                    group.fixedTimeShowLiveNow = !!fixedTimeLiveNowToggle.checked;
+                    savePersistence();
                 });
             }
             refreshFixedTimeSlotCountControls();

@@ -109,6 +109,8 @@
             getCurrentGroup: safeDeps.getCurrentGroup,
             ensureGroupFixedTimes: safeDeps.ensureGroupFixedTimes,
             setCurrentGroupFixedDate: safeDeps.setCurrentGroupFixedDate,
+            getCurrentGroupFixedTimeShowLiveNow: safeDeps.getCurrentGroupFixedTimeShowLiveNow,
+            setCurrentGroupFixedTimeShowLiveNow: safeDeps.setCurrentGroupFixedTimeShowLiveNow,
             sanitizeFixedDateValue: safeDeps.sanitizeFixedDateValue,
             showToast: safeDeps.showToast,
             normalizeCustomAbbr: safeDeps.normalizeCustomAbbr,

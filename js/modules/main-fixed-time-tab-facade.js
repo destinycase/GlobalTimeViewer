@@ -18,6 +18,9 @@
         const refreshFixedTimeSlotCountControls = (typeof safeDeps.refreshFixedTimeSlotCountControls === "function")
             ? safeDeps.refreshFixedTimeSlotCountControls
             : (() => undefined);
+        const getCurrentGroupFixedTimeShowLiveNow = (typeof safeDeps.getCurrentGroupFixedTimeShowLiveNow === "function")
+            ? safeDeps.getCurrentGroupFixedTimeShowLiveNow
+            : ((group) => !!group?.fixedTimeShowLiveNow);
         const getDocumentRef = (typeof safeDeps.getDocumentRef === "function")
             ? safeDeps.getDocumentRef
             : (() => ((typeof document === "object" && document) ? document : null));
@@ -71,11 +74,18 @@
             const dateInput = doc && typeof doc.getElementById === "function"
                 ? doc.getElementById("fixed-time-date-input")
                 : null;
+            const liveNowToggle = doc && typeof doc.getElementById === "function"
+                ? doc.getElementById("fixed-time-live-now-toggle")
+                : null;
             if (!dateInput) return;
 
             const safeGroup = group || getCurrentGroup();
             if (!safeGroup) {
                 dateInput.value = "";
+                if (liveNowToggle) {
+                    liveNowToggle.checked = false;
+                    liveNowToggle.disabled = true;
+                }
                 return;
             }
 
@@ -83,6 +93,10 @@
                 ensureGroupFixedTimes(safeGroup);
             }
             dateInput.value = safeGroup.fixedDate || "";
+            if (liveNowToggle) {
+                liveNowToggle.disabled = false;
+                liveNowToggle.checked = !!getCurrentGroupFixedTimeShowLiveNow(safeGroup);
+            }
         }
 
         function renderFixedTimeTab() {

@@ -50,12 +50,6 @@
             return null;
         }
 
-        function getConfirmFn() {
-            if (typeof safeDeps.confirmFn === "function") return safeDeps.confirmFn;
-            if (typeof confirm === "function") return confirm;
-            return null;
-        }
-
         function getUserAgent() {
             if (
                 typeof navigator === "object"
@@ -94,12 +88,6 @@
                 }
                 console.error("FATAL ERROR during app initialization:", err);
             }
-        }
-
-        function getResetConfirmMessage() {
-            const translated = invokeDep("t", "confirm_reset_all_settings");
-            if (typeof translated === "string" && translated.trim()) return translated;
-            return "Reset all settings?";
         }
 
         function classifyFatalErrorType(err) {
@@ -203,11 +191,9 @@
 
         function bindFatalResetButtonHandler(resetBtn) {
             bindClickHandler(resetBtn, async () => {
-                const confirmFn = getConfirmFn();
-                const confirmMsg = getResetConfirmMessage();
-                if (confirmFn && !confirmFn(confirmMsg)) return;
                 if (typeof safeDeps.resetAllSettings === "function") {
-                    await safeDeps.resetAllSettings();
+                    const resetResult = await safeDeps.resetAllSettings();
+                    if (resetResult === false) return;
                 }
                 const locationRef = getLocationRef();
                 if (locationRef) locationRef.reload();

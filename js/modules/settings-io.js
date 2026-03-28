@@ -85,6 +85,7 @@
                 fixedDate: (typeof deps.getDefaultFixedDate === "function")
                     ? deps.getDefaultFixedDate()
                     : "",
+                fixedTimeShowLiveNow: false,
                 fixedTimes: (typeof deps.getDefaultFixedTimes === "function")
                     ? deps.getDefaultFixedTimes()
                     : []

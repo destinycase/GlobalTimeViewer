@@ -172,7 +172,6 @@ describe("GTV app feedback module", () => {
         const module = loadAppFeedbackModule();
         const banner = createElementStub("div");
         const resetBtn = createElementStub("button");
-        let confirmCount = 0;
         let resetCount = 0;
         let reloadCount = 0;
         const service = module.createService({
@@ -182,10 +181,6 @@ describe("GTV app feedback module", () => {
                     if (id === "fatal-error-reset-btn") return resetBtn;
                     return null;
                 }
-            },
-            confirmFn: () => {
-                confirmCount += 1;
-                return true;
             },
             resetAllSettings: async () => {
                 resetCount += 1;
@@ -204,12 +199,11 @@ describe("GTV app feedback module", () => {
         expect(resetBtn.listenerCount("click")).toBe(1);
 
         await resetBtn.trigger("click");
-        expect(confirmCount).toBe(1);
         expect(resetCount).toBe(1);
         expect(reloadCount).toBe(1);
     });
 
-    it("showFatalError stops when user cancels confirmation", async () => {
+    it("showFatalError does not reload when resetAllSettings returns false", async () => {
         const module = loadAppFeedbackModule();
         const banner = createElementStub("div");
         const resetBtn = createElementStub("button");
@@ -223,9 +217,9 @@ describe("GTV app feedback module", () => {
                     return null;
                 }
             },
-            confirmFn: () => false,
             resetAllSettings: async () => {
                 resetCount += 1;
+                return false;
             },
             location: {
                 reload() {
@@ -238,7 +232,7 @@ describe("GTV app feedback module", () => {
 
         service.showFatalError(new Error("boom"));
         await resetBtn.trigger("click");
-        expect(resetCount).toBe(0);
+        expect(resetCount).toBe(1);
         expect(reloadCount).toBe(0);
     });
 
@@ -246,7 +240,6 @@ describe("GTV app feedback module", () => {
         const module = loadAppFeedbackModule();
         const banner = createElementStub("div");
         const resetBtn = createElementStub("button");
-        let confirmCount = 0;
         let resetCount = 0;
         let reloadCount = 0;
         const service = module.createService({
@@ -256,10 +249,6 @@ describe("GTV app feedback module", () => {
                     if (id === "fatal-error-reset-btn") return resetBtn;
                     return null;
                 }
-            },
-            confirmFn: () => {
-                confirmCount += 1;
-                return true;
             },
             resetAllSettings: async () => {
                 resetCount += 1;
@@ -278,7 +267,6 @@ describe("GTV app feedback module", () => {
         expect(resetBtn.listenerCount("click")).toBe(1);
 
         await resetBtn.trigger("click");
-        expect(confirmCount).toBe(1);
         expect(resetCount).toBe(1);
         expect(reloadCount).toBe(1);
     });

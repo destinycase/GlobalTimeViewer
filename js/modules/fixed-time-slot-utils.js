@@ -111,6 +111,22 @@
             return `${String(year).padStart(4, "0")}-${pad2(month)}-${pad2(day)}`;
         }
 
+        function sanitizeFixedTimeShowLiveNow(value, fallback = false) {
+            if (typeof value === "boolean") return value;
+            if (typeof value === "number") return value !== 0;
+            if (typeof value === "string") {
+                const normalized = value.trim().toLowerCase();
+                if (!normalized) return false;
+                if (normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on") {
+                    return true;
+                }
+                if (normalized === "false" || normalized === "0" || normalized === "no" || normalized === "off") {
+                    return false;
+                }
+            }
+            return !!fallback;
+        }
+
         function createDefaultFixedTimeSlot(id = "") {
             return {
                 id: sanitizeFixedTimeId(id),
@@ -182,6 +198,7 @@
             if (!group || typeof group !== "object") return;
             group.fixedTimes = sanitizeFixedTimes(group.fixedTimes);
             group.fixedDate = sanitizeFixedDateValue(group.fixedDate, "");
+            group.fixedTimeShowLiveNow = sanitizeFixedTimeShowLiveNow(group.fixedTimeShowLiveNow, false);
         }
 
         function createUniqueFixedTimeId(group = invokeDep("getCurrentGroup")) {
@@ -212,6 +229,7 @@
             sanitizeFixedTimeName,
             sanitizeFixedTimeValue,
             sanitizeFixedDateValue,
+            sanitizeFixedTimeShowLiveNow,
             getFixedDatePartsFromGroup,
             sanitizeFixedTimes,
             ensureGroupFixedTimes,

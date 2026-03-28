@@ -137,4 +137,25 @@ describe("GTV main app bootstrap module", () => {
         await service.initApp();
         expect(errors).toEqual(["Corrupted local storage JSON"]);
     });
+
+    it("times out hung bootstrap step and routes timeout error to showFatalError", async () => {
+        const moduleApi = loadMainAppBootstrapModule({ withWindow: false });
+        const errors = [];
+        const service = moduleApi.createService({
+            bootstrapStepTimeoutMs: 1000,
+            setTimeoutFn: (fn) => {
+                fn();
+                return 1;
+            },
+            clearTimeoutFn: () => {},
+            loadPersistence: async () => await new Promise(() => {}),
+            showFatalError: (err) => errors.push(err)
+        });
+
+        await service.initApp();
+        expect(errors).toHaveLength(1);
+        expect(errors[0]?.code).toBe("BOOTSTRAP_TIMEOUT");
+        expect(errors[0]?.step).toBe("loadPersistence");
+        expect(String(errors[0]?.message || "")).toContain("loadPersistence");
+    });
 });

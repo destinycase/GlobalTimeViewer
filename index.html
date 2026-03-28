@@ -114,15 +114,15 @@
             <div id="top-control-bar" class="control-bar">
                 <div class="control-row control-row-main">
                     <div class="control-group">
-                        <span class="control-label-large" data-i18n="label_add_tz">Add Timezone</span>
+                        <span class="control-label-large" data-i18n="label_add_tz">Timezone</span>
                         <select id="tz-quick-select" class="form-select" style="width: 118px;">
                             <option value="" data-i18n="option_popular">Select popular city...</option>
                         </select>
                         <button id="show-all-tz" class="icon-btn" data-i18n="btn_list">List</button>
                     </div>
 
-                    <div class="control-group control-group-divider">
-                        <span class="control-label-large" data-i18n="label_add_custom">Add Custom</span>
+                    <div class="control-group">
+                        <span class="inline-time-label" data-i18n="label_add_custom">Custom</span>
                         <input type="text" id="custom-abbr" class="form-input" placeholder="Timezone"
                             style="width: 64px;" data-i18n="placeholder_abbr">
                         <input type="text" id="custom-name" class="form-input" placeholder="Name" style="width: 74px;"
@@ -198,6 +198,10 @@
                         <input id="fixed-time-date-input" class="form-input" type="text" inputmode="numeric"
                             data-i18n="placeholder_fixed_date" placeholder="YYYY-MM-DD" spellcheck="false">
                         <button id="fixed-time-date-trigger" class="calendar-btn" type="button" title="Date Picker">&#128197;</button>
+                        <label class="fixed-time-live-now-flag" for="fixed-time-live-now-toggle">
+                            <span data-i18n="label_fixed_time_live_now">Show Realtime</span>
+                            <input id="fixed-time-live-now-toggle" type="checkbox">
+                        </label>
                     </div>
 
                     <div class="control-group" style="margin-left: auto;">
@@ -758,5 +762,3 @@
 </body>
 
 </html>
-
-

@@ -358,6 +358,58 @@ describe("GTV fixed time table module", () => {
         expect(customZoneCode.length).toBeGreaterThan(0);
     });
 
+    it("renderFixedTimeTable appends realtime-now column when enabled", () => {
+        const { doc, headRow, body } = createTableDocument();
+        const module = loadFixedTimeTableModule({ document: doc });
+        const service = module.createService({
+            t: (key) => key,
+            getCurrentGroup: () => ({
+                fixedTimeShowLiveNow: true,
+                fixedTimes: [{ id: "slot-1", name: "Morning", time: "09:00" }]
+            }),
+            ensureGroupFixedTimes: () => { },
+            getFixedTimeDisplayPartsEnabled: () => ({ dn: true, time: true, weekday: true }),
+            getDisplayFormatOrder: () => ["timezone", "time"],
+            getDisplayFormatEnabled: () => ({ timezone: true, time: true }),
+            sanitizeCopyFormatOrderForContext: (order) => order,
+            sanitizeCopyFormatEnabledForContext: (enabled) => enabled,
+            getFixedTimeTimelineIndicatorColor: () => "#00aaff",
+            getFixedTimeSlotHeaderLabel: () => "Morning",
+            renameFixedTimeSlot: () => { },
+            copyFixedTimeSlotColumn: async () => { },
+            getBaseTimezoneRef: () => ({ id: "utc", zone: "UTC", type: "standard" }),
+            getRenderableTimezoneRows: () => [{ id: "tz-1", zone: "Asia/Seoul", type: "standard" }],
+            getGlobalTime: () => new Date("2026-03-07T00:00:00.000Z"),
+            resolveFixedTimeSlotUtcDate: () => new Date("2026-03-07T09:00:00.000Z"),
+            getZoneAbbreviation: () => "UTC",
+            getZoneDisplayNameForUiAtDate: () => "",
+            getZoneDisplayName: () => "UTC",
+            formatUtcOffsetLabel: (minutes) => `UTC${minutes}`,
+            getCustomOffsetMinutes: () => 0,
+            getFixedOffsetForDisplayAtDate: () => 0,
+            getTimezoneOffset: () => 0,
+            buildFixedTimeDisplayPayloadAtUtc: () => ({
+                dayNightGlyph: "AM",
+                clock: "12:34:56",
+                dayName: "Sat",
+                weekdayIndex: 6
+            }),
+            buildFixedTimeCellInputValue: () => "09:00:00",
+            bindCustomDatePickerForInput: () => { },
+            applyFixedTimeSlotByTimezoneInput: () => { },
+            copyFixedTimeCellByTimezone: async () => { },
+            upgradeNativeTitleTooltips: () => { }
+        });
+
+        service.renderFixedTimeTable();
+
+        expect(headRow.children[1].textContent).toBe("th_fixed_time_live_now");
+        const liveNowCells = findByClass(body, "fixed-time-live-now");
+        expect(liveNowCells.length).toBe(2);
+        const clocks = findByClass(body, "fixed-time-clock");
+        expect(clocks.some((el) => el.textContent === "12:34:56")).toBe(true);
+    });
+
     it("renderFixedTimeTable exits when base timezone is missing after clearing body", () => {
         const { doc, body } = createTableDocument();
         const module = loadFixedTimeTableModule({ document: doc });
