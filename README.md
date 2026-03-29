@@ -1,4 +1,4 @@
-# Global Time Viewer v3.11.8
+# Global Time Viewer v3.11.9
 
 ## 확장 프로그램
 - https://chromewebstore.google.com/detail/ojmkgfaeececindhbegihnonpndkbnho?utm_source=item-share-cb

@@ -3,21 +3,11 @@ const GTV_GLOBAL = (typeof window !== "undefined" && window) ? window : globalTh
 let mainRuntimeLangStateService = null;
 let mainDayNightRangeUtilsService = null;
 let mainRuntimeCoreAccessorService = null;
-function callRuntimeCoreAccessor(methodName, args, fallbackFn) {
-    if (
-        mainRuntimeCoreAccessorService
-        && typeof mainRuntimeCoreAccessorService[methodName] === "function"
-    ) {
-        return mainRuntimeCoreAccessorService[methodName](...args);
-    }
-    return fallbackFn(...args);
-}
 function syncRealtimeFlagToGlobal(value) {
-    return callRuntimeCoreAccessor(
-        "syncRealtimeFlagToGlobal",
-        [value],
-        (nextValue) => mainRuntimeLangStateService.syncRealtimeFlagToGlobal(nextValue)
-    );
+    if (typeof mainRuntimeCoreAccessorService?.syncRealtimeFlagToGlobal === "function") {
+        return mainRuntimeCoreAccessorService.syncRealtimeFlagToGlobal(value);
+    }
+    return mainRuntimeLangStateService.syncRealtimeFlagToGlobal(value);
 }
 let globalTimes = [new Date(), new Date()];
 let slotCount = 1;
@@ -30,29 +20,27 @@ const gtvT = (...args) => resolveTranslate()(...args);
 const MAIN_I18N_DATA = (GTV_GLOBAL.I18N_DATA && typeof GTV_GLOBAL.I18N_DATA === "object")
     ? GTV_GLOBAL.I18N_DATA
     : { ko: {}, en: {} };
+function assertBindingCreateService(bindingsModule, moduleApiName) {
+    if (!bindingsModule || typeof bindingsModule.createService !== "function") {
+        throw new Error(`Missing required module API: ${moduleApiName}.createService`);
+    }
+}
 function getRuntimeCurrentLangValue() {
-    return callRuntimeCoreAccessor(
-        "getRuntimeCurrentLangValue",
-        [],
-        () => mainRuntimeLangStateService.getRuntimeCurrentLangValue()
-    );
+    if (typeof mainRuntimeCoreAccessorService?.getRuntimeCurrentLangValue === "function") {
+        return mainRuntimeCoreAccessorService.getRuntimeCurrentLangValue();
+    }
+    return mainRuntimeLangStateService.getRuntimeCurrentLangValue();
 }
 
 function syncCurrentLang(next) {
-    return callRuntimeCoreAccessor(
-        "syncCurrentLang",
-        [next],
-        (nextValue) => mainRuntimeLangStateService.syncCurrentLang(nextValue)
-    );
+    if (typeof mainRuntimeCoreAccessorService?.syncCurrentLang === "function") {
+        return mainRuntimeCoreAccessorService.syncCurrentLang(next);
+    }
+    return mainRuntimeLangStateService.syncCurrentLang(next);
 }
 const GTV_MAIN_CONSTANTS = GTV_GLOBAL.GTVMainConstants;
 const GTV_MAIN_CONSTANTS_BINDINGS = GTV_GLOBAL.GTVMainConstantsBindings;
-if (
-    !GTV_MAIN_CONSTANTS_BINDINGS
-    || typeof GTV_MAIN_CONSTANTS_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainConstantsBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_CONSTANTS_BINDINGS, "GTVMainConstantsBindings");
 const {
     COPY_FORMAT_KEYS,
     TIME_PART_KEYS,
@@ -89,12 +77,7 @@ const cancelUiFrame = (typeof cancelAnimationFrame === "function")
     : ((id) => clearTimeout(id));
 const GTV_MAIN_RUNTIME_LANG_STATE = GTV_GLOBAL.GTVMainRuntimeLangState;
 const GTV_MAIN_RUNTIME_LANG_STATE_BINDINGS = GTV_GLOBAL.GTVMainRuntimeLangStateBindings;
-if (
-    !GTV_MAIN_RUNTIME_LANG_STATE_BINDINGS
-    || typeof GTV_MAIN_RUNTIME_LANG_STATE_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainRuntimeLangStateBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_RUNTIME_LANG_STATE_BINDINGS, "GTVMainRuntimeLangStateBindings");
 ({
     mainRuntimeLangStateService
 } = GTV_MAIN_RUNTIME_LANG_STATE_BINDINGS.createService({
@@ -105,12 +88,7 @@ if (
 getRuntimeCurrentLangValue();
 const GTV_MAIN_DAY_NIGHT_RANGE_UTILS = GTV_GLOBAL.GTVMainDayNightRangeUtils;
 const GTV_MAIN_DAY_NIGHT_RANGE_UTILS_BINDINGS = GTV_GLOBAL.GTVMainDayNightRangeUtilsBindings;
-if (
-    !GTV_MAIN_DAY_NIGHT_RANGE_UTILS_BINDINGS
-    || typeof GTV_MAIN_DAY_NIGHT_RANGE_UTILS_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainDayNightRangeUtilsBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_DAY_NIGHT_RANGE_UTILS_BINDINGS, "GTVMainDayNightRangeUtilsBindings");
 ({
     mainDayNightRangeUtilsService
 } = GTV_MAIN_DAY_NIGHT_RANGE_UTILS_BINDINGS.createService({
@@ -121,12 +99,7 @@ if (
 }));
 const GTV_MAIN_APP_STATE_VARS = GTV_GLOBAL.GTVMainAppStateVars;
 const GTV_MAIN_APP_STATE_VARS_BINDINGS = GTV_GLOBAL.GTVMainAppStateVarsBindings;
-if (
-    !GTV_MAIN_APP_STATE_VARS_BINDINGS
-    || typeof GTV_MAIN_APP_STATE_VARS_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainAppStateVarsBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_APP_STATE_VARS_BINDINGS, "GTVMainAppStateVarsBindings");
 const {
     mainAppStateVarsService
 } = GTV_MAIN_APP_STATE_VARS_BINDINGS.createService({
@@ -143,12 +116,7 @@ const {
 });
 const GTV_MAIN_STATE_INITIALIZER = GTV_GLOBAL.GTVMainStateInitializer;
 const GTV_MAIN_STATE_INITIALIZER_BINDINGS = GTV_GLOBAL.GTVMainStateInitializerBindings;
-if (
-    !GTV_MAIN_STATE_INITIALIZER_BINDINGS
-    || typeof GTV_MAIN_STATE_INITIALIZER_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainStateInitializerBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_STATE_INITIALIZER_BINDINGS, "GTVMainStateInitializerBindings");
 const {
     mainStateInitializerService
 } = GTV_MAIN_STATE_INITIALIZER_BINDINGS.createService({
@@ -158,21 +126,17 @@ const initialMainState = (mainAppStateVarsService && typeof mainAppStateVarsServ
     ? (mainAppStateVarsService.initialState || {})
     : {};
 function sanitizeDayNightHourValue(value, fallbackHour = DEFAULT_DAY_START_HOUR) {
-    return callRuntimeCoreAccessor(
-        "sanitizeDayNightHourValue",
-        [value, fallbackHour],
-        (nextValue, nextFallbackHour) => mainDayNightRangeUtilsService.sanitizeDayNightHourValue(nextValue, nextFallbackHour)
-    );
+    if (typeof mainRuntimeCoreAccessorService?.sanitizeDayNightHourValue === "function") {
+        return mainRuntimeCoreAccessorService.sanitizeDayNightHourValue(value, fallbackHour);
+    }
+    return mainDayNightRangeUtilsService.sanitizeDayNightHourValue(value, fallbackHour);
 }
 
 function normalizeDayNightRangeValues(dayStartHourInput, nightStartHourInput) {
-    return callRuntimeCoreAccessor(
-        "normalizeDayNightRangeValues",
-        [dayStartHourInput, nightStartHourInput],
-        (nextDayStartHourInput, nextNightStartHourInput) => (
-            mainDayNightRangeUtilsService.normalizeDayNightRangeValues(nextDayStartHourInput, nextNightStartHourInput)
-        )
-    );
+    if (typeof mainRuntimeCoreAccessorService?.normalizeDayNightRangeValues === "function") {
+        return mainRuntimeCoreAccessorService.normalizeDayNightRangeValues(dayStartHourInput, nightStartHourInput);
+    }
+    return mainDayNightRangeUtilsService.normalizeDayNightRangeValues(dayStartHourInput, nightStartHourInput);
 }
 
 const initializedMainState = mainStateInitializerService.deriveInitialState({
@@ -252,6 +216,7 @@ let mainMultiRangeTabFacadeService = null;
 let mainTimelineFacadeService = null;
 let mainFixedTimeFacadeService = null;
 let mainAppBootstrapService = null;
+let mainRuntimePublicApiService = null;
 let appPersistenceStateService = null;
 let appStatePatcherService = null;
 let mainAppStateBridgeService = null;
@@ -305,128 +270,50 @@ var getGlobalTimeState;
 var setGlobalTimeState;
 var getUiScaleState;
 
-function callRuntimeStatePatchAccessor(methodName, args, fallbackFn) {
-    if (
-        mainRuntimeStatePatchAccessorService
-        && typeof mainRuntimeStatePatchAccessorService[methodName] === "function"
-    ) {
-        return mainRuntimeStatePatchAccessorService[methodName](...args);
-    }
-    return fallbackFn(...args);
-}
-
 function applyDirectStatePatch(next = {}) {
-    return callRuntimeStatePatchAccessor("applyDirectStatePatch", [next], (nextPatch = {}) => {
-        if (
-            mainDirectStatePatchService
-            && typeof mainDirectStatePatchService.applyDirectStatePatch === "function"
-        ) {
-            return mainDirectStatePatchService.applyDirectStatePatch(nextPatch);
-        }
-        if (!nextPatch || typeof nextPatch !== "object") return;
-        Object.keys(directStateSetters).forEach((key) => {
-            if (!Object.prototype.hasOwnProperty.call(nextPatch, key)) return;
-            const setter = directStateSetters[key];
-            if (typeof setter !== "function") return;
-            if (key === "showTimeline") {
-                setter(!!nextPatch.showTimeline);
-                return;
-            }
-            setter(nextPatch[key]);
-        });
-        if (
-            Object.prototype.hasOwnProperty.call(nextPatch, "dayStartHour")
-            || Object.prototype.hasOwnProperty.call(nextPatch, "nightStartHour")
-        ) {
-            const normalized = normalizeDayNightRangeValues(dayStartHour, nightStartHour);
-            dayStartHour = normalized.dayStartHour;
-            nightStartHour = normalized.nightStartHour;
-        }
-        if (Object.prototype.hasOwnProperty.call(nextPatch, "isRealtime")) {
-            setIsRealtimeState(nextPatch.isRealtime);
-        }
-    });
+    return mainRuntimeStatePatchAccessorService.applyDirectStatePatch(next);
 }
 
 const SERVICE_METHOD_MISSING = Symbol("GTV_SERVICE_METHOD_MISSING");
-const GTV_MAIN_BOOTSTRAP_GUARD = GTV_GLOBAL.GTVMainBootstrapGuard;
-const GTV_MAIN_BOOTSTRAP_GUARD_BINDINGS = GTV_GLOBAL.GTVMainBootstrapGuardBindings;
-const GTV_MAIN_RUNTIME_HOST_UTILS = GTV_GLOBAL.GTVMainRuntimeHostUtils;
-const GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS = GTV_GLOBAL.GTVMainRuntimeHostUtilsBindings;
-const GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES = GTV_GLOBAL.GTVMainRuntimeHostAccessorProxies;
-const GTV_MAIN_RUNTIME_HOST_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainRuntimeHostAccessorBindings;
-const GTV_MAIN_RUNTIME_PRIMARY_STATE = GTV_GLOBAL.GTVMainRuntimePrimaryState;
-const GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS = GTV_GLOBAL.GTVMainRuntimePrimaryStateBindings;
-const GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES = GTV_GLOBAL.GTVMainRuntimePrimaryStateAccessorProxies;
-const GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainRuntimePrimaryStateAccessorBindings;
-const GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS = GTV_GLOBAL.GTVMainRuntimeServiceBridgeHelpers;
-const GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS = GTV_GLOBAL.GTVMainRuntimeServiceBridgeHelperBindings;
-const GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES = GTV_GLOBAL.GTVMainRuntimeServiceBridgeAccessorProxies;
-const GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainRuntimeServiceBridgeAccessorBindings;
-const GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES = GTV_GLOBAL.GTVMainRuntimeUiBridgeAccessorProxies;
-const GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainRuntimeUiBridgeAccessorBindings;
-const GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES = GTV_GLOBAL.GTVMainRuntimeOperationAccessorProxies;
-const GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainRuntimeOperationAccessorBindings;
-const GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES = GTV_GLOBAL.GTVMainRuntimeBootstrapAccessorProxies;
-const GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainRuntimeBootstrapAccessorBindings;
-const GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES = GTV_GLOBAL.GTVMainRuntimeCoreAccessorProxies;
-const GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainRuntimeCoreAccessorBindings;
-const GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES = GTV_GLOBAL.GTVMainRuntimeStatePatchAccessorProxies;
-const GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainRuntimeStatePatchAccessorBindings;
-const GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK = GTV_GLOBAL.GTVMainRuntimePatchedStateFallback;
-const GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS = GTV_GLOBAL.GTVMainRuntimePatchedStateFallbackBindings;
-const GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS = GTV_GLOBAL.GTVMainRuntimeLocalStateHelpers;
-const GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS = GTV_GLOBAL.GTVMainRuntimeLocalStateHelpersBindings;
-const GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_PROXIES = GTV_GLOBAL.GTVMainRuntimeLocalStateAccessorProxies;
-const GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainRuntimeLocalStateAccessorBindings;
-const GTV_MAIN_FACADE_BINDINGS = GTV_GLOBAL.GTVMainFacadeBindings;
-const GTV_MAIN_RUNTIME_BRIDGE_PROXIES = GTV_GLOBAL.GTVMainRuntimeBridgeProxies;
-const GTV_MAIN_RUNTIME_BRIDGE_PROXY_BINDINGS = GTV_GLOBAL.GTVMainRuntimeBridgeProxyBindings;
-const GTV_MAIN_RUNTIME_TIMEZONE_HELPERS = GTV_GLOBAL.GTVMainRuntimeTimezoneHelpers;
-const GTV_MAIN_RUNTIME_TIMEZONE_HELPER_BINDINGS = GTV_GLOBAL.GTVMainRuntimeTimezoneHelperBindings;
-const GTV_MAIN_RUNTIME_STATE_HELPERS = GTV_GLOBAL.GTVMainRuntimeStateHelpers;
-const GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES = GTV_GLOBAL.GTVMainRuntimeStateHelperAliases;
-const GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES_BINDINGS = GTV_GLOBAL.GTVMainRuntimeStateHelperAliasesBindings;
-const GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_PROXIES = GTV_GLOBAL.GTVMainRuntimeStateHelperAccessorProxies;
-const GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainRuntimeStateHelperAccessorBindings;
-const GTV_MAIN_FORMAT_PROFILE_FACADE_BINDINGS = GTV_GLOBAL.GTVMainFormatProfileFacadeBindings;
-const GTV_MAIN_CORE_SERVICE_ASSEMBLY_BINDINGS = GTV_GLOBAL.GTVMainCoreServiceAssemblyBindings;
-const GTV_MAIN_FOUNDATION_SERVICES_BINDINGS = GTV_GLOBAL.GTVMainFoundationServicesBindings;
-const GTV_MAIN_RUNTIME_REFERENCE_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainRuntimeReferenceAccessorBindings;
-const GTV_MAIN_RUNTIME_REFERENCE_ACCESSORS = GTV_GLOBAL.GTVMainRuntimeReferenceAccessors;
-const GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE = GTV_GLOBAL.GTVMainStateDomainWrapperBridge;
-const GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_BINDINGS = GTV_GLOBAL.GTVMainStateDomainWrapperBridgeBindings;
-const GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS = GTV_GLOBAL.GTVMainStateDomainWrapperGlobalBindings;
-const GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE = GTV_GLOBAL.GTVMainStateDomainWrapperGlobalBindingsBridge;
-const GTV_MAIN_STATE_DOMAIN_PROXY_BINDINGS = GTV_GLOBAL.GTVMainStateDomainProxyBindings;
-const GTV_MAIN_FACADE_METHOD_BINDER = GTV_GLOBAL.GTVMainFacadeMethodBinder;
-const GTV_MAIN_FACADE_METHOD_BINDER_BINDINGS = GTV_GLOBAL.GTVMainFacadeMethodBinderBindings;
-const GTV_MAIN_FACADE_BRIDGE = GTV_GLOBAL.GTVMainFacadeBridge;
-const GTV_MAIN_FACADE_BRIDGE_BINDINGS = GTV_GLOBAL.GTVMainFacadeBridgeBindings;
-const GTV_MAIN_COMPOSITION_CONFIG_BUILDER = GTV_GLOBAL.GTVMainCompositionConfigBuilder;
-const GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS = GTV_GLOBAL.GTVMainCompositionConfigBuilderBindings;
-const GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER = GTV_GLOBAL.GTVMainCoreAssemblyConfigBuilder;
-const GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS = GTV_GLOBAL.GTVMainCoreAssemblyConfigBuilderBindings;
-const GTV_MAIN_CORE_SERVICE_BINDINGS = GTV_GLOBAL.GTVMainCoreServiceBindings;
-const GTV_MAIN_FOUNDATION_SERVICE_BINDINGS = GTV_GLOBAL.GTVMainFoundationServiceBindings;
-const GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER = GTV_GLOBAL.GTVMainRuntimeServiceConfigBuilder;
-const GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER_BINDINGS = GTV_GLOBAL.GTVMainRuntimeServiceConfigBuilderBindings;
-const GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES = GTV_GLOBAL.GTVMainPatchedStateAccessorProxies;
-const GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS = GTV_GLOBAL.GTVMainPatchedStateAccessorBindings;
-const REQUIRED_BOOTSTRAP_SPECS = Object.freeze([
-    { serviceName: "persistenceService", methodName: "loadPersistence" },
-    { serviceName: "persistenceService", methodName: "savePersistence" },
-    { serviceName: "mainUiInitService", methodName: "initUI" },
-    { serviceName: "timezoneSearchService", methodName: "initSearchAndSelect" },
-    { serviceName: "timerEngineService", methodName: "startRealtimeTicker" },
-    { serviceName: "tabOrchestratorService", methodName: "switchMainTab" },
-    { serviceName: "mainClockOrchestratorService", methodName: "updateClocks" },
-    { serviceName: "mainPersistenceSnapshotService", methodName: "getPersistenceSnapshot" },
-    { serviceName: "mainTimezoneMutationService", methodName: "addTimezone" },
-    { serviceName: "mainTimezoneMutationService", methodName: "removeTimezone" },
-    { serviceName: "calculatorActionsService", methodName: "initCalculators" },
-    { serviceName: "calculatorActionsService", methodName: "copyText" }
-]);
+const GTV_MAIN_GLOBAL_BINDINGS = GTV_GLOBAL.GTVMainGlobalBindings;
+assertBindingCreateService(GTV_MAIN_GLOBAL_BINDINGS, "GTVMainGlobalBindings");
+const {
+    GTV_MAIN_BOOTSTRAP_GUARD, GTV_MAIN_BOOTSTRAP_GUARD_BINDINGS,
+    GTV_MAIN_RUNTIME_HOST_UTILS, GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS,
+    GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_HOST_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_PRIMARY_STATE, GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS,
+    GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS, GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS,
+    GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_PUBLIC_API_BINDINGS,
+    GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK, GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS,
+    GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS, GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS,
+    GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_BINDINGS,
+    GTV_MAIN_FACADE_BINDINGS, GTV_MAIN_RUNTIME_BRIDGE_PROXIES, GTV_MAIN_RUNTIME_BRIDGE_PROXY_BINDINGS,
+    GTV_MAIN_RUNTIME_TIMEZONE_HELPERS, GTV_MAIN_RUNTIME_TIMEZONE_HELPER_BINDINGS,
+    GTV_MAIN_RUNTIME_STATE_HELPERS, GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES,
+    GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES_BINDINGS, GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_PROXIES,
+    GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_BINDINGS, GTV_MAIN_FORMAT_PROFILE_FACADE_BINDINGS,
+    GTV_MAIN_CORE_SERVICE_ASSEMBLY_BINDINGS, GTV_MAIN_FOUNDATION_SERVICES_BINDINGS,
+    GTV_MAIN_RUNTIME_REFERENCE_ACCESSOR_BINDINGS, GTV_MAIN_RUNTIME_REFERENCE_ACCESSORS,
+    GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE, GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_BINDINGS,
+    GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS, GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE,
+    GTV_MAIN_STATE_DOMAIN_PROXY_BINDINGS, GTV_MAIN_FACADE_METHOD_BINDER,
+    GTV_MAIN_FACADE_METHOD_BINDER_BINDINGS, GTV_MAIN_FACADE_BRIDGE, GTV_MAIN_FACADE_BRIDGE_BINDINGS,
+    GTV_MAIN_COMPOSITION_CONFIG_BUILDER, GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS,
+    GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER, GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS,
+    GTV_MAIN_CORE_SERVICE_BINDINGS, GTV_MAIN_FOUNDATION_SERVICE_BINDINGS,
+    GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER, GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER_BINDINGS,
+    GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES, GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS,
+    REQUIRED_BOOTSTRAP_SPECS
+} = GTV_MAIN_GLOBAL_BINDINGS.createService({
+    globalRef: GTV_GLOBAL
+});
 const REQUIRED_BOOTSTRAP_SERVICE_GETTERS = Object.freeze({
     persistenceService: () => persistenceService,
     mainUiInitService: () => mainUiInitService,
@@ -439,23 +326,17 @@ const REQUIRED_BOOTSTRAP_SERVICE_GETTERS = Object.freeze({
     calculatorActionsService: () => calculatorActionsService
 });
 
-if (
-    GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS
-    && typeof GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS.createService === "function"
-    && GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS
-    && typeof GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS.createService === "function"
-) {
-    ({
-        mainRuntimeServiceBridgeHelpersService
-    } = GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS.createService({
-        runtimeServiceBridgeHelpersModule: GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS,
-        getMainServiceMethodBridgeService: () => mainServiceMethodBridgeService,
-        getAppFeedbackService: () => appFeedbackService,
-        getPersistenceService: () => persistenceService,
-        getMainMultiRangeTabFacadeService: () => mainMultiRangeTabFacadeService,
-        getTranslator: () => gtvT
-    }));
-}
+assertBindingCreateService(GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS, "GTVMainRuntimeServiceBridgeHelperBindings");
+({
+    mainRuntimeServiceBridgeHelpersService
+} = GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS.createService({
+    runtimeServiceBridgeHelpersModule: GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS,
+    getMainServiceMethodBridgeService: () => mainServiceMethodBridgeService,
+    getAppFeedbackService: () => appFeedbackService,
+    getPersistenceService: () => persistenceService,
+    getMainMultiRangeTabFacadeService: () => mainMultiRangeTabFacadeService,
+    getTranslator: () => gtvT
+}));
 
 var warnMissingServiceMethod;
 var showMissingFeatureToastOnce;
@@ -463,145 +344,25 @@ var getServiceMethod;
 var callServiceMethod;
 var savePersistenceSafely;
 var renderMultiRangesSafely;
-if (
-    GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS
-    && typeof GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS.createService === "function"
-    && GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES
-    && typeof GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES.createService === "function"
-) {
-    ({
-        warnMissingServiceMethod,
-        showMissingFeatureToastOnce,
-        getServiceMethod,
-        callServiceMethod,
-        savePersistenceSafely,
-        renderMultiRangesSafely
-    } = GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS.createService({
-        runtimeServiceBridgeAccessorProxiesModule: GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES,
-        getMainRuntimeServiceBridgeHelpersService: () => mainRuntimeServiceBridgeHelpersService,
-        getMainServiceMethodBridgeService: () => mainServiceMethodBridgeService,
-        getAppFeedbackService: () => appFeedbackService,
-        getPersistenceService: () => persistenceService,
-        getMainMultiRangeTabFacadeService: () => mainMultiRangeTabFacadeService,
-        getTranslator: () => gtvT
-    }));
-} else {
-    const callRuntimeServiceBridgeHelper = function callRuntimeServiceBridgeHelper(methodName, args, fallbackFn) {
-        if (
-            mainRuntimeServiceBridgeHelpersService
-            && typeof mainRuntimeServiceBridgeHelpersService[methodName] === "function"
-        ) {
-            return mainRuntimeServiceBridgeHelpersService[methodName](...args);
-        }
-        return fallbackFn(...args);
-    };
-    warnMissingServiceMethod = function warnMissingServiceMethodFallback(serviceName, methodName) {
-        return callRuntimeServiceBridgeHelper(
-            "warnMissingServiceMethod",
-            [serviceName, methodName],
-            (nextServiceName, nextMethodName) => {
-                if (
-                    mainServiceMethodBridgeService
-                    && typeof mainServiceMethodBridgeService.warnMissingServiceMethod === "function"
-                ) {
-                    return mainServiceMethodBridgeService.warnMissingServiceMethod(nextServiceName, nextMethodName);
-                }
-                console.warn(`[GTV] ${nextServiceName}.${nextMethodName} is unavailable. Fallback path will be used.`);
-            }
-        );
-    };
-    showMissingFeatureToastOnce = function showMissingFeatureToastOnceFallback(featureKey = "") {
-        return callRuntimeServiceBridgeHelper(
-            "showMissingFeatureToastOnce",
-            [featureKey],
-            (nextFeatureKey) => {
-                const key = String(nextFeatureKey || "").trim();
-                if (!key) return;
-                const messageKey = "toast_required_feature_module_missing";
-                const localized = gtvT(messageKey);
-                const message = (typeof localized === "string" && localized !== messageKey)
-                    ? localized
-                    : "A required feature module is unavailable. Refresh and try again.";
-                callServiceMethod(
-                    "appFeedbackService",
-                    appFeedbackService,
-                    "showToast",
-                    [message, { type: "warning" }]
-                );
-            }
-        );
-    };
-    getServiceMethod = function getServiceMethodFallback(serviceName, serviceRef, methodName, options = {}) {
-        return callRuntimeServiceBridgeHelper(
-            "getServiceMethod",
-            [serviceName, serviceRef, methodName, options],
-            (nextServiceName, nextServiceRef, nextMethodName, nextOptions = {}) => {
-                if (
-                    mainServiceMethodBridgeService
-                    && typeof mainServiceMethodBridgeService.getServiceMethod === "function"
-                ) {
-                    return mainServiceMethodBridgeService.getServiceMethod(
-                        nextServiceName,
-                        nextServiceRef,
-                        nextMethodName,
-                        nextOptions
-                    );
-                }
-                if (nextServiceRef && typeof nextServiceRef[nextMethodName] === "function") {
-                    return nextServiceRef[nextMethodName].bind(nextServiceRef);
-                }
-                warnMissingServiceMethod(nextServiceName, nextMethodName);
-                if (nextOptions.toastOnMissing) {
-                    showMissingFeatureToastOnce(nextOptions.featureKey || `${nextServiceName}.${nextMethodName}`);
-                }
-                return null;
-            }
-        );
-    };
-    callServiceMethod = function callServiceMethodFallback(serviceName, serviceRef, methodName, args = [], options = {}) {
-        return callRuntimeServiceBridgeHelper(
-            "callServiceMethod",
-            [serviceName, serviceRef, methodName, args, options],
-            (nextServiceName, nextServiceRef, nextMethodName, nextArgs = [], nextOptions = {}) => {
-                const method = getServiceMethod(nextServiceName, nextServiceRef, nextMethodName, nextOptions);
-                if (!method) return nextOptions.fallback;
-                return method(...nextArgs);
-            }
-        );
-    };
-    savePersistenceSafely = function savePersistenceSafelyFallback(...args) {
-        return callRuntimeServiceBridgeHelper(
-            "savePersistenceSafely",
-            [args],
-            (nextArgs) => callServiceMethod(
-                "persistenceService",
-                persistenceService,
-                "savePersistence",
-                nextArgs
-            )
-        );
-    };
-    renderMultiRangesSafely = function renderMultiRangesSafelyFallback() {
-        return callRuntimeServiceBridgeHelper(
-            "renderMultiRangesSafely",
-            [],
-            () => callServiceMethod(
-                "mainMultiRangeTabFacadeService",
-                mainMultiRangeTabFacadeService,
-                "renderMultiRanges",
-                [],
-                { fallback: undefined }
-            )
-        );
-    };
-}
+assertBindingCreateService(GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS, "GTVMainRuntimeServiceBridgeAccessorBindings");
+({
+    warnMissingServiceMethod,
+    showMissingFeatureToastOnce,
+    getServiceMethod,
+    callServiceMethod,
+    savePersistenceSafely,
+    renderMultiRangesSafely
+} = GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS.createService({
+    runtimeServiceBridgeAccessorProxiesModule: GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES,
+    getMainRuntimeServiceBridgeHelpersService: () => mainRuntimeServiceBridgeHelpersService,
+    getMainServiceMethodBridgeService: () => mainServiceMethodBridgeService,
+    getAppFeedbackService: () => appFeedbackService,
+    getPersistenceService: () => persistenceService,
+    getMainMultiRangeTabFacadeService: () => mainMultiRangeTabFacadeService,
+    getTranslator: () => gtvT
+}));
 
-if (
-    !GTV_MAIN_FACADE_METHOD_BINDER_BINDINGS
-    || typeof GTV_MAIN_FACADE_METHOD_BINDER_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainFacadeMethodBinderBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_FACADE_METHOD_BINDER_BINDINGS, "GTVMainFacadeMethodBinderBindings");
 const {
     deriveFacadeServiceName,
     bindFacadeMethod
@@ -610,12 +371,7 @@ const {
     callServiceMethod
 });
 
-if (
-    !GTV_MAIN_BOOTSTRAP_GUARD_BINDINGS
-    || typeof GTV_MAIN_BOOTSTRAP_GUARD_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainBootstrapGuardBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_BOOTSTRAP_GUARD_BINDINGS, "GTVMainBootstrapGuardBindings");
 const {
     mainBootstrapGuardService
 } = GTV_MAIN_BOOTSTRAP_GUARD_BINDINGS.createService({
@@ -625,40 +381,28 @@ const {
     requiredSpecs: REQUIRED_BOOTSTRAP_SPECS
 });
 
-if (
-    GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS
-    && typeof GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS.createService === "function"
-    && GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES
-    && typeof GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES.createService === "function"
-) {
-    mainRuntimeCoreAccessorService = GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS.createService({
-        runtimeCoreAccessorProxiesModule: GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES,
-        getMainRuntimeLangStateService: () => mainRuntimeLangStateService,
-        getMainDayNightRangeUtilsService: () => mainDayNightRangeUtilsService,
-        getMainBootstrapGuardService: () => mainBootstrapGuardService,
-        getGlobalRef: () => GTV_GLOBAL,
-        defaultLang: "ko",
-        defaultDayStartHour: DEFAULT_DAY_START_HOUR,
-        defaultNightStartHour: DEFAULT_NIGHT_START_HOUR
-    });
-}
+assertBindingCreateService(GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS, "GTVMainRuntimeCoreAccessorBindings");
+mainRuntimeCoreAccessorService = GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS.createService({
+    runtimeCoreAccessorProxiesModule: GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES,
+    getMainRuntimeLangStateService: () => mainRuntimeLangStateService,
+    getMainDayNightRangeUtilsService: () => mainDayNightRangeUtilsService,
+    getMainBootstrapGuardService: () => mainBootstrapGuardService,
+    getGlobalRef: () => GTV_GLOBAL,
+    defaultLang: "ko",
+    defaultDayStartHour: DEFAULT_DAY_START_HOUR,
+    defaultNightStartHour: DEFAULT_NIGHT_START_HOUR
+});
 
 function assertRequiredServices() {
-    return callRuntimeCoreAccessor(
-        "assertRequiredServices",
-        [],
-        () => mainBootstrapGuardService.assertRequiredServices()
-    );
+    if (typeof mainRuntimeCoreAccessorService?.assertRequiredServices === "function") {
+        return mainRuntimeCoreAccessorService.assertRequiredServices();
+    }
+    return mainBootstrapGuardService.assertRequiredServices();
 }
 
 var applyVersionBranding;
 
-if (
-    !GTV_MAIN_RUNTIME_BRIDGE_PROXY_BINDINGS
-    || typeof GTV_MAIN_RUNTIME_BRIDGE_PROXY_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainRuntimeBridgeProxyBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_RUNTIME_BRIDGE_PROXY_BINDINGS, "GTVMainRuntimeBridgeProxyBindings");
 ({
     mainRuntimeBridgeProxiesService,
     getSignedInclusiveDaySpan,
@@ -707,18 +451,14 @@ const rowViewCache = new Map();
 const GTV_MAIN_MODULE_RESOLVER = GTV_GLOBAL.GTVMainModuleResolver;
 const GTV_MAIN_MODULE_SPEC = GTV_GLOBAL.GTVMainModuleSpec;
 const GTV_MAIN_MODULE_RESOLUTION_BINDINGS = GTV_GLOBAL.GTVMainModuleResolutionBindings;
-if (
-    !GTV_MAIN_MODULE_RESOLUTION_BINDINGS
-    || typeof GTV_MAIN_MODULE_RESOLUTION_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainModuleResolutionBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_MODULE_RESOLUTION_BINDINGS, "GTVMainModuleResolutionBindings");
 const {
     resolveModulesFromSpec
 } = GTV_MAIN_MODULE_RESOLUTION_BINDINGS.createService({
     moduleResolverModule: GTV_MAIN_MODULE_RESOLVER,
     moduleSpecModule: GTV_MAIN_MODULE_SPEC
 });
+const mainResolvedModules = resolveModulesFromSpec();
 const {
     GTV_SERVICE_BOOTSTRAP,
     GTV_APP_STATE_PATCHER,
@@ -815,7 +555,7 @@ const {
     GTV_MAIN_TAB_SERVICES,
     GTV_MAIN_GROUP_STATE_SERVICES,
     GTV_MAIN_UI_RUNTIME_SERVICES
-} = resolveModulesFromSpec();
+} = mainResolvedModules;
 
 const TZ_DATABASE = GTV_TIMEZONE_DATA.TZ_DATABASE;
 const ZONE_MAP = GTV_TIMEZONE_DATA.ZONE_MAP;
@@ -835,199 +575,6 @@ const LEGACY_STORAGE_FALLBACK_KEYS = [...GTV_APP_CONFIG.LEGACY_STORAGE_FALLBACK_
 const THEME_LIST = [...GTV_APP_CONFIG.THEME_LIST];
 const TABLE_IMAGE_EXPORT_WIDTH = GTV_APP_CONFIG.TABLE_IMAGE_EXPORT_WIDTH;
 const EXPORT_MONO_FONT_FAMILY = GTV_APP_CONFIG.EXPORT_MONO_FONT_FAMILY;
-if (
-    !GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS
-    || typeof GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainRuntimeHostUtilsBindings.createService");
-}
-({
-    mainRuntimeHostUtilsService
-} = GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS.createService({
-    runtimeHostUtilsModule: GTV_MAIN_RUNTIME_HOST_UTILS,
-    appDisplayName: APP_DISPLAY_NAME,
-    version: VERSION,
-    getGlobalRef: () => GTV_GLOBAL
-}));
-if (
-    !GTV_MAIN_RUNTIME_HOST_ACCESSOR_BINDINGS
-    || typeof GTV_MAIN_RUNTIME_HOST_ACCESSOR_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainRuntimeHostAccessorBindings.createService");
-}
-({
-    applyVersionBranding,
-    createCanvasSafely,
-    getRandomUUIDSafely,
-    getDocumentRefOrNull,
-    getWindowRefOrNull,
-    getLocationRefOrNull,
-    getGlobalThisRefOrNull,
-    getLuxonGlobalRef,
-    getComputedStyleSafely,
-    getRuntimeNowMs,
-    setRuntimeInterval,
-    clearRuntimeInterval,
-    deferDynamicCall
-} = GTV_MAIN_RUNTIME_HOST_ACCESSOR_BINDINGS.createService({
-    runtimeHostAccessorProxiesModule: GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES,
-    getMainRuntimeHostUtilsService: () => mainRuntimeHostUtilsService
-}));
-
-if (
-    !GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS
-    || typeof GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainRuntimePrimaryStateBindings.createService");
-}
-({
-    mainRuntimePrimaryStateService
-} = GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS.createService({
-    runtimePrimaryStateModule: GTV_MAIN_RUNTIME_PRIMARY_STATE,
-    getIsRealtime: () => isRealtime,
-    setIsRealtime: (next) => { isRealtime = !!next; },
-    syncRealtimeFlagToGlobal,
-    getGlobalTimes: () => globalTimes,
-    setGlobalTimes: (next) => { globalTimes = next; },
-    getUiScale: () => uiScale
-}));
-if (
-    !GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS
-    || typeof GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainRuntimePrimaryStateAccessorBindings.createService");
-}
-({
-    setIsRealtimeState,
-    getIsRealtimeState,
-    getGlobalTimesState,
-    getGlobalTimeState,
-    setGlobalTimeState,
-    getUiScaleState
-} = GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS.createService({
-    runtimePrimaryStateAccessorProxiesModule: GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES,
-    getMainRuntimePrimaryStateService: () => mainRuntimePrimaryStateService,
-    getIsRealtime: () => isRealtime,
-    setIsRealtime: (next) => { isRealtime = !!next; },
-    syncRealtimeFlagToGlobal,
-    getGlobalTimes: () => globalTimes,
-    setGlobalTimes: (next) => { globalTimes = next; },
-    getUiScale: () => uiScale
-}));
-if (
-    GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS
-    && typeof GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS.createService === "function"
-    && GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK
-    && typeof GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK.createService === "function"
-) {
-    ({
-        mainRuntimePatchedStateFallbackService
-    } = GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS.createService({
-        runtimePatchedStateFallbackModule: GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK,
-        getNormalizeDayNightRangeValues: normalizeDayNightRangeValues,
-        getRuntimeCurrentLangValue,
-        getCurrentMainTab: () => currentMainTab,
-        getSlotCount: () => slotCount,
-        getShowCopyFormat: () => showCopyFormat,
-        getShowTimeline: () => showTimeline,
-        getCurrentTheme: () => currentTheme,
-        getDayStartHour: () => dayStartHour,
-        getNightStartHour: () => nightStartHour,
-        getDisplayFormatOrder: () => displayFormatOrder,
-        getDisplayFormatEnabled: () => displayFormatEnabled,
-        getDisplayTimePartsEnabled: () => displayTimePartsEnabled,
-        getCopyFormatOrder: () => copyFormatOrder,
-        getCopyFormatEnabled: () => copyFormatEnabled,
-        getCopyTimePartsEnabled: () => copyTimePartsEnabled,
-        getActiveFormatProfileContext: () => activeFormatProfileContext,
-        getActiveGroupId: () => activeGroupId,
-        getMultiRangeCount: () => multiRangeCount,
-        getMultiRanges: () => multiRanges,
-        getMultiRangeCollapsed: () => multiRangeCollapsed,
-        getTimeAdjustDayStepBySlot: () => timeAdjustDayStepBySlot,
-        getMultiRangeTitle: () => multiRangeTitle
-    }));
-}
-if (
-    GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS
-    && typeof GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS.createService === "function"
-    && GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES
-    && typeof GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES.createService === "function"
-) {
-    mainRuntimeStatePatchAccessorService = GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS.createService({
-        runtimeStatePatchAccessorProxiesModule: GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES,
-        getMainDirectStatePatchService: () => mainDirectStatePatchService,
-        getDirectStateSetters: () => directStateSetters,
-        getNormalizeDayNightRangeValues: () => normalizeDayNightRangeValues,
-        getDayStartHour: () => dayStartHour,
-        setDayStartHour: (next) => { dayStartHour = next; },
-        getNightStartHour: () => nightStartHour,
-        setNightStartHour: (next) => { nightStartHour = next; },
-        getSetIsRealtimeState: () => setIsRealtimeState,
-        getMainRuntimePatchedStateFallbackService: () => mainRuntimePatchedStateFallbackService,
-        getRuntimeCurrentLangValue,
-        getCurrentMainTab: () => currentMainTab,
-        getSlotCount: () => slotCount,
-        getShowCopyFormat: () => showCopyFormat,
-        getShowTimeline: () => showTimeline,
-        getCurrentTheme: () => currentTheme,
-        getDisplayFormatOrder: () => displayFormatOrder,
-        getDisplayFormatEnabled: () => displayFormatEnabled,
-        getDisplayTimePartsEnabled: () => displayTimePartsEnabled,
-        getCopyFormatOrder: () => copyFormatOrder,
-        getCopyFormatEnabled: () => copyFormatEnabled,
-        getCopyTimePartsEnabled: () => copyTimePartsEnabled,
-        getActiveFormatProfileContext: () => activeFormatProfileContext,
-        getActiveGroupId: () => activeGroupId,
-        getMultiRangeCount: () => multiRangeCount,
-        getMultiRanges: () => multiRanges,
-        getMultiRangeCollapsed: () => multiRangeCollapsed,
-        getTimeAdjustDayStepBySlot: () => timeAdjustDayStepBySlot,
-        getMultiRangeTitle: () => multiRangeTitle
-    });
-}
-
-function callRuntimePatchedStateFallbackAccessor(methodName, args, fallbackFn) {
-    if (
-        mainRuntimePatchedStateFallbackService
-        && typeof mainRuntimePatchedStateFallbackService[methodName] === "function"
-    ) {
-        return mainRuntimePatchedStateFallbackService[methodName](...args);
-    }
-    return fallbackFn(...args);
-}
-
-function buildPatchedStateFallbackSnapshot() {
-    return callRuntimeStatePatchAccessor("buildPatchedStateFallbackSnapshot", [], () => {
-        return callRuntimePatchedStateFallbackAccessor("buildPatchedStateFallbackSnapshot", [], () => {
-            const dayNightRange = normalizeDayNightRangeValues(dayStartHour, nightStartHour);
-            return {
-                currentMainTab,
-                slotCount,
-                showCopyFormat,
-                showTimeline,
-                currentTheme,
-                dayStartHour: dayNightRange.dayStartHour,
-                nightStartHour: dayNightRange.nightStartHour,
-                currentLang: getRuntimeCurrentLangValue(),
-                displayFormatOrder,
-                displayFormatEnabled,
-                displayTimePartsEnabled,
-                copyFormatOrder,
-                copyFormatEnabled,
-                copyTimePartsEnabled,
-                activeFormatProfileContext,
-                activeGroupId,
-                multiRangeCount,
-                multiRanges,
-                multiRangeCollapsed,
-                timeAdjustDayStepBySlot,
-                multiRangeTitle
-            };
-        });
-    });
-}
-
 var createCanvasSafely;
 var getRandomUUIDSafely;
 var getDocumentRefOrNull;
@@ -1040,45 +587,6 @@ var getRuntimeNowMs;
 var setRuntimeInterval;
 var clearRuntimeInterval;
 var deferDynamicCall;
-
-if (
-    GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS
-    && typeof GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS.createService === "function"
-    && GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS
-    && typeof GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS.createService === "function"
-) {
-    ({
-        mainRuntimeLocalStateHelpersService
-    } = GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS.createService({
-        runtimeLocalStateHelpersModule: GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS,
-        getPatchAppState: () => patchAppState,
-        getFixedTimeIdSeed: () => fixedTimeIdSeed,
-        setFixedTimeIdSeed: (next) => { fixedTimeIdSeed = next; },
-        getUiScale: () => uiScale,
-        setUiScale: (next) => { uiScale = next; },
-        getCurrentTheme: () => currentTheme,
-        setCurrentTheme: (next) => { currentTheme = next; },
-        getDayStartHour: () => dayStartHour,
-        setDayStartHour: (next) => { dayStartHour = next; },
-        getNightStartHour: () => nightStartHour,
-        setNightStartHour: (next) => { nightStartHour = next; },
-        sanitizeDayNightHourValue,
-        normalizeDayNightRangeValues,
-        syncCurrentLang,
-        getGlobalTimeState,
-        getFixedTimeSlotCount: (...args) => getFixedTimeSlotCount(...args),
-        getConfirm: (message) => confirm(message),
-        getFormatProfileAllowedKeys: (...args) => getFormatProfileAllowedKeys(...args),
-        getFormatProfileAllowedTimePartKeys: (...args) => getFormatProfileAllowedTimePartKeys(...args),
-        getPatchedActiveFormatProfileContextState,
-        getUiScaleState,
-        getCurrentGroup: (...args) => getCurrentGroup(...args),
-        getFixedTimeStateService: () => fixedTimeStateService,
-        getIsRealtimeState,
-        isFixedTimeTab: (...args) => isFixedTimeTab(...args),
-        getTimeAdjustDayStepBySlotSnapshot
-    }));
-}
 
 var setMultiRangeState;
 var getNextFixedTimeSeed;
@@ -1093,13 +601,35 @@ var getFixedTimeSlotCountForCurrentGroup;
 var getCurrentGroupFixedTimeShowLiveNow;
 var shouldRunRealtimeTick;
 var getTimeAdjustDayStepValue;
-if (
-    !GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_BINDINGS
-    || typeof GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainRuntimeLocalStateAccessorBindings.createService");
-}
+var buildPatchedStateFallbackSnapshot;
+const GTV_MAIN_RUNTIME_STATE_CORE_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeStateCoreBootstrap;
+assertBindingCreateService(GTV_MAIN_RUNTIME_STATE_CORE_BOOTSTRAP, "GTVMainRuntimeStateCoreBootstrap");
 ({
+    mainRuntimeHostUtilsService,
+    applyVersionBranding,
+    createCanvasSafely,
+    getRandomUUIDSafely,
+    getDocumentRefOrNull,
+    getWindowRefOrNull,
+    getLocationRefOrNull,
+    getGlobalThisRefOrNull,
+    getLuxonGlobalRef,
+    getComputedStyleSafely,
+    getRuntimeNowMs,
+    setRuntimeInterval,
+    clearRuntimeInterval,
+    deferDynamicCall,
+    mainRuntimePrimaryStateService,
+    setIsRealtimeState,
+    getIsRealtimeState,
+    getGlobalTimesState,
+    getGlobalTimeState,
+    setGlobalTimeState,
+    getUiScaleState,
+    mainRuntimePatchedStateFallbackService,
+    mainRuntimeStatePatchAccessorService,
+    buildPatchedStateFallbackSnapshot,
+    mainRuntimeLocalStateHelpersService,
     setMultiRangeState,
     getNextFixedTimeSeed,
     setUiPreferencesState,
@@ -1113,125 +643,79 @@ if (
     getCurrentGroupFixedTimeShowLiveNow,
     shouldRunRealtimeTick,
     getTimeAdjustDayStepValue
-} = GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_BINDINGS.createService({
+} = GTV_MAIN_RUNTIME_STATE_CORE_BOOTSTRAP.createService({
+    runtimeHostUtilsBindings: GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS,
+    runtimeHostUtilsModule: GTV_MAIN_RUNTIME_HOST_UTILS,
+    runtimeHostAccessorBindings: GTV_MAIN_RUNTIME_HOST_ACCESSOR_BINDINGS,
+    runtimeHostAccessorProxiesModule: GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES,
+    runtimePrimaryStateBindings: GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS,
+    runtimePrimaryStateModule: GTV_MAIN_RUNTIME_PRIMARY_STATE,
+    runtimePrimaryStateAccessorBindings: GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS,
+    runtimePrimaryStateAccessorProxiesModule: GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES,
+    runtimePatchedStateFallbackBindings: GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS,
+    runtimePatchedStateFallbackModule: GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK,
+    runtimeStatePatchAccessorBindings: GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS,
+    runtimeStatePatchAccessorProxiesModule: GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES,
+    runtimeLocalStateHelpersBindings: GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS,
+    runtimeLocalStateHelpersModule: GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS,
+    runtimeLocalStateAccessorBindings: GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_BINDINGS,
     runtimeLocalStateAccessorProxiesModule: GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_PROXIES,
-    getMainRuntimeLocalStateHelpersService: () => mainRuntimeLocalStateHelpersService,
-    getPatchAppState: () => patchAppState,
-    getFixedTimeIdSeed: () => fixedTimeIdSeed,
-    setFixedTimeIdSeed: (next) => { fixedTimeIdSeed = next; },
+    appDisplayName: APP_DISPLAY_NAME,
+    version: VERSION,
+    getGlobalRef: () => GTV_GLOBAL,
+    getIsRealtime: () => isRealtime,
+    setIsRealtime: (next) => { isRealtime = !!next; },
+    syncRealtimeFlagToGlobal,
+    getGlobalTimes: () => globalTimes,
+    setGlobalTimes: (next) => { globalTimes = next; },
     getUiScale: () => uiScale,
-    setUiScale: (next) => { uiScale = next; },
+    normalizeDayNightRangeValues,
+    getNormalizeDayNightRangeValues: () => normalizeDayNightRangeValues,
+    getRuntimeCurrentLangValue,
+    getCurrentMainTab: () => currentMainTab,
+    getSlotCount: () => slotCount,
+    getShowCopyFormat: () => showCopyFormat,
+    getShowTimeline: () => showTimeline,
     getCurrentTheme: () => currentTheme,
-    setCurrentTheme: (next) => { currentTheme = next; },
     getDayStartHour: () => dayStartHour,
     setDayStartHour: (next) => { dayStartHour = next; },
     getNightStartHour: () => nightStartHour,
     setNightStartHour: (next) => { nightStartHour = next; },
+    getDisplayFormatOrder: () => displayFormatOrder,
+    getDisplayFormatEnabled: () => displayFormatEnabled,
+    getDisplayTimePartsEnabled: () => displayTimePartsEnabled,
+    getCopyFormatOrder: () => copyFormatOrder,
+    getCopyFormatEnabled: () => copyFormatEnabled,
+    getCopyTimePartsEnabled: () => copyTimePartsEnabled,
+    getActiveFormatProfileContext: () => activeFormatProfileContext,
+    getActiveGroupId: () => activeGroupId,
+    getMultiRangeCount: () => multiRangeCount,
+    getMultiRanges: () => multiRanges,
+    getMultiRangeCollapsed: () => multiRangeCollapsed,
+    getTimeAdjustDayStepBySlot: () => timeAdjustDayStepBySlot,
+    getMultiRangeTitle: () => multiRangeTitle,
+    getMainDirectStatePatchService: () => mainDirectStatePatchService,
+    getDirectStateSetters: () => directStateSetters,
+    getPatchAppState: () => patchAppState,
+    getFixedTimeIdSeed: () => fixedTimeIdSeed,
+    setFixedTimeIdSeed: (next) => { fixedTimeIdSeed = next; },
+    setUiScale: (next) => { uiScale = next; },
+    setCurrentTheme: (next) => { currentTheme = next; },
     sanitizeDayNightHourValue,
-    normalizeDayNightRangeValues,
     syncCurrentLang,
-    getGlobalTimeState,
     getFixedTimeSlotCount: (...args) => getFixedTimeSlotCount(...args),
     getConfirm: (message) => confirm(message),
     getFormatProfileAllowedKeys: (...args) => getFormatProfileAllowedKeys(...args),
     getFormatProfileAllowedTimePartKeys: (...args) => getFormatProfileAllowedTimePartKeys(...args),
     getPatchedActiveFormatProfileContextState,
-    getUiScaleState,
     getCurrentGroup: (...args) => getCurrentGroup(...args),
     getFixedTimeStateService: () => fixedTimeStateService,
-    getIsRealtimeState,
     isFixedTimeTab: (...args) => isFixedTimeTab(...args),
     getTimeAdjustDayStepBySlotSnapshot
 }));
 
-if (
-    !GTV_MAIN_RUNTIME_REFERENCE_ACCESSOR_BINDINGS
-    || typeof GTV_MAIN_RUNTIME_REFERENCE_ACCESSOR_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainRuntimeReferenceAccessorBindings.createService");
-}
-const {
-    getRenderListRef,
-    getSanitizeCopyFormatOrderForContextRef,
-    getSanitizeCopyFormatEnabledForContextRef,
-    getSanitizeTimePartsEnabledForContextRef,
-    getShowToastRef,
-    getRenderTimelineFrameRef,
-    getUpdateClocksRef,
-    getTranslatorRef,
-    getSavePersistenceSafelyRef,
-    getRenderFixedTimeTabRef,
-    getRefreshFixedTimeSlotCountControlsRef,
-    getAppStatePatcherServiceRef,
-    getAppPersistenceStateServiceRef,
-    getMainTimezoneRuntimeBridgeServiceRef,
-    getMainTimezoneRuntimeServiceRef,
-    getMainBaseTimezoneServiceRef,
-    getMainTimezoneMutationServiceRef,
-    getZoneMapRef,
-    getTzDatabaseRef,
-    getTimeServiceRef,
-    getRandomValue,
-    getGroupStateServiceRef,
-    getTimeAdjustActionsServiceRef,
-    getMultiBulkToolsServiceRef,
-    getFixedTimeTableServiceRef,
-    invokeRenderBaseTimeSelect,
-    getMultiRangeCopyServiceRef,
-    getMultiStateServiceRef,
-    getMainClockOrchestratorServiceRef,
-    getMainPersistenceSnapshotServiceRef,
-    getFixedTimeCoreServiceRef,
-    getFixedTimeActionsServiceRef,
-    getTimelineFrameServiceRef,
-    getFixedTimeTimelineServiceRef,
-    getShowTimelineStateRef,
-    getDisplayFormatOrderStateRef,
-    getDisplayFormatEnabledStateRef,
-    getDisplayTimePartsEnabledStateRef,
-    getCopyFormatOrderStateRef,
-    getCopyFormatEnabledStateRef,
-    getCopyTimePartsEnabledStateRef,
-    getFormatProfilesStateRef,
-    getActiveFormatProfileContextStateRef,
-    getCurrentThemeStateRef,
-    getDayStartHourStateRef,
-    getNightStartHourStateRef,
-    getDayNightMarkerByHour,
-    getCurrentLangStateRef,
-    resolveLocalDatePartsViaTimeService,
-    buildStrictUtcDateFromPartsViaCore,
-    setGlobalTimeValue,
-    getSnapshotFormatServiceRef,
-    getI18nDataRef,
-    getImageExportBridgeServiceRef,
-    createDefaultTableExportContext,
-    getCanUseForeignObjectRendererRef,
-    setCanUseForeignObjectRenderer,
-    getImageExportActionsServiceRef,
-    getImageExportNamingServiceRef,
-    getPersistenceServiceRef,
-    getTableRenderServiceRef,
-    getCopyActionsServiceRef,
-    getTimeAdjustUiServiceRef,
-    getMultiRangeRenderServiceRef,
-    getFormatControlsServiceRef,
-    getTabUiServiceRef,
-    getUiSettingsActionsServiceRef,
-    getTimezoneSearchServiceRef,
-    getGroupTabsServiceRef,
-    getMainUiInitServiceRef,
-    getTimerEngineServiceRef,
-    getTimeCoreRef,
-    getMainTimezoneFacadeServiceRef,
-    getMainTimeAdjustFacadeServiceRef,
-    getMainTimezoneTableFacadeServiceRef,
-    getMainTimelineFacadeServiceRef,
-    getMainFixedTimeFacadeServiceRef,
-    getMainFixedTimeTabFacadeServiceRef,
-    getMainMultiRangeTabFacadeServiceRef,
-    getMainFoundationServicesRef
-} = GTV_MAIN_RUNTIME_REFERENCE_ACCESSOR_BINDINGS.createService({
+assertBindingCreateService(GTV_MAIN_RUNTIME_REFERENCE_ACCESSOR_BINDINGS, "GTVMainRuntimeReferenceAccessorBindings");
+const mainRuntimeReferenceAccessorService = GTV_MAIN_RUNTIME_REFERENCE_ACCESSOR_BINDINGS.createService({
     runtimeReferenceAccessorsModule: GTV_MAIN_RUNTIME_REFERENCE_ACCESSORS,
     getRenderList: () => renderList,
     getSanitizeCopyFormatOrderForContext: () => sanitizeCopyFormatOrderForContext,
@@ -1315,13 +799,53 @@ const {
     getMainMultiRangeTabFacadeService: () => mainMultiRangeTabFacadeService,
     getMainFoundationServices: () => mainFoundationServices
 });
+const {
+    getRenderListRef,
+    getShowToastRef,
+    getRenderTimelineFrameRef,
+    getUpdateClocksRef,
+    getTranslatorRef,
+    getSavePersistenceSafelyRef,
+    getRenderFixedTimeTabRef,
+    getRefreshFixedTimeSlotCountControlsRef,
+    getZoneMapRef,
+    invokeRenderBaseTimeSelect,
+    getDayNightMarkerByHour,
+    resolveLocalDatePartsViaTimeService,
+    buildStrictUtcDateFromPartsViaCore,
+    setGlobalTimeValue,
+    getSnapshotFormatServiceRef,
+    getI18nDataRef,
+    getImageExportBridgeServiceRef,
+    createDefaultTableExportContext,
+    getCanUseForeignObjectRendererRef,
+    setCanUseForeignObjectRenderer,
+    getImageExportActionsServiceRef,
+    getImageExportNamingServiceRef,
+    getPersistenceServiceRef,
+    getTableRenderServiceRef,
+    getCopyActionsServiceRef,
+    getTimeAdjustUiServiceRef,
+    getMultiRangeRenderServiceRef,
+    getFormatControlsServiceRef,
+    getTabUiServiceRef,
+    getUiSettingsActionsServiceRef,
+    getTimezoneSearchServiceRef,
+    getGroupTabsServiceRef,
+    getMainUiInitServiceRef,
+    getTimerEngineServiceRef,
+    getTimeCoreRef,
+    getMainTimezoneFacadeServiceRef,
+    getMainTimeAdjustFacadeServiceRef,
+    getMainTimezoneTableFacadeServiceRef,
+    getMainTimelineFacadeServiceRef,
+    getMainFixedTimeFacadeServiceRef,
+    getMainFixedTimeTabFacadeServiceRef,
+    getMainMultiRangeTabFacadeServiceRef,
+    getMainFoundationServicesRef
+} = mainRuntimeReferenceAccessorService;
 let mainStateDomainProxiesService = null;
-if (
-    !GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_BINDINGS
-    || typeof GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainStateDomainWrapperBridgeBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_BINDINGS, "GTVMainStateDomainWrapperBridgeBindings");
 const {
     mainStateDomainWrapperBridgeService,
     getDefaultFixedTimeName,
@@ -1387,12 +911,7 @@ const {
     getCurrentGroup: () => getCurrentGroup(),
     defaultFixedTimeValue: DEFAULT_FIXED_TIME_VALUE
 });
-if (
-    !GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE
-    || typeof GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainStateDomainWrapperGlobalBindingsBridge.createService");
-}
+assertBindingCreateService(GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE, "GTVMainStateDomainWrapperGlobalBindingsBridge");
 const {
     mainStateDomainWrapperGlobalBindingsService
 } = GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE.createService({
@@ -1403,32 +922,22 @@ mainStateDomainWrapperGlobalBindingsService.applyBindings(mainStateDomainWrapper
     excludeKeys: ["invokeStateDomainProxy"]
 });
 
-if (
-    !GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS
-    || typeof GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainCoreAssemblyConfigBuilderBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS, "GTVMainCoreAssemblyConfigBuilderBindings");
 const {
     mainCoreAssemblyConfigBuilderService
 } = GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS.createService({
     coreAssemblyConfigBuilderModule: GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER
 });
-if (
-    !GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS
-    || typeof GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainPatchedStateAccessorBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS, "GTVMainPatchedStateAccessorBindings");
+const mainPatchedStateAccessorService = GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS.createService({
+    patchedStateAccessorProxiesModule: GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES,
+    getMainAppStateBridgeService: () => mainAppStateBridgeService,
+    getMainPatchedStateSelectorsService: () => mainPatchedStateSelectorsService
+});
 var {
     getPatchedAppStateSnapshot,
     patchAppState,
-    getPatchedStateValue,
-    getPatchedIntegerStateValue,
-    getPatchedBooleanStateValue,
-    getPatchedStringStateValue,
     getPatchedArrayStateValue,
-    getPatchedObjectStateValue,
     getPatchedMainTabState,
     getPatchedSlotCountState,
     setPatchedSlotCountState,
@@ -1453,108 +962,48 @@ var {
     getPatchedMultiRangeCollapsedState,
     getPatchedTimeAdjustDayStepBySlotState,
     getPatchedMultiRangeTitleState
-} = GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS.createService({
-    patchedStateAccessorProxiesModule: GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES,
-    getMainAppStateBridgeService: () => mainAppStateBridgeService,
-    getMainPatchedStateSelectorsService: () => mainPatchedStateSelectorsService
-});
-const mainCoreAssemblyConfig = mainCoreAssemblyConfigBuilderService.buildMainCoreAssemblyConfig({
-    GTV_MAIN_SERVICE_METHOD_BRIDGE,
-    GTV_MAIN_DIRECT_STATE_PATCH,
-    GTV_MAIN_APP_STATE_BRIDGE,
-    GTV_MAIN_PATCHED_STATE_SELECTORS,
-    GTV_MAIN_SHARED_UTILS,
-    GTV_MAIN_TIMEZONE_RUNTIME_BRIDGE,
-    GTV_MAIN_TIMEZONE_RUNTIME_SERVICES,
-    GTV_MAIN_FORMAT_PROFILE_FACADE,
-    GTV_MAIN_TIMEZONE_FACADE,
-    GTV_MAIN_BASE_TIMEZONE_SERVICES,
-    GTV_MAIN_TIMEZONE_MUTATION_SERVICES,
-    GTV_MAIN_TIMEZONE_TABLE_FACADE,
-    GTV_MAIN_TIME_ADJUST_FACADE,
-    GTV_MAIN_FIXED_TIME_TAB_FACADE,
-    GTV_MAIN_FIXED_TIME_FACADE,
-    GTV_MAIN_TIMELINE_FACADE,
-    GTV_MAIN_MULTI_RANGE_TAB_FACADE,
-    GTV_MAIN_GROUP_LOCALIZATION_SERVICES,
-    GTV_MAIN_ORCHESTRATION_FLOW_SERVICES,
-    GTV_MAIN_SELECT_SERVICES,
-    GTV_TIMEZONE_SEARCH,
-    GTV_SNAPSHOT_FORMAT,
-    GTV_TIME_INPUT_MUTATIONS,
-    GTV_MAIN_ROW_ORDER_SERVICES,
-    GTV_MAIN_ROW_VIEW_SERVICES,
-    GTV_TABLE_RENDER,
-    GTV_MAIN_IMAGE_EXPORT_BRIDGE_PROXY,
-    GTV_MAIN_IMAGE_RUNTIME_SERVICES,
-    GTV_MAIN_FIXED_TIME_SERVICES,
-    GTV_MAIN_MULTI_RANGE_SERVICES,
-    GTV_MAIN_TIME_ADJUST_SERVICES,
-    GTV_MAIN_TAB_SERVICES,
-    GTV_MAIN_GROUP_STATE_SERVICES,
-    GTV_MAIN_IMAGE_EXPORT_NAMING_PROXY,
-    GTV_MAIN_IMAGE_EXPORT_SERVICES,
-    GTV_MAIN_APP_STATE_SERVICES,
-    GTV_MAIN_PERSISTENCE_COMPOSITION_SERVICES,
-    GTV_MAIN_RUNTIME_COMPOSITION_SERVICES,
-    GTV_MAIN_APP_BOOTSTRAP,
+} = mainPatchedStateAccessorService;
+const GTV_MAIN_RUNTIME_CORE_ASSEMBLY_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeCoreAssemblyBootstrap;
+assertBindingCreateService(GTV_MAIN_RUNTIME_CORE_ASSEMBLY_BOOTSTRAP, "GTVMainRuntimeCoreAssemblyBootstrap");
+const {
+    mainCoreAssemblyConfig
+} = GTV_MAIN_RUNTIME_CORE_ASSEMBLY_BOOTSTRAP.createService({
+    mainCoreAssemblyConfigBuilderService,
+    moduleRefs: mainResolvedModules,
+    runtimeReferenceAccessorService: mainRuntimeReferenceAccessorService,
+    patchedStateAccessorService: mainPatchedStateAccessorService,
     consoleWarn: console.warn.bind(console),
     showMissingFeatureToastOnce,
     directStateSetters,
     setIsRealtimeState,
     callServiceMethod,
-    getAppStatePatcherServiceRef,
-    getAppPersistenceStateServiceRef,
     applyDirectStatePatch,
     SERVICE_METHOD_MISSING,
     buildPatchedStateFallbackSnapshot,
     TABLE_IMAGE_EXPORT_WIDTH,
     createCanvasSafely,
-    getMainTimezoneRuntimeBridgeServiceRef,
-    getMainTimezoneRuntimeServiceRef,
-    getMainBaseTimezoneServiceRef,
-    getMainTimezoneMutationServiceRef,
-    getTimezoneSearchServiceRef,
-    getTimeCoreRef,
     getBaseTimeSnapshot,
-    getZoneMapRef,
-    getTzDatabaseRef,
-    getTimeServiceRef,
     formatUtcOffsetLabel,
     bindFacadeMethod,
-    getMainTimezoneFacadeServiceRef,
     timezoneOffsetCache,
     timezoneDstCache,
     zoneAbbrCache,
     getCurrentGroupBaseTimezoneId,
     getRandomUUIDSafely,
-    getRandomValue,
-    getGroupStateServiceRef,
     normalizeCustomAbbr,
     deferDynamicCall,
-    getRenderListRef,
-    getTableRenderServiceRef,
-    getCopyActionsServiceRef,
     isFixedTimeTab,
     renderFixedTimeTab,
-    getTimeAdjustUiServiceRef,
-    getTimeAdjustActionsServiceRef,
-    getMultiBulkToolsServiceRef,
     getTimeAdjustDayStepBySlotSnapshot,
     setTimeAdjustDayStepBySlotState,
     DEFAULT_TIME_ADJUST_DAY_STEP,
     MIN_TIME_ADJUST_DAY_STEP,
     MAX_TIME_ADJUST_DAY_STEP,
-    getFixedTimeTableServiceRef,
     getCurrentGroup,
     ensureGroupFixedTimes,
     refreshFixedTimeSlotCountControls,
     getCurrentGroupFixedTimeShowLiveNow,
     getDocumentRefOrNull,
-    invokeRenderBaseTimeSelect,
-    getMultiRangeRenderServiceRef,
-    getMultiRangeCopyServiceRef,
-    getMultiStateServiceRef,
     getCurrentMultiRangeStateSnapshot,
     setMultiRangeState,
     sanitizeMultiRangeCount,
@@ -1562,26 +1011,11 @@ const mainCoreAssemblyConfig = mainCoreAssemblyConfigBuilderService.buildMainCor
     ensureMultiRangeState,
     refreshMultiRangeControls,
     getRuntimeNowMs,
-    getMainClockOrchestratorServiceRef,
-    getMainPersistenceSnapshotServiceRef,
     warnMissingServiceMethod,
-    getFixedTimeCoreServiceRef,
-    getFixedTimeActionsServiceRef,
-    getPatchedCopyFormatOrderState,
-    getPatchedCopyFormatEnabledState,
-    getPatchedCopyTimePartsEnabledState,
-    getSanitizeCopyFormatOrderForContextRef,
-    getSanitizeCopyFormatEnabledForContextRef,
-    getSanitizeTimePartsEnabledForContextRef,
     getWindowRefOrNull,
-    getTimelineFrameServiceRef,
-    getFixedTimeTimelineServiceRef,
-    getPatchedMainTabState,
-    getShowTimelineStateRef,
     getGlobalTimeState,
     getFixedTimeSlotCountForGroupRef,
     getFixedTimeSlotHeaderLabel,
-    getPatchedSlotCountState,
     GTV_GROUP_CONTEXT_STATE,
     GTV_FORMAT_PROFILE_STATE,
     GTV_MULTI_RANGE_STATE,
@@ -1592,8 +1026,6 @@ const mainCoreAssemblyConfig = mainCoreAssemblyConfigBuilderService.buildMainCor
     GTV_TIME_SERVICE,
     MAIN_TABS,
     getGroupsStateSnapshot,
-    getPatchedActiveFormatProfileContextState,
-    getPatchedActiveGroupIdState,
     getActiveGroupIdByMainTabStateSnapshot,
     patchPrimaryState,
     getUTCRef,
@@ -1605,20 +1037,10 @@ const mainCoreAssemblyConfig = mainCoreAssemblyConfigBuilderService.buildMainCor
     DEFAULT_DISPLAY_TIME_PARTS_ENABLED,
     DEFAULT_COPY_TIME_PARTS_ENABLED,
     sanitizeMainTab,
-    getDisplayFormatOrderStateRef,
-    getDisplayFormatEnabledStateRef,
-    getDisplayTimePartsEnabledStateRef,
-    getCopyFormatOrderStateRef,
-    getCopyFormatEnabledStateRef,
-    getCopyTimePartsEnabledStateRef,
-    getFormatProfilesStateRef,
-    getActiveFormatProfileContextStateRef,
-    patchAppState,
     MIN_MULTI_RANGE_COUNT,
     MAX_MULTI_RANGE_COUNT,
     DEFAULT_MULTI_RANGE_TITLE,
     gtvT,
-    getShowToastRef,
     getGlobalTimesState,
     isMultiTab,
     renderMultiRangesSafely,
@@ -1647,68 +1069,29 @@ const mainCoreAssemblyConfig = mainCoreAssemblyConfigBuilderService.buildMainCor
     THEME_STORAGE_KEY,
     UI_SCALE_STORAGE_KEY,
     MAIN_I18N_DATA,
-    getPersistenceServiceRef,
-    getUiScaleState,
-    getCurrentThemeStateRef,
-    getDayStartHourStateRef,
-    getNightStartHourStateRef,
-    getPatchedCurrentLangState,
-    getCurrentLangStateRef,
     setUiPreferencesState,
     DEFAULT_REALTIME_TICK_MS,
     getIsRealtimeState,
     shouldRunRealtimeTick,
     setGlobalTimeState,
     MAX_RUNTIME_CACHE_SIZE,
-    getUpdateClocksRef,
     setRuntimeInterval,
     clearRuntimeInterval,
     getLuxonGlobalRef
 });
-if (
-    !GTV_MAIN_CORE_SERVICE_ASSEMBLY_BINDINGS
-    || typeof GTV_MAIN_CORE_SERVICE_ASSEMBLY_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainCoreServiceAssemblyBindings.createService");
-}
-const {
-    mainCoreServices
-} = GTV_MAIN_CORE_SERVICE_ASSEMBLY_BINDINGS.createService({
+const GTV_MAIN_RUNTIME_CORE_FOUNDATION_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeCoreFoundationBootstrap;
+assertBindingCreateService(GTV_MAIN_RUNTIME_CORE_FOUNDATION_BOOTSTRAP, "GTVMainRuntimeCoreFoundationBootstrap");
+const mainRuntimeCoreFoundationServices = GTV_MAIN_RUNTIME_CORE_FOUNDATION_BOOTSTRAP.createService({
+    mainCoreAssemblyConfigBuilderService,
+    coreServiceAssemblyBindings: GTV_MAIN_CORE_SERVICE_ASSEMBLY_BINDINGS,
     coreServiceAssemblyModule: GTV_MAIN_CORE_SERVICE_ASSEMBLY,
-    mainCoreAssemblyConfig
-});
-if (
-    !GTV_MAIN_CORE_SERVICE_BINDINGS
-    || typeof GTV_MAIN_CORE_SERVICE_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainCoreServiceBindings.createService");
-}
-const mainCoreServiceBindings = GTV_MAIN_CORE_SERVICE_BINDINGS.createService({
-    mainCoreServices
-});
-({
-    mainServiceMethodBridgeService,
-    mainDirectStatePatchService,
-    mainAppStateBridgeService,
-    mainPatchedStateSelectorsService,
-    mainSharedUtilsService,
-    mainTimezoneRuntimeBridgeService,
-    mainTimezoneRuntimeService,
-    mainTimezoneFacadeService,
-    mainBaseTimezoneService,
-    mainTimezoneMutationService,
-    mainTimezoneTableFacadeService,
-    mainTimeAdjustFacadeService,
-    mainFixedTimeTabFacadeService,
-    mainFixedTimeFacadeService,
-    mainTimelineFacadeService,
-    mainMultiRangeTabFacadeService
-} = mainCoreServiceBindings);
-const {
-    mainGroupLocalizationServices,
-    mainOrchestrationFlowServices
-} = mainCoreServiceBindings;
-const mainFoundationConfig = mainCoreAssemblyConfigBuilderService.buildMainFoundationConfig({
+    coreServiceBindings: GTV_MAIN_CORE_SERVICE_BINDINGS,
+    foundationServicesBindings: GTV_MAIN_FOUNDATION_SERVICES_BINDINGS,
+    foundationServicesModule: GTV_MAIN_FOUNDATION_SERVICES,
+    foundationServiceBindings: GTV_MAIN_FOUNDATION_SERVICE_BINDINGS,
+    stateDomainProxyBindings: GTV_MAIN_STATE_DOMAIN_PROXY_BINDINGS,
+    mainStateDomainProxiesModule: GTV_GLOBAL.GTVMainStateDomainProxies,
+    mainCoreAssemblyConfig,
     GTV_SERVICE_BOOTSTRAP,
     GTV_PERSISTENCE_SERVICE_BUNDLE,
     GTV_MAIN_UI_UTILS,
@@ -1730,35 +1113,16 @@ const mainFoundationConfig = mainCoreAssemblyConfigBuilderService.buildMainFound
     confirmRuntime,
     getLocationRefOrNull,
     getDocumentRefOrNull,
-    consoleError: console.error.bind(console)
+    consoleError: console.error.bind(console),
+    getPatchedMainTabState,
+    getCurrentGroup: () => getCurrentGroup(),
+    defaultFixedTimeValue: DEFAULT_FIXED_TIME_VALUE
 });
-if (
-    !GTV_MAIN_FOUNDATION_SERVICES_BINDINGS
-    || typeof GTV_MAIN_FOUNDATION_SERVICES_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainFoundationServicesBindings.createService");
-}
 const {
-    mainFoundationServices
-} = GTV_MAIN_FOUNDATION_SERVICES_BINDINGS.createService({
-    foundationServicesModule: GTV_MAIN_FOUNDATION_SERVICES,
-    mainFoundationConfig
-});
-if (
-    !GTV_MAIN_FOUNDATION_SERVICE_BINDINGS
-    || typeof GTV_MAIN_FOUNDATION_SERVICE_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainFoundationServiceBindings.createService");
-}
-const mainFoundationServiceBindings = GTV_MAIN_FOUNDATION_SERVICE_BINDINGS.createService({
+    mainCoreServices,
     mainFoundationServices,
-    mainCoreServices
-});
-({
-    appFeedbackService,
-    calculatorActionsService
-} = mainFoundationServiceBindings);
-const {
+    mainGroupLocalizationServices,
+    mainOrchestrationFlowServices,
     serviceBootstrap,
     persistenceServiceBundleFactory,
     mainUiUtilsService,
@@ -1776,34 +1140,29 @@ const {
     uiPreferencesStateService,
     timerEngineService,
     timeService
-} = mainFoundationServiceBindings;
-const GTV_MAIN_STATE_DOMAIN_PROXIES = GTV_GLOBAL.GTVMainStateDomainProxies;
-if (
-    !GTV_MAIN_STATE_DOMAIN_PROXY_BINDINGS
-    || typeof GTV_MAIN_STATE_DOMAIN_PROXY_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainStateDomainProxyBindings.createService");
-}
+} = mainRuntimeCoreFoundationServices;
 ({
-    mainStateDomainProxiesService
-} = GTV_MAIN_STATE_DOMAIN_PROXY_BINDINGS.createService({
-    stateDomainProxiesModule: GTV_MAIN_STATE_DOMAIN_PROXIES,
-    fixedTimeSlotUtilsService,
-    multiRangeStateService,
-    fixedTimeStateService,
-    uiPreferencesStateService,
-    groupContextStateService,
+    mainServiceMethodBridgeService,
+    mainDirectStatePatchService,
     mainAppStateBridgeService,
-    getPatchedMainTabState,
-    getCurrentGroup: () => getCurrentGroup(),
-    defaultFixedTimeValue: DEFAULT_FIXED_TIME_VALUE
-}));
-if (
-    !GTV_MAIN_FACADE_BRIDGE_BINDINGS
-    || typeof GTV_MAIN_FACADE_BRIDGE_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainFacadeBridgeBindings.createService");
-}
+    mainPatchedStateSelectorsService,
+    mainSharedUtilsService,
+    mainTimezoneRuntimeBridgeService,
+    mainTimezoneRuntimeService,
+    mainTimezoneFacadeService,
+    mainBaseTimezoneService,
+    mainTimezoneMutationService,
+    mainTimezoneTableFacadeService,
+    mainTimeAdjustFacadeService,
+    mainFixedTimeTabFacadeService,
+    mainFixedTimeFacadeService,
+    mainTimelineFacadeService,
+    mainMultiRangeTabFacadeService,
+    appFeedbackService,
+    calculatorActionsService,
+    mainStateDomainProxiesService
+} = mainRuntimeCoreFoundationServices);
+assertBindingCreateService(GTV_MAIN_FACADE_BRIDGE_BINDINGS, "GTVMainFacadeBridgeBindings");
 var {
     sanitizeUtcRowOrderViaTimeCore,
     sanitizeUtcMsViaTimeCore,
@@ -1904,12 +1263,7 @@ var {
     getMainMultiRangeTabFacadeServiceRef
 });
 
-if (
-    !GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS
-    || typeof GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainCompositionConfigBuilderBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS, "GTVMainCompositionConfigBuilderBindings");
 const {
     mainCompositionConfigBuilderService
 } = GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS.createService({
@@ -1917,12 +1271,7 @@ const {
 });
 
 // --- Shared Core Utilities ---
-if (
-    !GTV_MAIN_RUNTIME_TIMEZONE_HELPER_BINDINGS
-    || typeof GTV_MAIN_RUNTIME_TIMEZONE_HELPER_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainRuntimeTimezoneHelperBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_RUNTIME_TIMEZONE_HELPER_BINDINGS, "GTVMainRuntimeTimezoneHelperBindings");
 const {
     prepareExportCanvas,
     drawExportCellText,
@@ -1953,36 +1302,15 @@ function getCustomOffsetMinutes(tz) {
     return getCustomOffsetMinutesViaRuntimeHelpers(tz);
 }
 
-if (
-    !GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES_BINDINGS
-    || typeof GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainRuntimeStateHelperAliasesBindings.createService");
-}
-const {
-    parseDateTimePartsViaRuntimeStateHelpers,
-    getTimeAdjustDayStepBySlotSnapshotViaRuntimeStateHelpers,
-    setTimeAdjustDayStepBySlotStateViaRuntimeStateHelpers,
-    updateTimeAdjustPanelSafelyViaRuntimeStateHelpers,
-    getUTCRefViaRuntimeStateHelpers,
-    getCurrentGroupViaRuntimeStateHelpers,
-    getCurrentGroupZonesViaRuntimeStateHelpers,
-    getCurrentGroupBaseTimezoneIdViaRuntimeStateHelpers,
-    getBaseTimezoneRefViaRuntimeStateHelpers,
-    ensureBaseTimezoneSelectionViaRuntimeStateHelpers,
-    formatUtcOffsetLabelViaRuntimeStateHelpers,
-    normalizeCustomAbbrViaRuntimeStateHelpers,
-    getCurrentMultiRangeStateSnapshotViaRuntimeStateHelpers,
-    getGroupsStateSnapshotViaRuntimeStateHelpers,
-    getActiveGroupIdByMainTabStateSnapshotViaRuntimeStateHelpers,
-    patchPrimaryStateViaRuntimeStateHelpers,
-    setCurrentMainTabStateViaRuntimeStateHelpers,
-    setActiveGroupIdStateViaRuntimeStateHelpers,
-    setActiveGroupIdByMainTabStateViaRuntimeStateHelpers,
-    getActiveGroupNameSnapshotViaRuntimeStateHelpers
-} = GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES_BINDINGS.createService({
+const GTV_MAIN_RUNTIME_STATE_HELPER_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeStateHelperBootstrap;
+assertBindingCreateService(GTV_MAIN_RUNTIME_STATE_HELPER_BOOTSTRAP, "GTVMainRuntimeStateHelperBootstrap");
+var mainRuntimeStateHelperAccessorService = null;
+mainRuntimeStateHelperAccessorService = GTV_MAIN_RUNTIME_STATE_HELPER_BOOTSTRAP.createService({
+    runtimeStateHelperAliasesBindings: GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES_BINDINGS,
+    runtimeStateHelperAccessorBindings: GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_BINDINGS,
     runtimeStateHelperAliasesModule: GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES,
     runtimeStateHelpersModule: GTV_MAIN_RUNTIME_STATE_HELPERS,
+    runtimeStateHelperAccessorProxiesModule: GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_PROXIES,
     getMainSharedUtilsService: () => mainSharedUtilsService,
     getPatchedTimeAdjustDayStepBySlotState,
     getPatchAppState: () => patchAppState,
@@ -2001,208 +1329,86 @@ const {
     getGroupsState: () => groups,
     getActiveGroupIdByMainTabState: () => activeGroupIdByMainTab,
     getPatchedActiveGroupIdState
-});
-
-var mainRuntimeStateHelperAccessorService = null;
-if (
-    GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_BINDINGS
-    && typeof GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_BINDINGS.createService === "function"
-    && GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_PROXIES
-    && typeof GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_PROXIES.createService === "function"
-) {
-    mainRuntimeStateHelperAccessorService = GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_BINDINGS.createService({
-        runtimeStateHelperAccessorProxiesModule: GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_PROXIES,
-        getParseDateTimePartsViaRuntimeStateHelpers: () => parseDateTimePartsViaRuntimeStateHelpers,
-        getGetTimeAdjustDayStepBySlotSnapshotViaRuntimeStateHelpers: () => getTimeAdjustDayStepBySlotSnapshotViaRuntimeStateHelpers,
-        getSetTimeAdjustDayStepBySlotStateViaRuntimeStateHelpers: () => setTimeAdjustDayStepBySlotStateViaRuntimeStateHelpers,
-        getUpdateTimeAdjustPanelSafelyViaRuntimeStateHelpers: () => updateTimeAdjustPanelSafelyViaRuntimeStateHelpers,
-        getGetUTCRefViaRuntimeStateHelpers: () => getUTCRefViaRuntimeStateHelpers,
-        getGetCurrentGroupViaRuntimeStateHelpers: () => getCurrentGroupViaRuntimeStateHelpers,
-        getGetCurrentGroupZonesViaRuntimeStateHelpers: () => getCurrentGroupZonesViaRuntimeStateHelpers,
-        getGetCurrentGroupBaseTimezoneIdViaRuntimeStateHelpers: () => getCurrentGroupBaseTimezoneIdViaRuntimeStateHelpers,
-        getGetBaseTimezoneRefViaRuntimeStateHelpers: () => getBaseTimezoneRefViaRuntimeStateHelpers,
-        getEnsureBaseTimezoneSelectionViaRuntimeStateHelpers: () => ensureBaseTimezoneSelectionViaRuntimeStateHelpers,
-        getFormatUtcOffsetLabelViaRuntimeStateHelpers: () => formatUtcOffsetLabelViaRuntimeStateHelpers,
-        getNormalizeCustomAbbrViaRuntimeStateHelpers: () => normalizeCustomAbbrViaRuntimeStateHelpers,
-        getGetCurrentMultiRangeStateSnapshotViaRuntimeStateHelpers: () => getCurrentMultiRangeStateSnapshotViaRuntimeStateHelpers,
-        getGetGroupsStateSnapshotViaRuntimeStateHelpers: () => getGroupsStateSnapshotViaRuntimeStateHelpers,
-        getGetActiveGroupIdByMainTabStateSnapshotViaRuntimeStateHelpers: () => getActiveGroupIdByMainTabStateSnapshotViaRuntimeStateHelpers,
-        getPatchPrimaryStateViaRuntimeStateHelpers: () => patchPrimaryStateViaRuntimeStateHelpers,
-        getSetCurrentMainTabStateViaRuntimeStateHelpers: () => setCurrentMainTabStateViaRuntimeStateHelpers,
-        getSetActiveGroupIdStateViaRuntimeStateHelpers: () => setActiveGroupIdStateViaRuntimeStateHelpers,
-        getSetActiveGroupIdByMainTabStateViaRuntimeStateHelpers: () => setActiveGroupIdByMainTabStateViaRuntimeStateHelpers,
-        getGetActiveGroupNameSnapshotViaRuntimeStateHelpers: () => getActiveGroupNameSnapshotViaRuntimeStateHelpers
-    });
-}
-
-function callRuntimeStateHelperAccessor(methodName, args, fallbackFn) {
-    if (
-        mainRuntimeStateHelperAccessorService
-        && typeof mainRuntimeStateHelperAccessorService[methodName] === "function"
-    ) {
-        return mainRuntimeStateHelperAccessorService[methodName](...args);
-    }
-    return fallbackFn(...args);
-}
+}).mainRuntimeStateHelperAccessorService;
 
 function parseDateTimeParts(val, inputMode) {
-    return callRuntimeStateHelperAccessor(
-        "parseDateTimeParts",
-        [val, inputMode],
-        parseDateTimePartsViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.parseDateTimeParts(val, inputMode);
 }
 
 function getTimeAdjustDayStepBySlotSnapshot() {
-    return callRuntimeStateHelperAccessor(
-        "getTimeAdjustDayStepBySlotSnapshot",
-        [],
-        getTimeAdjustDayStepBySlotSnapshotViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.getTimeAdjustDayStepBySlotSnapshot();
 }
 
 function setTimeAdjustDayStepBySlotState(nextValues = []) {
-    return callRuntimeStateHelperAccessor(
-        "setTimeAdjustDayStepBySlotState",
-        [nextValues],
-        setTimeAdjustDayStepBySlotStateViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.setTimeAdjustDayStepBySlotState(nextValues);
 }
 
 function updateTimeAdjustPanelSafely() {
-    return callRuntimeStateHelperAccessor(
-        "updateTimeAdjustPanelSafely",
-        [],
-        updateTimeAdjustPanelSafelyViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.updateTimeAdjustPanelSafely();
 }
 
 function getUTCRef() {
-    return callRuntimeStateHelperAccessor(
-        "getUTCRef",
-        [],
-        getUTCRefViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.getUTCRef();
 }
 
 function getCurrentGroup() {
-    return callRuntimeStateHelperAccessor(
-        "getCurrentGroup",
-        [],
-        getCurrentGroupViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.getCurrentGroup();
 }
 
 function getCurrentGroupZones() {
-    return callRuntimeStateHelperAccessor(
-        "getCurrentGroupZones",
-        [],
-        getCurrentGroupZonesViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.getCurrentGroupZones();
 }
 
 function getCurrentGroupBaseTimezoneId() {
-    return callRuntimeStateHelperAccessor(
-        "getCurrentGroupBaseTimezoneId",
-        [],
-        getCurrentGroupBaseTimezoneIdViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.getCurrentGroupBaseTimezoneId();
 }
 
 function getBaseTimezoneRef() {
-    return callRuntimeStateHelperAccessor(
-        "getBaseTimezoneRef",
-        [],
-        getBaseTimezoneRefViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.getBaseTimezoneRef();
 }
 
 function ensureBaseTimezoneSelection() {
-    return callRuntimeStateHelperAccessor(
-        "ensureBaseTimezoneSelection",
-        [],
-        ensureBaseTimezoneSelectionViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.ensureBaseTimezoneSelection();
 }
 
 function formatUtcOffsetLabel(totalMinutes = 0) {
-    return callRuntimeStateHelperAccessor(
-        "formatUtcOffsetLabel",
-        [totalMinutes],
-        formatUtcOffsetLabelViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.formatUtcOffsetLabel(totalMinutes);
 }
 
 function normalizeCustomAbbr(value) {
-    return callRuntimeStateHelperAccessor(
-        "normalizeCustomAbbr",
-        [value],
-        normalizeCustomAbbrViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.normalizeCustomAbbr(value);
 }
 
 function getCurrentMultiRangeStateSnapshot() {
-    return callRuntimeStateHelperAccessor(
-        "getCurrentMultiRangeStateSnapshot",
-        [],
-        getCurrentMultiRangeStateSnapshotViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.getCurrentMultiRangeStateSnapshot();
 }
 
 function getGroupsStateSnapshot() {
-    return callRuntimeStateHelperAccessor(
-        "getGroupsStateSnapshot",
-        [],
-        getGroupsStateSnapshotViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.getGroupsStateSnapshot();
 }
 
 function getActiveGroupIdByMainTabStateSnapshot() {
-    return callRuntimeStateHelperAccessor(
-        "getActiveGroupIdByMainTabStateSnapshot",
-        [],
-        getActiveGroupIdByMainTabStateSnapshotViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.getActiveGroupIdByMainTabStateSnapshot();
 }
 
 function patchPrimaryState(next = {}) {
-    return callRuntimeStateHelperAccessor(
-        "patchPrimaryState",
-        [next],
-        patchPrimaryStateViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.patchPrimaryState(next);
 }
 
 function setCurrentMainTabState(nextTab) {
-    return callRuntimeStateHelperAccessor(
-        "setCurrentMainTabState",
-        [nextTab],
-        setCurrentMainTabStateViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.setCurrentMainTabState(nextTab);
 }
 
 function setActiveGroupIdState(nextId) {
-    return callRuntimeStateHelperAccessor(
-        "setActiveGroupIdState",
-        [nextId],
-        setActiveGroupIdStateViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.setActiveGroupIdState(nextId);
 }
 
 function setActiveGroupIdByMainTabState(nextMap) {
-    return callRuntimeStateHelperAccessor(
-        "setActiveGroupIdByMainTabState",
-        [nextMap],
-        setActiveGroupIdByMainTabStateViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.setActiveGroupIdByMainTabState(nextMap);
 }
 
 function getActiveGroupNameSnapshot() {
-    return callRuntimeStateHelperAccessor(
-        "getActiveGroupNameSnapshot",
-        [],
-        getActiveGroupNameSnapshotViaRuntimeStateHelpers
-    );
+    return mainRuntimeStateHelperAccessorService.getActiveGroupNameSnapshot();
 }
 
 const pad = GTV_TIME_CORE.pad;
@@ -2217,12 +1423,7 @@ const {
     loadCurrentMultiStateFromActiveSubgroup
 } = mainOrchestrationFlowServices;
 
-if (
-    !GTV_MAIN_FORMAT_PROFILE_FACADE_BINDINGS
-    || typeof GTV_MAIN_FORMAT_PROFILE_FACADE_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainFormatProfileFacadeBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_FORMAT_PROFILE_FACADE_BINDINGS, "GTVMainFormatProfileFacadeBindings");
 const {
     getDefaultFormatEnabled,
     getDefaultTimePartsEnabled,
@@ -2254,18 +1455,24 @@ const {
     formatProfileFacadeService: mainCoreServices.mainFormatProfileFacadeService
 });
 
-if (
-    !GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER_BINDINGS
-    || typeof GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER_BINDINGS.createService !== "function"
-) {
-    throw new Error("Missing required module API: GTVMainRuntimeServiceConfigBuilderBindings.createService");
-}
+assertBindingCreateService(GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER_BINDINGS, "GTVMainRuntimeServiceConfigBuilderBindings");
 const {
     mainRuntimeServiceConfigBuilderService
 } = GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER_BINDINGS.createService({
     runtimeServiceConfigBuilderModule: GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER
 });
-const mainSelectServicesConfig = mainRuntimeServiceConfigBuilderService.buildMainSelectServicesConfig({
+const GTV_MAIN_RUNTIME_CORE_SERVICE_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeCoreServiceBootstrap;
+assertBindingCreateService(GTV_MAIN_RUNTIME_CORE_SERVICE_BOOTSTRAP, "GTVMainRuntimeCoreServiceBootstrap");
+const {
+    mainSelectServices,
+    adjustSelectWidthForContent,
+    refreshSelectWidths,
+    renderBaseTimeSelect,
+    timezoneSearchService,
+    snapshotFormatService
+} = GTV_MAIN_RUNTIME_CORE_SERVICE_BOOTSTRAP.createService({
+    mainRuntimeServiceConfigBuilderService,
+    mainCoreServices,
     getDocumentRefOrNull,
     getComputedStyleSafely,
     ensureBaseTimezoneSelection,
@@ -2276,43 +1483,22 @@ const mainSelectServicesConfig = mainRuntimeServiceConfigBuilderService.buildMai
     getZoneDisplayName,
     setCurrentGroupBaseTimezoneId,
     savePersistenceSafely,
-    gtvT
-});
-const mainSelectServices = mainCoreServices.createMainSelectServices(mainSelectServicesConfig);
-const {
-    adjustSelectWidthForContent,
-    refreshSelectWidths,
-    renderBaseTimeSelect
-} = mainSelectServices;
-
-// --- Group Data Structures ---
-
-const timezoneSearchConfig = mainRuntimeServiceConfigBuilderService.buildTimezoneSearchConfig({
+    gtvT,
     TZ_DATABASE,
     getZoneMapRef,
-    gtvT,
     getPatchedCurrentLangState,
     getBetterAbbr,
     getTimezoneOffset,
     getLocalizedTZLabel,
-    adjustSelectWidthForContent,
     getCurrentGroup,
-    savePersistenceSafely,
     deferDynamicCall,
     getRenderListRef,
     addTimezone,
-    createUniqueTimezoneId
-});
-const timezoneSearchService = mainCoreServices.createTimezoneSearchService(timezoneSearchConfig);
-
-const snapshotFormatConfig = mainRuntimeServiceConfigBuilderService.buildSnapshotFormatConfig({
+    createUniqueTimezoneId,
     DEFAULT_COPY_TIME_PARTS_ENABLED,
     MAIN_I18N_DATA,
-    gtvT,
-    getPatchedCurrentLangState,
     getUTCRef,
     getBaseTimezoneRef,
-    getCurrentGroupZones,
     getGlobalTimesState,
     getPatchedSlotCountState,
     getIsRealtimeState,
@@ -2321,15 +1507,14 @@ const snapshotFormatConfig = mainRuntimeServiceConfigBuilderService.buildSnapsho
     normalizeCustomAbbr,
     getCustomOffsetMinutes,
     pad,
-    getZoneAbbreviation,
-    getZoneDisplayName,
     getSignedInclusiveDaySpan,
     getSignedDurationDayHourMinute,
     sanitizeTimePartsEnabled,
     sanitizeCopyFormatOrder,
     timeService
 });
-const snapshotFormatService = mainCoreServices.createSnapshotFormatService(snapshotFormatConfig);
+
+// --- Group Data Structures ---
 
 let multiBulkToolsService = null;
 let timelineFrameService = null;
@@ -2347,7 +1532,11 @@ let fixedTimeActionsService = null;
 let fixedTimeTableService = null;
 let mainUiInitService = null;
 let timeAdjustActionsService = null;
-const timeInputMutationsConfig = mainRuntimeServiceConfigBuilderService.buildTimeInputMutationsConfig({
+const GTV_MAIN_RUNTIME_TABLE_IMAGE_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeTableImageBootstrap;
+assertBindingCreateService(GTV_MAIN_RUNTIME_TABLE_IMAGE_BOOTSTRAP, "GTVMainRuntimeTableImageBootstrap");
+const mainRuntimeTableImageServices = GTV_MAIN_RUNTIME_TABLE_IMAGE_BOOTSTRAP.createService({
+    mainRuntimeServiceConfigBuilderService,
+    mainCoreServices,
     deferDynamicCall,
     getTranslatorRef,
     getShowToastRef,
@@ -2373,11 +1562,7 @@ const timeInputMutationsConfig = mainRuntimeServiceConfigBuilderService.buildTim
     getUpdateClocksRef,
     getRenderListRef,
     renderMultiRangesSafely,
-    getSavePersistenceSafelyRef
-});
-const timeInputMutationsService = mainCoreServices.createTimeInputMutationsService(timeInputMutationsConfig);
-
-const mainRowOrderConfig = mainRuntimeServiceConfigBuilderService.buildMainRowOrderConfig({
+    getSavePersistenceSafelyRef,
     requestUiFrame,
     cancelUiFrame,
     getGroupsStateSnapshot,
@@ -2385,9 +1570,55 @@ const mainRowOrderConfig = mainRuntimeServiceConfigBuilderService.buildMainRowOr
     getCurrentGroupBaseTimezoneId,
     getPersistenceServiceRef,
     getDocumentRefOrNull,
-    NodeCtor: (typeof Node === "function") ? Node : null
+    NodeCtor: (typeof Node === "function") ? Node : null,
+    rowViewCache,
+    MAX_RUNTIME_CACHE_SIZE,
+    getSnapshotFormatServiceRef,
+    getZoneDisplayName,
+    getZoneDisplayNameForUiAtDate,
+    getPatchedCurrentLangState,
+    getI18nDataRef,
+    getPatchedSlotCountState,
+    normalizeDayNightMarker,
+    getDayNightGlyph,
+    gtvT,
+    sanitizeCopyFormatOrder,
+    getPatchedDisplayFormatOrderState,
+    getPatchedDisplayFormatEnabledState,
+    getPatchedDisplayTimePartsEnabledState,
+    getBaseTimezoneRef,
+    escapeHtmlViaSharedUtils,
+    removeTimezone,
+    handleTimeChange,
+    isCurrentGroupUtcRowVisible,
+    getCurrentGroupUtcRowOrder,
+    getUTCRef,
+    renderBaseTimeSelect,
+    updateTimeAdjustPanelSafely,
+    hideFloatingTooltip,
+    upgradeNativeTitleTooltips,
+    createDragGhostFromRow,
+    clearDragGhost,
+    bindFacadeMethod,
+    getCopyActionsServiceRef,
+    getImageExportBridgeServiceRef,
+    createDefaultTableExportContext,
+    GTV_IMAGE_CLONE,
+    GTV_IMAGE_FOREIGN_RENDER,
+    GTV_IMAGE_EXPORT_BRIDGE,
+    GTV_TABLE_IMAGE_RENDER,
+    GTV_MULTI_RANGE_IMAGE_RENDER,
+    TABLE_IMAGE_EXPORT_WIDTH,
+    EXPORT_MONO_FONT_FAMILY,
+    getCanUseForeignObjectRendererRef,
+    setCanUseForeignObjectRenderer,
+    getImageExportActionsServiceRef,
+    isFixedTimeTab,
+    prepareExportCanvas,
+    drawExportCellText,
+    getMultiRangeTitleTextFromRenderService
 });
-const mainRowOrderServices = mainCoreServices.createMainRowOrderServices(mainRowOrderConfig);
+const timeInputMutationsService = mainRuntimeTableImageServices.timeInputMutationsService;
 const {
     bindRowContainerDragAndDrop,
     initDragAndDrop,
@@ -2395,68 +1626,9 @@ const {
     animateReorderTransition,
     getAfter,
     saveOrderForContainer,
-    saveOrder
-} = mainRowOrderServices;
-const mainRowViewConfig = mainRuntimeServiceConfigBuilderService.buildMainRowViewConfig({
-    rowViewCache,
-    MAX_RUNTIME_CACHE_SIZE,
-    getDocumentRefOrNull,
-    getSnapshotFormatServiceRef,
-    getGlobalTimeState,
-    getZoneDisplayName,
-    getZoneDisplayNameForUiAtDate,
-    getPatchedCurrentLangState,
-    getI18nDataRef,
-    getIsRealtimeState,
-    getPatchedSlotCountState,
-    normalizeDayNightMarker,
-    getDayNightGlyph,
-    gtvT
-});
-const mainRowViewServices = mainCoreServices.createMainRowViewServices(mainRowViewConfig);
-const { updateRow } = mainRowViewServices;
-
-const tableRenderConfig = mainRuntimeServiceConfigBuilderService.buildTableRenderConfig({
-    gtvT,
-    sanitizeCopyFormatOrder,
-    getPatchedDisplayFormatOrderState,
-    getPatchedDisplayFormatEnabledState,
-    getPatchedDisplayTimePartsEnabledState,
-    getIsRealtimeState,
-    getPatchedSlotCountState,
-    isMultiTab,
-    renderMultiRangesSafely,
-    getBaseTimezoneRef,
-    getGlobalTimeState,
-    escapeHtmlViaSharedUtils,
-    getZoneDisplayName,
-    getZoneDisplayNameForUiAtDate,
-    removeTimezone,
-    handleTimeChange,
     saveOrder,
-    getCurrentGroupZones,
-    isCurrentGroupUtcRowVisible,
-    getCurrentGroupUtcRowOrder,
-    getUTCRef,
-    renderBaseTimeSelect,
-    updateTimeAdjustPanelSafely,
-    deferDynamicCall,
-    getUpdateClocksRef,
-    hideFloatingTooltip,
-    upgradeNativeTitleTooltips,
-    createDragGhostFromRow,
-    clearDragGhost,
-    bindFacadeMethod,
-    getCopyActionsServiceRef
-});
-const tableRenderService = mainCoreServices.createTableRenderService(tableRenderConfig);
-
-const mainImageExportBridgeProxyConfig = mainRuntimeServiceConfigBuilderService.buildMainImageExportBridgeProxyConfig({
-    getImageExportBridgeServiceRef,
-    createDefaultTableExportContext
-});
-const mainImageExportBridgeProxy = mainCoreServices.createMainImageExportBridgeProxy(mainImageExportBridgeProxyConfig);
-const {
+    updateRow,
+    tableRenderService,
     collectDocumentCssText,
     cloneTableForImageExport,
     cloneMultiRangeBlockForImageExport,
@@ -2478,43 +1650,18 @@ const {
     saveMultiRangeTitlesImage,
     saveMultiRangeSingleImage,
     getImageExportDeps
-} = mainImageExportBridgeProxy;
+} = mainRuntimeTableImageServices;
+imageCloneService = mainRuntimeTableImageServices.imageCloneService;
+imageForeignRenderService = mainRuntimeTableImageServices.imageForeignRenderService;
+imageExportBridgeService = mainRuntimeTableImageServices.imageExportBridgeService;
+tableImageRenderService = mainRuntimeTableImageServices.tableImageRenderService;
+multiRangeImageRenderService = mainRuntimeTableImageServices.multiRangeImageRenderService;
 
-const mainImageRuntimeServicesConfig = mainRuntimeServiceConfigBuilderService.buildMainImageRuntimeServicesConfig({
-    GTV_IMAGE_CLONE,
-    GTV_IMAGE_FOREIGN_RENDER,
-    GTV_IMAGE_EXPORT_BRIDGE,
-    GTV_TABLE_IMAGE_RENDER,
-    GTV_MULTI_RANGE_IMAGE_RENDER,
-    TABLE_IMAGE_EXPORT_WIDTH,
-    EXPORT_MONO_FONT_FAMILY,
-    getDocumentRefOrNull,
-    getCanUseForeignObjectRendererRef,
-    setCanUseForeignObjectRenderer,
-    getImageExportActionsServiceRef,
-    createDefaultTableExportContext,
-    isFixedTimeTab,
-    waitForDocumentFontsReady,
-    prepareExportCanvas,
-    drawExportCellText,
-    cloneTableForImageExport,
-    renderElementWithForeignObjectToPngDataUrl,
-    gtvT,
-    ensureMultiRangeState,
-    getBaseTimezoneRef,
-    getPatchedMultiRangesState,
-    getMultiRangeTitleTextFromRenderService,
-    cloneMultiRangeBlockForImageExport,
-    extractTableCellText
-});
-const mainImageRuntimeServices = mainCoreServices.createMainImageRuntimeServices(mainImageRuntimeServicesConfig);
-imageCloneService = mainImageRuntimeServices.imageCloneService;
-imageForeignRenderService = mainImageRuntimeServices.imageForeignRenderService;
-imageExportBridgeService = mainImageRuntimeServices.imageExportBridgeService;
-tableImageRenderService = mainImageRuntimeServices.tableImageRenderService;
-multiRangeImageRenderService = mainImageRuntimeServices.multiRangeImageRenderService;
-
-const mainFixedTimeServicesConfig = mainRuntimeServiceConfigBuilderService.buildMainFixedTimeServicesConfig({
+const GTV_MAIN_RUNTIME_DOMAIN_SERVICE_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeDomainServiceBootstrap;
+assertBindingCreateService(GTV_MAIN_RUNTIME_DOMAIN_SERVICE_BOOTSTRAP, "GTVMainRuntimeDomainServiceBootstrap");
+const mainRuntimeDomainServices = GTV_MAIN_RUNTIME_DOMAIN_SERVICE_BOOTSTRAP.createService({
+    mainRuntimeServiceConfigBuilderService,
+    mainCoreServices,
     GTV_FIXED_TIME_CORE,
     GTV_FIXED_TIME_TIMELINE,
     GTV_FIXED_TIME_ACTIONS,
@@ -2561,24 +1708,11 @@ const mainFixedTimeServicesConfig = mainRuntimeServiceConfigBuilderService.build
     getRenderTimelineFrameRef,
     getSavePersistenceSafelyRef,
     setFixedTimeSlotCount,
-    getRefreshFixedTimeSlotCountControlsRef
-});
-const mainFixedTimeServices = mainCoreServices.createMainFixedTimeServices(mainFixedTimeServicesConfig);
-fixedTimeCoreService = mainFixedTimeServices.fixedTimeCoreService;
-fixedTimeTimelineService = mainFixedTimeServices.fixedTimeTimelineService;
-fixedTimeActionsService = mainFixedTimeServices.fixedTimeActionsService;
-
-const mainMultiRangeServicesConfig = mainRuntimeServiceConfigBuilderService.buildMainMultiRangeServicesConfig({
+    getRefreshFixedTimeSlotCountControlsRef,
     GTV_MULTI_RANGE_RENDER,
     GTV_MULTI_RANGE_COPY,
     GTV_COPY_ACTIONS,
-    MAIN_I18N_DATA,
-    gtvT,
-    getPatchedCurrentLangState,
-    pad,
-    getDayNightMarkerByHour,
     getCustomOffsetMinutes,
-    getFixedOffsetForDisplayAtDate,
     normalizeCustomAbbr,
     getZoneAbbreviation,
     getSignedInclusiveDaySpan,
@@ -2599,14 +1733,11 @@ const mainMultiRangeServicesConfig = mainRuntimeServiceConfigBuilderService.buil
     ensureMultiRangeState,
     refreshMultiRangeControls,
     renderMultiBulkToolSets,
-    getBaseTimezoneRef,
     escapeHtmlViaSharedUtils,
     getDisplayColumns,
-    getRenderableTimezoneRowsFromTableRender,
     getPatchedMultiRangesState,
     getPatchedMultiRangeCollapsedState,
     getPatchedMultiRangeCountState,
-    buildTimezoneComputedSnapshotForDatesViaSnapshotService,
     saveMultiRangeSingleImage,
     setMultiRangesCollapsedBelow,
     toggleMultiRangeCollapsed,
@@ -2619,15 +1750,9 @@ const mainMultiRangeServicesConfig = mainRuntimeServiceConfigBuilderService.buil
     updateTimeAdjustPanelSafely,
     updateCopyFormatPreview,
     upgradeNativeTitleTooltips,
-    deferDynamicCall,
-    getShowToastRef,
     getTimezoneRefByIdFromSnapshotService,
     buildTimezoneComputedSnapshotForRange,
     formatSnapshotText,
-    getPatchedCopyFormatOrderState,
-    getPatchedCopyFormatEnabledState,
-    getPatchedCopyTimePartsEnabledState,
-    writeClipboardText,
     getPatchedShowCopyFormatState,
     isMultiTab,
     isFixedTimeTab,
@@ -2635,21 +1760,13 @@ const mainMultiRangeServicesConfig = mainRuntimeServiceConfigBuilderService.buil
     getRowCopyTextViaSnapshotService,
     getFixedTimePreviewCopyText,
     getAllFixedTimeRowsCopyText,
-    copyAllMultiRangeTimezones
-});
-const mainMultiRangeServices = mainCoreServices.createMainMultiRangeServices(mainMultiRangeServicesConfig);
-const multiRangeRenderService = mainMultiRangeServices.multiRangeRenderService;
-const multiRangeCopyService = mainMultiRangeServices.multiRangeCopyService;
-const copyActionsService = mainMultiRangeServices.copyActionsService;
-
-const mainTimeAdjustServicesConfig = mainRuntimeServiceConfigBuilderService.buildMainTimeAdjustServicesConfig({
+    copyAllMultiRangeTimezones,
     GTV_TIME_ADJUST_UI,
     GTV_MULTI_BULK_TOOLS,
     GTV_TIME_ADJUST_ACTIONS,
     MIN_TIME_ADJUST_DAY_STEP,
     MAX_TIME_ADJUST_DAY_STEP,
     DEFAULT_TIME_ADJUST_DAY_STEP,
-    gtvT,
     savePersistenceSafely,
     applyTimeAdjustAction,
     getPatchedMainTabState,
@@ -2658,167 +1775,74 @@ const mainTimeAdjustServicesConfig = mainRuntimeServiceConfigBuilderService.buil
     getTimeAdjustDayStepValue,
     getTimeAdjustDayStepBySlotSnapshot,
     setTimeAdjustDayStepBySlotState,
-    upgradeNativeTitleTooltips,
-    getPatchedMultiRangeCountState,
     applyBulkRangeAllAction,
     applyFirstRangeStartAdjustAction,
     setAllMultiRangeStartEditEnabled,
     setAllMultiRangeEndEditEnabled,
     getGlobalTimesState,
-    deferDynamicCall,
     getUpdateClocksRef,
-    getBaseTimezoneRef,
     getFixedOffsetForDisplay,
-    getFixedOffsetForDisplayAtDate,
-    getCustomOffsetMinutes,
     getTimeAdjustDayStep,
     timeService,
     sanitizeUtcMsViaTimeCore,
-    ensureMultiRangeState,
-    getPatchedMultiRangesState,
     isMultiRangeStartLinked,
-    isMultiTab,
-    renderMultiRangesSafely,
-    isMultiRangeStartEditEnabled,
-    isMultiRangeEndEditEnabled,
     syncLinkedRangesFrom,
     getMultiRangeSlotDate,
     setMultiRangeSlotDate,
     syncFollowingRangesByDuration,
-    syncMultiRangeStartLinks
-});
-const mainTimeAdjustServices = mainCoreServices.createMainTimeAdjustServices(mainTimeAdjustServicesConfig);
-timeAdjustUiService = mainTimeAdjustServices.timeAdjustUiService;
-multiBulkToolsService = mainTimeAdjustServices.multiBulkToolsService;
-timeAdjustActionsService = mainTimeAdjustServices.timeAdjustActionsService;
-
-const mainTabServicesConfig = mainRuntimeServiceConfigBuilderService.buildMainTabServicesConfig({
+    syncMultiRangeStartLinks,
     GTV_FORMAT_CONTROLS,
     serviceBootstrap,
     COPY_FORMAT_KEYS,
     TIME_PART_KEYS,
-    gtvT,
-    sanitizeCopyFormatOrder,
-    deferDynamicCall,
     getRenderListRef,
-    updateCopyFormatPreview,
-    savePersistenceSafely,
-    upgradeNativeTitleTooltips,
-    getPatchedShowCopyFormatState,
     getPatchedDisplayFormatOrderState,
     getPatchedActiveFormatProfileContextState,
     patchAppState,
-    sanitizeCopyFormatOrderForContext,
     syncActiveFormatProfileFromState,
     getPatchedDisplayFormatEnabledState,
-    sanitizeCopyFormatEnabledForContext,
-    getPatchedDisplayTimePartsEnabledState,
-    sanitizeTimePartsEnabledForContext,
-    getPatchedCopyFormatOrderState,
-    getPatchedCopyFormatEnabledState,
-    getPatchedCopyTimePartsEnabledState,
     getActiveCopyFormatKeysForCurrentContext,
     getActiveTimePartKeysForCurrentContext,
     sanitizeMainTab,
     clampGroupIndex,
     normalizeGroupTabState,
-    isMultiTab,
-    isFixedTimeTab,
-    getPatchedSlotCountState,
     getPatchedShowTimelineState,
-    getIsRealtimeState,
     setIsRealtimeState,
     setGlobalTimeState,
-    getPatchedMainTabState,
     setCurrentMainTabState,
     getPatchedActiveGroupIdState,
     setActiveGroupIdState,
     getActiveGroupIdByMainTabStateSnapshot,
     setActiveGroupIdByMainTabState,
-    hideFloatingTooltip,
     syncCurrentMultiStateToActiveSubgroup,
-    refreshMultiRangeControls,
-    renderBaseTimeSelect,
     loadCurrentMultiStateFromActiveSubgroup,
     bindFacadeMethod,
     getGroupTabsServiceRef,
     renderMultiRangesSafely,
     renderFixedTimeTab,
-    getRenderTimelineFrameRef,
-    updateTimeAdjustPanelSafely,
     resolveFormatProfileContext,
-    activateFormatProfileContext
-});
-const mainTabServices = mainCoreServices.createMainTabServices(mainTabServicesConfig);
-const formatControlsService = mainTabServices.formatControlsService;
-const tabUiService = mainTabServices.tabUiService;
-const tabOrchestratorService = mainTabServices.tabOrchestratorService;
-
-const mainGroupStateServicesConfig = mainRuntimeServiceConfigBuilderService.buildMainGroupStateServicesConfig({
+    activateFormatProfileContext,
     GTV_MULTI_STATE,
-    serviceBootstrap,
     MIN_MULTI_RANGE_COUNT,
-    gtvT,
     getGroupsStateSnapshot,
     getDefaultMultiRangeBounds,
     sanitizeMultiRangeCount,
     sanitizeMultiRangeItem,
-    sanitizeUtcMsViaTimeCore,
     sanitizeTimezoneId,
     createUniqueTimezoneId,
-    normalizeCustomAbbr,
     normalizeZoneAbbreviationViaSearch,
     sanitizeBaseTimezoneId,
     sanitizeUtcRowOrderViaTimeCore,
     sanitizeFixedTimes,
     sanitizeFixedDateValue,
-    sanitizeFixedTimeShowLiveNow
-});
-const mainGroupStateServices = mainCoreServices.createMainGroupStateServices(mainGroupStateServicesConfig);
-multiStateService = mainGroupStateServices.multiStateService;
-groupStateService = mainGroupStateServices.groupStateService;
-
-const mainImageExportNamingProxyConfig = mainRuntimeServiceConfigBuilderService.buildMainImageExportNamingProxyConfig({
+    sanitizeFixedTimeShowLiveNow,
     getImageExportNamingServiceRef,
-    getCustomOffsetMinutes,
-    pad,
-    timeService,
-    getBaseTimezoneRef,
-    getGroupsStateSnapshot,
-    getPatchedActiveGroupIdState,
-    gtvT,
-    getZoneAbbreviation,
     getBaseTimeSnapshot,
     sanitizeMultiSubgroupNameForExport,
-    getCurrentMultiSubgroupName
-});
-const mainImageExportNamingProxy = mainCoreServices.createMainImageExportNamingProxy(mainImageExportNamingProxyConfig);
-const {
-    sanitizeFilenamePart,
-    formatDateTimeByTimezone,
-    getTimezoneTableImageFilename,
-    getMultiRangeTableImageFilename,
-    getMultiRangeTitlesImageFilename
-} = mainImageExportNamingProxy;
-
-const mainImageExportServicesConfig = mainRuntimeServiceConfigBuilderService.buildMainImageExportServicesConfig({
     GTV_IMAGE_EXPORT_NAMING,
     GTV_IMAGE_EXPORT_ACTIONS,
     GTV_IMAGE_EXPORT,
-    gtvT,
-    pad,
-    timeService,
-    getCustomOffsetMinutes,
-    getBaseTimezoneRef,
-    getBaseTimeSnapshot,
     getActiveGroupNameSnapshot,
-    getZoneAbbreviation,
-    sanitizeMultiSubgroupNameForExport,
-    getCurrentMultiSubgroupName,
-    deferDynamicCall,
-    getShowToastRef,
-    isMultiTab,
-    ensureMultiRangeState,
     detectForeignObjectRendererSupport,
     renderTimezoneTableToPngDataUrl,
     renderTimezoneTableFallbackDataUrl,
@@ -2826,18 +1850,8 @@ const mainImageExportServicesConfig = mainRuntimeServiceConfigBuilderService.bui
     renderMultiRangeSingleToPngDataUrl,
     renderMultiRangesFallbackDataUrl,
     renderMultiRangeTitlesToPngDataUrl,
-    getTimezoneTableImageFilename,
-    getMultiRangeTableImageFilename,
-    getMultiRangeTitlesImageFilename,
-    getPatchedMultiRangesState,
     isDomExceptionLike,
-    setCanUseForeignObjectRenderer
-});
-const mainImageExportServices = mainCoreServices.createMainImageExportServices(mainImageExportServicesConfig);
-imageExportNamingService = mainImageExportServices.imageExportNamingService;
-imageExportActionsService = mainImageExportServices.imageExportActionsService;
-
-const mainAppStateServicesConfig = mainRuntimeServiceConfigBuilderService.buildMainAppStateServicesConfig({
+    setCanUseForeignObjectRenderer,
     GTV_APP_STATE_PATCHER,
     GTV_APP_PERSISTENCE_STATE,
     getMainAppStateSource: () => ({
@@ -2870,25 +1884,51 @@ const mainAppStateServicesConfig = mainRuntimeServiceConfigBuilderService.buildM
         currentLang: getRuntimeCurrentLangValue()
     }),
     directStateSetters,
-    setIsRealtimeState,
-    syncActiveFormatProfileFromState,
     ensureFormatProfiles,
     getCurrentFormatProfileState,
-    resolveFormatProfileContext,
     applyFormatProfileState
 });
-const mainAppStateServices = mainCoreServices.createMainAppStateServices(mainAppStateServicesConfig);
-appStatePatcherService = mainAppStateServices.appStatePatcherService;
-appPersistenceStateService = mainAppStateServices.appPersistenceStateService;
+const {
+    multiRangeRenderService,
+    multiRangeCopyService,
+    copyActionsService,
+    formatControlsService,
+    tabUiService,
+    tabOrchestratorService,
+    sanitizeFilenamePart,
+    formatDateTimeByTimezone,
+    getTimezoneTableImageFilename,
+    getMultiRangeTableImageFilename,
+    getMultiRangeTitlesImageFilename
+} = mainRuntimeDomainServices;
+fixedTimeCoreService = mainRuntimeDomainServices.fixedTimeCoreService;
+fixedTimeTimelineService = mainRuntimeDomainServices.fixedTimeTimelineService;
+fixedTimeActionsService = mainRuntimeDomainServices.fixedTimeActionsService;
+timeAdjustUiService = mainRuntimeDomainServices.timeAdjustUiService;
+multiBulkToolsService = mainRuntimeDomainServices.multiBulkToolsService;
+timeAdjustActionsService = mainRuntimeDomainServices.timeAdjustActionsService;
+multiStateService = mainRuntimeDomainServices.multiStateService;
+groupStateService = mainRuntimeDomainServices.groupStateService;
+imageExportNamingService = mainRuntimeDomainServices.imageExportNamingService;
+imageExportActionsService = mainRuntimeDomainServices.imageExportActionsService;
+appStatePatcherService = mainRuntimeDomainServices.appStatePatcherService;
+appPersistenceStateService = mainRuntimeDomainServices.appPersistenceStateService;
 ensureFormatProfiles(createDefaultFormatProfile("live"));
 activateFormatProfileForCurrentContext({ syncCurrent: false });
 
-const mainPersistenceCompositionConfig = mainCompositionConfigBuilderService.buildPersistenceCompositionConfig({
+const GTV_MAIN_RUNTIME_PERSISTENCE_COMPOSITION_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimePersistenceCompositionBootstrap;
+assertBindingCreateService(
+    GTV_MAIN_RUNTIME_PERSISTENCE_COMPOSITION_BOOTSTRAP,
+    "GTVMainRuntimePersistenceCompositionBootstrap"
+);
+const mainPersistenceCompositionServices = GTV_MAIN_RUNTIME_PERSISTENCE_COMPOSITION_BOOTSTRAP.createService({
+    mainCompositionConfigBuilderService,
+    mainCoreServices,
     GTV_MAIN_GROUP_TABS_SERVICE,
     GTV_MAIN_PERSISTENCE_SNAPSHOT_SERVICES,
     GTV_MAIN_PERSISTENCE_SERVICES,
     GTV_GROUP_TABS,
-    t: gtvT,
+    gtvT,
     deferDynamicCall,
     getShowToastRef,
     confirmFnViaMainFoundation,
@@ -2987,9 +2027,6 @@ const mainPersistenceCompositionConfig = mainCompositionConfigBuilderService.bui
     getCurrentMultiSubgroup,
     getDocumentRefOrNull
 });
-const mainPersistenceCompositionServices = mainCoreServices.createMainPersistenceCompositionServices(
-    mainPersistenceCompositionConfig
-);
 const mainGroupTabsService = mainPersistenceCompositionServices.mainGroupTabsService;
 const groupTabsService = mainPersistenceCompositionServices.groupTabsService;
 mainPersistenceSnapshotService = mainPersistenceCompositionServices.mainPersistenceSnapshotService;
@@ -3000,7 +2037,11 @@ settingsIoService = mainPersistenceCompositionServices.settingsIoService;
 dataTransferService = mainPersistenceCompositionServices.dataTransferService;
 uiSettingsActionsService = mainPersistenceCompositionServices.uiSettingsActionsService;
 
-const mainRuntimeCompositionConfig = mainCompositionConfigBuilderService.buildRuntimeCompositionConfig({
+const GTV_MAIN_RUNTIME_COMPOSITION_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeCompositionBootstrap;
+assertBindingCreateService(GTV_MAIN_RUNTIME_COMPOSITION_BOOTSTRAP, "GTVMainRuntimeCompositionBootstrap");
+const mainRuntimeCompositionServices = GTV_MAIN_RUNTIME_COMPOSITION_BOOTSTRAP.createService({
+    mainCompositionConfigBuilderService,
+    mainCoreServices,
     GTV_MAIN_UI_RUNTIME_SERVICES,
     GTV_MAIN_CLOCK_ORCHESTRATOR_SERVICES,
     GTV_TIMELINE_FRAME,
@@ -3035,7 +2076,7 @@ const mainRuntimeCompositionConfig = mainCompositionConfigBuilderService.buildRu
     getTimeAdjustUiServiceRef,
     getTabUiServiceRef,
     getUiSettingsActionsServiceRef,
-    t: gtvT,
+    gtvT,
     isMultiTab,
     isFixedTimeTab,
     getBaseTimezoneRef,
@@ -3122,57 +2163,44 @@ const mainRuntimeCompositionConfig = mainCompositionConfigBuilderService.buildRu
     getWindowRefOrNull,
     getGlobalThisRefOrNull
 });
-const mainRuntimeCompositionServices = mainCoreServices.createMainRuntimeCompositionServices(
-    mainRuntimeCompositionConfig
-);
 timelineFrameService = mainRuntimeCompositionServices.timelineFrameService;
 fixedTimeTableService = mainRuntimeCompositionServices.fixedTimeTableService;
 mainUiInitService = mainRuntimeCompositionServices.mainUiInitService;
 mainClockOrchestratorService = mainRuntimeCompositionServices.mainClockOrchestratorService;
 var mainRuntimeUiBridgeAccessorService = null;
-if (
-    GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS
-    && typeof GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS.createService === "function"
-    && GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES
-    && typeof GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES.createService === "function"
-) {
-    mainRuntimeUiBridgeAccessorService = GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS.createService({
-        runtimeUiBridgeAccessorProxiesModule: GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES,
-        callServiceMethod,
-        getAppFeedbackService: () => appFeedbackService,
-        getTabOrchestratorService: () => tabOrchestratorService,
-        getFormatControlsService: () => formatControlsService,
-        getTableRenderService: () => tableRenderService,
-        getMainTimezoneTableFacadeService: () => mainTimezoneTableFacadeService,
-        getMainTimelineFacadeService: () => mainTimelineFacadeService,
-        getMainFixedTimeFacadeService: () => mainFixedTimeFacadeService,
-        getMainFixedTimeTabFacadeService: () => mainFixedTimeTabFacadeService,
-        getPatchedSlotCountState,
-        getGlobalTimeState,
-        serviceMethodMissingToken: SERVICE_METHOD_MISSING,
-        consoleError: console.error.bind(console)
-    });
-}
 var mainRuntimeOperationAccessorService = null;
-if (
-    GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_BINDINGS
-    && typeof GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_BINDINGS.createService === "function"
-    && GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES
-    && typeof GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES.createService === "function"
-) {
-    mainRuntimeOperationAccessorService = GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_BINDINGS.createService({
-        runtimeOperationAccessorProxiesModule: GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES,
-        callServiceMethod,
-        getMainOrchestrationFlowServices: () => mainOrchestrationFlowServices,
-        getTimeInputMutationsService: () => timeInputMutationsService,
-        getSnapshotFormatService: () => snapshotFormatService,
-        getCalculatorActionsService: () => calculatorActionsService,
-        getGroupStateService: () => groupStateService,
-        getPersistenceService: () => persistenceService,
-        defaultCopyTimePartsEnabled: DEFAULT_COPY_TIME_PARTS_ENABLED
-    });
-}
-const mainAppBootstrapConfig = mainRuntimeServiceConfigBuilderService.buildMainAppBootstrapConfig({
+const GTV_MAIN_RUNTIME_BOOTSTRAP_WIRING = GTV_GLOBAL.GTVMainRuntimeBootstrapWiring;
+assertBindingCreateService(GTV_MAIN_RUNTIME_BOOTSTRAP_WIRING, "GTVMainRuntimeBootstrapWiring");
+const mainRuntimeBootstrapWiringServices = GTV_MAIN_RUNTIME_BOOTSTRAP_WIRING.createService({
+    runtimeUiBridgeAccessorBindings: GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS,
+    runtimeOperationAccessorBindings: GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_BINDINGS,
+    runtimePublicApiBindings: GTV_MAIN_RUNTIME_PUBLIC_API_BINDINGS,
+    runtimeBootstrapAccessorBindings: GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS,
+    mainRuntimeServiceConfigBuilderService,
+    mainCoreServices,
+    runtimeUiBridgeAccessorProxiesModule: GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES,
+    runtimeOperationAccessorProxiesModule: GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES,
+    runtimeBootstrapAccessorProxiesModule: GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES,
+    callServiceMethod,
+    getAppFeedbackService: () => appFeedbackService,
+    getTabOrchestratorService: () => tabOrchestratorService,
+    getFormatControlsService: () => formatControlsService,
+    getTableRenderService: () => tableRenderService,
+    getMainTimezoneTableFacadeService: () => mainTimezoneTableFacadeService,
+    getMainTimelineFacadeService: () => mainTimelineFacadeService,
+    getMainFixedTimeFacadeService: () => mainFixedTimeFacadeService,
+    getMainFixedTimeTabFacadeService: () => mainFixedTimeTabFacadeService,
+    getPatchedSlotCountState,
+    getGlobalTimeState,
+    serviceMethodMissingToken: SERVICE_METHOD_MISSING,
+    consoleError: console.error.bind(console),
+    getMainOrchestrationFlowServices: () => mainOrchestrationFlowServices,
+    getTimeInputMutationsService: () => timeInputMutationsService,
+    getSnapshotFormatService: () => snapshotFormatService,
+    getCalculatorActionsService: () => calculatorActionsService,
+    getGroupStateService: () => groupStateService,
+    getPersistenceService: () => persistenceService,
+    defaultCopyTimePartsEnabled: DEFAULT_COPY_TIME_PARTS_ENABLED,
     assertRequiredServices,
     loadPersistence,
     localizeAutoGeneratedNamesForCurrentLanguage,
@@ -3195,417 +2223,92 @@ const mainAppBootstrapConfig = mainRuntimeServiceConfigBuilderService.buildMainA
     getPatchedMainTabState,
     deferDynamicCall,
     getUpdateClocksRef,
-    showFatalError
+    showFatalError,
+    getDocumentRefOrNull,
+    getMainAppBootstrapService: () => mainAppBootstrapService,
+    setMainAppBootstrapService: (next) => { mainAppBootstrapService = next; },
+    getMainRuntimeBootstrapAccessorService: () => mainRuntimeBootstrapAccessorService,
+    setMainRuntimeBootstrapAccessorService: (next) => { mainRuntimeBootstrapAccessorService = next; }
 });
-mainAppBootstrapService = mainCoreServices.createMainAppBootstrapService(mainAppBootstrapConfig);
-if (
-    GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS
-    && typeof GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS.createService === "function"
-    && GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES
-    && typeof GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES.createService === "function"
-) {
-    mainRuntimeBootstrapAccessorService = GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS.createService({
-        runtimeBootstrapAccessorProxiesModule: GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES,
-        getMainAppBootstrapService: () => mainAppBootstrapService,
-        getDocumentRefOrNull
-    });
-}
+mainRuntimeUiBridgeAccessorService = mainRuntimeBootstrapWiringServices.mainRuntimeUiBridgeAccessorService;
+mainRuntimeOperationAccessorService = mainRuntimeBootstrapWiringServices.mainRuntimeOperationAccessorService;
+mainRuntimePublicApiService = mainRuntimeBootstrapWiringServices.mainRuntimePublicApiService;
+mainAppBootstrapService = mainRuntimeBootstrapWiringServices.mainAppBootstrapService;
+mainRuntimeBootstrapAccessorService = mainRuntimeBootstrapWiringServices.mainRuntimeBootstrapAccessorService;
 
-function callRuntimeUiBridgeAccessor(methodName, args, fallbackFn) {
-    if (
-        mainRuntimeUiBridgeAccessorService
-        && typeof mainRuntimeUiBridgeAccessorService[methodName] === "function"
-    ) {
-        return mainRuntimeUiBridgeAccessorService[methodName](...args);
-    }
-    return fallbackFn(...args);
+function showFatalError(err) { return mainRuntimePublicApiService.showFatalError(err); }
+async function initApp() { return await mainRuntimePublicApiService.initApp(); }
+function startBootstrapOnDomReady(initFn) { return mainRuntimePublicApiService.startBootstrapOnDomReady(initFn); }
+function showToast(message, options = {}) { return mainRuntimePublicApiService.showToast(message, options); }
+function switchMainTab(tab) { return mainRuntimePublicApiService.switchMainTab(tab); }
+function refreshOptionToggleDividers() { return mainRuntimePublicApiService.refreshOptionToggleDividers(); }
+function getCopyFieldLabel(key) { return mainRuntimePublicApiService.getCopyFieldLabel(key); }
+function getTimePartLabel(partKey) { return mainRuntimePublicApiService.getTimePartLabel(partKey); }
+function getDisplayColumns(effectiveSlotCount) { return mainRuntimePublicApiService.getDisplayColumns(effectiveSlotCount); }
+function getDisplayTimeInputMode() { return mainRuntimePublicApiService.getDisplayTimeInputMode(); }
+function buildRowActionCells(copyButtonTitle, removeButtonText, removeButtonTitle = "") {
+    return mainRuntimePublicApiService.buildRowActionCells(copyButtonTitle, removeButtonText, removeButtonTitle);
 }
-
-function callRuntimeOperationAccessor(methodName, args, fallbackFn) {
-    if (
-        mainRuntimeOperationAccessorService
-        && typeof mainRuntimeOperationAccessorService[methodName] === "function"
-    ) {
-        return mainRuntimeOperationAccessorService[methodName](...args);
-    }
-    return fallbackFn(...args);
+function renderList() { return mainRuntimePublicApiService.renderList(); }
+function renderTimelineFrame() { return mainRuntimePublicApiService.renderTimelineFrame(); }
+function resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate = getGlobalTimeState(0)) {
+    return mainRuntimePublicApiService.resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate);
 }
-
-function callRuntimeBootstrapAccessor(methodName, args, fallbackFn) {
-    if (
-        mainRuntimeBootstrapAccessorService
-        && typeof mainRuntimeBootstrapAccessorService[methodName] === "function"
-    ) {
-        return mainRuntimeBootstrapAccessorService[methodName](...args);
-    }
-    return fallbackFn(...args);
+function getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount = 1) {
+    return mainRuntimePublicApiService.getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount);
 }
-
-function showFatalError(err) {
-    return callRuntimeUiBridgeAccessor("showFatalError", [err], (nextError) => {
-        const result = callServiceMethod(
-            "appFeedbackService",
-            appFeedbackService,
-            "showFatalError",
-            [nextError],
-            { fallback: SERVICE_METHOD_MISSING }
-        );
-        if (result === SERVICE_METHOD_MISSING) {
-            console.error("FATAL ERROR during app initialization:", nextError);
-        }
-        return result;
-    });
+function renderFixedTimeTab() { return mainRuntimePublicApiService.renderFixedTimeTab(); }
+function updateClocks() { return mainRuntimePublicApiService.updateClocks(); }
+function resolveLocalDatePartsByTimezoneAtDate(timezone, utcDate, timezoneId = null) {
+    return mainRuntimePublicApiService.resolveLocalDatePartsByTimezoneAtDate(timezone, utcDate, timezoneId);
 }
-
-async function initApp() {
-    return await callRuntimeBootstrapAccessor(
-        "initApp",
-        [],
-        async () => await mainAppBootstrapService.initApp()
+function resolveLocalDatePartsByTimezone(timezone, slotIdx, timezoneId = null) {
+    return mainRuntimePublicApiService.resolveLocalDatePartsByTimezone(timezone, slotIdx, timezoneId);
+}
+function buildStrictUtcDateFromParts(parts) { return mainRuntimePublicApiService.buildStrictUtcDateFromParts(parts); }
+function handleTimeChange(val, timezone, slotIdx, timezoneId = null, inputMode = "datetime") {
+    return mainRuntimePublicApiService.handleTimeChange(val, timezone, slotIdx, timezoneId, inputMode);
+}
+function handleMultiRangeTimeChange(rangeIdx, val, timezone, slotIdx, timezoneId = null, inputMode = "datetime") {
+    return mainRuntimePublicApiService.handleMultiRangeTimeChange(
+        rangeIdx,
+        val,
+        timezone,
+        slotIdx,
+        timezoneId,
+        inputMode
     );
 }
-
-function startBootstrapOnDomReady(initFn) {
-    return callRuntimeBootstrapAccessor(
-        "startBootstrapOnDomReady",
-        [initFn],
-        (nextInitFn) => {
-            if (document.readyState === "loading") {
-                document.addEventListener("DOMContentLoaded", nextInitFn);
-            } else {
-                nextInitFn();
-            }
-        }
-    );
+function formatTimeTextByParts(snapshot, timePartsEnabled) {
+    return mainRuntimePublicApiService.formatTimeTextByParts(snapshot, timePartsEnabled);
 }
+function formatSnapshotText(snapshot, order, enabled, timePartsEnabled = DEFAULT_COPY_TIME_PARTS_ENABLED) {
+    return mainRuntimePublicApiService.formatSnapshotText(snapshot, order, enabled, timePartsEnabled);
+}
+function initCalculators() { return mainRuntimePublicApiService.initCalculators(); }
+async function copyText(elementId, isInput = false) { return await mainRuntimePublicApiService.copyText(elementId, isInput); }
+function getPersistenceSnapshot() { return mainRuntimePublicApiService.getPersistenceSnapshot(); }
+function sanitizeGroup(group, idx, legacyMultiState = null) {
+    return mainRuntimePublicApiService.sanitizeGroup(group, idx, legacyMultiState);
+}
+async function loadPersistence() { return await mainRuntimePublicApiService.loadPersistence(); }
 
 startBootstrapOnDomReady(initApp);
 
-function showToast(message, options = {}) {
-    return callRuntimeUiBridgeAccessor("showToast", [message, options], (nextMessage, nextOptions) => callServiceMethod(
-        "appFeedbackService",
-        appFeedbackService,
-        "showToast",
-        [nextMessage, nextOptions]
-    ));
-}
-
-function switchMainTab(tab) {
-    return callRuntimeUiBridgeAccessor("switchMainTab", [tab], (nextTab) => callServiceMethod(
-        "tabOrchestratorService",
-        tabOrchestratorService,
-        "switchMainTab",
-        [nextTab]
-    ));
-}
-
-function refreshOptionToggleDividers() {
-    return callRuntimeUiBridgeAccessor("refreshOptionToggleDividers", [], () => callServiceMethod(
-        "tabOrchestratorService",
-        tabOrchestratorService,
-        "refreshOptionToggleDividers",
-        []
-    ));
-}
-
-function getCopyFieldLabel(key) {
-    return callRuntimeUiBridgeAccessor("getCopyFieldLabel", [key], (nextKey) => {
-        const safeKey = (typeof nextKey === "string") ? nextKey : "";
-        return callServiceMethod(
-            "formatControlsService",
-            formatControlsService,
-            "getCopyFieldLabel",
-            [safeKey],
-            { fallback: safeKey }
-        );
-    });
-}
-
-function getTimePartLabel(partKey) {
-    return callRuntimeUiBridgeAccessor("getTimePartLabel", [partKey], (nextPartKey) => {
-        const safePartKey = (typeof nextPartKey === "string") ? nextPartKey : "";
-        return callServiceMethod(
-            "formatControlsService",
-            formatControlsService,
-            "getTimePartLabel",
-            [safePartKey],
-            { fallback: safePartKey }
-        );
-    });
-}
-
-function getDisplayColumns(effectiveSlotCount) {
-    return callRuntimeUiBridgeAccessor("getDisplayColumns", [effectiveSlotCount], (nextSlotCount) => {
-        const safeSlotCount = Number.isFinite(Number(nextSlotCount))
-            ? Number(nextSlotCount)
-            : getPatchedSlotCountState();
-        return callServiceMethod(
-            "tableRenderService",
-            tableRenderService,
-            "getDisplayColumns",
-            [safeSlotCount],
-            { fallback: [] }
-        );
-    });
-}
-
-function getDisplayTimeInputMode() {
-    return callRuntimeUiBridgeAccessor("getDisplayTimeInputMode", [], () => callServiceMethod(
-        "tableRenderService",
-        tableRenderService,
-        "getDisplayTimeInputMode",
-        [],
-        { fallback: "datetime" }
-    ));
-}
-
-function buildRowActionCells(copyButtonTitle, removeButtonText, removeButtonTitle = "") {
-    return callRuntimeUiBridgeAccessor(
-        "buildRowActionCells",
-        [copyButtonTitle, removeButtonText, removeButtonTitle],
-        (nextCopyTitle, nextRemoveText, nextRemoveTitle) => {
-            const safeCopyTitle = String(nextCopyTitle ?? "");
-            const safeRemoveText = String(nextRemoveText ?? "");
-            const safeRemoveTitle = String(nextRemoveTitle ?? "");
-            return callServiceMethod(
-                "tableRenderService",
-                tableRenderService,
-                "buildRowActionCells",
-                [safeCopyTitle, safeRemoveText, safeRemoveTitle],
-                { fallback: "" }
-            );
-        }
-    );
-}
-
-// --- List Rendering (dynamic slots) ---
-function renderList() {
-    return callRuntimeUiBridgeAccessor("renderList", [], () => callServiceMethod(
-        "mainTimezoneTableFacadeService",
-        mainTimezoneTableFacadeService,
-        "renderList",
-        [],
-        { fallback: undefined }
-    ));
-}
-
-function renderTimelineFrame() {
-    return callRuntimeUiBridgeAccessor("renderTimelineFrame", [], () => callServiceMethod(
-        "mainTimelineFacadeService",
-        mainTimelineFacadeService,
-        "renderTimelineFrame",
-        [],
-        { fallback: undefined }
-    ));
-}
-
-function resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate = getGlobalTimeState(0)) {
-    return callRuntimeUiBridgeAccessor(
-        "resolveFixedTimeSlotUtcDate",
-        [slot, baseRef, anchorDate],
-        (nextSlot, nextBaseRef, nextAnchorDate) => callServiceMethod(
-            "mainFixedTimeFacadeService",
-            mainFixedTimeFacadeService,
-            "resolveFixedTimeSlotUtcDate",
-            [nextSlot, nextBaseRef, nextAnchorDate],
-            { fallback: null }
-        )
-    );
-}
-
-function getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount = 1) {
-    return callRuntimeUiBridgeAccessor(
-        "getFixedTimeSlotHeaderLabel",
-        [slot, slotIdx, slotCount],
-        (nextSlot, nextSlotIdx, nextSlotCount) => callServiceMethod(
-            "mainFixedTimeFacadeService",
-            mainFixedTimeFacadeService,
-            "getFixedTimeSlotHeaderLabel",
-            [nextSlot, nextSlotIdx, nextSlotCount],
-            { fallback: "" }
-        )
-    );
-}
-
-function renderFixedTimeTab() {
-    return callRuntimeUiBridgeAccessor("renderFixedTimeTab", [], () => callServiceMethod(
-        "mainFixedTimeTabFacadeService",
-        mainFixedTimeTabFacadeService,
-        "renderFixedTimeTab",
-        [],
-        { fallback: undefined }
-    ));
-}
-
-// --- Clock Logic ---
-function updateClocks() {
-    return callRuntimeOperationAccessor(
-        "updateClocks",
-        [],
-        () => mainOrchestrationFlowServices.updateClocks()
-    );
-}
-
-function resolveLocalDatePartsByTimezoneAtDate(timezone, utcDate, timezoneId = null) {
-    return callRuntimeOperationAccessor(
-        "resolveLocalDatePartsByTimezoneAtDate",
-        [timezone, utcDate, timezoneId],
-        (nextTimezone, nextUtcDate, nextTimezoneId) => (
-            timeInputMutationsService.resolveLocalDatePartsByTimezoneAtDate(nextTimezone, nextUtcDate, nextTimezoneId)
-        )
-    );
-}
-
-function resolveLocalDatePartsByTimezone(timezone, slotIdx, timezoneId = null) {
-    return callRuntimeOperationAccessor(
-        "resolveLocalDatePartsByTimezone",
-        [timezone, slotIdx, timezoneId],
-        (nextTimezone, nextSlotIdx, nextTimezoneId) => (
-            timeInputMutationsService.resolveLocalDatePartsByTimezone(nextTimezone, nextSlotIdx, nextTimezoneId)
-        )
-    );
-}
-
-function buildStrictUtcDateFromParts(parts) {
-    return callRuntimeOperationAccessor(
-        "buildStrictUtcDateFromParts",
-        [parts],
-        (nextParts) => timeInputMutationsService.buildStrictUtcDateFromParts(nextParts)
-    );
-}
-
-function handleTimeChange(val, timezone, slotIdx, timezoneId = null, inputMode = "datetime") {
-    return callRuntimeOperationAccessor(
-        "handleTimeChange",
-        [val, timezone, slotIdx, timezoneId, inputMode],
-        (nextVal, nextTimezone, nextSlotIdx, nextTimezoneId, nextInputMode) => (
-            timeInputMutationsService.handleTimeChange(nextVal, nextTimezone, nextSlotIdx, nextTimezoneId, nextInputMode)
-        )
-    );
-}
-
-function handleMultiRangeTimeChange(rangeIdx, val, timezone, slotIdx, timezoneId = null, inputMode = "datetime") {
-    return callRuntimeOperationAccessor(
-        "handleMultiRangeTimeChange",
-        [rangeIdx, val, timezone, slotIdx, timezoneId, inputMode],
-        (
-            nextRangeIdx,
-            nextVal,
-            nextTimezone,
-            nextSlotIdx,
-            nextTimezoneId,
-            nextInputMode
-        ) => timeInputMutationsService.handleMultiRangeTimeChange(
-            nextRangeIdx,
-            nextVal,
-            nextTimezone,
-            nextSlotIdx,
-            nextTimezoneId,
-            nextInputMode
-        )
-    );
-}
-
-function formatTimeTextByParts(snapshot, timePartsEnabled) {
-    return callRuntimeOperationAccessor(
-        "formatTimeTextByParts",
-        [snapshot, timePartsEnabled],
-        (nextSnapshot, nextTimePartsEnabled) => {
-            const safeSnapshot = (nextSnapshot && typeof nextSnapshot === "object") ? nextSnapshot : {};
-            const safeTimeParts = (nextTimePartsEnabled === undefined) ? DEFAULT_COPY_TIME_PARTS_ENABLED : nextTimePartsEnabled;
-            return snapshotFormatService.formatTimeTextByParts(safeSnapshot, safeTimeParts);
-        }
-    );
-}
-
-function formatSnapshotText(snapshot, order, enabled, timePartsEnabled = DEFAULT_COPY_TIME_PARTS_ENABLED) {
-    return callRuntimeOperationAccessor(
-        "formatSnapshotText",
-        [snapshot, order, enabled, timePartsEnabled],
-        (nextSnapshot, nextOrder, nextEnabled, nextTimePartsEnabled) => {
-            const safeSnapshot = (nextSnapshot && typeof nextSnapshot === "object") ? nextSnapshot : {};
-            return snapshotFormatService.formatSnapshotText(safeSnapshot, nextOrder, nextEnabled, nextTimePartsEnabled);
-        }
-    );
-}
-
-function initCalculators() {
-    return callRuntimeOperationAccessor("initCalculators", [], () => callServiceMethod(
-        "calculatorActionsService",
-        calculatorActionsService,
-        "initCalculators",
-        []
-    ));
-}
-
-async function copyText(elementId, isInput = false) {
-    return await callRuntimeOperationAccessor(
-        "copyText",
-        [elementId, isInput],
-        async (nextElementId, nextIsInput) => await callServiceMethod(
-            "calculatorActionsService",
-            calculatorActionsService,
-            "copyText",
-            [nextElementId, nextIsInput],
-            { toastOnMissing: true, featureKey: "calculator-copy" }
-        )
-    );
-}
-
-function getPersistenceSnapshot() {
-    return callRuntimeOperationAccessor(
-        "getPersistenceSnapshot",
-        [],
-        () => mainOrchestrationFlowServices.getPersistenceSnapshot()
-    );
-}
-
-function sanitizeGroup(group, idx, legacyMultiState = null) {
-    return callRuntimeOperationAccessor(
-        "sanitizeGroup",
-        [group, idx, legacyMultiState],
-        (nextGroup, nextIdx, nextLegacyMultiState) => {
-            if (!nextGroup || typeof nextGroup !== "object") return null;
-            const safeIdx = Number.isInteger(nextIdx) && nextIdx >= 0 ? nextIdx : 0;
-            return callServiceMethod(
-                "groupStateService",
-                groupStateService,
-                "sanitizeGroup",
-                [nextGroup, safeIdx, nextLegacyMultiState],
-                { fallback: null }
-            );
-        }
-    );
-}
-
-async function loadPersistence() {
-    return await callRuntimeOperationAccessor(
-        "loadPersistence",
-        [],
-        async () => await persistenceService.loadPersistence()
-    );
-}
-
 const GTV_MAIN_TEST_HELPERS = GTV_GLOBAL.GTVMainTestHelpers;
 const GTV_MAIN_TEST_HELPERS_BINDINGS = GTV_GLOBAL.GTVMainTestHelpersBindings;
-if (
-    GTV_MAIN_TEST_HELPERS_BINDINGS
-    && typeof GTV_MAIN_TEST_HELPERS_BINDINGS.createService === "function"
-    && GTV_MAIN_TEST_HELPERS
-    && typeof GTV_MAIN_TEST_HELPERS.createService === "function"
-) {
-    const {
-        mainTestHelpersService
-    } = GTV_MAIN_TEST_HELPERS_BINDINGS.createService({
-        testHelpersModule: GTV_MAIN_TEST_HELPERS,
-        getGlobalRef: () => GTV_GLOBAL,
-        resolveValue: (key) => {
-            if (!Object.prototype.hasOwnProperty.call(GTV_GLOBAL, key)) return null;
-            return GTV_GLOBAL[key];
-        },
-        isEnabled: () => !!GTV_GLOBAL.__GTV_ENABLE_MAIN_TEST_HOOKS__
-    });
-    mainTestHelpersService.install();
-}
+assertBindingCreateService(GTV_MAIN_TEST_HELPERS_BINDINGS, "GTVMainTestHelpersBindings");
+const {
+    mainTestHelpersService
+} = GTV_MAIN_TEST_HELPERS_BINDINGS.createService({
+    testHelpersModule: GTV_MAIN_TEST_HELPERS,
+    getGlobalRef: () => GTV_GLOBAL,
+    resolveValue: (key) => {
+        if (!Object.prototype.hasOwnProperty.call(GTV_GLOBAL, key)) return null;
+        return GTV_GLOBAL[key];
+    },
+    isEnabled: () => !!GTV_GLOBAL.__GTV_ENABLE_MAIN_TEST_HOOKS__
+});
+mainTestHelpersService.install();
 
 // --- main.js end ---

@@ -1,5 +1,10 @@
 # 변경 이력 (Changelog)
 
+## [3.11.9] - 2026-03-29
+### 변경됨
+- 버전 메타데이터를 `3.11.9`로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`)
+- 버전 노출 테스트 기대값을 `3.11.9`로 갱신했습니다. (`tests/main-runtime-host-utils-module.test.mjs`)
+
 ## [3.11.8] - 2026-03-28
 ### 변경됨
 - 버전 메타데이터를 `3.11.8`로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`)
@@ -264,4 +269,3 @@
 ## [3.4.1] - 2026-03-05
 ### 변경됨
 - 릴리스 버전/캐시 쿼리 업데이트 (v3.4.1, cache v=341)
-
