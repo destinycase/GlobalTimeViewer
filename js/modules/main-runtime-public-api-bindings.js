@@ -58,7 +58,7 @@
                 slotIdx,
                 slotCount
             ),
-            renderFixedTimeTab: () => callUiMethod("renderFixedTimeTab"),
+            renderFixedTimeTab: (isTick = false) => callUiMethod("renderFixedTimeTab", isTick),
             updateClocks: () => callOperationMethod("updateClocks"),
             resolveLocalDatePartsByTimezoneAtDate: (timezone, utcDate, timezoneId = null) => callOperationMethod(
                 "resolveLocalDatePartsByTimezoneAtDate",

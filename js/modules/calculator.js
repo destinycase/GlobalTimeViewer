@@ -4,10 +4,7 @@
     const COUNTDOWN_SLOT_COUNT = 3;
     const COUNTDOWN_STORAGE_KEY = "GTV_CalcCountdown_v1";
 
-    let countdownState = [];
-    let countdownTimerId = null;
-    let unixTimerId = null;
-
+    // 모듈 수준 레거시 참조 — createService() 미사용 시 하위 호환성 유지용
     const GTV_TIME_CORE = globalObj?.GTVTimeCore || null;
     const LuxonDateTime = globalObj?.luxon?.DateTime || null;
     const storage = globalObj?.localStorage || (typeof localStorage !== "undefined" ? localStorage : null);
@@ -16,33 +13,36 @@
         ? GTV_TIME_CORE.pad
         : ((value) => String(Math.max(0, Math.trunc(Number(value) || 0))).padStart(2, "0"));
 
-    function getElementById(id) {
-        if (!doc || typeof doc.getElementById !== "function") return null;
-        return doc.getElementById(id);
+    // ── 내부 헬퍼 (모듈 스코프) ────────────────────────────────────────────────
+
+    function makeDocHelpers(docRef) {
+        const _doc = docRef || doc;
+        return {
+            getElementById(id) {
+                if (!_doc || typeof _doc.getElementById !== "function") return null;
+                return _doc.getElementById(id);
+            },
+            querySelector(selector) {
+                if (!_doc || typeof _doc.querySelector !== "function") return null;
+                return _doc.querySelector(selector);
+            },
+            querySelectorAll(selector) {
+                if (!_doc || typeof _doc.querySelectorAll !== "function") return [];
+                return Array.from(_doc.querySelectorAll(selector) || []);
+            },
+            getCurrentLang() {
+                const lang = _doc?.documentElement?.lang;
+                return (typeof lang === "string" && lang.trim()) ? lang : "en";
+            },
+            getCurrentTheme() {
+                const theme = _doc?.documentElement?.getAttribute?.("data-theme");
+                return (typeof theme === "string" && theme.trim()) ? theme : "dark";
+            }
+        };
     }
 
-    function querySelector(selector) {
-        if (!doc || typeof doc.querySelector !== "function") return null;
-        return doc.querySelector(selector);
-    }
-
-    function querySelectorAll(selector) {
-        if (!doc || typeof doc.querySelectorAll !== "function") return [];
-        return Array.from(doc.querySelectorAll(selector) || []);
-    }
-
-    function getCurrentLang() {
-        const lang = doc?.documentElement?.lang;
-        return (typeof lang === "string" && lang.trim()) ? lang : "en";
-    }
-
-    function getCurrentTheme() {
-        const theme = doc?.documentElement?.getAttribute?.("data-theme");
-        return (typeof theme === "string" && theme.trim()) ? theme : "dark";
-    }
-
-    function isCalculatorTabActive() {
-        const calcSection = getElementById("calc-section");
+    function isCalculatorTabActive(helpers) {
+        const calcSection = helpers.getElementById("calc-section");
         if (!calcSection?.classList || typeof calcSection.classList.contains !== "function") {
             return true;
         }
@@ -99,76 +99,37 @@
         return `${year}-${month}-${day} 00:00:00`;
     }
 
-    function initConverter() {
-        const secIn = getElementById("conv-sec");
-        const minIn = getElementById("conv-min");
-        const hourIn = getElementById("conv-hour");
-        const dayIn = getElementById("conv-day");
-        if (!secIn || !minIn || !hourIn || !dayIn) return;
-
-        const allInputs = [secIn, minIn, hourIn, dayIn];
-
-        const updateFrom = (rawValue, unit) => {
-            const numericValue = Number(rawValue);
-            if (rawValue === "" || Number.isNaN(numericValue)) {
-                allInputs.forEach((input) => {
-                    input.value = "";
-                });
-                return;
-            }
-
-            let baseSec = 0;
-            if (unit === "sec") baseSec = numericValue;
-            if (unit === "min") baseSec = numericValue * 60;
-            if (unit === "hour") baseSec = numericValue * 3600;
-            if (unit === "day") baseSec = numericValue * 86400;
-
-            if (unit !== "sec") secIn.value = String(Number(baseSec.toFixed(4)));
-            if (unit !== "min") minIn.value = String(Number((baseSec / 60).toFixed(4)));
-            if (unit !== "hour") hourIn.value = String(Number((baseSec / 3600).toFixed(4)));
-            if (unit !== "day") dayIn.value = String(Number((baseSec / 86400).toFixed(4)));
-        };
-
-        secIn.oninput = (e) => updateFrom(e.target.value, "sec");
-        minIn.oninput = (e) => updateFrom(e.target.value, "min");
-        hourIn.oninput = (e) => updateFrom(e.target.value, "hour");
-        dayIn.oninput = (e) => updateFrom(e.target.value, "day");
-    }
-
-    function bindCopyButtons(copyText, copyBindings) {
-        if (!Array.isArray(copyBindings)) return;
-        copyBindings.forEach(([btnId, targetId, isInput]) => {
-            const btn = getElementById(btnId);
-            if (!btn) return;
-            btn.addEventListener("click", () => copyText(targetId, isInput));
-        });
-    }
+    // ── 카운트다운 ──────────────────────────────────────────────────────────────
 
     function buildCountdownDefaultName(slotIdx, t) {
         const prefix = (t("calc_countdown_default_prefix") || "Countdown").trim() || "Countdown";
         return `${prefix} ${slotIdx + 1}`;
     }
 
-    function loadCountdownState() {
-        try {
-            if (!storage || typeof storage.getItem !== "function") return null;
-            const raw = storage.getItem(COUNTDOWN_STORAGE_KEY);
-            if (!raw) return null;
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed) ? parsed : null;
-        } catch (err) {
-            return null;
-        }
-    }
-
-        function saveCountdownState() {
+    function makeCountdownStorage(storageRef) {
+        function loadCountdownState() {
             try {
-                if (!storage || typeof storage.setItem !== "function") return;
-                storage.setItem(COUNTDOWN_STORAGE_KEY, JSON.stringify(countdownState));
-            } catch (err) {
+                if (!storageRef || typeof storageRef.getItem !== "function") return null;
+                const raw = storageRef.getItem(COUNTDOWN_STORAGE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : null;
+            } catch (_err) {
+                return null;
+            }
+        }
+
+        function saveCountdownState(state) {
+            try {
+                if (!storageRef || typeof storageRef.setItem !== "function") return;
+                storageRef.setItem(COUNTDOWN_STORAGE_KEY, JSON.stringify(state));
+            } catch (_err) {
                 // 계산기 전용 보조 상태 저장 실패는 무시한다.
             }
         }
+
+        return { loadCountdownState, saveCountdownState };
+    }
 
     function normalizeCountdownState(persisted, t) {
         const base = Array.isArray(persisted) ? persisted : [];
@@ -218,8 +179,8 @@
         return `${pad2(days)}${daySuffix} ${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
     }
 
-    function renderCountdownSlot(slotIdx, refs, t, options = {}) {
-        const { syncMeta = false } = options;
+    function renderCountdownSlot(slotIdx, refs, countdownState, t, helpers, options) {
+        const { syncMeta = false } = (options && typeof options === "object") ? options : {};
         const slot = countdownState[slotIdx];
         const nameBtn = refs.nameButtons[slotIdx];
         const nameInput = refs.nameInputs[slotIdx];
@@ -242,9 +203,9 @@
             if (typeof DatePickerCtor === "function" && !targetInput._cdp) {
                 targetInput._cdp = new DatePickerCtor(targetInput, {
                     type: "datetime",
-                    lang: getCurrentLang(),
-                    theme: getCurrentTheme(),
-                    triggerElement: querySelector(`.trigger-cd-${slotIdx}`) || null
+                    lang: helpers.getCurrentLang(),
+                    theme: helpers.getCurrentTheme(),
+                    triggerElement: helpers.querySelector(`.trigger-cd-${slotIdx}`) || null
                 });
             }
 
@@ -271,7 +232,6 @@
             slot.pausedRemainingMs = 0;
             remainingMs = 0;
             expired = true;
-            saveCountdownState();
         }
 
         if (!Number.isFinite(remainingMs)) {
@@ -294,15 +254,23 @@
             statusEl.textContent = "";
         }
         toggleBtn.textContent = slot.active ? t("calc_countdown_stop") : t("calc_countdown_start");
+        return expired;
     }
 
-    function initCountdown(t) {
-        const nameButtons = querySelectorAll(".countdown-name-btn");
-        const nameInputs = querySelectorAll(".countdown-name-input");
-        const toggleButtons = querySelectorAll(".countdown-toggle-btn");
-        const targetInputs = querySelectorAll(".countdown-target-input");
-        const displayEls = querySelectorAll(".countdown-display");
-        const statusEls = querySelectorAll(".countdown-status");
+    /**
+     * initCountdown — 클로저 기반 타이머 관리
+     * @param {function} t - 번역 함수
+     * @param {object} helpers - DOM 헬퍼 (getElementById 등)
+     * @param {object} cdStorage - { loadCountdownState, saveCountdownState }
+     * @param {object} timerIds - { countdownTimerId } 참조 객체 (외부에서 소유)
+     */
+    function initCountdown(t, helpers, cdStorage, timerIds) {
+        const nameButtons = helpers.querySelectorAll(".countdown-name-btn");
+        const nameInputs = helpers.querySelectorAll(".countdown-name-input");
+        const toggleButtons = helpers.querySelectorAll(".countdown-toggle-btn");
+        const targetInputs = helpers.querySelectorAll(".countdown-target-input");
+        const displayEls = helpers.querySelectorAll(".countdown-display");
+        const statusEls = helpers.querySelectorAll(".countdown-status");
         if (
             nameButtons.length < COUNTDOWN_SLOT_COUNT ||
             nameInputs.length < COUNTDOWN_SLOT_COUNT ||
@@ -314,8 +282,15 @@
             return { refresh: () => { } };
         }
 
-        countdownState = normalizeCountdownState(loadCountdownState(), t);
+        // 클로저 내부 상태 — 모듈 전역 오염 없음
+        const countdownState = normalizeCountdownState(cdStorage.loadCountdownState(), t);
         const refs = { nameButtons, nameInputs, toggleButtons, targetInputs, displayEls, statusEls };
+
+        const saveState = () => cdStorage.saveCountdownState(countdownState);
+        const render = (i, opts) => {
+            const expired = renderCountdownSlot(i, refs, countdownState, t, helpers, opts);
+            if (expired) saveState();
+        };
 
         for (let i = 0; i < COUNTDOWN_SLOT_COUNT; i++) {
             const nameBtn = nameButtons[i];
@@ -324,7 +299,6 @@
 
             const closeNameEditor = (commit) => {
                 if (nameInput.style.display === "none") return;
-
                 if (commit) {
                     const trimmed = String(nameInput.value || "").trim();
                     if (!trimmed) {
@@ -334,12 +308,11 @@
                         countdownState[i].name = trimmed;
                         countdownState[i].nameIsCustom = true;
                     }
-                    saveCountdownState();
+                    saveState();
                 }
-
                 nameInput.style.display = "none";
                 nameBtn.style.display = "inline-flex";
-                renderCountdownSlot(i, refs, t, { syncMeta: true });
+                render(i, { syncMeta: true });
             };
 
             nameBtn.addEventListener("click", () => {
@@ -364,12 +337,12 @@
                 }
             });
 
-            nameInput.addEventListener("blur", () => {
-                closeNameEditor(true);
-            });
+            nameInput.addEventListener("blur", () => closeNameEditor(true));
 
             targetInput.addEventListener("change", () => {
-                const parsed = targetInput._cdp && targetInput._cdp.selectedDate ? new Date(targetInput._cdp.selectedDate) : toValidDate(targetInput.value);
+                const parsed = (targetInput._cdp && targetInput._cdp.selectedDate)
+                    ? new Date(targetInput._cdp.selectedDate)
+                    : toValidDate(targetInput.value);
                 if (!parsed) {
                     countdownState[i].targetIso = "";
                     countdownState[i].active = false;
@@ -378,16 +351,15 @@
                     countdownState[i].targetIso = parsed.toISOString();
                     countdownState[i].pausedRemainingMs = null;
                     if (!countdownState[i].active) {
-                        const nowMs = Date.now();
-                        countdownState[i].pausedRemainingMs = Math.max(0, parsed.getTime() - nowMs);
+                        countdownState[i].pausedRemainingMs = Math.max(0, parsed.getTime() - Date.now());
                     }
                 }
-                renderCountdownSlot(i, refs, t, { syncMeta: true });
-                saveCountdownState();
+                render(i, { syncMeta: true });
+                saveState();
             });
         }
 
-        querySelectorAll(".countdown-slot-controls .sm-btn[data-action]").forEach((btn) => {
+        helpers.querySelectorAll(".countdown-slot-controls .sm-btn[data-action]").forEach((btn) => {
             const slotIdx = Number(btn.getAttribute("data-slot"));
             const action = btn.getAttribute("data-action");
             if (!Number.isInteger(slotIdx) || slotIdx < 0 || slotIdx >= COUNTDOWN_SLOT_COUNT) return;
@@ -418,47 +390,49 @@
                     targetInput.value = "";
                 }
 
-                renderCountdownSlot(slotIdx, refs, t, { syncMeta: true });
-                saveCountdownState();
+                render(slotIdx, { syncMeta: true });
+                saveState();
             });
         });
 
-        if (countdownTimerId != null) {
-            clearInterval(countdownTimerId);
-            countdownTimerId = null;
+        // 이전 타이머 정리 후 새 타이머 등록 (클로저 내부 timerIds 객체 사용)
+        if (timerIds.countdown !== null && timerIds.countdown !== undefined) {
+            clearInterval(timerIds.countdown);
         }
-        countdownTimerId = setInterval(() => {
-            if (!isCalculatorTabActive()) return;
+        timerIds.countdown = setInterval(() => {
+            if (!isCalculatorTabActive(helpers)) return;
             for (let i = 0; i < COUNTDOWN_SLOT_COUNT; i++) {
-                renderCountdownSlot(i, refs, t);
+                render(i);
             }
         }, 1000);
 
         for (let i = 0; i < COUNTDOWN_SLOT_COUNT; i++) {
-            renderCountdownSlot(i, refs, t, { syncMeta: true });
+            render(i, { syncMeta: true });
         }
 
         return {
             refresh() {
                 for (let i = 0; i < COUNTDOWN_SLOT_COUNT; i++) {
-                    renderCountdownSlot(i, refs, t, { syncMeta: true });
+                    render(i, { syncMeta: true });
                 }
             }
         };
     }
 
-    function initUnixTimestampConverter(t) {
-        const unixNowValue = getElementById("unix-now-value");
-        const unixNowMsValue = getElementById("unix-now-ms-value");
-        const unixSyncNowBtn = getElementById("unix-sync-now-btn");
-        const unixTsInput = getElementById("unix-ts-input");
-        const unixTsMsInput = getElementById("unix-ts-ms-input");
-        const unixIsoLocalInput = getElementById("unix-iso-local-input");
-        const unixIsoUtcInput = getElementById("unix-iso-utc-input");
-        const unixRfc2822Input = getElementById("unix-rfc2822-input");
-        const unixSqlInput = getElementById("unix-sql-input");
-        const unixHumanInput = getElementById("unix-human-input");
-        const smartFormatRows = querySelectorAll(".smart-format-row");
+    // ── Unix 타임스탬프 변환기 ──────────────────────────────────────────────────
+
+    function initUnixTimestampConverter(t, helpers, luxonDT, timerIds) {
+        const unixNowValue = helpers.getElementById("unix-now-value");
+        const unixNowMsValue = helpers.getElementById("unix-now-ms-value");
+        const unixSyncNowBtn = helpers.getElementById("unix-sync-now-btn");
+        const unixTsInput = helpers.getElementById("unix-ts-input");
+        const unixTsMsInput = helpers.getElementById("unix-ts-ms-input");
+        const unixIsoLocalInput = helpers.getElementById("unix-iso-local-input");
+        const unixIsoUtcInput = helpers.getElementById("unix-iso-utc-input");
+        const unixRfc2822Input = helpers.getElementById("unix-rfc2822-input");
+        const unixSqlInput = helpers.getElementById("unix-sql-input");
+        const unixHumanInput = helpers.getElementById("unix-human-input");
+        const smartFormatRows = helpers.querySelectorAll(".smart-format-row");
 
         if (
             !unixNowValue || !unixNowMsValue || !unixTsInput || !unixTsMsInput ||
@@ -507,10 +481,10 @@
             const safeEpochMs = Math.trunc(Number(epochMs));
             if (!Number.isFinite(safeEpochMs)) return null;
 
-            if (LuxonDateTime && typeof LuxonDateTime.fromMillis === "function") {
-                const utc = LuxonDateTime.fromMillis(safeEpochMs, { zone: "utc" });
+            if (luxonDT && typeof luxonDT.fromMillis === "function") {
+                const utc = luxonDT.fromMillis(safeEpochMs, { zone: "utc" });
                 if (!utc.isValid) return null;
-                const local = utc.toLocal().setLocale(getCurrentLang());
+                const local = utc.toLocal().setLocale(helpers.getCurrentLang());
                 return {
                     unixSec: String(Math.floor(safeEpochMs / 1000)),
                     unixMs: String(safeEpochMs),
@@ -518,13 +492,13 @@
                     isoUtc: utc.toISO({ suppressMilliseconds: true, includeOffset: true }) || "",
                     rfc2822: local.toRFC2822() || "",
                     sql: local.toFormat("yyyy-LL-dd HH:mm:ss"),
-                    human: local.toLocaleString(LuxonDateTime.DATETIME_FULL_WITH_SECONDS)
+                    human: local.toLocaleString(luxonDT.DATETIME_FULL_WITH_SECONDS)
                 };
             }
 
             const dateObj = new Date(safeEpochMs);
             if (Number.isNaN(dateObj.getTime())) return null;
-            const locale = getCurrentLang() === "ko" ? "ko-KR" : "en-US";
+            const locale = helpers.getCurrentLang() === "ko" ? "ko-KR" : "en-US";
             return {
                 unixSec: String(Math.floor(safeEpochMs / 1000)),
                 unixMs: String(safeEpochMs),
@@ -562,22 +536,14 @@
             setRowsInvalid(true);
             const invalidText = t("calc_unix_invalid");
             setFieldValues({
-                unixSec: invalidText,
-                unixMs: invalidText,
-                isoLocal: invalidText,
-                isoUtc: invalidText,
-                rfc2822: invalidText,
-                sql: invalidText,
-                human: invalidText
+                unixSec: invalidText, unixMs: invalidText, isoLocal: invalidText,
+                isoUtc: invalidText, rfc2822: invalidText, sql: invalidText, human: invalidText
             });
         };
 
         const renderFromEpoch = (epochMs) => {
             const values = buildFieldValues(epochMs);
-            if (!values) {
-                renderInvalid();
-                return;
-            }
+            if (!values) { renderInvalid(); return; }
             hasValidEpoch = true;
             setRowsInvalid(false);
             setFieldValues(values);
@@ -596,19 +562,19 @@
                 return Number.isFinite(ms) ? Math.trunc(ms) : null;
             }
 
-            if (LuxonDateTime) {
+            if (luxonDT) {
                 let parsed = null;
                 if (key === "iso_local") {
-                    parsed = LuxonDateTime.fromISO(raw, { setZone: true });
-                    if (!parsed.isValid) parsed = LuxonDateTime.fromISO(raw, { zone: "local" });
+                    parsed = luxonDT.fromISO(raw, { setZone: true });
+                    if (!parsed.isValid) parsed = luxonDT.fromISO(raw, { zone: "local" });
                 } else if (key === "iso_utc") {
-                    parsed = LuxonDateTime.fromISO(raw, { setZone: true });
-                    if (!parsed.isValid) parsed = LuxonDateTime.fromISO(raw, { zone: "utc" });
+                    parsed = luxonDT.fromISO(raw, { setZone: true });
+                    if (!parsed.isValid) parsed = luxonDT.fromISO(raw, { zone: "utc" });
                 } else if (key === "rfc2822") {
-                    parsed = LuxonDateTime.fromRFC2822(raw, { setZone: true });
+                    parsed = luxonDT.fromRFC2822(raw, { setZone: true });
                 } else if (key === "sql") {
-                    parsed = LuxonDateTime.fromSQL(raw, { setZone: true });
-                    if (!parsed.isValid) parsed = LuxonDateTime.fromFormat(raw, "yyyy-LL-dd HH:mm:ss", { zone: "local" });
+                    parsed = luxonDT.fromSQL(raw, { setZone: true });
+                    if (!parsed.isValid) parsed = luxonDT.fromFormat(raw, "yyyy-LL-dd HH:mm:ss", { zone: "local" });
                 }
                 if (parsed && parsed.isValid) return Math.trunc(parsed.toMillis());
             }
@@ -617,12 +583,8 @@
                 const sqlMatched = raw.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
                 if (sqlMatched) {
                     const asDate = new Date(
-                        Number(sqlMatched[1]),
-                        Number(sqlMatched[2]) - 1,
-                        Number(sqlMatched[3]),
-                        Number(sqlMatched[4]),
-                        Number(sqlMatched[5]),
-                        Number(sqlMatched[6])
+                        Number(sqlMatched[1]), Number(sqlMatched[2]) - 1, Number(sqlMatched[3]),
+                        Number(sqlMatched[4]), Number(sqlMatched[5]), Number(sqlMatched[6])
                     );
                     if (!Number.isNaN(asDate.getTime())) return asDate.getTime();
                 }
@@ -635,16 +597,13 @@
         const handleFieldInput = (key, fieldEl) => {
             if (isSyncing || !fieldEl) return;
             const parsedMs = parseFieldValue(key, fieldEl.value);
-            if (!Number.isFinite(parsedMs)) {
-                renderInvalid();
-                return;
-            }
+            if (!Number.isFinite(parsedMs)) { renderInvalid(); return; }
             activeEpochMs = Math.trunc(parsedMs);
             renderFromEpoch(activeEpochMs);
         };
 
         const updateNow = () => {
-            if (!isCalculatorTabActive()) return;
+            if (!isCalculatorTabActive(helpers)) return;
             const nowMs = Date.now();
             unixNowValue.textContent = String(Math.floor(nowMs / 1000));
             unixNowMsValue.textContent = String(Math.trunc(nowMs));
@@ -662,12 +621,11 @@
         });
         if (unixSyncNowBtn) unixSyncNowBtn.addEventListener("click", syncNow);
 
-        if (unixTimerId != null) {
-            clearInterval(unixTimerId);
-            unixTimerId = null;
+        // 이전 타이머 정리 후 새 타이머 등록
+        if (timerIds.unix !== null && timerIds.unix !== undefined) {
+            clearInterval(timerIds.unix);
         }
-        unixTimerId = setInterval(updateNow, 1000);
-
+        timerIds.unix = setInterval(updateNow, 1000);
         syncNow();
 
         return {
@@ -679,22 +637,59 @@
         };
     }
 
-    function initPeriodAndDateShift(t) {
-        const periodStart = getElementById("period-start");
-        const periodEnd = getElementById("period-end");
-        const periodSwapBtn = getElementById("period-swap-btn");
-        const periodDayRes = getElementById("period-res");
-        const periodHourRes = getElementById("period-hour-res");
-        const periodMinRes = getElementById("period-min-res");
-        const periodSecRes = getElementById("period-sec-res");
+    // ── 단위 변환기 ─────────────────────────────────────────────────────────────
 
-        const offsetStart = getElementById("offset-start");
-        const offsetValueInput = getElementById("off-val");
-        const offValMinus = getElementById("off-val-minus");
-        const offValPlus = getElementById("off-val-plus");
-        const offsetUnit = getElementById("off-unit");
-        const offsetDirection = getElementById("off-dir");
-        const offsetResult = getElementById("offset-res");
+    function initConverter(helpers) {
+        const secIn = helpers.getElementById("conv-sec");
+        const minIn = helpers.getElementById("conv-min");
+        const hourIn = helpers.getElementById("conv-hour");
+        const dayIn = helpers.getElementById("conv-day");
+        if (!secIn || !minIn || !hourIn || !dayIn) return;
+
+        const allInputs = [secIn, minIn, hourIn, dayIn];
+
+        const updateFrom = (rawValue, unit) => {
+            const numericValue = Number(rawValue);
+            if (rawValue === "" || Number.isNaN(numericValue)) {
+                allInputs.forEach((input) => { input.value = ""; });
+                return;
+            }
+
+            let baseSec = 0;
+            if (unit === "sec") baseSec = numericValue;
+            if (unit === "min") baseSec = numericValue * 60;
+            if (unit === "hour") baseSec = numericValue * 3600;
+            if (unit === "day") baseSec = numericValue * 86400;
+
+            if (unit !== "sec") secIn.value = String(Number(baseSec.toFixed(4)));
+            if (unit !== "min") minIn.value = String(Number((baseSec / 60).toFixed(4)));
+            if (unit !== "hour") hourIn.value = String(Number((baseSec / 3600).toFixed(4)));
+            if (unit !== "day") dayIn.value = String(Number((baseSec / 86400).toFixed(4)));
+        };
+
+        secIn.oninput = (e) => updateFrom(e.target.value, "sec");
+        minIn.oninput = (e) => updateFrom(e.target.value, "min");
+        hourIn.oninput = (e) => updateFrom(e.target.value, "hour");
+        dayIn.oninput = (e) => updateFrom(e.target.value, "day");
+    }
+
+    // ── 기간/날짜 계산기 ─────────────────────────────────────────────────────────
+
+    function initPeriodAndDateShift(t, helpers) {
+        const periodStart = helpers.getElementById("period-start");
+        const periodEnd = helpers.getElementById("period-end");
+        const periodSwapBtn = helpers.getElementById("period-swap-btn");
+        const periodDayRes = helpers.getElementById("period-res");
+        const periodHourRes = helpers.getElementById("period-hour-res");
+        const periodMinRes = helpers.getElementById("period-min-res");
+        const periodSecRes = helpers.getElementById("period-sec-res");
+        const offsetStart = helpers.getElementById("offset-start");
+        const offsetValueInput = helpers.getElementById("off-val");
+        const offValMinus = helpers.getElementById("off-val-minus");
+        const offValPlus = helpers.getElementById("off-val-plus");
+        const offsetUnit = helpers.getElementById("off-unit");
+        const offsetDirection = helpers.getElementById("off-dir");
+        const offsetResult = helpers.getElementById("offset-res");
 
         if (
             !periodStart || !periodEnd || !periodDayRes || !periodHourRes || !periodMinRes || !periodSecRes ||
@@ -708,9 +703,9 @@
             if (typeof DatePickerCtor === "function" && !el._cdp) {
                 el._cdp = new DatePickerCtor(el, {
                     type: "date",
-                    lang: getCurrentLang(),
-                    theme: getCurrentTheme(),
-                    triggerElement: getElementById(iconId) || null
+                    lang: helpers.getCurrentLang(),
+                    theme: helpers.getCurrentTheme(),
+                    triggerElement: helpers.getElementById(iconId) || null
                 });
             }
         };
@@ -722,12 +717,10 @@
         // 기간 계산용: UTC 자정으로 파싱 (DST 경계 오류 방지)
         const getPickerDateUtc = (el) => {
             let val = el.value;
-            // CDP가 있으면 해당 날짜 객체에서 YYYY-MM-DD 정보만 추출
             if (el._cdp && el._cdp.selectedDate) {
                 const d = new Date(el._cdp.selectedDate);
                 val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
             }
-
             if (val) {
                 const parts = val.split("-");
                 if (parts.length === 3) {
@@ -741,6 +734,7 @@
             }
             return null;
         };
+
         // 기간 계산과 오프셋 계산에서 동일한 UTC 날짜 파싱 로직을 재사용한다.
         const today = new Date();
         const todayText = formatDateOnly(today);
@@ -760,7 +754,7 @@
             const endD = getPickerDateUtc(periodEnd);
 
             if (startD && endD) {
-                // Math.trunc 사용: 시작일 > 종료일(음수) 시 Math.round가 오방향으로 반올림하는 버그 수정
+                // Math.trunc 사용: 시작일 > 종료일(음수) 시 오방향 반올림 버그 방지
                 const diffMs = endD.getTime() - startD.getTime();
                 setPeriodResult(periodDayRes, Math.trunc(diffMs / 86400000), t("unit_days_suffix"));
                 setPeriodResult(periodHourRes, Math.trunc(diffMs / 3600000), t("unit_hours_suffix"));
@@ -773,12 +767,8 @@
                 setPeriodResult(periodSecRes, 0, t("unit_seconds_suffix"));
             }
 
-
             const offStartD = getPickerDateUtc(offsetStart);
-            if (!offStartD) {
-                offsetResult.value = "-";
-                return;
-            }
+            if (!offStartD) { offsetResult.value = "-"; return; }
 
             const resultDate = new Date(offStartD.getTime());
             const offsetValue = parseInt(offsetValueInput.value, 10) || 0;
@@ -809,10 +799,7 @@
         if (offValMinus && offValPlus) {
             offValMinus.addEventListener("click", () => {
                 let v = parseInt(offsetValueInput.value, 10) || 1;
-                if (v > 1) {
-                    offsetValueInput.value = v - 1;
-                    updateAll();
-                }
+                if (v > 1) { offsetValueInput.value = v - 1; updateAll(); }
             });
             offValPlus.addEventListener("click", () => {
                 let v = parseInt(offsetValueInput.value, 10) || 0;
@@ -821,10 +808,7 @@
             });
             offsetValueInput.addEventListener("input", () => {
                 let v = parseInt(offsetValueInput.value, 10) || 1;
-                if (v < 1) {
-                    offsetValueInput.value = 1;
-                    updateAll();
-                }
+                if (v < 1) { offsetValueInput.value = 1; updateAll(); }
             });
         }
 
@@ -833,15 +817,11 @@
                 // CDP 상태까지 고려해 교환(Swap) 로직을 보완
                 const startD = getPickerDateUtc(periodStart);
                 const endD = getPickerDateUtc(periodEnd);
-
                 if (startD && endD) {
-                    // CDP가 있으면 setDate로 동기화, 없으면 value로 직접 교체
                     if (periodStart._cdp) periodStart._cdp.setDate(endD);
                     else periodStart.value = formatDateOnly(endD);
-
                     if (periodEnd._cdp) periodEnd._cdp.setDate(startD);
                     else periodEnd.value = formatDateOnly(startD);
-
                     updateAll();
                 } else {
                     // 폴백: 값만 교체
@@ -853,62 +833,126 @@
             });
         }
 
-
         updateAll();
         return { refresh: updateAll };
     }
 
-    function initCalculators(options = {}) {
-        const t = (typeof options.t === "function") ? options.t : ((key) => key);
-        const copyText = (typeof options.copyText === "function")
-            ? options.copyText
-            : (async () => { });
+    // ── 복사 버튼 바인딩 ─────────────────────────────────────────────────────────
 
-        const periodAndShift = initPeriodAndDateShift(t);
-        const countdown = initCountdown(t);
-        const unixConverter = initUnixTimestampConverter(t);
-        initConverter();
+    function bindCopyButtons(copyText, helpers, copyBindings) {
+        if (!Array.isArray(copyBindings)) return;
+        copyBindings.forEach(([btnId, targetId, isInput]) => {
+            const btn = helpers.getElementById(btnId);
+            if (!btn) return;
+            btn.addEventListener("click", () => copyText(targetId, isInput));
+        });
+    }
 
-        bindCopyButtons(copyText, [
-            ["copy-conv-day-btn", "conv-day", true],
-            ["copy-conv-hour-btn", "conv-hour", true],
-            ["copy-conv-min-btn", "conv-min", true],
-            ["copy-conv-sec-btn", "conv-sec", true],
-            ["copy-period-res-btn", "period-res", false],
-            ["copy-period-hour-res-btn", "period-hour-res", false],
-            ["copy-period-min-res-btn", "period-min-res", false],
-            ["copy-period-sec-res-btn", "period-sec-res", false],
-            ["copy-offset-res-btn", "offset-res", true],
-            ["copy-unix-now-btn", "unix-now-value", false],
-            ["copy-unix-now-ms-btn", "unix-now-ms-value", false],
-            ["copy-unix-ts-btn", "unix-ts-input", true],
-            ["copy-unix-ts-ms-btn", "unix-ts-ms-input", true],
-            ["copy-unix-iso-local-btn", "unix-iso-local-input", true],
-            ["copy-unix-iso-utc-btn", "unix-iso-utc-input", true],
-            ["copy-unix-rfc2822-btn", "unix-rfc2822-input", true],
-            ["copy-unix-sql-btn", "unix-sql-input", true],
-            ["copy-unix-human-btn", "unix-human-input", true]
-        ]);
+    // ── createService — DI 패턴 공식 진입점 ────────────────────────────────────
 
-        if (typeof globalObj !== "undefined") {
-            globalObj.__gtvCalcRefresh = () => {
-                periodAndShift.refresh();
-                countdown.refresh();
-                unixConverter.refresh();
+    /**
+     * createService(deps)
+     * 타이머 변수를 클로저 내부에 격리해 외부 오염을 방지한다.
+     * destroy()로 모든 타이머를 명시적으로 정리할 수 있다.
+     * 기존 initCalculators() 인터페이스도 유지한다.
+     */
+    function createService(deps) {
+        const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-                const currentLang = getCurrentLang();
-                const currentTheme = getCurrentTheme();
-                querySelectorAll(".custom-date-picker-input").forEach(el => {
-                    if (el._cdp) {
-                        el._cdp.setLang(currentLang);
-                        el._cdp.setTheme(currentTheme);
-                    }
-                });
-            };
+        // DI 주입: 테스트에서 mock 교체 가능
+        const _storage = (safeDeps.storage && typeof safeDeps.storage === "object")
+            ? safeDeps.storage
+            : storage;
+        const _luxonDT = safeDeps.LuxonDateTime || LuxonDateTime;
+        const _doc = safeDeps.document || doc;
+
+        // 클로저 내부 타이머 참조 — 외부 전역 변수 오염 없음
+        const timerIds = { countdown: null, unix: null };
+
+        /**
+         * destroy() — 모든 타이머를 정리한다.
+         * 재초기화하거나 탭을 닫을 때 명시적으로 호출한다.
+         */
+        function destroy() {
+            if (timerIds.countdown !== null && timerIds.countdown !== undefined) {
+                clearInterval(timerIds.countdown);
+                timerIds.countdown = null;
+            }
+            if (timerIds.unix !== null && timerIds.unix !== undefined) {
+                clearInterval(timerIds.unix);
+                timerIds.unix = null;
+            }
         }
+
+        function initCalculators(options) {
+            const opts = (options && typeof options === "object") ? options : {};
+            const t = (typeof opts.t === "function") ? opts.t : ((key) => key);
+            const copyText = (typeof opts.copyText === "function") ? opts.copyText : (async () => { });
+
+            const helpers = makeDocHelpers(_doc);
+            const cdStorage = makeCountdownStorage(_storage);
+
+            const periodAndShift = initPeriodAndDateShift(t, helpers);
+            const countdown = initCountdown(t, helpers, cdStorage, timerIds);
+            const unixConverter = initUnixTimestampConverter(t, helpers, _luxonDT, timerIds);
+            initConverter(helpers);
+
+            bindCopyButtons(copyText, helpers, [
+                ["copy-conv-day-btn", "conv-day", true],
+                ["copy-conv-hour-btn", "conv-hour", true],
+                ["copy-conv-min-btn", "conv-min", true],
+                ["copy-conv-sec-btn", "conv-sec", true],
+                ["copy-period-res-btn", "period-res", false],
+                ["copy-period-hour-res-btn", "period-hour-res", false],
+                ["copy-period-min-res-btn", "period-min-res", false],
+                ["copy-period-sec-res-btn", "period-sec-res", false],
+                ["copy-offset-res-btn", "offset-res", true],
+                ["copy-unix-now-btn", "unix-now-value", false],
+                ["copy-unix-now-ms-btn", "unix-now-ms-value", false],
+                ["copy-unix-ts-btn", "unix-ts-input", true],
+                ["copy-unix-ts-ms-btn", "unix-ts-ms-input", true],
+                ["copy-unix-iso-local-btn", "unix-iso-local-input", true],
+                ["copy-unix-iso-utc-btn", "unix-iso-utc-input", true],
+                ["copy-unix-rfc2822-btn", "unix-rfc2822-input", true],
+                ["copy-unix-sql-btn", "unix-sql-input", true],
+                ["copy-unix-human-btn", "unix-human-input", true]
+            ]);
+
+            if (typeof globalObj !== "undefined") {
+                globalObj.__gtvCalcRefresh = () => {
+                    periodAndShift.refresh();
+                    countdown.refresh();
+                    unixConverter.refresh();
+
+                    const currentLang = helpers.getCurrentLang();
+                    const currentTheme = helpers.getCurrentTheme();
+                    helpers.querySelectorAll(".custom-date-picker-input").forEach((el) => {
+                        if (el._cdp) {
+                            el._cdp.setLang(currentLang);
+                            el._cdp.setTheme(currentTheme);
+                        }
+                    });
+                };
+            }
+        }
+
+        return Object.freeze({ initCalculators, destroy });
+    }
+
+    // ── 하위 호환 진입점 — 기존 main.js가 GTVCalculator.initCalculators()를 사용하는 경우 ──
+
+    /**
+     * @deprecated createService() 사용을 권장한다.
+     * 기존 호출 코드의 무중단 유지를 위해 남겨둔 래퍼.
+     */
+    function initCalculators(options) {
+        // 기본 서비스 인스턴스를 생성해 위임한다.
+        const svc = createService({});
+        svc.initCalculators(options);
     }
 
     globalObj.GTVCalculator = Object.freeze({
+        createService,
         initCalculators
     });
 })(typeof window !== "undefined" ? window : globalThis);

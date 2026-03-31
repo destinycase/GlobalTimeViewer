@@ -217,7 +217,7 @@ describe("GTV fixed time table module", () => {
         const noTime = service.getFixedTimeSlotLayoutMetrics({ dn: true, time: false, weekday: true });
 
         expect(full.columnMinWidthPx).toBeGreaterThan(minimal.columnMinWidthPx);
-        expect(full.inputWidthPx).toBe(100);
+        expect(full.inputWidthPx).toBe(85);
         expect(noTime.inputWidthPx).toBe(0);
     });
 
@@ -407,7 +407,7 @@ describe("GTV fixed time table module", () => {
         const liveNowCells = findByClass(body, "fixed-time-live-now");
         expect(liveNowCells.length).toBe(2);
         const clocks = findByClass(body, "fixed-time-clock");
-        expect(clocks.some((el) => el.textContent === "12:34:56")).toBe(true);
+        expect(clocks.some((el) => el.value === "12:34:56" || el.textContent === "12:34:56")).toBe(true);
     });
 
     it("renderFixedTimeTable exits when base timezone is missing after clearing body", () => {

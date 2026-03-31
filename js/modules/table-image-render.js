@@ -71,7 +71,8 @@
             if (periodDays && periodDays !== "-") return periodDays;
             const periodTime = (cell.querySelector?.(".period-time-text")?.textContent || "").trim();
             if (periodTime && periodTime !== "-") return periodTime;
-            const fixedTimeClock = (cell.querySelector?.(".fixed-time-clock")?.textContent || "").trim();
+            const clockNode = cell.querySelector?.(".fixed-time-clock");
+            const fixedTimeClock = (clockNode?.value || clockNode?.textContent || "").trim();
             if (fixedTimeClock) {
                 const dnText = (cell.querySelector?.(".dn-icon")?.textContent || "").trim();
                 const dayText = (cell.querySelector?.(".day-badge")?.textContent || "").trim();

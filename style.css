@@ -81,6 +81,53 @@ td {
         radial-gradient(circle at 82% 72%, rgba(56, 189, 248, 0.08) 0%, transparent 44%);
 }
 
+/* ── 부트스트랩 로딩 오버레이 ──────────────────────────────────────────── */
+/* JS가 실행되기 전에도 CSS만으로 화면 전체를 덮어 빈 화면을 방지한다.      */
+/* 부트스트랩 성공 시 .hidden 클래스를 추가해 fade-out 후 제거한다.         */
+.app-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background-color: var(--bg);
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.06) 0%, transparent 40%);
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+    opacity: 1;
+    visibility: visible;
+}
+
+.app-loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+@keyframes gtv-spin {
+    to { transform: rotate(360deg); }
+}
+
+.app-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: gtv-spin 0.8s linear infinite;
+    box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.app-loading-text {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+}
+
 .app-layout {
     display: flex;
     width: 100%;
@@ -2216,9 +2263,13 @@ input[type=number] {
     font-size: calc(16px * var(--ui-scale));
 }
 
-.fixed-time-table .time-input.fixed-time-time-input {
-    width: var(--fixed-time-input-width, 100px);
-    min-width: var(--fixed-time-input-width, 100px);
+.fixed-time-table .time-input.fixed-time-time-input,
+.live-time-input {
+    width: 85px;
+    min-width: 85px;
+    text-align: center;
+    font-weight: 400;
+    padding: 4px 6px;
 }
 
 .time-input-hidden {

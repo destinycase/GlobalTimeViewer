@@ -186,12 +186,12 @@
             );
         }
 
-        function renderFixedTimeTab() {
+        function renderFixedTimeTab(isTick = false) {
             return callServiceMethod(
                 "mainFixedTimeTabFacadeService",
                 getMainFixedTimeTabFacadeService(),
                 "renderFixedTimeTab",
-                [],
+                [isTick],
                 { fallback: undefined }
             );
         }

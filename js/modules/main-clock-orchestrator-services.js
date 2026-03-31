@@ -39,7 +39,7 @@
 
         function updateClocks() {
             if (isFixedTimeTab()) {
-                renderFixedTimeTab();
+                renderFixedTimeTab(true);
                 renderTimelineFrame();
                 return;
             }

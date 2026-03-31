@@ -112,6 +112,24 @@
             }
         }
 
+        const removeLoadingOverlay = (typeof safeDeps.removeLoadingOverlay === "function")
+            ? safeDeps.removeLoadingOverlay
+            : (() => {
+                // 기본 구현: DOM에서 직접 오버레이 제거
+                try {
+                    const overlay = (typeof document !== "undefined")
+                        ? document.getElementById("app-loading-overlay")
+                        : null;
+                    if (overlay) {
+                        overlay.classList.add("hidden");
+                        // 페이드 아웃 완료 후 DOM에서 제거
+                        overlay.addEventListener("transitionend", () => overlay.remove(), { once: true });
+                        // transitionend 미발생 대비 폴백 제거
+                        setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 600);
+                    }
+                } catch (_e) { /* 오버레이 제거 실패는 앱 동작에 영향 없음 */ }
+            });
+
         async function initApp() {
             try {
                 assertRequiredServices();
@@ -134,7 +152,11 @@
                 startRealtimeTicker();
                 switchMainTab(getCurrentMainTab());
                 updateClocks();
+                // 부트스트랩 성공: 로딩 오버레이 제거
+                removeLoadingOverlay();
             } catch (err) {
+                // 오류 배너 표시 전에 먼저 오버레이를 제거해 배너가 보이도록 한다.
+                removeLoadingOverlay();
                 showFatalError(err);
             }
         }
@@ -142,6 +164,7 @@
         return Object.freeze({
             initApp
         });
+
     }
 
     globalObj.GTVMainAppBootstrap = Object.freeze({

@@ -2257,7 +2257,7 @@ function resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate = getGlobalTimeSt
 function getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount = 1) {
     return mainRuntimePublicApiService.getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount);
 }
-function renderFixedTimeTab() { return mainRuntimePublicApiService.renderFixedTimeTab(); }
+function renderFixedTimeTab(isTick = false) { return mainRuntimePublicApiService.renderFixedTimeTab(isTick); }
 function updateClocks() { return mainRuntimePublicApiService.updateClocks(); }
 function resolveLocalDatePartsByTimezoneAtDate(timezone, utcDate, timezoneId = null) {
     return mainRuntimePublicApiService.resolveLocalDatePartsByTimezoneAtDate(timezone, utcDate, timezoneId);

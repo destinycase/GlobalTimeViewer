@@ -58,12 +58,12 @@
             );
         }
 
-        function renderFixedTimeTable() {
+        function renderFixedTimeTable(isTick = false) {
             return callServiceMethod(
                 "fixedTimeTableService",
                 getFixedTimeTableService(),
                 "renderFixedTimeTable",
-                []
+                [isTick]
             );
         }
 
@@ -99,13 +99,17 @@
             }
         }
 
-        function renderFixedTimeTab() {
+        function renderFixedTimeTab(isTick = false) {
+            if (isTick) {
+                renderFixedTimeTable(true);
+                return;
+            }
             const group = getCurrentGroup();
             if (!group) return;
             ensureGroupFixedTimes(group);
             renderBaseTimeSelect();
             renderFixedTimeControls(group, { ensureGroup: false });
-            renderFixedTimeTable();
+            renderFixedTimeTable(false);
         }
 
         return Object.freeze({

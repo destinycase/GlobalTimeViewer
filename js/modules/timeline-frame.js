@@ -480,6 +480,17 @@
                     bindTimelineDrag(trackBody, indicator, slotIdx, baseRef, indicator);
                 }
             }
+
+            if (invokeDep("getCurrentGroupFixedTimeShowLiveNow")) {
+                const liveIndicator = doc.createElement("div");
+                liveIndicator.className = "timeline-indicator live-now";
+                liveIndicator.dataset.slot = "live";
+                const liveLabel = doc.createElement("span");
+                liveLabel.className = "timeline-indicator-label";
+                liveLabel.textContent = translate("th_fixed_time_live_now");
+                liveIndicator.appendChild(liveLabel);
+                trackBody.appendChild(liveIndicator);
+            }
         }
 
         function createTimelinePanel(doc, slotIdx, baseRef, rows, panelCount) {
@@ -600,6 +611,21 @@
                     const positioned = positionTimelineIndicator(trackBody, indicator, getTimelineHourRatio(slotIdx, baseRef));
                     hasPositioned = hasPositioned || positioned;
                 }
+
+                const liveIndicator = panel.querySelector?.('.timeline-indicator[data-slot="live"]');
+                if (liveIndicator) {
+                    // 실시간(Now) 위치 계산을 위해 현재 로컬 시간 기반 비율 계산
+                    const sourceDate = new Date();
+                    const fixedOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", baseRef, sourceDate);
+                    const parts = invokeDep("getLocalPartsByTimezone", sourceDate, baseRef, fixedOffsetMinutes);
+                    if (parts) {
+                        const totalSeconds = (parts.hour * 3600) + (parts.minute * 60) + parts.second;
+                        const ratio = clampNumber(totalSeconds / TIMELINE_TOTAL_SECONDS, 0, 1);
+                        const positioned = positionTimelineIndicator(trackBody, liveIndicator, ratio);
+                        hasPositioned = hasPositioned || positioned;
+                    }
+                }
+
                 return hasPositioned;
             }
 

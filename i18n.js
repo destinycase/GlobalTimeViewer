@@ -237,10 +237,12 @@ const EN_I18N = {
     confirm_reset_except_group_tz: "Reset all settings except saved groups and timezones. Continue?",
     confirm_reset_all_settings: "Saved groups, timezones, and all settings will be reset to defaults. Continue?",
     error_fatal_title: "Application Initialization Failed",
-    error_fatal_desc: "An error occurred while loading data. Please try refreshing the extension or resetting the settings."
+    error_fatal_desc: "An error occurred while loading data. Please try refreshing the extension or resetting the settings.",
+    loading_app: "Loading..."
 };
 
 const KO_OVERRIDES = {
+    loading_app: "로딩 중...",
     nav_fixed_time: "\uACE0\uC815 \uC2DC\uAC04",
     label_fixed_time_slots: "\uACE0\uC815 \uC2DC\uAC04 \uC2AC\uB86F",
     label_fixed_date: "\uACE0\uC815 \uB0A0\uC9DC",

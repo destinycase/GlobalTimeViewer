@@ -10,6 +10,12 @@
 </head>
 
 <body>
+    <!-- 부트스트랩 완료 전 빈 화면 방지용 로딩 오버레이 —
+         JS 없이 CSS만으로 표시되며, 부트스트랩 성공 시 제거된다. -->
+    <div id="app-loading-overlay" class="app-loading-overlay" aria-hidden="true" role="status" aria-label="로딩 중">
+        <div class="app-loading-spinner"></div>
+        <p class="app-loading-text" data-i18n="loading_app">로딩 중...</p>
+    </div>
     <div id="fatal-error-banner" class="fatal-error-banner" style="display: none;">
         <div class="error-content" role="alert" aria-live="assertive">
             <span class="error-icon" aria-hidden="true">&#9888;</span>
@@ -19,7 +25,8 @@
                 <div id="fatal-error-code-wrap" class="fatal-error-code-wrap" style="display: none;">
                     <span class="fatal-error-code-label" data-i18n="error_code_label">Error code</span>
                     <code id="fatal-error-code"></code>
-                    <button id="fatal-error-copy-btn" class="sm-btn" type="button" data-i18n="btn_copy_error_code">Copy</button>
+                    <button id="fatal-error-copy-btn" class="sm-btn" type="button"
+                        data-i18n="btn_copy_error_code">Copy</button>
                 </div>
                 <details id="fatal-error-details" class="fatal-error-details">
                     <summary data-i18n="error_more_details">More details</summary>
@@ -28,7 +35,8 @@
             </div>
             <div class="fatal-error-actions">
                 <button id="fatal-error-retry-btn" class="sm-btn" type="button" data-i18n="btn_retry">Retry</button>
-                <button id="fatal-error-reset-btn" class="sm-btn danger" type="button" data-i18n="btn_reset_all">Reset All</button>
+                <button id="fatal-error-reset-btn" class="sm-btn danger" type="button" data-i18n="btn_reset_all">Reset
+                    All</button>
             </div>
         </div>
     </div>
@@ -143,11 +151,13 @@
                         <select id="base-time-select" class="form-select" style="width: 200px;"></select>
                         <div class="base-time-settings">
                             <div class="inline-time-setting">
-                                <label class="inline-time-label" for="day-start-select" data-i18n="label_day_start">Day Start</label>
+                                <label class="inline-time-label" for="day-start-select" data-i18n="label_day_start">Day
+                                    Start</label>
                                 <select id="day-start-select" class="form-select inline-time-select"></select>
                             </div>
                             <div class="inline-time-setting">
-                                <label class="inline-time-label" for="night-start-select" data-i18n="label_night_start">Night Start</label>
+                                <label class="inline-time-label" for="night-start-select"
+                                    data-i18n="label_night_start">Night Start</label>
                                 <select id="night-start-select" class="form-select inline-time-select"></select>
                             </div>
                         </div>
@@ -197,7 +207,8 @@
                         <span class="control-label-large" data-i18n="label_fixed_date">Fixed Date</span>
                         <input id="fixed-time-date-input" class="form-input" type="text" inputmode="numeric"
                             data-i18n="placeholder_fixed_date" placeholder="YYYY-MM-DD" spellcheck="false">
-                        <button id="fixed-time-date-trigger" class="calendar-btn" type="button" title="Date Picker">&#128197;</button>
+                        <button id="fixed-time-date-trigger" class="calendar-btn" type="button"
+                            title="Date Picker">&#128197;</button>
                         <label class="fixed-time-live-now-flag" for="fixed-time-live-now-toggle">
                             <span data-i18n="label_fixed_time_live_now">Show Realtime</span>
                             <input id="fixed-time-live-now-toggle" type="checkbox">
@@ -237,7 +248,8 @@
             <div id="fixed-time-controls-frame" class="fixed-time-controls-frame" style="display: none;">
                 <div class="fixed-time-controls-header">
                     <span class="control-label-large" data-i18n="label_fixed_time_slots">Fixed Time Slots</span>
-                    <button id="fixed-time-add-btn" class="sm-btn" type="button" data-i18n="btn_add_fixed_time">+ Add Slot</button>
+                    <button id="fixed-time-add-btn" class="sm-btn" type="button" data-i18n="btn_add_fixed_time">+ Add
+                        Slot</button>
                 </div>
                 <div id="fixed-time-slots" class="fixed-time-slots"></div>
             </div>
@@ -542,8 +554,7 @@
                                         <div class="smart-format-now-value-row">
                                             <span class="result-val result-val-compact" id="unix-now-value">0</span>
                                             <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                                id="copy-unix-now-btn"
-                                                data-i18n-title="tooltip_copy">&#128203;</button>
+                                                id="copy-unix-now-btn" data-i18n-title="tooltip_copy">&#128203;</button>
                                         </div>
                                     </div>
                                     <div class="smart-format-now-item">
@@ -560,7 +571,8 @@
                             </div>
                             <div class="smart-format-list">
                                 <div class="smart-format-row" data-format-field="unix_sec">
-                                    <label for="unix-ts-input" class="calc-result-label" data-i18n="calc_fmt_unix_sec">Unix
+                                    <label for="unix-ts-input" class="calc-result-label"
+                                        data-i18n="calc_fmt_unix_sec">Unix
                                         Timestamp (s)</label>
                                     <input type="text" id="unix-ts-input" class="form-input smart-format-input"
                                         inputmode="decimal" placeholder="0">
@@ -581,8 +593,7 @@
                                     <input type="text" id="unix-iso-local-input" class="form-input smart-format-input"
                                         placeholder="2026-03-13T00:52:21+09:00">
                                     <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-iso-local-btn"
-                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                        id="copy-unix-iso-local-btn" data-i18n-title="tooltip_copy">&#128203;</button>
                                 </div>
                                 <div class="smart-format-row" data-format-field="iso_utc">
                                     <label for="unix-iso-utc-input" class="calc-result-label"
@@ -590,8 +601,7 @@
                                     <input type="text" id="unix-iso-utc-input" class="form-input smart-format-input"
                                         placeholder="2026-03-12T15:52:21Z">
                                     <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-iso-utc-btn"
-                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                        id="copy-unix-iso-utc-btn" data-i18n-title="tooltip_copy">&#128203;</button>
                                 </div>
                                 <div class="smart-format-row" data-format-field="rfc2822">
                                     <label for="unix-rfc2822-input" class="calc-result-label"
@@ -599,8 +609,7 @@
                                     <input type="text" id="unix-rfc2822-input" class="form-input smart-format-input"
                                         placeholder="Fri, 13 Mar 2026 00:52:21 +0900">
                                     <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-rfc2822-btn"
-                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                        id="copy-unix-rfc2822-btn" data-i18n-title="tooltip_copy">&#128203;</button>
                                 </div>
                                 <div class="smart-format-row" data-format-field="sql">
                                     <label for="unix-sql-input" class="calc-result-label" data-i18n="calc_fmt_sql">SQL /

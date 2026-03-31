@@ -3,6 +3,7 @@
 
     function createService(deps) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+        const liveNowElementMap = new Map();
 
         function invokeDep(name, ...args) {
             if (typeof safeDeps[name] !== "function") return undefined;
@@ -57,8 +58,7 @@
             const showDn = safeParts.dn !== false;
             const showTime = safeParts.time !== false;
             const showWeekday = safeParts.weekday !== false;
-
-            const inputWidthPx = showTime ? 100 : 0;
+            const inputWidthPx = showTime ? 85 : 0;
             const dayNightWidthPx = showDn ? 20 : 0;
             const weekdayWidthPx = showWeekday ? 28 : 0;
             const calendarBtnWidthPx = showTime ? 22 : 0;
@@ -129,19 +129,23 @@
                 ? displayPartsEnabled
                 : {};
             const wrapper = document.createElement("div");
-            wrapper.className = "fixed-time-display";
+            wrapper.className = "time-day-group";
 
             if (safeParts.dn) {
                 const dnEl = document.createElement("span");
                 dnEl.className = "dn-icon";
                 dnEl.textContent = payload?.dayNightGlyph || "";
+                dnEl.title = payload?.dayNightMarker === "DAY" ? translate("dn_day") : translate("dn_night");
                 wrapper.appendChild(dnEl);
             }
 
             if (safeParts.time) {
-                const clockEl = document.createElement("span");
-                clockEl.className = "fixed-time-clock";
-                clockEl.textContent = payload?.clock || "--:--:--";
+                const clockEl = document.createElement("input");
+                clockEl.type = "text";
+                clockEl.className = "time-input live-time-input fixed-time-clock";
+                clockEl.spellcheck = false;
+                clockEl.readOnly = true;
+                clockEl.value = payload?.clock || "--:--:--";
                 wrapper.appendChild(clockEl);
             }
 
@@ -165,12 +169,65 @@
             targetCell.appendChild(wrapper);
         }
 
-        function renderFixedTimeTable() {
+        function renderFixedTimeTable(isLiveTick = false) {
             if (typeof document !== "object" || !document) return;
-            const headRow = document.querySelector("#fixed-time-table-head tr");
             const body = document.getElementById("fixed-time-body");
+            if (!body) return;
+
+            if (isLiveTick) {
+                const baseRef = invokeDep("getBaseTimezoneRef");
+                if (!baseRef) return;
+                const rows = [baseRef, ...asArray(invokeDep("getRenderableTimezoneRows", baseRef))];
+                const liveNowUtcDate = new Date();
+                const displayPartsEnabled = invokeDep("getFixedTimeDisplayPartsEnabled") || {};
+
+                rows.forEach((tz, idx) => {
+                    if (!tz) return;
+                    const cacheKey = String(tz.id || idx);
+                    let cached = liveNowElementMap.get(cacheKey);
+
+                    if (!cached) {
+                        const cell = body.querySelector(`.fixed-time-live-now[data-tz-id="${tz.id}"]`);
+                        if (!cell) return;
+                        cached = {
+                            cell,
+                            dnEl: cell.querySelector(".dn-icon"),
+                            clockEl: cell.querySelector(".fixed-time-clock"),
+                            dayEl: cell.querySelector(".day-badge")
+                        };
+                        liveNowElementMap.set(cacheKey, cached);
+                    }
+
+                    const payload = invokeDep("buildFixedTimeDisplayPayloadAtUtc", liveNowUtcDate, tz);
+                    if (!payload) return;
+
+                    if (displayPartsEnabled.dn && cached.dnEl) {
+                        cached.dnEl.textContent = payload.dayNightGlyph || "";
+                        cached.dnEl.title = payload.dayNightMarker === "DAY" ? translate("dn_day") : translate("dn_night");
+                    }
+
+                    if (displayPartsEnabled.time && cached.clockEl) {
+                        // 포커스 중인 경우 업데이트 방지 (보통 readonly라 상관없지만 일관성 유지)
+                        if (document.activeElement !== cached.clockEl) {
+                            cached.clockEl.value = payload.clock || "--:--:--";
+                        }
+                    }
+
+                    if (displayPartsEnabled.weekday && payload.dayName && cached.dayEl) {
+                        const isSun = payload.weekdayIndex === 0;
+                        const isSat = payload.weekdayIndex === 6;
+                        cached.dayEl.className = `day-badge${isSun ? " day-sun" : (isSat ? " day-sat" : "")}`;
+                        cached.dayEl.textContent = payload.dayName;
+                    }
+                });
+                return;
+            }
+
+            liveNowElementMap.clear();
+
+            const headRow = document.querySelector("#fixed-time-table-head tr");
             const group = invokeDep("getCurrentGroup");
-            if (!headRow || !body || !group) return;
+            if (!headRow || !group) return;
 
             invokeDep("ensureGroupFixedTimes", group);
             const fixedTimes = asArray(group.fixedTimes);
@@ -344,6 +401,7 @@
                     if (showLiveNowColumn) {
                         const liveNowCell = document.createElement("td");
                         liveNowCell.className = "fixed-time-time fixed-time-live-now";
+                        liveNowCell.dataset.tzId = String(tz.id || "");
                         const liveNowPayload = invokeDep("buildFixedTimeDisplayPayloadAtUtc", liveNowUtcDate, tz);
                         appendReadonlyTimeDisplay(liveNowCell, liveNowPayload, displayPartsEnabled);
                         row.appendChild(liveNowCell);

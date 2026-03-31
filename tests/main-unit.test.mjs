@@ -1,4 +1,4 @@
-﻿import { expect, test } from "vitest";
+import { expect, test } from "vitest";
 
 import { createMainContext } from "./helpers/create-main-context.mjs";
 
@@ -1348,8 +1348,8 @@ test("fixed-time slot layout metrics shrink when visible parts are reduced", () 
     const noTime = sandbox.getFixedTimeSlotLayoutMetrics({ dn: true, time: false, weekday: true });
 
     expect(full.columnMinWidthPx).toBeGreaterThan(minimal.columnMinWidthPx);
-    expect(full.inputWidthPx).toBe(100);
-    expect(minimal.inputWidthPx).toBe(100);
+    expect(full.inputWidthPx).toBe(85);
+    expect(minimal.inputWidthPx).toBe(85);
     expect(noTime.inputWidthPx).toBe(0);
     expect(noTime.columnMinWidthPx).toBeLessThan(full.columnMinWidthPx);
 });
