@@ -14,14 +14,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version-file: ".nvmrc"
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm.cmd ci
 
       - name: Run lint
-        run: npm run lint
+        run: npm.cmd run lint
 
   test:
     runs-on: windows-latest
@@ -32,14 +32,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version-file: ".nvmrc"
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm.cmd ci
 
       - name: Run tests
-        run: npm run test -- --run
+        run: npm.cmd run test -- --run
 
   coverage:
     runs-on: windows-latest
@@ -51,14 +51,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version-file: ".nvmrc"
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm.cmd ci
 
       - name: Run coverage
-        run: npm run test:coverage
+        run: npm.cmd run test:coverage
 
   build_strict:
     runs-on: windows-latest
@@ -70,11 +70,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version-file: ".nvmrc"
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm.cmd ci
 
       - name: Strict build
-        run: npm run build:strict
+        run: npm.cmd run build:strict

@@ -1,9 +1,15 @@
+import path from "node:path";
+import { createRequire } from "node:module";
+
 import { describe, expect, it } from "vitest";
 
-const MODULE_PATH = "../js/modules/main-app-state-vars.js";
+const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-app-state-vars.js");
+const require = createRequire(import.meta.url);
+const MODULE_ID = require.resolve(MODULE_PATH);
 
-async function importFreshModule(tag) {
-    await import(`${MODULE_PATH}?${tag}-${Date.now()}`);
+function loadFreshModule() {
+    delete require.cache[MODULE_ID];
+    require(MODULE_PATH);
 }
 
 describe.sequential("GTV main app state vars runtime loading", () => {
@@ -14,7 +20,7 @@ describe.sequential("GTV main app state vars runtime loading", () => {
         delete globalThis.GTVMainAppStateVars;
 
         try {
-            await importFreshModule("globalthis");
+            loadFreshModule();
             const moduleApi = globalThis.GTVMainAppStateVars;
             expect(moduleApi).toBeTruthy();
 
@@ -27,6 +33,7 @@ describe.sequential("GTV main app state vars runtime loading", () => {
             expect(() => noOpSetters.showTimeline(1)).not.toThrow();
             expect(() => noOpSetters.groups([])).not.toThrow();
         } finally {
+            delete require.cache[MODULE_ID];
             delete globalThis.GTVMainAppStateVars;
             if (hadWindow) {
                 globalThis.window = originalWindow;
@@ -42,7 +49,7 @@ describe.sequential("GTV main app state vars runtime loading", () => {
         delete globalThis.GTVMainAppStateVars;
 
         try {
-            await importFreshModule("window");
+            loadFreshModule();
             const moduleApi = globalThis.window.GTVMainAppStateVars;
             expect(moduleApi).toBeTruthy();
 
@@ -66,6 +73,7 @@ describe.sequential("GTV main app state vars runtime loading", () => {
             expect(service.initialState.displayFormatEnabled).toEqual({ date: true });
             expect(service.initialState.timeAdjustDayStepBySlot).toEqual([3, 3]);
         } finally {
+            delete require.cache[MODULE_ID];
             delete globalThis.window.GTVMainAppStateVars;
             globalThis.window = originalWindow;
             delete globalThis.GTVMainAppStateVars;
