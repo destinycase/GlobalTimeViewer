@@ -176,8 +176,17 @@
         "UTC": "UTC"
     });
 
-    globalObj.GTVTimezoneData = Object.freeze({
+    const TIMEZONE_DATA_API = Object.freeze({
         TZ_DATABASE,
         ZONE_MAP
+    });
+
+    function createService(_deps = {}) {
+        return TIMEZONE_DATA_API;
+    }
+
+    globalObj.GTVTimezoneData = Object.freeze({
+        createService,
+        ...TIMEZONE_DATA_API
     });
 })(typeof window !== "undefined" ? window : globalThis);

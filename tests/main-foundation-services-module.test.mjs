@@ -49,6 +49,41 @@ function restoreGlobalSnapshot(snapshot, keys) {
     });
 }
 
+function createEventNode() {
+    const handlers = new Map();
+    return {
+        style: {},
+        value: "",
+        textContent: "",
+        attributes: {},
+        addEventListener(type, handler) {
+            const key = String(type);
+            if (!handlers.has(key)) handlers.set(key, []);
+            handlers.get(key).push(handler);
+        },
+        removeEventListener(type, handler) {
+            const key = String(type);
+            const list = handlers.get(key) || [];
+            handlers.set(key, list.filter((item) => item !== handler));
+        },
+        dispatch(type, event = {}) {
+            const payload = {
+                target: this,
+                preventDefault() {},
+                stopPropagation() {},
+                ...event
+            };
+            const list = handlers.get(String(type)) || [];
+            list.forEach((handler) => handler(payload));
+        },
+        setAttribute(name, value) {
+            this.attributes[String(name)] = String(value);
+        },
+        focus() {},
+        select() {}
+    };
+}
+
 function loadMainFoundationServicesModule() {
     const globalPatches = { window: {}, console };
     const keys = ["window", "console", "GTVMainFoundationServices", ...Object.keys(globalPatches)];
@@ -98,6 +133,7 @@ describe("GTV main foundation services module", () => {
         let clipboardPayload = "";
         let feedbackConfig = null;
         let calculatorConfig = null;
+        let promptCalls = 0;
 
         const service = moduleApi.createService({
             GTV_SERVICE_BOOTSTRAP: {
@@ -145,6 +181,10 @@ describe("GTV main foundation services module", () => {
                 }
             }),
             confirmFn: () => true,
+            promptFn: async (_message, defaultValue) => {
+                promptCalls += 1;
+                return `${defaultValue}-edited`;
+            },
             documentRef: {
                 getElementById: (id) => ({ id })
             },
@@ -164,6 +204,8 @@ describe("GTV main foundation services module", () => {
 
         await feedbackConfig.resetAllSettings();
         expect(resetCalled).toBe(1);
+        await expect(service.promptFn("rename?", "group")).resolves.toBe("group-edited");
+        expect(promptCalls).toBe(1);
 
         await calculatorConfig.writeClipboard("payload");
         expect(clipboardPayload).toBe("payload");
@@ -175,13 +217,14 @@ describe("GTV main foundation services module", () => {
         expect(() => moduleApi.createService({})).toThrow("Missing required module API: GTVServiceBootstrap.createService");
     });
 
-    it("uses global fallbacks for document/location/clipboard/confirm when optional deps are omitted", async () => {
+    it("uses global fallbacks for document/location/clipboard/confirm/prompt when optional deps are omitted", async () => {
         const moduleApi = loadMainFoundationServicesModule();
-        const globalKeys = ["document", "location", "navigator", "confirm"];
+        const globalKeys = ["document", "location", "navigator", "confirm", "prompt"];
         const previous = captureGlobalSnapshot(globalKeys);
 
         const clipboardWrites = [];
         const confirmCalls = [];
+        const promptCalls = [];
         let feedbackConfig = null;
         let calculatorConfig = null;
 
@@ -200,9 +243,13 @@ describe("GTV main foundation services module", () => {
             confirmCalls.push(String(message));
             return true;
         });
+        setGlobalValue("prompt", (message, defaultValue) => {
+            promptCalls.push([String(message), String(defaultValue)]);
+            return `${defaultValue}-from-global`;
+        });
 
         try {
-            moduleApi.createService({
+            const service = moduleApi.createService({
                 GTV_SERVICE_BOOTSTRAP: { createService: () => ({}) },
                 GTV_PERSISTENCE_SERVICE_BUNDLE: { createService: () => ({}) },
                 GTV_MAIN_UI_UTILS: {
@@ -233,6 +280,8 @@ describe("GTV main foundation services module", () => {
             expect(feedbackConfig.location).toBe(globalThis.location);
             expect(feedbackConfig.confirmFn("confirm?")).toBe(true);
             expect(confirmCalls).toEqual(["confirm?"]);
+            await expect(service.promptFn("rename?", "group")).resolves.toBe("group-from-global");
+            expect(promptCalls).toEqual([["rename?", "group"]]);
 
             expect(calculatorConfig.getElementById("node-1")).toEqual({
                 id: "node-1",
@@ -249,6 +298,153 @@ describe("GTV main foundation services module", () => {
         } finally {
             restoreGlobalSnapshot(previous, globalKeys);
         }
+    });
+
+    it("prefers windowRef-backed fallbacks when explicit refs are omitted", async () => {
+        const moduleApi = loadMainFoundationServicesModule();
+        const clipboardWrites = [];
+        const confirmCalls = [];
+        const promptCalls = [];
+        let feedbackConfig = null;
+        let calculatorConfig = null;
+        const windowRef = {
+            document: {
+                getElementById: (id) => ({ id, from: "window-document" })
+            },
+            location: { href: "https://window-ref.local" },
+            navigator: {
+                clipboard: {
+                    writeText: async (text) => {
+                        clipboardWrites.push(String(text));
+                    }
+                }
+            },
+            confirm: (message) => {
+                confirmCalls.push(String(message));
+                return true;
+            },
+            prompt: (message, defaultValue) => {
+                promptCalls.push([String(message), String(defaultValue)]);
+                return `${defaultValue}-from-window`;
+            }
+        };
+
+        const service = moduleApi.createService({
+            GTV_SERVICE_BOOTSTRAP: { createService: () => ({}) },
+            GTV_PERSISTENCE_SERVICE_BUNDLE: { createService: () => ({}) },
+            GTV_MAIN_UI_UTILS: {
+                createService: () => ({
+                    setCustomTooltip: () => {},
+                    upgradeNativeTitleTooltips: () => {},
+                    hideFloatingTooltip: () => {},
+                    bindFloatingTooltipEvents: () => {},
+                    clearDragGhost: () => {},
+                    createDragGhostFromRow: () => {}
+                })
+            },
+            GTV_APP_FEEDBACK: {
+                createService: (cfg) => {
+                    feedbackConfig = cfg;
+                    return {};
+                }
+            },
+            GTV_CALCULATOR_ACTIONS: {
+                createService: (cfg) => {
+                    calculatorConfig = cfg;
+                    return {};
+                }
+            },
+            windowRef
+        });
+
+        expect(feedbackConfig.document).toBe(windowRef.document);
+        expect(feedbackConfig.location).toBe(windowRef.location);
+        expect(feedbackConfig.confirmFn("confirm?")).toBe(true);
+        expect(confirmCalls).toEqual(["confirm?"]);
+        await expect(service.promptFn("rename?", "group")).resolves.toBe("group-from-window");
+        expect(promptCalls).toEqual([["rename?", "group"]]);
+
+        expect(calculatorConfig.getElementById("node-2")).toEqual({
+            id: "node-2",
+            from: "window-document"
+        });
+        await calculatorConfig.writeClipboard("clip-window");
+        expect(clipboardWrites).toEqual(["clip-window"]);
+    });
+
+    it("prefers getter-based refs when provided", async () => {
+        const moduleApi = loadMainFoundationServicesModule();
+        const clipboardWrites = [];
+        const confirmCalls = [];
+        const promptCalls = [];
+        let feedbackConfig = null;
+        let calculatorConfig = null;
+        const getterWindowRef = {
+            confirm: (message) => {
+                confirmCalls.push(String(message));
+                return true;
+            },
+            prompt: (message, defaultValue) => {
+                promptCalls.push([String(message), String(defaultValue)]);
+                return `${defaultValue}-from-getter-window`;
+            }
+        };
+        const getterDocumentRef = {
+            getElementById: (id) => ({ id, from: "getter-document" })
+        };
+        const getterLocationRef = { href: "https://getter-location.local" };
+        const getterNavigatorRef = {
+            clipboard: {
+                writeText: async (text) => {
+                    clipboardWrites.push(String(text));
+                }
+            }
+        };
+
+        const service = moduleApi.createService({
+            GTV_SERVICE_BOOTSTRAP: { createService: () => ({}) },
+            GTV_PERSISTENCE_SERVICE_BUNDLE: { createService: () => ({}) },
+            GTV_MAIN_UI_UTILS: {
+                createService: () => ({
+                    setCustomTooltip: () => {},
+                    upgradeNativeTitleTooltips: () => {},
+                    hideFloatingTooltip: () => {},
+                    bindFloatingTooltipEvents: () => {},
+                    clearDragGhost: () => {},
+                    createDragGhostFromRow: () => {}
+                })
+            },
+            GTV_APP_FEEDBACK: {
+                createService: (cfg) => {
+                    feedbackConfig = cfg;
+                    return {};
+                }
+            },
+            GTV_CALCULATOR_ACTIONS: {
+                createService: (cfg) => {
+                    calculatorConfig = cfg;
+                    return {};
+                }
+            },
+            getWindowRef: () => getterWindowRef,
+            getDocumentRefOrNull: () => getterDocumentRef,
+            getLocationRef: () => getterLocationRef,
+            getNavigatorRefOrNull: () => getterNavigatorRef
+        });
+
+        expect(feedbackConfig.document).toBe(getterDocumentRef);
+        expect(feedbackConfig.location).toBe(getterLocationRef);
+        expect(feedbackConfig.confirmFn("confirm?")).toBe(true);
+        expect(confirmCalls).toEqual(["confirm?"]);
+        await expect(service.promptFn("rename?", "group")).resolves.toBe("group-from-getter-window");
+        expect(promptCalls).toEqual([["rename?", "group"]]);
+
+        expect(calculatorConfig.getElementById("node-getter")).toEqual({
+            id: "node-getter",
+            from: "getter-document"
+        });
+        await calculatorConfig.writeClipboard("clip-getter");
+        expect(clipboardWrites).toEqual(["clip-getter"]);
     });
 
     it("throws clipboard unavailable when fallback clipboard API is missing", async () => {
@@ -287,5 +483,61 @@ describe("GTV main foundation services module", () => {
         } finally {
             restoreGlobalSnapshot(previous, globalKeys);
         }
+    });
+
+    it("uses the app prompt overlay when modal elements are available", async () => {
+        const moduleApi = loadMainFoundationServicesModule();
+        const overlay = createEventNode();
+        const title = createEventNode();
+        const input = createEventNode();
+        const confirmBtn = createEventNode();
+        const cancelBtn = createEventNode();
+        const closeBtn = createEventNode();
+        const elementsById = {
+            "app-prompt-overlay": overlay,
+            "app-prompt-title": title,
+            "app-prompt-input": input,
+            "app-prompt-confirm": confirmBtn,
+            "app-prompt-cancel": cancelBtn,
+            "app-prompt-close": closeBtn
+        };
+
+        const service = moduleApi.createService({
+            GTV_SERVICE_BOOTSTRAP: { createService: () => ({}) },
+            GTV_PERSISTENCE_SERVICE_BUNDLE: { createService: () => ({}) },
+            GTV_MAIN_UI_UTILS: {
+                createService: () => ({
+                    setCustomTooltip: () => {},
+                    upgradeNativeTitleTooltips: () => {},
+                    hideFloatingTooltip: () => {},
+                    bindFloatingTooltipEvents: () => {},
+                    clearDragGhost: () => {},
+                    createDragGhostFromRow: () => {}
+                })
+            },
+            GTV_APP_FEEDBACK: {
+                createService: () => ({})
+            },
+            GTV_CALCULATOR_ACTIONS: {
+                createService: () => ({})
+            },
+            t: (key) => key,
+            documentRef: {
+                getElementById: (id) => elementsById[id] || null
+            }
+        });
+
+        const pending = service.promptFn("Rename group", "Initial");
+        expect(overlay.style.display).toBe("flex");
+        expect(title.textContent).toBe("Rename group");
+        expect(input.value).toBe("Initial");
+        expect(confirmBtn.textContent).toBe("btn_confirm");
+        expect(cancelBtn.textContent).toBe("btn_cancel");
+
+        input.value = "Updated";
+        confirmBtn.dispatch("click");
+
+        await expect(pending).resolves.toBe("Updated");
+        expect(overlay.style.display).toBe("none");
     });
 });

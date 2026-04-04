@@ -1,128 +1,159 @@
 (function initGtvMultiRangeCopy(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
         }
 
+        const dep = Object.freeze({
+            t: toSafeCallable(safeDeps.t),
+            ensureMultiRangeState: toSafeCallable(safeDeps.ensureMultiRangeState),
+            getMultiRanges: toSafeCallable(safeDeps.getMultiRanges),
+            getTimezoneRefById: toSafeCallable(safeDeps.getTimezoneRefById),
+            buildTimezoneComputedSnapshotForRange: toSafeCallable(safeDeps.buildTimezoneComputedSnapshotForRange),
+            formatSnapshotText: toSafeCallable(safeDeps.formatSnapshotText),
+            getCopyFormatOrder: toSafeCallable(safeDeps.getCopyFormatOrder),
+            getCopyFormatEnabled: toSafeCallable(safeDeps.getCopyFormatEnabled),
+            getCopyTimePartsEnabled: toSafeCallable(safeDeps.getCopyTimePartsEnabled),
+            writeClipboard: toSafeCallable(safeDeps.writeClipboard),
+            showToast: toSafeCallable(safeDeps.showToast),
+            getBaseTimezoneRef: toSafeCallable(safeDeps.getBaseTimezoneRef),
+            getRenderableTimezoneRows: toSafeCallable(safeDeps.getRenderableTimezoneRows),
+            getMultiRangeTitleText: toSafeCallable(safeDeps.getMultiRangeTitleText)
+        });
+
         function translate(key) {
-            const value = invokeDep("t", key);
+            const value = dep.t(key);
             if (typeof value === "string" && value) return value;
             return String(key || "");
         }
 
+        function logError(...args) {
+            if (typeof safeDeps.logError === "function") {
+                safeDeps.logError(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleError === "function") {
+                safeDeps.consoleError(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.error === "function") {
+                globalObj.console.error(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.error === "function") {
+                console.error(...args);
+            }
+        }
+
         function getRangesSafe() {
-            const ranges = invokeDep("getMultiRanges");
+            const ranges = dep.getMultiRanges();
             return Array.isArray(ranges) ? ranges : [];
         }
 
         async function copyMultiRangeRow(rangeIdx, rowId) {
-            invokeDep("ensureMultiRangeState");
+            dep.ensureMultiRangeState();
             const ranges = getRangesSafe();
             const range = ranges[rangeIdx];
             if (!range) return;
-            const tz = invokeDep("getTimezoneRefById", rowId);
+            const tz = dep.getTimezoneRefById(rowId);
             if (!tz) return;
 
-            const snapshot = invokeDep(
-                "buildTimezoneComputedSnapshotForRange",
+            const snapshot = dep.buildTimezoneComputedSnapshotForRange(
                 tz,
                 new Date(range.startUtcMs),
                 new Date(range.endUtcMs)
             );
-            const text = invokeDep(
-                "formatSnapshotText",
+            const text = dep.formatSnapshotText(
                 snapshot,
-                invokeDep("getCopyFormatOrder"),
-                invokeDep("getCopyFormatEnabled"),
-                invokeDep("getCopyTimePartsEnabled")
+                dep.getCopyFormatOrder(),
+                dep.getCopyFormatEnabled(),
+                dep.getCopyTimePartsEnabled()
             );
             if (!text) return;
 
             try {
-                await invokeDep("writeClipboard", text);
-                invokeDep("showToast", translate("toast_copy_success"), { type: "success" });
+                await dep.writeClipboard(text);
+                dep.showToast(translate("toast_copy_success"), { type: "success" });
             } catch (err) {
-                console.error("copyMultiRangeRow failed:", err);
-                invokeDep("showToast", translate("toast_copy_failed"), { type: "error" });
+                logError("copyMultiRangeRow failed:", err);
+                dep.showToast(translate("toast_copy_failed"), { type: "error" });
             }
         }
 
         async function copyWholeMultiRange(rangeIdx) {
-            invokeDep("ensureMultiRangeState");
+            dep.ensureMultiRangeState();
             const ranges = getRangesSafe();
             const range = ranges[rangeIdx];
             if (!range) return;
 
-            const baseRef = invokeDep("getBaseTimezoneRef");
+            const baseRef = dep.getBaseTimezoneRef();
             if (!baseRef) return;
-            const dynamicRowsRaw = invokeDep("getRenderableTimezoneRows", baseRef);
+            const dynamicRowsRaw = dep.getRenderableTimezoneRows(baseRef);
             const dynamicRows = Array.isArray(dynamicRowsRaw) ? dynamicRowsRaw : [];
             const rowRefs = [baseRef, ...dynamicRows];
-            const lineArr = [invokeDep("getMultiRangeTitleText", rangeIdx, range, baseRef)];
+            const lineArr = [dep.getMultiRangeTitleText(rangeIdx, range, baseRef)];
 
             rowRefs.forEach((tz) => {
                 if (!tz) return;
-                const snapshot = invokeDep(
-                    "buildTimezoneComputedSnapshotForRange",
+                const snapshot = dep.buildTimezoneComputedSnapshotForRange(
                     tz,
                     new Date(range.startUtcMs),
                     new Date(range.endUtcMs)
                 );
-                const line = invokeDep(
-                    "formatSnapshotText",
+                const line = dep.formatSnapshotText(
                     snapshot,
-                    invokeDep("getCopyFormatOrder"),
-                    invokeDep("getCopyFormatEnabled"),
-                    invokeDep("getCopyTimePartsEnabled")
+                    dep.getCopyFormatOrder(),
+                    dep.getCopyFormatEnabled(),
+                    dep.getCopyTimePartsEnabled()
                 );
                 if (line) lineArr.push(line);
             });
 
             if (lineArr.length <= 1) return;
             try {
-                await invokeDep("writeClipboard", lineArr.join("\n"));
-                invokeDep("showToast", translate("toast_copy_success"), { type: "success" });
+                await dep.writeClipboard(lineArr.join("\n"));
+                dep.showToast(translate("toast_copy_success"), { type: "success" });
             } catch (err) {
-                console.error("copyWholeMultiRange failed:", err);
-                invokeDep("showToast", translate("toast_copy_failed"), { type: "error" });
+                logError("copyWholeMultiRange failed:", err);
+                dep.showToast(translate("toast_copy_failed"), { type: "error" });
             }
         }
 
         async function copyAllMultiRangeTimezones() {
-            invokeDep("ensureMultiRangeState");
+            dep.ensureMultiRangeState();
             const ranges = getRangesSafe();
-            const baseRef = invokeDep("getBaseTimezoneRef");
+            const baseRef = dep.getBaseTimezoneRef();
             if (!baseRef) return;
-            const dynamicRowsRaw = invokeDep("getRenderableTimezoneRows", baseRef);
+            const dynamicRowsRaw = dep.getRenderableTimezoneRows(baseRef);
             const dynamicRows = Array.isArray(dynamicRowsRaw) ? dynamicRowsRaw : [];
             const rowRefs = [baseRef, ...dynamicRows];
             const lineArr = [];
 
             ranges.forEach((range, rangeIdx) => {
-                lineArr.push(invokeDep("getMultiRangeTitleText", rangeIdx, range, baseRef));
+                lineArr.push(dep.getMultiRangeTitleText(rangeIdx, range, baseRef));
                 rowRefs.forEach((tz) => {
                     if (!tz) return;
-                    const snapshot = invokeDep(
-                        "buildTimezoneComputedSnapshotForRange",
+                    const snapshot = dep.buildTimezoneComputedSnapshotForRange(
                         tz,
                         new Date(range.startUtcMs),
                         new Date(range.endUtcMs)
                     );
-                    const line = invokeDep(
-                        "formatSnapshotText",
+                    const line = dep.formatSnapshotText(
                         snapshot,
-                        invokeDep("getCopyFormatOrder"),
-                        invokeDep("getCopyFormatEnabled"),
-                        invokeDep("getCopyTimePartsEnabled")
+                        dep.getCopyFormatOrder(),
+                        dep.getCopyFormatEnabled(),
+                        dep.getCopyTimePartsEnabled()
                     );
                     if (line) lineArr.push(line);
                 });
@@ -133,11 +164,11 @@
 
             if (!lineArr.length) return;
             try {
-                await invokeDep("writeClipboard", lineArr.join("\n"));
-                invokeDep("showToast", translate("toast_copy_all_success"), { type: "success" });
+                await dep.writeClipboard(lineArr.join("\n"));
+                dep.showToast(translate("toast_copy_all_success"), { type: "success" });
             } catch (err) {
-                console.error("copyAllMultiRangeTimezones failed:", err);
-                invokeDep("showToast", translate("toast_copy_failed"), { type: "error" });
+                logError("copyAllMultiRangeTimezones failed:", err);
+                dep.showToast(translate("toast_copy_failed"), { type: "error" });
             }
         }
 

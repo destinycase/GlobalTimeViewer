@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Global Time Viewer</title>
-    <script src="i18n.js" defer></script>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -655,7 +654,29 @@
                 <button id="tz-tab-country" class="overlay-tab" type="button" role="tab" aria-selected="false"
                     data-i18n="overlay_country_region_tz_list">Country - Region List</button>
             </div>
+            <div class="overlay-search-row">
+                <input id="tz-search-input" class="form-input overlay-search-input" type="text"
+                    data-i18n="placeholder_timezone_search"
+                    placeholder="Search timezone, city, abbreviation, UTC offset" spellcheck="false">
+                <button id="tz-search-clear" class="icon-btn overlay-search-clear" type="button"
+                    data-i18n="btn_clear">Clear</button>
+            </div>
             <div id="full-tz-list" class="tz-grid"></div>
+        </div>
+    </div>
+    <div id="app-prompt-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="app-prompt-title">
+        <div class="overlay-content prompt-overlay-content">
+            <div class="overlay-header prompt-overlay-header">
+                <h3 id="app-prompt-title">Prompt</h3>
+                <button id="app-prompt-close" class="icon-btn" type="button" aria-label="Close">&times;</button>
+            </div>
+            <div class="prompt-overlay-body">
+                <input id="app-prompt-input" class="form-input prompt-overlay-input" type="text" spellcheck="false">
+            </div>
+            <div class="prompt-overlay-actions">
+                <button id="app-prompt-cancel" class="sm-btn" type="button" data-i18n="btn_cancel">Cancel</button>
+                <button id="app-prompt-confirm" class="sm-btn" type="button" data-i18n="btn_confirm">Confirm</button>
+            </div>
         </div>
     </div>
 
@@ -664,198 +685,7 @@
     <input type="file" id="settings-import-file" accept="application/json,.json" style="display:none;">
     <input type="file" id="group-import-file" accept="application/json,.json" style="display:none;">
     <input type="file" id="subgroup-import-file" accept="application/json,.json" style="display:none;">
-
-    <script src="js/vendor/luxon.min.js" defer></script>
-    <script src="js/modules/app-config.js" defer></script>
-    <script src="js/modules/main-constants.js" defer></script>
-    <script src="js/modules/main-constants-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-lang-state.js" defer></script>
-    <script src="js/modules/main-runtime-lang-state-bindings.js" defer></script>
-    <script src="js/modules/main-day-night-range-utils.js" defer></script>
-    <script src="js/modules/main-day-night-range-utils-bindings.js" defer></script>
-    <script src="js/modules/main-state-initializer.js" defer></script>
-    <script src="js/modules/main-state-initializer-bindings.js" defer></script>
-    <script src="js/modules/main-app-state-vars.js" defer></script>
-    <script src="js/modules/main-app-state-vars-bindings.js" defer></script>
-    <script src="js/modules/main-core-service-assembly.js" defer></script>
-    <script src="js/modules/main-core-service-assembly-bindings.js" defer></script>
-    <script src="js/modules/main-module-resolver.js" defer></script>
-    <script src="js/modules/main-module-spec.js" defer></script>
-    <script src="js/modules/main-module-resolution-bindings.js" defer></script>
-    <script src="js/modules/main-foundation-services.js" defer></script>
-    <script src="js/modules/main-foundation-services-bindings.js" defer></script>
-    <script src="js/modules/main-shared-utils.js" defer></script>
-    <script src="js/modules/service-invoke-utils.js" defer></script>
-    <script src="js/modules/main-service-method-bridge.js" defer></script>
-    <script src="js/modules/main-bootstrap-guard.js" defer></script>
-    <script src="js/modules/main-bootstrap-guard-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-host-utils.js" defer></script>
-    <script src="js/modules/main-runtime-host-utils-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-host-accessor-proxies.js" defer></script>
-    <script src="js/modules/main-runtime-host-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-primary-state.js" defer></script>
-    <script src="js/modules/main-runtime-primary-state-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-primary-state-accessor-proxies.js" defer></script>
-    <script src="js/modules/main-runtime-primary-state-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-service-bridge-helpers.js" defer></script>
-    <script src="js/modules/main-runtime-service-bridge-helper-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-service-bridge-accessor-proxies.js" defer></script>
-    <script src="js/modules/main-runtime-service-bridge-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-ui-bridge-accessor-proxies.js" defer></script>
-    <script src="js/modules/main-runtime-ui-bridge-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-operation-accessor-proxies.js" defer></script>
-    <script src="js/modules/main-runtime-operation-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-public-api-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-bootstrap-accessor-proxies.js" defer></script>
-    <script src="js/modules/main-runtime-bootstrap-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-core-accessor-proxies.js" defer></script>
-    <script src="js/modules/main-runtime-core-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-state-patch-accessor-proxies.js" defer></script>
-    <script src="js/modules/main-runtime-state-patch-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-patched-state-fallback.js" defer></script>
-    <script src="js/modules/main-runtime-patched-state-fallback-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-local-state-helpers.js" defer></script>
-    <script src="js/modules/main-runtime-local-state-helpers-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-local-state-accessor-proxies.js" defer></script>
-    <script src="js/modules/main-runtime-local-state-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-bridge-proxies.js" defer></script>
-    <script src="js/modules/main-runtime-bridge-proxy-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-timezone-helpers.js" defer></script>
-    <script src="js/modules/main-runtime-timezone-helper-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-state-helpers.js" defer></script>
-    <script src="js/modules/main-runtime-state-helper-aliases.js" defer></script>
-    <script src="js/modules/main-runtime-state-helper-aliases-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-state-helper-accessor-proxies.js" defer></script>
-    <script src="js/modules/main-runtime-state-helper-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-state-helper-bootstrap.js" defer></script>
-    <script src="js/modules/main-runtime-reference-accessors.js" defer></script>
-    <script src="js/modules/main-runtime-reference-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-state-domain-wrapper-bridge.js" defer></script>
-    <script src="js/modules/main-state-domain-wrapper-bridge-bindings.js" defer></script>
-    <script src="js/modules/main-state-domain-wrapper-global-bindings.js" defer></script>
-    <script src="js/modules/main-state-domain-wrapper-global-bindings-bridge.js" defer></script>
-    <script src="js/modules/main-state-domain-proxy-bindings.js" defer></script>
-    <script src="js/modules/main-facade-method-binder.js" defer></script>
-    <script src="js/modules/main-facade-method-binder-bindings.js" defer></script>
-    <script src="js/modules/main-facade-bindings.js" defer></script>
-    <script src="js/modules/main-facade-bridge.js" defer></script>
-    <script src="js/modules/main-facade-bridge-bindings.js" defer></script>
-    <script src="js/modules/main-format-profile-facade-bindings.js" defer></script>
-    <script src="js/modules/main-core-service-bindings.js" defer></script>
-    <script src="js/modules/main-foundation-service-bindings.js" defer></script>
-    <script src="js/modules/main-composition-config-builder.js" defer></script>
-    <script src="js/modules/main-composition-config-builder-bindings.js" defer></script>
-    <script src="js/modules/main-core-assembly-config-builder.js" defer></script>
-    <script src="js/modules/main-core-assembly-config-builder-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-service-config-builder.js" defer></script>
-    <script src="js/modules/main-runtime-service-config-builder-bindings.js" defer></script>
-    <script src="js/modules/main-runtime-state-core-bootstrap.js" defer></script>
-    <script src="js/modules/main-runtime-core-service-bootstrap.js" defer></script>
-    <script src="js/modules/main-runtime-core-assembly-bootstrap.js" defer></script>
-    <script src="js/modules/main-runtime-core-foundation-bootstrap.js" defer></script>
-    <script src="js/modules/main-runtime-table-image-bootstrap.js" defer></script>
-    <script src="js/modules/main-runtime-domain-service-bootstrap.js" defer></script>
-    <script src="js/modules/main-runtime-persistence-composition-bootstrap.js" defer></script>
-    <script src="js/modules/main-runtime-composition-bootstrap.js" defer></script>
-    <script src="js/modules/main-runtime-bootstrap-wiring.js" defer></script>
-    <script src="js/modules/main-state-domain-proxies.js" defer></script>
-    <script src="js/modules/main-direct-state-patch.js" defer></script>
-    <script src="js/modules/main-app-state-services.js" defer></script>
-    <script src="js/modules/main-app-state-bridge.js" defer></script>
-    <script src="js/modules/main-patched-state-selectors.js" defer></script>
-    <script src="js/modules/main-patched-state-accessor-proxies.js" defer></script>
-    <script src="js/modules/main-patched-state-accessor-bindings.js" defer></script>
-    <script src="js/modules/main-format-profile-facade.js" defer></script>
-    <script src="js/modules/main-timeline-facade.js" defer></script>
-    <script src="js/modules/main-fixed-time-facade.js" defer></script>
-    <script src="js/modules/main-timezone-facade.js" defer></script>
-    <script src="js/modules/main-timezone-table-facade.js" defer></script>
-    <script src="js/modules/main-time-adjust-facade.js" defer></script>
-    <script src="js/modules/main-fixed-time-tab-facade.js" defer></script>
-    <script src="js/modules/main-multi-range-tab-facade.js" defer></script>
-    <script src="js/modules/main-app-bootstrap.js" defer></script>
-    <script src="js/modules/main-persistence-services.js" defer></script>
-    <script src="js/modules/main-group-tabs-service.js" defer></script>
-    <script src="js/modules/main-image-runtime-services.js" defer></script>
-    <script src="js/modules/main-image-export-services.js" defer></script>
-    <script src="js/modules/main-image-export-bridge-proxy.js" defer></script>
-    <script src="js/modules/main-image-export-naming-proxy.js" defer></script>
-    <script src="js/modules/main-row-order-services.js" defer></script>
-    <script src="js/modules/main-row-view-services.js" defer></script>
-    <script src="js/modules/main-select-services.js" defer></script>
-    <script src="js/modules/main-group-localization-services.js" defer></script>
-    <script src="js/modules/main-orchestration-flow-services.js" defer></script>
-    <script src="js/modules/main-persistence-snapshot-services.js" defer></script>
-    <script src="js/modules/main-persistence-composition-services.js" defer></script>
-    <script src="js/modules/main-clock-orchestrator-services.js" defer></script>
-    <script src="js/modules/main-timezone-runtime-services.js" defer></script>
-    <script src="js/modules/main-timezone-runtime-bridge.js" defer></script>
-    <script src="js/modules/main-timezone-mutation-services.js" defer></script>
-    <script src="js/modules/main-base-timezone-services.js" defer></script>
-    <script src="js/modules/main-runtime-composition-services.js" defer></script>
-    <script src="js/modules/main-fixed-time-services.js" defer></script>
-    <script src="js/modules/main-multi-range-services.js" defer></script>
-    <script src="js/modules/main-time-adjust-services.js" defer></script>
-    <script src="js/modules/main-tab-services.js" defer></script>
-    <script src="js/modules/main-group-state-services.js" defer></script>
-    <script src="js/modules/main-ui-runtime-services.js" defer></script>
-    <script src="js/modules/service-bootstrap.js" defer></script>
-    <script src="js/modules/app-state-patcher.js" defer></script>
-    <script src="js/modules/date-picker.js" defer></script>
-    <script src="js/modules/time-core.js" defer></script>
-    <script src="js/modules/time-input-mutations.js" defer></script>
-    <script src="js/modules/timer-engine.js" defer></script>
-    <script src="js/modules/time-service.js" defer></script>
-    <script src="js/modules/timezone-data.js" defer></script>
-    <script src="js/modules/calculator.js" defer></script>
-    <script src="js/modules/calculator-actions.js" defer></script>
-    <script src="js/modules/multi-state.js" defer></script>
-    <script src="js/modules/image-export.js" defer></script>
-    <script src="js/modules/image-export-actions.js" defer></script>
-    <script src="js/modules/image-export-bridge.js" defer></script>
-    <script src="js/modules/image-export-naming.js" defer></script>
-    <script src="js/modules/image-clone.js" defer></script>
-    <script src="js/modules/image-foreign-render.js" defer></script>
-    <script src="js/modules/group-state.js" defer></script>
-    <script src="js/modules/group-context-state.js" defer></script>
-    <script src="js/modules/group-tabs.js" defer></script>
-    <script src="js/modules/timezone-search.js" defer></script>
-    <script src="js/modules/snapshot-format.js" defer></script>
-    <script src="js/modules/table-render.js" defer></script>
-    <script src="js/modules/table-image-render.js" defer></script>
-    <script src="js/modules/multi-range-image-render.js" defer></script>
-    <script src="js/modules/multi-range-state.js" defer></script>
-    <script src="js/modules/multi-range-render.js" defer></script>
-    <script src="js/modules/multi-range-copy.js" defer></script>
-    <script src="js/modules/copy-actions.js" defer></script>
-    <script src="js/modules/time-adjust-ui.js" defer></script>
-    <script src="js/modules/time-adjust-actions.js" defer></script>
-    <script src="js/modules/multi-bulk-tools.js" defer></script>
-    <script src="js/modules/timeline-frame.js" defer></script>
-    <script src="js/modules/fixed-time-core.js" defer></script>
-    <script src="js/modules/fixed-time-slot-utils.js" defer></script>
-    <script src="js/modules/fixed-time-state.js" defer></script>
-    <script src="js/modules/fixed-time-timeline.js" defer></script>
-    <script src="js/modules/fixed-time-actions.js" defer></script>
-    <script src="js/modules/fixed-time-table.js" defer></script>
-    <script src="js/modules/format-profile-state.js" defer></script>
-    <script src="js/modules/format-controls.js" defer></script>
-    <script src="js/modules/tab-ui.js" defer></script>
-    <script src="js/modules/tab-orchestrator.js" defer></script>
-    <script src="js/modules/main-ui-init.js" defer></script>
-    <script src="js/modules/main-ui-utils.js" defer></script>
-    <script src="js/modules/app-feedback.js" defer></script>
-    <script src="js/modules/ui-settings-actions.js" defer></script>
-    <script src="js/modules/app-persistence-state.js" defer></script>
-    <script src="js/modules/persistence-service-bundle.js" defer></script>
-    <script src="js/modules/state-persistence.js" defer></script>
-    <script src="js/modules/ui-preferences-state.js" defer></script>
-    <script src="js/modules/settings-io.js" defer></script>
-    <script src="js/modules/data-transfer.js" defer></script>
-    <script src="js/modules/main-global-bindings.js" defer></script>
-    <script src="js/modules/main-test-helpers.js" defer></script>
-    <script src="js/modules/main-test-helpers-bindings.js" defer></script>
-    <script src="main.js" defer></script>
+    <script src="js/source-script-loader.js"></script>
 </body>
 
 </html>

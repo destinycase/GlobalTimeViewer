@@ -1,7 +1,7 @@
 (function initGtvTimelineFrame(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const TIMELINE_TOTAL_HOURS = Number.isFinite(Number(safeDeps.TIMELINE_TOTAL_HOURS))
             ? Number(safeDeps.TIMELINE_TOTAL_HOURS)
@@ -16,7 +16,14 @@
                 if (typeof globalObj.requestAnimationFrame === "function") {
                     return globalObj.requestAnimationFrame(cb);
                 }
-                return setTimeout(cb, 16);
+                if (typeof globalObj.setTimeout === "function") {
+                    return globalObj.setTimeout(cb, 16);
+                }
+                if (typeof setTimeout === "function") {
+                    return setTimeout(cb, 16);
+                }
+                if (typeof cb === "function") cb();
+                return 0;
             });
         const cancelUiFrame = (typeof safeDeps.cancelUiFrame === "function")
             ? safeDeps.cancelUiFrame
@@ -25,19 +32,100 @@
                     globalObj.cancelAnimationFrame(id);
                     return;
                 }
-                clearTimeout(id);
+                if (typeof globalObj.clearTimeout === "function") {
+                    globalObj.clearTimeout(id);
+                    return;
+                }
+                if (typeof clearTimeout === "function") {
+                    clearTimeout(id);
+                }
             });
 
         let timelineDragState = null;
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVTimelineFrame] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
             }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
+            if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
+            if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
+            if (typeof document === "object" && document) return document;
+            return null;
+        }
+
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVTimelineFrame] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getGlobalTime: toSafeCallable("getGlobalTime", safeDeps.getGlobalTime),
+            setGlobalTime: toSafeCallable("setGlobalTime", safeDeps.setGlobalTime),
+            t: toSafeCallable("t", safeDeps.t),
+            getCurrentMainTab: toSafeCallable("getCurrentMainTab", safeDeps.getCurrentMainTab),
+            getIsRealtime: toSafeCallable("getIsRealtime", safeDeps.getIsRealtime),
+            getSlotCount: toSafeCallable("getSlotCount", safeDeps.getSlotCount),
+            isFixedTimeTab: toSafeCallable("isFixedTimeTab", safeDeps.isFixedTimeTab),
+            getShowTimeline: toSafeCallable("getShowTimeline", safeDeps.getShowTimeline),
+            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
+            getCurrentGroupZones: toSafeCallable("getCurrentGroupZones", safeDeps.getCurrentGroupZones),
+            isCurrentGroupUtcRowVisible: toSafeCallable("isCurrentGroupUtcRowVisible", safeDeps.isCurrentGroupUtcRowVisible),
+            getCurrentGroupUtcRowOrder: toSafeCallable("getCurrentGroupUtcRowOrder", safeDeps.getCurrentGroupUtcRowOrder),
+            getUTCRef: toSafeCallable("getUTCRef", safeDeps.getUTCRef),
+            resolveFixedTimeTimelineSourceDate: toSafeCallable("resolveFixedTimeTimelineSourceDate", safeDeps.resolveFixedTimeTimelineSourceDate),
+            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
+            getLocalPartsByTimezone: toSafeCallable("getLocalPartsByTimezone", safeDeps.getLocalPartsByTimezone),
+            getUTCDateFromLocalParts: toSafeCallable("getUTCDateFromLocalParts", safeDeps.getUTCDateFromLocalParts),
+            applyFixedTimeSlotTimelineRatio: toSafeCallable("applyFixedTimeSlotTimelineRatio", safeDeps.applyFixedTimeSlotTimelineRatio),
+            updateClocks: toSafeCallable("updateClocks", safeDeps.updateClocks),
+            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
+            getDayNightMarkerByHour: toSafeCallable("getDayNightMarkerByHour", safeDeps.getDayNightMarkerByHour),
+            getZoneDisplayName: toSafeCallable("getZoneDisplayName", safeDeps.getZoneDisplayName),
+            getFixedTimeSlotTimelineLabel: toSafeCallable("getFixedTimeSlotTimelineLabel", safeDeps.getFixedTimeSlotTimelineLabel),
+            getFixedTimeTimelineSlots: toSafeCallable("getFixedTimeTimelineSlots", safeDeps.getFixedTimeTimelineSlots),
+            getCurrentGroupFixedTimeShowLiveNow: toSafeCallable("getCurrentGroupFixedTimeShowLiveNow", safeDeps.getCurrentGroupFixedTimeShowLiveNow),
+            getFixedTimeTimelineSlotCount: toSafeCallable("getFixedTimeTimelineSlotCount", safeDeps.getFixedTimeTimelineSlotCount),
+            pad: toSafeCallable("pad", safeDeps.pad),
+            getFixedTimeTimelineIndicatorToken: toSafeCallable("getFixedTimeTimelineIndicatorToken", safeDeps.getFixedTimeTimelineIndicatorToken),
+            getCurrentLang: toSafeCallable("getCurrentLang", safeDeps.getCurrentLang),
+            getCurrentTheme: toSafeCallable("getCurrentTheme", safeDeps.getCurrentTheme),
+            getTimelineFrameElement: toSafeCallable("getTimelineFrameElement", safeDeps.getTimelineFrameElement),
+            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef)
+        });
+
+        function isFixedTimeTab() {
+            return !!dep.isFixedTimeTab();
         }
 
         function isValidDate(value) {
@@ -71,24 +159,24 @@
         }
 
         function getGlobalTime(slotIdx) {
-            const value = invokeDep("getGlobalTime", slotIdx);
+            const value = dep.getGlobalTime(slotIdx);
             return isValidDate(value) ? value : null;
         }
 
         function setGlobalTime(slotIdx, value) {
             if (!isValidDate(value)) return false;
-            invokeDep("setGlobalTime", slotIdx, value);
+            dep.setGlobalTime(slotIdx, value);
             return true;
         }
 
         function translate(key) {
-            const value = invokeDep("t", key);
+            const value = dep.t(key);
             if (typeof value === "string" && value) return value;
             return String(key || "");
         }
 
         function getCurrentMainTab() {
-            const tab = invokeDep("getCurrentMainTab");
+            const tab = dep.getCurrentMainTab();
             if (tab === "live" || tab === "fixed" || tab === "multi" || tab === "fixed-time" || tab === "calc") {
                 return tab;
             }
@@ -96,16 +184,16 @@
         }
 
         function getIsRealtime() {
-            return !!invokeDep("getIsRealtime");
+            return !!dep.getIsRealtime();
         }
 
         function getSlotCount() {
-            const value = Number(invokeDep("getSlotCount"));
+            const value = Number(dep.getSlotCount());
             return Number.isFinite(value) ? Math.max(1, value) : 1;
         }
 
         function getTimelinePanelCount() {
-            if (invokeDep("isFixedTimeTab")) return 1;
+            if (isFixedTimeTab()) return 1;
             return (!getIsRealtime() && getSlotCount() > 1) ? 2 : 1;
         }
 
@@ -115,7 +203,7 @@
         }
 
         function shouldRenderTimeline() {
-            return !!invokeDep("getShowTimeline") && isTimelineSupportedTab() && !invokeDep("isMultiTab");
+            return !!dep.getShowTimeline() && isTimelineSupportedTab() && !dep.isMultiTab();
         }
 
         function stopTimelineDrag() {
@@ -147,15 +235,15 @@
         }
 
         function getTimelineRows(baseRef) {
-            const rowsToRender = asArray(invokeDep("getCurrentGroupZones")).filter(
+            const rowsToRender = asArray(dep.getCurrentGroupZones()).filter(
                 (tz) => tz && typeof tz === "object" && tz.id !== baseRef.id && !(tz.type === "standard" && tz.zone === "UTC")
             );
-            if (baseRef.id !== "utc" && invokeDep("isCurrentGroupUtcRowVisible")) {
+            if (baseRef.id !== "utc" && dep.isCurrentGroupUtcRowVisible()) {
                 const insertIndex = Math.min(
-                    Math.max(Number(invokeDep("getCurrentGroupUtcRowOrder")) || 0, 0),
+                    Math.max(Number(dep.getCurrentGroupUtcRowOrder()) || 0, 0),
                     rowsToRender.length
                 );
-                const utcRef = invokeDep("getUTCRef");
+                const utcRef = dep.getUTCRef();
                 if (utcRef && typeof utcRef === "object") {
                     rowsToRender.splice(insertIndex, 0, utcRef);
                 }
@@ -164,9 +252,9 @@
         }
 
         function getTimelineSourceDate(slotIdx, baseRef) {
-            if (invokeDep("isFixedTimeTab")) {
+            if (isFixedTimeTab()) {
                 const anchorDate = getGlobalTime(0) || new Date();
-                const resolved = invokeDep("resolveFixedTimeTimelineSourceDate", slotIdx, baseRef, anchorDate);
+                const resolved = dep.resolveFixedTimeTimelineSourceDate(slotIdx, baseRef, anchorDate);
                 if (isValidDate(resolved)) return resolved;
             }
             return getGlobalTime(slotIdx) || new Date();
@@ -174,8 +262,8 @@
 
         function getTimelineBaseLocalContext(slotIdx, baseRef) {
             const sourceDate = getTimelineSourceDate(slotIdx, baseRef);
-            const fixedOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", baseRef, sourceDate);
-            const parts = invokeDep("getLocalPartsByTimezone", sourceDate, baseRef, fixedOffsetMinutes);
+            const fixedOffsetMinutes = dep.getFixedOffsetForDisplayAtDate(baseRef, sourceDate);
+            const parts = dep.getLocalPartsByTimezone(sourceDate, baseRef, fixedOffsetMinutes);
             if (!parts || typeof parts !== "object") {
                 return {
                     sourceDate,
@@ -211,7 +299,7 @@
                 minute: 0,
                 second: 0
             };
-            const resolved = invokeDep("getUTCDateFromLocalParts", dayStartParts, baseRef, fixedOffsetMinutes);
+            const resolved = dep.getUTCDateFromLocalParts(dayStartParts, baseRef, fixedOffsetMinutes);
             return isValidDate(resolved) ? resolved : new Date();
         }
 
@@ -244,17 +332,17 @@
             const shouldRender = safeOptions.render !== false;
             const shouldPersist = safeOptions.persist !== false;
 
-            if (invokeDep("isFixedTimeTab")) {
-                const applied = invokeDep("applyFixedTimeSlotTimelineRatio", slotIdx, ratio);
+            if (isFixedTimeTab()) {
+                const applied = dep.applyFixedTimeSlotTimelineRatio(slotIdx, ratio);
                 if (!applied) return;
-                if (shouldRender) invokeDep("updateClocks");
-                if (shouldPersist) invokeDep("savePersistence");
+                if (shouldRender) dep.updateClocks();
+                if (shouldPersist) dep.savePersistence();
                 return;
             }
 
             const sourceDate = getGlobalTime(slotIdx) || new Date();
-            const fixedOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", baseRef, sourceDate);
-            const parts = invokeDep("getLocalPartsByTimezone", sourceDate, baseRef, fixedOffsetMinutes);
+            const fixedOffsetMinutes = dep.getFixedOffsetForDisplayAtDate(baseRef, sourceDate);
+            const parts = dep.getLocalPartsByTimezone(sourceDate, baseRef, fixedOffsetMinutes);
             if (!parts || typeof parts !== "object") return;
 
             const totalSeconds = Math.min(
@@ -265,11 +353,11 @@
             parts.minute = Math.floor((totalSeconds % 3600) / 60);
             parts.second = totalSeconds % 60;
 
-            const nextUtcDate = invokeDep("getUTCDateFromLocalParts", parts, baseRef, fixedOffsetMinutes);
+            const nextUtcDate = dep.getUTCDateFromLocalParts(parts, baseRef, fixedOffsetMinutes);
             if (!setGlobalTime(slotIdx, nextUtcDate)) return;
 
             if (shouldRender) {
-                invokeDep("updateClocks");
+                dep.updateClocks();
             }
         }
 
@@ -387,7 +475,7 @@
         }
 
         function resolveDayNightMarkerByHour(hour) {
-            const marker = String(invokeDep("getDayNightMarkerByHour", hour) || "").trim().toUpperCase();
+            const marker = String(dep.getDayNightMarkerByHour(hour) || "").trim().toUpperCase();
             if (marker === "DAY" || marker === "NIGHT") return marker;
             const numericHour = Number.parseInt(hour, 10);
             const safeHour = ((Number.isFinite(numericHour) ? numericHour : 0) % 24 + 24) % 24;
@@ -400,7 +488,7 @@
 
             const labelEl = doc.createElement("div");
             labelEl.className = "timeline-label";
-            labelEl.textContent = invokeDep("getZoneDisplayName", tz) || "";
+            labelEl.textContent = dep.getZoneDisplayName(tz) || "";
             row.appendChild(labelEl);
 
             const boxRow = doc.createElement("div");
@@ -408,8 +496,8 @@
             for (let hourIdx = 0; hourIdx < TIMELINE_TOTAL_HOURS; hourIdx++) {
                 const utcMs = baseDayStartUtcMs + (hourIdx * 60 * 60 * 1000);
                 const utcPoint = new Date(utcMs);
-                const fixedOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", tz, utcPoint);
-                const localParts = invokeDep("getLocalPartsByTimezone", utcPoint, tz, fixedOffsetMinutes);
+                const fixedOffsetMinutes = dep.getFixedOffsetForDisplayAtDate(tz, utcPoint);
+                const localParts = dep.getLocalPartsByTimezone(utcPoint, tz, fixedOffsetMinutes);
                 const localHour = Number(localParts?.hour) || 0;
                 const marker = resolveDayNightMarkerByHour(localHour);
                 const prevHour = (localHour + 23) % 24;
@@ -439,7 +527,7 @@
         }
 
         function getFixedTimeTimelineIndicatorLabel(slot, slotIdx, slotCount = 1) {
-            const label = invokeDep("getFixedTimeSlotTimelineLabel", slot, slotIdx, slotCount);
+            const label = dep.getFixedTimeSlotTimelineLabel(slot, slotIdx, slotCount);
             if (typeof label === "string" && label.trim()) return label.trim();
             return String(slotIdx + 1);
         }
@@ -454,7 +542,7 @@
         }
 
         function appendFixedTimeTimelineIndicators(doc, trackBody, baseRef) {
-            const slots = asArray(invokeDep("getFixedTimeTimelineSlots"));
+            const slots = asArray(dep.getFixedTimeTimelineSlots());
             const slotCount = slots.length;
 
             if (!getIsRealtime()) trackBody.classList.add("draggable");
@@ -481,7 +569,7 @@
                 }
             }
 
-            if (invokeDep("getCurrentGroupFixedTimeShowLiveNow")) {
+            if (dep.getCurrentGroupFixedTimeShowLiveNow()) {
                 const liveIndicator = doc.createElement("div");
                 liveIndicator.className = "timeline-indicator live-now";
                 liveIndicator.dataset.slot = "live";
@@ -498,7 +586,7 @@
             panel.className = "timeline-panel";
 
             const currentMainTab = getCurrentMainTab();
-            if (panelCount > 1 && !invokeDep("isFixedTimeTab") && currentMainTab !== "fixed") {
+            if (panelCount > 1 && !isFixedTimeTab() && currentMainTab !== "fixed") {
                 const title = doc.createElement("h3");
                 title.className = `timeline-panel-title ${slotIdx === 0 ? "start" : "end"}`;
                 title.textContent = translate(slotIdx === 0 ? "th_time_day_start" : "th_time_day_end");
@@ -528,7 +616,7 @@
                 trackBody.appendChild(createTimelineRow(doc, slotIdx, tz, baseDayStartUtcMs));
             });
 
-            if (invokeDep("isFixedTimeTab")) {
+            if (isFixedTimeTab()) {
                 appendFixedTimeTimelineIndicators(doc, trackBody, baseRef);
             } else {
                 const indicator = doc.createElement("div");
@@ -556,23 +644,23 @@
         }
 
         function getTimelineRenderKey(baseRef, rows, panelCount) {
-            const fixedTimeMode = !!invokeDep("isFixedTimeTab");
-            const fixedSlotCount = Number(invokeDep("getFixedTimeTimelineSlotCount"));
+            const fixedTimeMode = isFixedTimeTab();
+            const fixedSlotCount = Number(dep.getFixedTimeTimelineSlotCount());
             const slotKeyCount = fixedTimeMode && Number.isFinite(fixedSlotCount) ? fixedSlotCount : panelCount;
             const slotDayKeys = [];
             for (let slotIdx = 0; slotIdx < slotKeyCount; slotIdx++) {
                 const ctx = getTimelineBaseLocalContext(slotIdx, baseRef);
-                const pad = invokeDep("pad");
+                const pad = dep.pad();
                 const monthText = (typeof pad === "function") ? pad(ctx.parts.month) : String(ctx.parts.month).padStart(2, "0");
                 const dayText = (typeof pad === "function") ? pad(ctx.parts.day) : String(ctx.parts.day).padStart(2, "0");
                 slotDayKeys.push(`${ctx.parts.year}-${monthText}-${dayText}`);
             }
 
-            const fixedIndicatorToken = fixedTimeMode ? String(invokeDep("getFixedTimeTimelineIndicatorToken") || "") : "";
+            const fixedIndicatorToken = fixedTimeMode ? String(dep.getFixedTimeTimelineIndicatorToken() || "") : "";
 
             const rowKeys = rows.map((tz) => {
                 const sourceDate = getGlobalTime(0) || new Date();
-                const fixedOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", tz, sourceDate);
+                const fixedOffsetMinutes = dep.getFixedOffsetForDisplayAtDate(tz, sourceDate);
                 const offsetToken = Number.isFinite(fixedOffsetMinutes) ? String(fixedOffsetMinutes) : "auto";
                 return `${tz.id}:${offsetToken}`;
             });
@@ -587,8 +675,8 @@
                 getCurrentMainTab(),
                 panelCount,
                 baseRef.id,
-                invokeDep("getCurrentLang"),
-                invokeDep("getCurrentTheme"),
+                dep.getCurrentLang(),
+                dep.getCurrentTheme(),
                 rowKeys.join(","),
                 slotDayKeys.join("|"),
                 dayNightToken,
@@ -597,11 +685,11 @@
         }
 
         function refreshTimelineIndicators(frame, baseRef, panelCount) {
-            if (invokeDep("isFixedTimeTab")) {
+            if (isFixedTimeTab()) {
                 const panel = frame.querySelector?.('.timeline-panel[data-slot="0"]');
                 const trackBody = panel?.querySelector?.(".timeline-track-body");
                 if (!panel || !trackBody) return false;
-                const slotCount = Number(invokeDep("getFixedTimeTimelineSlotCount"));
+                const slotCount = Number(dep.getFixedTimeTimelineSlotCount());
                 if (!Number.isFinite(slotCount) || slotCount <= 0) return false;
 
                 let hasPositioned = false;
@@ -616,8 +704,8 @@
                 if (liveIndicator) {
                     // 실시간(Now) 위치 계산을 위해 현재 로컬 시간 기반 비율 계산
                     const sourceDate = new Date();
-                    const fixedOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", baseRef, sourceDate);
-                    const parts = invokeDep("getLocalPartsByTimezone", sourceDate, baseRef, fixedOffsetMinutes);
+                    const fixedOffsetMinutes = dep.getFixedOffsetForDisplayAtDate(baseRef, sourceDate);
+                    const parts = dep.getLocalPartsByTimezone(sourceDate, baseRef, fixedOffsetMinutes);
                     if (parts) {
                         const totalSeconds = (parts.hour * 3600) + (parts.minute * 60) + parts.second;
                         const ratio = clampNumber(totalSeconds / TIMELINE_TOTAL_SECONDS, 0, 1);
@@ -659,7 +747,7 @@
         }
 
         function renderTimelineFrame() {
-            const frame = invokeDep("getTimelineFrameElement");
+            const frame = dep.getTimelineFrameElement();
             if (!frame) return;
 
             if (!shouldRenderTimeline()) {
@@ -670,10 +758,10 @@
                 return;
             }
 
-            const doc = frame.ownerDocument || (typeof document === "object" ? document : null);
+            const doc = frame.ownerDocument || getDocumentRef();
             if (!doc || typeof doc.createElement !== "function") return;
 
-            const baseRef = invokeDep("getBaseTimezoneRef");
+            const baseRef = dep.getBaseTimezoneRef();
             if (!baseRef || typeof baseRef !== "object") return;
             const rows = getTimelineRows(baseRef);
             const panelCount = getTimelinePanelCount();

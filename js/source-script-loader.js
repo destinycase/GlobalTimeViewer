@@ -1,0 +1,240 @@
+(function initGtvSourceScriptLoader(globalObj) {
+    "use strict";
+
+    const SOURCE_SCRIPTS = Object.freeze([
+    "i18n.js",
+    "js/vendor/luxon.min.js",
+    "js/modules/app-config.js",
+    "js/modules/main-constants.js",
+    "js/modules/main-constants-bindings.js",
+    "js/modules/main-runtime-lang-state.js",
+    "js/modules/main-runtime-lang-state-bindings.js",
+    "js/modules/main-day-night-range-utils.js",
+    "js/modules/main-day-night-range-utils-bindings.js",
+    "js/modules/main-state-initializer.js",
+    "js/modules/main-state-initializer-bindings.js",
+    "js/modules/main-app-state-vars.js",
+    "js/modules/main-app-state-vars-bindings.js",
+    "js/modules/main-core-service-assembly.js",
+    "js/modules/main-core-service-assembly-bindings.js",
+    "js/modules/main-module-resolver.js",
+    "js/modules/main-module-spec.js",
+    "js/modules/main-module-resolution-bindings.js",
+    "js/modules/main-foundation-services.js",
+    "js/modules/main-foundation-services-bindings.js",
+    "js/modules/main-shared-utils.js",
+    "js/modules/service-invoke-utils.js",
+    "js/modules/main-service-method-bridge.js",
+    "js/modules/main-bootstrap-guard.js",
+    "js/modules/main-bootstrap-guard-bindings.js",
+    "js/modules/main-runtime-host-utils.js",
+    "js/modules/main-runtime-host-utils-bindings.js",
+    "js/modules/main-runtime-host-accessor-proxies.js",
+    "js/modules/main-runtime-host-accessor-bindings.js",
+    "js/modules/main-runtime-primary-state.js",
+    "js/modules/main-runtime-primary-state-bindings.js",
+    "js/modules/main-runtime-primary-state-accessor-proxies.js",
+    "js/modules/main-runtime-primary-state-accessor-bindings.js",
+    "js/modules/main-runtime-service-bridge-helpers.js",
+    "js/modules/main-runtime-service-bridge-helper-bindings.js",
+    "js/modules/main-runtime-service-bridge-accessor-proxies.js",
+    "js/modules/main-runtime-service-bridge-accessor-bindings.js",
+    "js/modules/main-runtime-ui-bridge-accessor-proxies.js",
+    "js/modules/main-runtime-ui-bridge-accessor-bindings.js",
+    "js/modules/main-runtime-operation-accessor-proxies.js",
+    "js/modules/main-runtime-operation-accessor-bindings.js",
+    "js/modules/main-runtime-public-api-bindings.js",
+    "js/modules/main-runtime-bootstrap-accessor-proxies.js",
+    "js/modules/main-runtime-bootstrap-accessor-bindings.js",
+    "js/modules/main-runtime-core-accessor-proxies.js",
+    "js/modules/main-runtime-core-accessor-bindings.js",
+    "js/modules/main-runtime-state-patch-accessor-proxies.js",
+    "js/modules/main-runtime-state-patch-accessor-bindings.js",
+    "js/modules/main-runtime-patched-state-fallback.js",
+    "js/modules/main-runtime-patched-state-fallback-bindings.js",
+    "js/modules/main-runtime-local-state-helpers.js",
+    "js/modules/main-runtime-local-state-helpers-bindings.js",
+    "js/modules/main-runtime-local-state-accessor-proxies.js",
+    "js/modules/main-runtime-local-state-accessor-bindings.js",
+    "js/modules/main-runtime-bridge-proxies.js",
+    "js/modules/main-runtime-bridge-proxy-bindings.js",
+    "js/modules/main-runtime-timezone-helpers.js",
+    "js/modules/main-runtime-timezone-helper-bindings.js",
+    "js/modules/main-runtime-state-helpers.js",
+    "js/modules/main-runtime-state-helper-aliases.js",
+    "js/modules/main-runtime-state-helper-aliases-bindings.js",
+    "js/modules/main-runtime-state-helper-accessor-proxies.js",
+    "js/modules/main-runtime-state-helper-accessor-bindings.js",
+    "js/modules/main-runtime-state-helper-bootstrap.js",
+    "js/modules/main-runtime-reference-accessors.js",
+    "js/modules/main-runtime-reference-accessor-bindings.js",
+    "js/modules/main-state-domain-wrapper-bridge.js",
+    "js/modules/main-state-domain-wrapper-bridge-bindings.js",
+    "js/modules/main-state-domain-wrapper-global-bindings.js",
+    "js/modules/main-state-domain-wrapper-global-bindings-bridge.js",
+    "js/modules/main-state-domain-proxy-bindings.js",
+    "js/modules/main-facade-method-binder.js",
+    "js/modules/main-facade-method-binder-bindings.js",
+    "js/modules/main-facade-bindings.js",
+    "js/modules/main-facade-bridge.js",
+    "js/modules/main-facade-bridge-bindings.js",
+    "js/modules/main-format-profile-facade-bindings.js",
+    "js/modules/main-core-service-bindings.js",
+    "js/modules/main-foundation-service-bindings.js",
+    "js/modules/main-composition-config-builder.js",
+    "js/modules/main-composition-config-builder-bindings.js",
+    "js/modules/main-core-assembly-config-builder.js",
+    "js/modules/main-core-assembly-config-builder-bindings.js",
+    "js/modules/main-runtime-service-config-builder.js",
+    "js/modules/main-runtime-service-config-builder-bindings.js",
+    "js/modules/main-runtime-state-core-bootstrap.js",
+    "js/modules/main-runtime-core-service-bootstrap.js",
+    "js/modules/main-runtime-core-assembly-bootstrap.js",
+    "js/modules/main-runtime-core-foundation-bootstrap.js",
+    "js/modules/main-runtime-table-image-bootstrap.js",
+    "js/modules/main-runtime-domain-service-bootstrap.js",
+    "js/modules/main-runtime-persistence-composition-bootstrap.js",
+    "js/modules/main-runtime-composition-bootstrap.js",
+    "js/modules/main-runtime-bootstrap-wiring.js",
+    "js/modules/main-state-domain-proxies.js",
+    "js/modules/main-direct-state-patch.js",
+    "js/modules/main-app-state-services.js",
+    "js/modules/main-app-state-bridge.js",
+    "js/modules/main-patched-state-selectors.js",
+    "js/modules/main-patched-state-accessor-proxies.js",
+    "js/modules/main-patched-state-accessor-bindings.js",
+    "js/modules/main-format-profile-facade.js",
+    "js/modules/main-timeline-facade.js",
+    "js/modules/main-fixed-time-facade.js",
+    "js/modules/main-timezone-facade.js",
+    "js/modules/main-timezone-table-facade.js",
+    "js/modules/main-time-adjust-facade.js",
+    "js/modules/main-fixed-time-tab-facade.js",
+    "js/modules/main-multi-range-tab-facade.js",
+    "js/modules/main-app-bootstrap.js",
+    "js/modules/main-persistence-services.js",
+    "js/modules/main-group-tabs-service.js",
+    "js/modules/main-image-runtime-services.js",
+    "js/modules/main-image-export-services.js",
+    "js/modules/main-image-export-bridge-proxy.js",
+    "js/modules/main-image-export-naming-proxy.js",
+    "js/modules/main-row-order-services.js",
+    "js/modules/main-row-view-services.js",
+    "js/modules/main-select-services.js",
+    "js/modules/main-group-localization-services.js",
+    "js/modules/main-orchestration-flow-services.js",
+    "js/modules/main-persistence-snapshot-services.js",
+    "js/modules/main-persistence-composition-services.js",
+    "js/modules/main-clock-orchestrator-services.js",
+    "js/modules/main-timezone-runtime-services.js",
+    "js/modules/main-timezone-runtime-bridge.js",
+    "js/modules/main-timezone-mutation-services.js",
+    "js/modules/main-base-timezone-services.js",
+    "js/modules/main-runtime-composition-services.js",
+    "js/modules/main-fixed-time-services.js",
+    "js/modules/main-multi-range-services.js",
+    "js/modules/main-time-adjust-services.js",
+    "js/modules/main-tab-services.js",
+    "js/modules/main-group-state-services.js",
+    "js/modules/main-ui-runtime-services.js",
+    "js/modules/service-bootstrap.js",
+    "js/modules/app-state-patcher.js",
+    "js/modules/date-picker.js",
+    "js/modules/time-core.js",
+    "js/modules/time-input-mutations.js",
+    "js/modules/timer-engine.js",
+    "js/modules/time-service.js",
+    "js/modules/timezone-data.js",
+    "js/modules/calculator.js",
+    "js/modules/calculator-actions.js",
+    "js/modules/multi-state.js",
+    "js/modules/image-export.js",
+    "js/modules/image-export-actions.js",
+    "js/modules/image-export-bridge.js",
+    "js/modules/image-export-naming.js",
+    "js/modules/image-clone.js",
+    "js/modules/image-foreign-render.js",
+    "js/modules/group-state.js",
+    "js/modules/group-context-state.js",
+    "js/modules/group-tabs.js",
+    "js/modules/timezone-search.js",
+    "js/modules/snapshot-format.js",
+    "js/modules/table-render.js",
+    "js/modules/table-image-render.js",
+    "js/modules/multi-range-image-render.js",
+    "js/modules/multi-range-state.js",
+    "js/modules/multi-range-render.js",
+    "js/modules/multi-range-copy.js",
+    "js/modules/copy-actions.js",
+    "js/modules/time-adjust-ui.js",
+    "js/modules/time-adjust-actions.js",
+    "js/modules/multi-bulk-tools.js",
+    "js/modules/timeline-frame.js",
+    "js/modules/fixed-time-core.js",
+    "js/modules/fixed-time-slot-utils.js",
+    "js/modules/fixed-time-state.js",
+    "js/modules/fixed-time-timeline.js",
+    "js/modules/fixed-time-actions.js",
+    "js/modules/fixed-time-table.js",
+    "js/modules/format-profile-state.js",
+    "js/modules/format-controls.js",
+    "js/modules/tab-ui.js",
+    "js/modules/tab-orchestrator.js",
+    "js/modules/main-ui-init.js",
+    "js/modules/main-ui-utils.js",
+    "js/modules/app-feedback.js",
+    "js/modules/ui-settings-actions.js",
+    "js/modules/app-persistence-state.js",
+    "js/modules/persistence-service-bundle.js",
+    "js/modules/state-persistence.js",
+    "js/modules/ui-preferences-state.js",
+    "js/modules/settings-io.js",
+    "js/modules/data-transfer.js",
+    "js/modules/main-global-bindings.js",
+    "js/modules/main-test-helpers.js",
+    "js/modules/main-test-helpers-bindings.js",
+    "main.js"
+]);
+    const documentRef = globalObj?.document || null;
+
+    function renderDeferredScriptTags(paths) {
+        return paths
+            .map((src) => `<script src="${src}" defer></script>`)
+            .join("\n");
+    }
+
+    function injectScriptsWithDomWrite(paths) {
+        if (!documentRef || typeof documentRef.write !== "function") return false;
+        if (documentRef.readyState !== "loading") return false;
+        documentRef.write(`${renderDeferredScriptTags(paths)}\n`);
+        return true;
+    }
+
+    function injectScriptsDynamically(paths) {
+        if (!documentRef || typeof documentRef.createElement !== "function") {
+            throw new Error("Document API unavailable for source script loader.");
+        }
+
+        const parent = documentRef.body || documentRef.head || documentRef.documentElement;
+        if (!parent || typeof parent.appendChild !== "function") {
+            throw new Error("No valid parent element for source script loader.");
+        }
+
+        paths.forEach((src) => {
+            const scriptEl = documentRef.createElement("script");
+            scriptEl.src = src;
+            scriptEl.defer = true;
+            scriptEl.async = false;
+            parent.appendChild(scriptEl);
+        });
+    }
+
+    try {
+        if (!injectScriptsWithDomWrite(SOURCE_SCRIPTS)) {
+            injectScriptsDynamically(SOURCE_SCRIPTS);
+        }
+    } catch (error) {
+        console.error("[GTV] Failed to inject source scripts.", error);
+        throw error;
+    }
+})(typeof window !== "undefined" ? window : globalThis);

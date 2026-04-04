@@ -33,5 +33,12 @@
         EXPORT_MONO_FONT_FAMILY: "'JetBrains Mono', 'Consolas', 'Courier New', monospace"
     });
 
-    globalObj.GTVAppConfig = APP_CONFIG;
+    function createService(_deps = {}) {
+        return APP_CONFIG;
+    }
+
+    globalObj.GTVAppConfig = Object.freeze({
+        createService,
+        ...APP_CONFIG
+    });
 })(typeof window !== "undefined" ? window : globalThis);

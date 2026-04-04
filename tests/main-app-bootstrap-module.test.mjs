@@ -158,4 +158,46 @@ describe("GTV main app bootstrap module", () => {
         expect(errors[0]?.step).toBe("loadPersistence");
         expect(String(errors[0]?.message || "")).toContain("loadPersistence");
     });
+
+    it("default removeLoadingOverlay uses injected documentRef", async () => {
+        const moduleApi = loadMainAppBootstrapModule({ withWindow: false });
+        let hiddenApplied = 0;
+        let removed = 0;
+        const overlay = {
+            classList: {
+                add(token) {
+                    if (token === "hidden") hiddenApplied += 1;
+                }
+            },
+            parentNode: {},
+            addEventListener() {},
+            remove() {
+                removed += 1;
+                this.parentNode = null;
+            }
+        };
+        const service = moduleApi.createService({
+            documentRef: {
+                getElementById(id) {
+                    if (id === "app-loading-overlay") return overlay;
+                    return null;
+                }
+            },
+            setTimeoutFn: (fn, _ms) => {
+                fn();
+                return 1;
+            },
+            clearTimeoutFn: () => {},
+            loadPersistence: () => {},
+            loadThemePreference: () => null,
+            applyTheme: () => {},
+            loadUiScalePreference: () => null,
+            applyUiScale: () => {}
+        });
+
+        await service.initApp();
+
+        expect(hiddenApplied).toBe(1);
+        expect(removed).toBe(1);
+    });
 });

@@ -11,14 +11,21 @@
             : ((id) => clearInterval(id));
         let realtimeIntervalId = null;
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
         }
+
+        const dep = Object.freeze({
+            shouldTick: toSafeCallable(safeDeps.shouldTick),
+            onTick: toSafeCallable(safeDeps.onTick)
+        });
 
         function getTickIntervalMs(overrideMs = null) {
             const fallback = Number.isFinite(Number(safeDeps.DEFAULT_REALTIME_TICK_MS))
@@ -29,9 +36,9 @@
         }
 
         function runRealtimeTick() {
-            const shouldTick = invokeDep("shouldTick");
+            const shouldTick = dep.shouldTick();
             if (shouldTick === false) return false;
-            invokeDep("onTick");
+            dep.onTick();
             return true;
         }
 

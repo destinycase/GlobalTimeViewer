@@ -56,6 +56,7 @@
             t: safeDeps.t,
             showToast: safeDeps.showToast,
             confirmFn: safeDeps.confirmFn,
+            promptFn: safeDeps.promptFn,
             getState: safeDeps.getState,
             setState: safeDeps.setState,
             isMultiTab: safeDeps.isMultiTab,

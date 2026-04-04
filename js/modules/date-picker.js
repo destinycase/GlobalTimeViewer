@@ -1,4 +1,4 @@
-﻿(function (globalObj) {
+(function initGtvDatePicker(globalObj) {
     "use strict";
 
     const I18N = {
@@ -541,5 +541,32 @@
         }
     }
 
-    globalObj.CustomDatePicker = CustomDatePicker;
+    function createService(deps = {}) {
+        const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function getCustomDatePickerCtor() {
+            if (typeof safeDeps.CustomDatePicker === "function") return safeDeps.CustomDatePicker;
+            if (typeof safeDeps.datePickerCtor === "function") return safeDeps.datePickerCtor;
+            return CustomDatePicker;
+        }
+
+        function createDatePicker(inputEl, options = {}) {
+            const DatePickerCtor = getCustomDatePickerCtor();
+            return new DatePickerCtor(inputEl, options);
+        }
+
+        return Object.freeze({
+            CustomDatePicker: getCustomDatePickerCtor(),
+            createDatePicker
+        });
+    }
+
+    const defaultService = createService();
+
+    globalObj.CustomDatePicker = defaultService.CustomDatePicker;
+    globalObj.GTVDatePicker = Object.freeze({
+        createService,
+        CustomDatePicker: defaultService.CustomDatePicker,
+        createDatePicker: defaultService.createDatePicker
+    });
 })(typeof window !== "undefined" ? window : globalThis);

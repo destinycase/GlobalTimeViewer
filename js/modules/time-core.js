@@ -82,16 +82,30 @@
         return (offH * 60) + (minuteSign * offM);
     }
 
-    const api = Object.freeze({
-        sanitizeTimezoneId,
-        sanitizeBaseTimezoneId,
-        sanitizeUtcRowOrder,
-        sanitizeUtcMs,
-        buildStrictUtcDateFromParts,
-        pad,
-        getCustomOffsetMinutes,
-        clampNumber
-    });
+    function createService(_deps = {}) {
+        return Object.freeze({
+            sanitizeTimezoneId,
+            sanitizeBaseTimezoneId,
+            sanitizeUtcRowOrder,
+            sanitizeUtcMs,
+            buildStrictUtcDateFromParts,
+            pad,
+            getCustomOffsetMinutes,
+            clampNumber
+        });
+    }
 
-    globalObj.GTVTimeCore = api;
+    const defaultService = createService();
+
+    globalObj.GTVTimeCore = Object.freeze({
+        createService,
+        sanitizeTimezoneId: defaultService.sanitizeTimezoneId,
+        sanitizeBaseTimezoneId: defaultService.sanitizeBaseTimezoneId,
+        sanitizeUtcRowOrder: defaultService.sanitizeUtcRowOrder,
+        sanitizeUtcMs: defaultService.sanitizeUtcMs,
+        buildStrictUtcDateFromParts: defaultService.buildStrictUtcDateFromParts,
+        pad: defaultService.pad,
+        getCustomOffsetMinutes: defaultService.getCustomOffsetMinutes,
+        clampNumber: defaultService.clampNumber
+    });
 })(typeof window !== "undefined" ? window : globalThis);

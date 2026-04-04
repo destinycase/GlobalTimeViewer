@@ -1,7 +1,14 @@
 (function initGtvMainCoreAssemblyConfigBuilder(globalObj) {
     "use strict";
 
-    function createService() {
+    function createService(deps = {}) {
+        const baseDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function resolveDeps(overrides = {}) {
+            const overrideDeps = (overrides && typeof overrides === "object") ? overrides : {};
+            return { ...baseDeps, ...overrideDeps };
+        }
+
         function bindFacade(d, getter, methodName) {
             if (typeof d.bindFacadeMethod !== "function") return () => undefined;
             return d.bindFacadeMethod(getter, methodName);
@@ -17,7 +24,7 @@
         }
 
         function buildMainCoreAssemblyConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_MAIN_SERVICE_METHOD_BRIDGE: d.GTV_MAIN_SERVICE_METHOD_BRIDGE,
                 GTV_MAIN_DIRECT_STATE_PATCH: d.GTV_MAIN_DIRECT_STATE_PATCH,
@@ -245,7 +252,7 @@
         }
 
         function buildMainFoundationConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_SERVICE_BOOTSTRAP: d.GTV_SERVICE_BOOTSTRAP,
                 GTV_PERSISTENCE_SERVICE_BUNDLE: d.GTV_PERSISTENCE_SERVICE_BUNDLE,

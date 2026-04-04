@@ -164,4 +164,58 @@ describe("GTV image clone module", () => {
 
         expect(zoneNameNode.textContent).toBe("America/New_York");
     });
+
+    it("prefers injected documentRef over global document when building export spans", () => {
+        const globalDoc = {
+            createElement() {
+                return { className: "global-doc", textContent: "" };
+            }
+        };
+        const injectedDoc = {
+            createElement() {
+                return { className: "injected-doc", textContent: "" };
+            }
+        };
+        const module = loadImageCloneModule({ document: globalDoc });
+        const { source, clonedInputs } = createMockSourceElement(
+            ["09:00"],
+            ".export-exclude, .move-col, .move-cell"
+        );
+        const service = module.createService({
+            documentRef: injectedDoc
+        });
+
+        service.cloneTableForImageExport(source);
+
+        expect(clonedInputs[0].replacedWith.className).toBe("export-time-text");
+        expect(clonedInputs[0].replacedWith.textContent).toBe("09:00");
+        expect(clonedInputs[0].replacedWith).not.toHaveProperty("className", "global-doc");
+    });
+
+    it("prefers injected getDocumentRefOrNull over global document when building export spans", () => {
+        const globalDoc = {
+            createElement() {
+                return { className: "global-doc", textContent: "" };
+            }
+        };
+        const injectedDoc = {
+            createElement() {
+                return { className: "injected-doc", textContent: "" };
+            }
+        };
+        const module = loadImageCloneModule({ document: globalDoc });
+        const { source, clonedInputs } = createMockSourceElement(
+            ["09:00"],
+            ".export-exclude, .move-col, .move-cell"
+        );
+        const service = module.createService({
+            getDocumentRefOrNull: () => injectedDoc
+        });
+
+        service.cloneTableForImageExport(source);
+
+        expect(clonedInputs[0].replacedWith.className).toBe("export-time-text");
+        expect(clonedInputs[0].replacedWith.textContent).toBe("09:00");
+        expect(clonedInputs[0].replacedWith).not.toHaveProperty("className", "global-doc");
+    });
 });

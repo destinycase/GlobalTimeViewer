@@ -125,6 +125,77 @@ function createStorageStub() {
     };
 }
 
+function createDocumentRefFromElements(elements, options = {}) {
+    const explicitElements = [
+        elements.periodStart,
+        elements.periodEnd,
+        elements.periodSwapBtn,
+        elements.periodRes,
+        elements.periodHourRes,
+        elements.periodMinRes,
+        elements.periodSecRes,
+        elements.offsetStart,
+        elements.offVal,
+        elements.offUnit,
+        elements.offDir,
+        elements.offsetRes,
+        elements.unixNowValue,
+        elements.unixNowMsValue,
+        elements.unixSyncNowBtn,
+        elements.unixTsInput,
+        elements.unixTsMsInput,
+        elements.unixIsoLocalInput,
+        elements.unixIsoUtcInput,
+        elements.unixRfc2822Input,
+        elements.unixSqlInput,
+        elements.unixHumanInput,
+        ...elements.smartFormatRows,
+        ...elements.countdownTargetInputs,
+        ...elements.countdownNameButtons,
+        ...elements.countdownNameInputs,
+        ...elements.countdownDisplays,
+        ...elements.countdownStatuses,
+        ...elements.countdownActionButtons
+    ];
+    const byId = new Map(
+        explicitElements
+            .filter((el) => el && typeof el.id === "string" && el.id)
+            .map((el) => [el.id, el])
+    );
+    const queryMap = new Map([
+        [".countdown-name-btn", elements.countdownNameButtons],
+        [".countdown-name-input", elements.countdownNameInputs],
+        [".countdown-toggle-btn", elements.countdownActionButtons.filter((btn) => btn.getAttribute("data-action") === "toggle")],
+        [".countdown-target-input", elements.countdownTargetInputs],
+        [".countdown-display", elements.countdownDisplays],
+        [".countdown-status", elements.countdownStatuses],
+        [".countdown-slot-controls .sm-btn[data-action]", elements.countdownActionButtons],
+        [".smart-format-row", elements.smartFormatRows]
+    ]);
+    const currentLang = options.lang || "en";
+    const currentTheme = options.theme || "dark";
+
+    return {
+        documentElement: {
+            lang: currentLang,
+            getAttribute(name) {
+                if (name === "data-theme") return currentTheme;
+                return null;
+            }
+        },
+        getElementById(id) {
+            return byId.get(id) || null;
+        },
+        querySelector(selector) {
+            const values = queryMap.get(selector);
+            return Array.isArray(values) && values.length ? values[0] : null;
+        },
+        querySelectorAll(selector) {
+            return queryMap.get(selector) || [];
+        }
+    };
+}
+
 function createCalculatorContext() {
     const byId = new Map();
     const queryMap = new Map();
@@ -476,6 +547,20 @@ test("unix converter performs bidirectional conversion", () => {
     expect(elements.unixTsMsInput.value).toBe(String(expectedMs));
 });
 
+test("unix converter rejects browser-dependent free-form date strings", () => {
+    const { sandbox, elements } = createCalculatorContext();
+    sandbox.GTVCalculator.initCalculators({
+        t: createTranslator(),
+        copyText: async () => { }
+    });
+
+    elements.unixIsoLocalInput.value = "03/07/2026 12:34:56";
+    elements.unixIsoLocalInput.dispatch("input");
+
+    expect(elements.unixTsInput.value).toBe("Invalid timestamp");
+    expect(elements.smartFormatRows.every((row) => row.classList.contains("is-invalid"))).toBe(true);
+});
+
 test("countdown marks expired target and persists slot state", () => {
     const { sandbox, elements, storage } = createCalculatorContext();
     sandbox.GTVCalculator.initCalculators({
@@ -494,6 +579,36 @@ test("countdown marks expired target and persists slot state", () => {
     expect(elements.countdownStatuses[0].textContent).toBe("Expired");
     const persisted = JSON.parse(storage.getItem("GTV_CalcCountdown_v1"));
     expect(Array.isArray(persisted)).toBe(true);
+    expect(persisted[0].active).toBe(false);
+});
+
+test("countdown accepts datetime-local values without seconds", () => {
+    const { sandbox, elements, storage } = createCalculatorContext();
+    sandbox.GTVCalculator.initCalculators({
+        t: createTranslator(),
+        copyText: async () => { }
+    });
+
+    elements.countdownTargetInputs[0].value = "2026-03-07T23:00";
+    elements.countdownTargetInputs[0].dispatch("change");
+
+    const persisted = JSON.parse(storage.getItem("GTV_CalcCountdown_v1"));
+    expect(persisted[0].targetIso).toBe(new Date(2026, 2, 7, 23, 0, 0).toISOString());
+    expect(persisted[0].active).toBe(false);
+});
+
+test("countdown clears unsupported free-form target strings", () => {
+    const { sandbox, elements, storage } = createCalculatorContext();
+    sandbox.GTVCalculator.initCalculators({
+        t: createTranslator(),
+        copyText: async () => { }
+    });
+
+    elements.countdownTargetInputs[0].value = "03/07/2026 23:00:00";
+    elements.countdownTargetInputs[0].dispatch("change");
+
+    const persisted = JSON.parse(storage.getItem("GTV_CalcCountdown_v1"));
+    expect(persisted[0].targetIso).toBe("");
     expect(persisted[0].active).toBe(false);
 });
 
@@ -596,4 +711,86 @@ test("countdown name edits inline without prompt flow", () => {
     const persisted = JSON.parse(storage.getItem("GTV_CalcCountdown_v1"));
     expect(persisted[0].name).toBe("Project Deadline");
     expect(persisted[0].nameIsCustom).toBe(true);
+});
+
+test("createService prefers explicit refs for document, storage, date picker, and refresh target", () => {
+    const { sandbox, elements, storage } = createCalculatorContext();
+    const documentRef = createDocumentRefFromElements(elements, { lang: "ko", theme: "light" });
+    const storageRef = createStorageStub();
+    const refreshTargetRef = {};
+    const datePickerConfigs = [];
+    let padCallCount = 0;
+
+    class TestDatePicker {
+        constructor(element, config) {
+            this.element = element;
+            this.config = config;
+            this.selectedDate = null;
+            datePickerConfigs.push({ element, config });
+        }
+        setDate(value) {
+            this.selectedDate = value ? new Date(value) : null;
+        }
+        setLang(lang) {
+            this.lang = lang;
+        }
+        setTheme(theme) {
+            this.theme = theme;
+        }
+    }
+
+    sandbox.document.getElementById = () => null;
+    sandbox.document.querySelectorAll = () => [];
+
+    const service = sandbox.GTVCalculator.createService({
+        documentRef,
+        storageRef,
+        datePickerCtor: TestDatePicker,
+        timeCoreRef: {
+            pad(value) {
+                padCallCount += 1;
+                return String(Math.max(0, Math.trunc(Number(value) || 0))).padStart(2, "0");
+            }
+        },
+        refreshTargetRef
+    });
+
+    service.initCalculators({
+        t: createTranslator(),
+        copyText: async () => { }
+    });
+
+    expect(typeof refreshTargetRef.__gtvCalcRefresh).toBe("function");
+    expect(typeof sandbox.__gtvCalcRefresh).toBe("undefined");
+    expect(datePickerConfigs.length).toBe(6);
+    expect(datePickerConfigs.every((entry) => entry.config.lang === "ko")).toBe(true);
+    expect(datePickerConfigs.every((entry) => entry.config.theme === "light")).toBe(true);
+    expect(padCallCount).toBeGreaterThan(0);
+
+    elements.countdownTargetInputs[0].value = "2026-03-07T23:00";
+    elements.countdownTargetInputs[0].dispatch("change");
+
+    const persisted = JSON.parse(storageRef.getItem("GTV_CalcCountdown_v1"));
+    expect(Array.isArray(persisted)).toBe(true);
+    expect(persisted[0].targetIso).toBe(new Date(2026, 2, 7, 23, 0, 0).toISOString());
+    expect(storage.getItem("GTV_CalcCountdown_v1")).toBe(null);
+});
+
+test("legacy initCalculators resolves global refs at call time instead of module-load cache", () => {
+    const { sandbox, elements, storage } = createCalculatorContext();
+    const swappedStorage = createStorageStub();
+
+    sandbox.localStorage = swappedStorage;
+    sandbox.window.localStorage = swappedStorage;
+
+    sandbox.GTVCalculator.initCalculators({
+        t: createTranslator(),
+        copyText: async () => { }
+    });
+
+    elements.countdownTargetInputs[0].value = "2026-03-07T23:00";
+    elements.countdownTargetInputs[0].dispatch("change");
+
+    expect(swappedStorage.getItem("GTV_CalcCountdown_v1")).not.toBe(null);
+    expect(storage.getItem("GTV_CalcCountdown_v1")).toBe(null);
 });

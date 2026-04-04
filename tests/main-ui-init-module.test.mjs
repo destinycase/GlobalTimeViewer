@@ -223,6 +223,59 @@ describe("GTV main ui init module", () => {
         expect(() => clickEvents[0].handler({ preventDefault: () => {}, stopPropagation: () => {} })).not.toThrow();
     });
 
+    it("prefers injected getDocumentRef over global document", async () => {
+        const attachedHandlers = [];
+        const navItem = {
+            dataset: { tab: "live" },
+            addEventListener(type, handler) {
+                if (type === "click") {
+                    attachedHandlers.push(handler);
+                }
+            }
+        };
+        const globalDoc = {
+            getElementById() { return null; },
+            querySelectorAll() { return []; },
+            addEventListener() {}
+        };
+        const injectedDoc = {
+            getElementById() { return null; },
+            querySelectorAll(selector) {
+                if (selector === ".nav-item") return [navItem];
+                return [];
+            },
+            addEventListener() {}
+        };
+        const moduleApi = loadMainUiInitModule({ document: globalDoc });
+        const switchedTabs = [];
+        const service = moduleApi.createService({
+            getDocumentRef: () => injectedDoc,
+            switchMainTab: (tab) => switchedTabs.push(tab),
+            bindTransferControls: () => {},
+            bindResetControls: () => {},
+            refreshMultiRangeControls: () => {},
+            refreshFixedTimeSlotCountControls: () => {},
+            renderBaseTimeSelect: () => {},
+            refreshSelectWidths: () => {},
+            updateOptionRowVisibility: () => {},
+            updateTimeAdjustPanel: () => {},
+            renderCopyFormatControls: () => {},
+            renderTimelineFrame: () => {},
+            upgradeNativeTitleTooltips: () => {},
+            getUiScale: () => 1,
+            getCurrentTheme: () => "dark",
+            getCurrentLang: () => "ko",
+            getShowTimeline: () => true,
+            getShowCopyFormat: () => false,
+            getSlotCount: () => 1
+        });
+
+        service.initUI();
+        await attachedHandlers[0]?.({ preventDefault() {}, stopPropagation() {} });
+
+        expect(switchedTabs).toEqual(["live"]);
+    });
+
     it("executes major UI event branches with populated element stubs", async () => {
         const calls = {
             switchTabs: [],

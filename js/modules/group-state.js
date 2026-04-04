@@ -1,7 +1,7 @@
 (function initGtvGroupState(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const timeZoneValidationCache = new Map();
         const maxTimeZoneValidationCacheSize = (() => {
@@ -11,18 +11,34 @@
         })();
         let generatedIdCounter = 0;
 
-        function callDep(name, fallback, ...args) {
-            const fn = safeDeps[name];
-            if (typeof fn !== "function") return fallback;
-            try {
-                return fn(...args);
-            } catch (_err) {
-                return fallback;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
         }
 
+        const dep = Object.freeze({
+            createUniqueTimezoneId: toSafeCallable(safeDeps.createUniqueTimezoneId),
+            sanitizeTimezoneId: toSafeCallable(safeDeps.sanitizeTimezoneId),
+            normalizeCustomAbbr: toSafeCallable(safeDeps.normalizeCustomAbbr),
+            t: toSafeCallable(safeDeps.t),
+            normalizeZoneAbbreviation: toSafeCallable(safeDeps.normalizeZoneAbbreviation),
+            sanitizeBaseTimezoneId: toSafeCallable(safeDeps.sanitizeBaseTimezoneId),
+            sanitizeUtcRowOrder: toSafeCallable(safeDeps.sanitizeUtcRowOrder),
+            sanitizeMultiSubgroupId: toSafeCallable(safeDeps.sanitizeMultiSubgroupId),
+            sanitizeFixedTimes: toSafeCallable(safeDeps.sanitizeFixedTimes),
+            sanitizeFixedDateValue: toSafeCallable(safeDeps.sanitizeFixedDateValue),
+            sanitizeFixedTimeShowLiveNow: toSafeCallable(safeDeps.sanitizeFixedTimeShowLiveNow),
+            ensureGroupMultiSubgroups: toSafeCallable(safeDeps.ensureGroupMultiSubgroups)
+        });
+
         function createTimezoneId(prefix = "tz") {
-            const fromDep = callDep("createUniqueTimezoneId", "", prefix);
+            const fromDep = dep.createUniqueTimezoneId(prefix);
             if (typeof fromDep === "string" && fromDep.trim()) return fromDep.trim();
             generatedIdCounter += 1;
             return `${prefix}-${Date.now()}-${generatedIdCounter}`;
@@ -55,7 +71,8 @@
         function sanitizeTimezoneZone(zone) {
             if (!zone || typeof zone !== "object") return null;
             const zoneType = zone.type === "custom" ? "custom" : "standard";
-            const requestedId = callDep("sanitizeTimezoneId", "", zone.id);
+            const requestedIdRaw = dep.sanitizeTimezoneId(zone.id);
+            const requestedId = (typeof requestedIdRaw === "string") ? requestedIdRaw : "";
             const fallbackPrefix = zoneType === "custom" ? "tz-c" : "tz";
             const id = requestedId || createTimezoneId(fallbackPrefix);
             if (!id) return null;
@@ -66,8 +83,8 @@
                 return {
                     id,
                     type: "custom",
-                    abbr: callDep("normalizeCustomAbbr", "", zone.abbr),
-                    name: (typeof zone.name === "string" && zone.name.trim()) ? zone.name.trim() : callDep("t", "Custom", "label_custom"),
+                    abbr: String(dep.normalizeCustomAbbr(zone.abbr) || ""),
+                    name: (typeof zone.name === "string" && zone.name.trim()) ? zone.name.trim() : String(dep.t("label_custom") || "Custom"),
                     offH: Number.isFinite(offH) ? Math.max(-14, Math.min(14, offH)) : 0,
                     offM: Number.isFinite(offM) ? Math.max(0, Math.min(59, Math.abs(offM))) : 0
                 };
@@ -86,7 +103,7 @@
             const fixedOffsetMinutes = Number.isFinite(parsedFixedOffset)
                 ? Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(parsedFixedOffset)))
                 : null;
-            const fixedAbbr = callDep("normalizeZoneAbbreviation", "", zone.fixedAbbr);
+            const fixedAbbr = String(dep.normalizeZoneAbbreviation(zone.fixedAbbr) || "");
             return {
                 id,
                 type: "standard",
@@ -108,7 +125,8 @@
 
             const seenZoneIds = new Set(["utc"]);
             zones.forEach((zone) => {
-                let zoneId = callDep("sanitizeTimezoneId", "", zone.id);
+                const zoneIdRaw = dep.sanitizeTimezoneId(zone.id);
+                let zoneId = (typeof zoneIdRaw === "string") ? zoneIdRaw : "";
                 if (!zoneId || seenZoneIds.has(zoneId)) {
                     const prefix = zone.type === "custom" ? "tz-c" : "tz";
                     do {
@@ -119,10 +137,13 @@
                 seenZoneIds.add(zoneId);
             });
 
-            const defaultGroupLabel = callDep("t", "Group", "default_group_name");
+            const defaultGroupLabel = String(dep.t("default_group_name") || "Group");
             const safeIndex = Number.isFinite(Number(idx)) ? Math.max(0, Math.trunc(Number(idx))) : 0;
             const name = (typeof group.name === "string" && group.name.trim()) ? group.name.trim() : `${defaultGroupLabel} ${safeIndex + 1}`;
-            let requestedBaseTimezoneId = callDep("sanitizeBaseTimezoneId", "utc", group.baseTimezoneId);
+            const requestedBaseTimezoneIdRaw = dep.sanitizeBaseTimezoneId(group.baseTimezoneId);
+            let requestedBaseTimezoneId = (typeof requestedBaseTimezoneIdRaw === "string" && requestedBaseTimezoneIdRaw)
+                ? requestedBaseTimezoneIdRaw
+                : "utc";
             if (requestedBaseTimezoneId !== "utc") {
                 const baseIsLegacyUtcZone = rawZones.some((zone) => zone.id === requestedBaseTimezoneId && zone.type === "standard" && zone.zone === "UTC");
                 if (baseIsLegacyUtcZone) requestedBaseTimezoneId = "utc";
@@ -130,10 +151,10 @@
             const isBaseTimezoneValid = requestedBaseTimezoneId === "utc" || zones.some((zone) => zone.id === requestedBaseTimezoneId);
             const hasLegacyUtcZone = rawZones.length !== zones.length;
             const showUtcRow = hasLegacyUtcZone ? true : (typeof group.showUtcRow === "boolean" ? group.showUtcRow : true);
-            const utcRowOrder = callDep("sanitizeUtcRowOrder", 0, group.utcRowOrder);
+            const utcRowOrder = dep.sanitizeUtcRowOrder(group.utcRowOrder) ?? 0;
             const rawMultiSubgroups = Array.isArray(group.multiSubgroups) ? group.multiSubgroups : [];
             const multiSubgroups = rawMultiSubgroups.map((subgroup) => ({
-                id: callDep("sanitizeMultiSubgroupId", "", subgroup?.id),
+                id: String(dep.sanitizeMultiSubgroupId(subgroup?.id) || ""),
                 name: subgroup?.name,
                 multiRangeCount: subgroup?.multiRangeCount,
                 multiRanges: subgroup?.multiRanges,
@@ -141,16 +162,15 @@
                 multiRangeStartEditEnabled: subgroup?.multiRangeStartEditEnabled,
                 multiRangeEndEditEnabled: subgroup?.multiRangeEndEditEnabled
             }));
-            const activeMultiSubgroupId = callDep("sanitizeMultiSubgroupId", "", group.activeMultiSubgroupId);
-            const fixedTimes = (typeof safeDeps.sanitizeFixedTimes === "function")
-                ? callDep("sanitizeFixedTimes", [], group.fixedTimes)
-                : [];
-            const fixedDate = (typeof safeDeps.sanitizeFixedDateValue === "function")
-                ? callDep("sanitizeFixedDateValue", "", group.fixedDate, "")
-                : "";
-            const fixedTimeShowLiveNow = (typeof safeDeps.sanitizeFixedTimeShowLiveNow === "function")
-                ? !!callDep("sanitizeFixedTimeShowLiveNow", false, group.fixedTimeShowLiveNow, false)
-                : !!group.fixedTimeShowLiveNow;
+            const activeMultiSubgroupId = String(dep.sanitizeMultiSubgroupId(group.activeMultiSubgroupId) || "");
+            const fixedTimesRaw = dep.sanitizeFixedTimes(group.fixedTimes);
+            const fixedTimes = Array.isArray(fixedTimesRaw) ? fixedTimesRaw : [];
+            const fixedDateRaw = dep.sanitizeFixedDateValue(group.fixedDate, "");
+            const fixedDate = (typeof fixedDateRaw === "string") ? fixedDateRaw : "";
+            const fixedTimeShowLiveNowRaw = dep.sanitizeFixedTimeShowLiveNow(group.fixedTimeShowLiveNow, false);
+            const fixedTimeShowLiveNow = (fixedTimeShowLiveNowRaw === undefined)
+                ? !!group.fixedTimeShowLiveNow
+                : !!fixedTimeShowLiveNowRaw;
             const sanitizedGroup = {
                 name,
                 zones,
@@ -176,7 +196,7 @@
                 }
                 : null;
 
-            callDep("ensureGroupMultiSubgroups", null, sanitizedGroup, { legacyMultiState: groupLegacyMultiState || legacyMultiState });
+            dep.ensureGroupMultiSubgroups(sanitizedGroup, { legacyMultiState: groupLegacyMultiState || legacyMultiState });
             return sanitizedGroup;
         }
 

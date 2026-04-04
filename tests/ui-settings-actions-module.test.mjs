@@ -158,6 +158,41 @@ describe("GTV UI settings actions module", () => {
         expect(observed.full).toBe(1);
     });
 
+    it("bindTransferControls prefers injected getDocumentRefOrNull when direct document dep is unusable", () => {
+        const module = loadUiSettingsActionsModule();
+        const elements = {
+            "export-settings-btn": createEventElement(),
+            "import-settings-btn": createEventElement(),
+            "settings-import-file": createEventElement()
+        };
+        const observed = { exported: 0, settingsChanges: 0 };
+        const service = module.createService({
+            document: {
+                getElementById() {
+                    throw new Error("direct document dep should not be used");
+                }
+            },
+            getDocumentRefOrNull: () => ({
+                getElementById(id) {
+                    return elements[id] || null;
+                }
+            }),
+            exportSettingsToJSON: () => { observed.exported += 1; },
+            handleSettingsImportFile: () => { observed.settingsChanges += 1; }
+        });
+
+        service.bindTransferControls();
+
+        elements["export-settings-btn"].trigger("click");
+        elements["import-settings-btn"].trigger("click");
+        elements["settings-import-file"].trigger("change", { type: "change" });
+
+        expect(observed.exported).toBe(1);
+        expect(elements["settings-import-file"].value).toBe("");
+        expect(elements["settings-import-file"].clicked).toBe(true);
+        expect(observed.settingsChanges).toBe(1);
+    });
+
     it("does not throw when controls or dependencies are missing", () => {
         const module = loadUiSettingsActionsModule();
         const service = module.createService({

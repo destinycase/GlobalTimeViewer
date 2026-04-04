@@ -93,6 +93,69 @@ describe("GTV image export actions module", () => {
         expect(typeof depsFromCall.showToast).toBe("function");
     });
 
+    it("prefers deps.windowRef image export API over global window API", async () => {
+        const module = loadImageExportActionsModule({
+            window: {
+                GTVImageExport: {
+                    saveTimezoneTableImage: async () => {
+                        throw new Error("global window api should not be used");
+                    }
+                }
+            }
+        });
+        const calls = [];
+        const service = module.createService({
+            windowRef: {
+                GTVImageExport: {
+                    createService: () => ({
+                        saveTimezoneTableImage: async () => {
+                            calls.push("windowRef");
+                        }
+                    })
+                }
+            }
+        });
+
+        await service.saveTimezoneTableImage();
+
+        expect(calls).toEqual(["windowRef"]);
+    });
+
+    it("prefers deps.getWindowRefOrNull image export API over direct window dependency", async () => {
+        const module = loadImageExportActionsModule({
+            window: {
+                GTVImageExport: {
+                    saveTimezoneTableImage: async () => {
+                        throw new Error("global window api should not be used");
+                    }
+                }
+            }
+        });
+        const calls = [];
+        const service = module.createService({
+            window: {
+                GTVImageExport: {
+                    createService: () => {
+                        throw new Error("direct window dep should not be used");
+                    }
+                }
+            },
+            getWindowRefOrNull: () => ({
+                GTVImageExport: {
+                    createService: () => ({
+                        saveTimezoneTableImage: async () => {
+                            calls.push("getWindowRefOrNull");
+                        }
+                    })
+                }
+            })
+        });
+
+        await service.saveTimezoneTableImage();
+
+        expect(calls).toEqual(["getWindowRefOrNull"]);
+    });
+
     it("exposes image export deps builder with renderer callbacks", () => {
         const module = loadImageExportActionsModule();
         const service = module.createService({

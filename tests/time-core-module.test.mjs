@@ -118,3 +118,12 @@ test("getCustomOffsetMinutes preserves sign semantics and pad/clamp helpers work
     expect(api.pad(7)).toBe("07");
     expect(api.clampNumber(15, 0, 10)).toBe(10);
 });
+
+test("time core module exposes createService with frozen api", () => {
+    const api = createApi();
+    const serviceApi = api.createService();
+
+    expect(Object.isFrozen(serviceApi)).toBe(true);
+    expect(serviceApi.sanitizeTimezoneId(" UTC ")).toBe("");
+    expect(serviceApi.clampNumber(11, 0, 10)).toBe(10);
+});

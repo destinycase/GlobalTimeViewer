@@ -4,14 +4,24 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
         }
+
+        const dep = Object.freeze({
+            getGroups: toSafeCallable(safeDeps.getGroups),
+            getState: toSafeCallable(safeDeps.getState),
+            setState: toSafeCallable(safeDeps.setState),
+            getUTCRef: toSafeCallable(safeDeps.getUTCRef),
+            sanitizeUtcRowOrder: toSafeCallable(safeDeps.sanitizeUtcRowOrder)
+        });
 
         function getMainTabs() {
             if (!Array.isArray(safeDeps.MAIN_TABS)) {
@@ -21,12 +31,12 @@
         }
 
         function getGroups() {
-            const groups = invokeDep("getGroups");
+            const groups = dep.getGroups();
             return Array.isArray(groups) ? groups : [];
         }
 
         function getState() {
-            const state = invokeDep("getState");
+            const state = dep.getState();
             if (!state || typeof state !== "object") {
                 return {
                     currentMainTab: "live",
@@ -42,7 +52,7 @@
         }
 
         function setState(next = {}) {
-            invokeDep("setState", next);
+            dep.setState(next);
         }
 
         function sanitizeMainTab(tab) {
@@ -103,7 +113,7 @@
             const requestedId = getCurrentGroupBaseTimezoneId();
             const matched = getCurrentGroupZones().find((z) => z && z.id === requestedId);
             if (matched) return matched;
-            return invokeDep("getUTCRef") || null;
+            return dep.getUTCRef() || null;
         }
 
         function ensureBaseTimezoneSelection() {
@@ -123,7 +133,7 @@
         function getCurrentGroupUtcRowOrder() {
             const group = getCurrentGroup();
             if (!group) return 0;
-            const sanitized = invokeDep("sanitizeUtcRowOrder", group.utcRowOrder);
+            const sanitized = dep.sanitizeUtcRowOrder(group.utcRowOrder);
             if (Number.isFinite(sanitized)) return sanitized;
             const parsed = parseInt(group.utcRowOrder, 10);
             if (!Number.isFinite(parsed)) return 0;

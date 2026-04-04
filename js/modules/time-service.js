@@ -1,11 +1,11 @@
-﻿/**
+/**
  * GTVTimeService 모듈
  * Luxon을 사용해 상위 레벨의 시간 연산과 상태 처리를 제공한다.
  */
 (function initGtvTimeService(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const DateTime = deps?.luxon?.DateTime;
 
         function hasLuxonDateTime() {

@@ -1,18 +1,49 @@
 (function initGtvImageExportNaming(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVImageExportNaming] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
+
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVImageExportNaming] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getCustomOffsetMinutes: toSafeCallable("getCustomOffsetMinutes", safeDeps.getCustomOffsetMinutes),
+            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
+            getActiveGroupName: toSafeCallable("getActiveGroupName", safeDeps.getActiveGroupName),
+            t: toSafeCallable("t", safeDeps.t),
+            getZoneAbbreviation: toSafeCallable("getZoneAbbreviation", safeDeps.getZoneAbbreviation),
+            getBaseTime: toSafeCallable("getBaseTime", safeDeps.getBaseTime),
+            sanitizeMultiSubgroupName: toSafeCallable("sanitizeMultiSubgroupName", safeDeps.sanitizeMultiSubgroupName),
+            getCurrentMultiSubgroupName: toSafeCallable("getCurrentMultiSubgroupName", safeDeps.getCurrentMultiSubgroupName)
+        });
 
         function pad2(value) {
             const depPad = safeDeps.pad;
@@ -46,7 +77,7 @@
             const safeTimezone = (tz && typeof tz === "object") ? tz : {};
 
             if (safeTimezone.type === "custom") {
-                const offsetMinRaw = invokeDep("getCustomOffsetMinutes", safeTimezone);
+                const offsetMinRaw = dep.getCustomOffsetMinutes(safeTimezone);
                 const offsetMin = Number.isFinite(Number(offsetMinRaw)) ? Number(offsetMinRaw) : 0;
                 const shifted = new Date(targetDate.getTime() + (offsetMin * 60000));
                 return `${shifted.getUTCFullYear()}-${pad2(shifted.getUTCMonth() + 1)}-${pad2(shifted.getUTCDate())} ${pad2(shifted.getUTCHours())}:${pad2(shifted.getUTCMinutes())}:${pad2(shifted.getUTCSeconds())}`;
@@ -64,11 +95,11 @@
         }
 
         function getTimezoneTableImageFilename() {
-            const baseRef = invokeDep("getBaseTimezoneRef") || { type: "standard", zone: "UTC", id: "utc" };
+            const baseRef = dep.getBaseTimezoneRef() || { type: "standard", zone: "UTC", id: "utc" };
             const groupName =
-                sanitizeFilenamePart(invokeDep("getActiveGroupName") || invokeDep("t", "default_group_name")) || "Group";
-            const baseAbbr = sanitizeFilenamePart(invokeDep("getZoneAbbreviation", baseRef) || "UTC") || "UTC";
-            const baseDateTime = formatDateTimeByTimezone(invokeDep("getBaseTime"), baseRef).trim();
+                sanitizeFilenamePart(dep.getActiveGroupName() || dep.t("default_group_name")) || "Group";
+            const baseAbbr = sanitizeFilenamePart(dep.getZoneAbbreviation(baseRef) || "UTC") || "UTC";
+            const baseDateTime = formatDateTimeByTimezone(dep.getBaseTime(), baseRef).trim();
             const m = baseDateTime.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
             const timePart =
                 sanitizeFilenamePart(m ? `${m[1]} ${m[2]}${m[3]}${m[4]}` : baseDateTime.replace(/:/g, "")) || "time";
@@ -77,11 +108,7 @@
         }
 
         function getSanitizedSubgroupName() {
-            const subgroupName = invokeDep(
-                "sanitizeMultiSubgroupName",
-                invokeDep("getCurrentMultiSubgroupName"),
-                "subgroup"
-            );
+            const subgroupName = dep.sanitizeMultiSubgroupName(dep.getCurrentMultiSubgroupName(), "subgroup");
             return sanitizeFilenamePart(subgroupName || "") || "subgroup";
         }
 

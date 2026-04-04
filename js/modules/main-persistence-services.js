@@ -127,6 +127,8 @@
             sanitizeMultiSubgroupName: safeDeps.sanitizeMultiSubgroupName,
             getDefaultMultiSubgroupName: safeDeps.getDefaultMultiSubgroupName,
             getCurrentMultiSubgroup: safeDeps.getCurrentMultiSubgroup,
+            documentRef,
+            windowRef,
             document: documentRef,
             window: windowRef
         });

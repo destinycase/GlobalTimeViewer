@@ -14,9 +14,16 @@
         return Number.isFinite(parsed) ? parsed : fallback;
     }
 
-    function createService() {
+    function createService(deps = {}) {
+        const baseDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function resolveDeps(overrides = {}) {
+            const overrideDeps = (overrides && typeof overrides === "object") ? overrides : {};
+            return { ...baseDeps, ...overrideDeps };
+        }
+
         function deriveInitialState(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             const initialMainState = (d.initialMainState && typeof d.initialMainState === "object")
                 ? d.initialMainState
                 : {};

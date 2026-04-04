@@ -1,22 +1,84 @@
 (function initGtvMainUiUtils(globalObj) {
     "use strict";
 
-    function createService() {
+    function createService(deps = {}) {
+        const safeDeps = (deps && typeof deps === "object") ? deps : {};
         let floatingTooltipEl = null;
         let floatingTooltipTarget = null;
         let floatingTooltipBound = false;
         let dragGhostEl = null;
 
+        function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") {
+                return safeDeps.documentRef;
+            }
+            if (safeDeps.document && typeof safeDeps.document === "object") {
+                return safeDeps.document;
+            }
+            if (globalObj?.document && typeof globalObj.document === "object") {
+                return globalObj.document;
+            }
+            if (typeof document === "object" && document) {
+                return document;
+            }
+            return null;
+        }
+
+        function getWindowRef() {
+            if (typeof safeDeps.getWindowRef === "function") {
+                const injected = safeDeps.getWindowRef();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (typeof safeDeps.getWindowRefOrNull === "function") {
+                const injected = safeDeps.getWindowRefOrNull();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (safeDeps.windowRef && typeof safeDeps.windowRef === "object") {
+                return safeDeps.windowRef;
+            }
+            if (safeDeps.window && typeof safeDeps.window === "object") {
+                return safeDeps.window;
+            }
+            if (globalObj?.window && typeof globalObj.window === "object") {
+                return globalObj.window;
+            }
+            if (typeof window === "object" && window) {
+                return window;
+            }
+            if (globalObj && typeof globalObj === "object") {
+                return globalObj;
+            }
+            return null;
+        }
+
         function isElementInstance(value) {
             if (!value || typeof value !== "object") return false;
-            if (typeof Element === "undefined") return true;
-            return value instanceof Element;
+            const ElementCtor = safeDeps.ElementCtor || safeDeps.Element || globalObj?.Element || globalThis?.Element;
+            if (typeof ElementCtor !== "function") return true;
+            return value instanceof ElementCtor;
         }
 
         function isHtmlElementInstance(value) {
             if (!value || typeof value !== "object") return false;
-            if (typeof HTMLElement === "undefined") return true;
-            return value instanceof HTMLElement;
+            const HTMLElementCtor = safeDeps.HTMLElementCtor || safeDeps.HTMLElement || globalObj?.HTMLElement || globalThis?.HTMLElement;
+            if (typeof HTMLElementCtor !== "function") return true;
+            return value instanceof HTMLElementCtor;
         }
 
         function setCustomTooltip(el, text) {
@@ -34,7 +96,7 @@
             if (!el.classList.contains("info-tip")) el.classList.add("custom-tooltip");
         }
 
-        function upgradeNativeTitleTooltips(root = document) {
+        function upgradeNativeTitleTooltips(root = getDocumentRef()) {
             if (!root || typeof root.querySelectorAll !== "function") return;
             const candidates = root.querySelectorAll(
                 'button.copy-row-btn[title], button.remove-row-btn[title]'
@@ -51,10 +113,13 @@
 
         function ensureFloatingTooltipElement() {
             if (floatingTooltipEl && floatingTooltipEl.isConnected) return floatingTooltipEl;
-            const tooltip = document.createElement("div");
+            const documentRef = getDocumentRef();
+            if (!documentRef || typeof documentRef.createElement !== "function") return null;
+            if (!documentRef.body || typeof documentRef.body.appendChild !== "function") return null;
+            const tooltip = documentRef.createElement("div");
             tooltip.className = "app-floating-tooltip";
             tooltip.id = "app-floating-tooltip";
-            document.body.appendChild(tooltip);
+            documentRef.body.appendChild(tooltip);
             floatingTooltipEl = tooltip;
             return tooltip;
         }
@@ -77,10 +142,17 @@
             const tooltipRect = floatingTooltipEl.getBoundingClientRect();
             const viewportPadding = 8;
             const offset = 10;
+            const windowRef = getWindowRef();
+            const viewportWidth = Number.isFinite(Number(windowRef?.innerWidth))
+                ? Number(windowRef.innerWidth)
+                : 1024;
+            const viewportHeight = Number.isFinite(Number(windowRef?.innerHeight))
+                ? Number(windowRef.innerHeight)
+                : 768;
 
             let left = targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2);
             left = Math.min(
-                window.innerWidth - tooltipRect.width - viewportPadding,
+                viewportWidth - tooltipRect.width - viewportPadding,
                 Math.max(viewportPadding, left)
             );
 
@@ -89,7 +161,7 @@
                 top = targetRect.bottom + offset;
             }
             top = Math.min(
-                window.innerHeight - tooltipRect.height - viewportPadding,
+                viewportHeight - tooltipRect.height - viewportPadding,
                 Math.max(viewportPadding, top)
             );
 
@@ -109,6 +181,7 @@
             }
 
             const tooltip = ensureFloatingTooltipElement();
+            if (!tooltip) return;
             tooltip.textContent = text;
             floatingTooltipTarget = target;
             tooltip.classList.add("visible");
@@ -126,12 +199,15 @@
         function createDragGhostFromRow(row) {
             if (!isHtmlElementInstance(row)) return null;
             clearDragGhost();
+            const documentRef = getDocumentRef();
+            if (!documentRef || typeof documentRef.createElement !== "function") return null;
+            if (!documentRef.body || typeof documentRef.body.appendChild !== "function") return null;
 
-            const ghostTable = document.createElement("table");
+            const ghostTable = documentRef.createElement("table");
             ghostTable.className = "data-table drag-ghost-table";
             ghostTable.setAttribute("aria-hidden", "true");
 
-            const ghostBody = document.createElement("tbody");
+            const ghostBody = documentRef.createElement("tbody");
             const ghostRow = row.cloneNode(true);
             if (isHtmlElementInstance(ghostRow)) {
                 ghostRow.classList.remove("dragging");
@@ -154,22 +230,25 @@
             ghostTable.style.pointerEvents = "none";
             ghostTable.style.zIndex = "10000";
 
-            document.body.appendChild(ghostTable);
+            documentRef.body.appendChild(ghostTable);
             dragGhostEl = ghostTable;
             return ghostTable;
         }
 
         function bindFloatingTooltipEvents() {
             if (floatingTooltipBound) return;
+            const documentRef = getDocumentRef();
+            if (!documentRef || typeof documentRef.addEventListener !== "function") return;
+            const windowRef = getWindowRef();
             floatingTooltipBound = true;
 
-            document.addEventListener("pointerenter", (e) => {
+            documentRef.addEventListener("pointerenter", (e) => {
                 const target = isElementInstance(e.target) ? e.target.closest("[data-tooltip]") : null;
                 if (!target) return;
                 showFloatingTooltip(target);
             }, true);
 
-            document.addEventListener("pointerleave", (e) => {
+            documentRef.addEventListener("pointerleave", (e) => {
                 const target = isElementInstance(e.target) ? e.target.closest("[data-tooltip]") : null;
                 if (!target) return;
                 const relatedTarget = e.relatedTarget;
@@ -177,13 +256,13 @@
                 if (floatingTooltipTarget === target) hideFloatingTooltip();
             }, true);
 
-            document.addEventListener("focusin", (e) => {
+            documentRef.addEventListener("focusin", (e) => {
                 const target = isElementInstance(e.target) ? e.target.closest("[data-tooltip]") : null;
                 if (!target) return;
                 showFloatingTooltip(target);
             }, true);
 
-            document.addEventListener("focusout", (e) => {
+            documentRef.addEventListener("focusout", (e) => {
                 const target = isElementInstance(e.target) ? e.target.closest("[data-tooltip]") : null;
                 if (!target) return;
                 const relatedTarget = e.relatedTarget;
@@ -191,10 +270,12 @@
                 if (floatingTooltipTarget === target) hideFloatingTooltip();
             }, true);
 
-            window.addEventListener("scroll", positionFloatingTooltip, true);
-            window.addEventListener("resize", positionFloatingTooltip, true);
-            document.addEventListener("pointerdown", hideFloatingTooltip, true);
-            document.addEventListener("keydown", hideFloatingTooltip, true);
+            if (windowRef && typeof windowRef.addEventListener === "function") {
+                windowRef.addEventListener("scroll", positionFloatingTooltip, true);
+                windowRef.addEventListener("resize", positionFloatingTooltip, true);
+            }
+            documentRef.addEventListener("pointerdown", hideFloatingTooltip, true);
+            documentRef.addEventListener("keydown", hideFloatingTooltip, true);
         }
 
         return Object.freeze({

@@ -223,6 +223,43 @@ describe("GTV multi-range render module", () => {
         expect(() => service.renderMultiRanges()).not.toThrow();
     });
 
+    it("renderMultiRanges prefers injected getDocumentRefOrNull over global document", () => {
+        const container = createElementStub();
+        const module = loadMultiRangeRenderModule({
+            document: {
+                getElementById() {
+                    throw new Error("global document should not be used");
+                },
+                createElement() {
+                    throw new Error("global document should not be used");
+                }
+            }
+        });
+        const service = module.createService({
+            getDocumentRefOrNull: () => ({
+                activeElement: null,
+                getElementById(id) {
+                    if (id === "multi-ranges-container") return container;
+                    return null;
+                },
+                createElement() {
+                    return createElementStub();
+                }
+            }),
+            getBaseTimezoneRef: () => ({ id: "utc", zone: "UTC" }),
+            getZoneDisplayName: () => "UTC",
+            escapeHtml: (value) => String(value || ""),
+            getDisplayColumns: () => [],
+            getRenderableTimezoneRows: () => [],
+            getMultiRanges: () => [],
+            getMultiRangeCollapsed: () => [],
+            getMultiRangeCount: () => 0
+        });
+
+        expect(() => service.renderMultiRanges()).not.toThrow();
+        expect(container.children).toHaveLength(0);
+    });
+
     it("renderMultiRanges handles empty multi-range state without crashing", () => {
         const container = createElementStub();
         const module = loadMultiRangeRenderModule({

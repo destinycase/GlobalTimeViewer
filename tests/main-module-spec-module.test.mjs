@@ -89,4 +89,13 @@ describe("GTV main module spec", () => {
         expect(specMap.GTV_MAIN_RUNTIME_COMPOSITION_SERVICES.globalName).toBe("GTVMainRuntimeCompositionServices");
         expect(specMap.GTV_MAIN_GROUP_STATE_SERVICES.globalName).toBe("GTVMainGroupStateServices");
     });
+
+    it("exposes createService and returns frozen service api", () => {
+        const moduleSpecApi = loadMainModuleSpec();
+        const service = moduleSpecApi.createService();
+        const specMap = service.createSpecMap();
+
+        expect(Object.isFrozen(service)).toBe(true);
+        expect(specMap.GTV_MAIN_UI_RUNTIME_SERVICES.globalName).toBe("GTVMainUiRuntimeServices");
+    });
 });

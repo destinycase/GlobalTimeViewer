@@ -23,6 +23,7 @@
         const sanitizeUtcRowOrderViaTimeCore = bindFacadeMethod(getTimeCoreRef, "sanitizeUtcRowOrder");
         const sanitizeUtcMsViaTimeCore = bindFacadeMethod(getTimeCoreRef, "sanitizeUtcMs");
         const confirmFnViaMainFoundation = bindFacadeMethod(getMainFoundationServicesRef, "confirmFn");
+        const promptFnViaMainFoundation = bindFacadeMethod(getMainFoundationServicesRef, "promptFn");
 
         const facadeBindings = facadeBindingsModule.createService({
             bindFacadeMethod,
@@ -43,6 +44,7 @@
             sanitizeUtcRowOrderViaTimeCore,
             sanitizeUtcMsViaTimeCore,
             confirmFnViaMainFoundation,
+            promptFnViaMainFoundation,
             ...facadeBindings
         });
     }

@@ -1,16 +1,118 @@
 (function initGtvGroupTabs(globalObj) {
     "use strict";
 
-    function createService(deps) {
-        const confirmFn = (typeof deps.confirmFn === "function")
-            ? deps.confirmFn
+    function createService(deps = {}) {
+        const safeDeps = (deps && typeof deps === "object") ? deps : {};
+        const confirmFn = (typeof safeDeps.confirmFn === "function")
+            ? safeDeps.confirmFn
             : ((message) => {
+                if (typeof safeDeps.confirm === "function") return safeDeps.confirm(message);
+                if (typeof globalObj?.confirm === "function") return globalObj.confirm(message);
                 if (typeof confirm === "function") return confirm(message);
                 return true;
             });
+        const promptFn = (typeof safeDeps.promptFn === "function")
+            ? safeDeps.promptFn
+            : (async (message, defaultValue = "") => {
+                if (typeof safeDeps.prompt === "function") return safeDeps.prompt(message, defaultValue);
+                if (typeof globalObj?.prompt === "function") return globalObj.prompt(message, defaultValue);
+                if (typeof prompt === "function") return prompt(message, defaultValue);
+                return null;
+            });
+
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            t: toSafeCallable(safeDeps.t),
+            isMultiTab: toSafeCallable(safeDeps.isMultiTab),
+            isFixedTimeTab: toSafeCallable(safeDeps.isFixedTimeTab),
+            getCurrentGroup: toSafeCallable(safeDeps.getCurrentGroup),
+            getState: toSafeCallable(safeDeps.getState),
+            setState: toSafeCallable(safeDeps.setState),
+            renderBaseTimeSelect: toSafeCallable(safeDeps.renderBaseTimeSelect),
+            renderMultiRanges: toSafeCallable(safeDeps.renderMultiRanges),
+            renderFixedTimeTab: toSafeCallable(safeDeps.renderFixedTimeTab),
+            renderList: toSafeCallable(safeDeps.renderList),
+            renderTimelineFrame: toSafeCallable(safeDeps.renderTimelineFrame),
+            syncCurrentMultiStateToActiveSubgroup: toSafeCallable(safeDeps.syncCurrentMultiStateToActiveSubgroup),
+            normalizeGroupTabState: toSafeCallable(safeDeps.normalizeGroupTabState),
+            loadCurrentMultiStateFromActiveSubgroup: toSafeCallable(safeDeps.loadCurrentMultiStateFromActiveSubgroup),
+            savePersistence: toSafeCallable(safeDeps.savePersistence),
+            ensureGroupMultiSubgroups: toSafeCallable(safeDeps.ensureGroupMultiSubgroups),
+            showToast: toSafeCallable(safeDeps.showToast),
+            getDefaultMultiSubgroupName: toSafeCallable(safeDeps.getDefaultMultiSubgroupName),
+            createMultiSubgroupState: toSafeCallable(safeDeps.createMultiSubgroupState),
+            sanitizeMultiSubgroupName: toSafeCallable(safeDeps.sanitizeMultiSubgroupName),
+            sanitizeMultiRangeTitle: toSafeCallable(safeDeps.sanitizeMultiRangeTitle),
+            getMultiRangeTitle: toSafeCallable(safeDeps.getMultiRangeTitle),
+            hideFloatingTooltip: toSafeCallable(safeDeps.hideFloatingTooltip),
+            setCustomTooltip: toSafeCallable(safeDeps.setCustomTooltip),
+            exportGroupToJSON: toSafeCallable(safeDeps.exportGroupToJSON),
+            triggerGroupImportFor: toSafeCallable(safeDeps.triggerGroupImportFor),
+            upgradeNativeTitleTooltips: toSafeCallable(safeDeps.upgradeNativeTitleTooltips),
+            exportSubgroupToJSON: toSafeCallable(safeDeps.exportSubgroupToJSON),
+            triggerSubgroupImportFor: toSafeCallable(safeDeps.triggerSubgroupImportFor)
+        });
+
+        function ensureGroupMultiSubgroupsSafe(group) {
+            return dep.ensureGroupMultiSubgroups(group);
+        }
+
+        function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") {
+                return safeDeps.documentRef;
+            }
+            if (safeDeps.document && typeof safeDeps.document === "object") {
+                return safeDeps.document;
+            }
+            if (globalObj?.document && typeof globalObj.document === "object") {
+                return globalObj.document;
+            }
+            return (typeof document === "object" && document) ? document : null;
+        }
+
+        function isElementInstance(value) {
+            const ElementCtor = globalObj?.Element || globalThis?.Element;
+            return typeof ElementCtor === "function" && value instanceof ElementCtor;
+        }
+
+        function translate(key) {
+            const translated = dep.t(key);
+            return (typeof translated === "string" && translated) ? translated : String(key || "");
+        }
+
+        function isMultiTab() {
+            return !!dep.isMultiTab();
+        }
+
+        function isFixedTimeTab() {
+            return !!dep.isFixedTimeTab();
+        }
+
+        function getCurrentGroup() {
+            const group = dep.getCurrentGroup();
+            return (group && typeof group === "object") ? group : null;
+        }
 
         function getState() {
-            const state = (typeof deps.getState === "function") ? deps.getState() : null;
+            const state = dep.getState();
             return (state && typeof state === "object") ? state : {};
         }
 
@@ -27,8 +129,15 @@
 
         function setState(next) {
             if (!next || typeof next !== "object") return;
-            if (typeof deps.setState !== "function") return;
-            deps.setState(next);
+            dep.setState(next);
+        }
+
+        async function requestPromptValue(message, defaultValue = "") {
+            try {
+                return await promptFn(message, defaultValue);
+            } catch (_error) {
+                return null;
+            }
         }
 
         function syncActiveGroupIdByCurrentTab() {
@@ -42,17 +151,15 @@
         }
 
         function rerenderActiveTabBody() {
-            if (deps.isMultiTab()) {
-                deps.renderBaseTimeSelect();
-                deps.renderMultiRanges();
-            } else if (typeof deps.isFixedTimeTab === "function" && deps.isFixedTimeTab()) {
-                deps.renderFixedTimeTab();
+            if (isMultiTab()) {
+                dep.renderBaseTimeSelect();
+                dep.renderMultiRanges();
+            } else if (isFixedTimeTab()) {
+                dep.renderFixedTimeTab();
             } else {
-                deps.renderList();
+                dep.renderList();
             }
-            if (typeof deps.renderTimelineFrame === "function") {
-                deps.renderTimelineFrame();
-            }
+            dep.renderTimelineFrame();
         }
 
         function activateGroupTab(idx) {
@@ -61,37 +168,38 @@
             if (!groups.length) return;
             const safeIdx = clampGroupIndexByLength(idx, groups.length);
             if (safeIdx === state.activeGroupId) return;
-            deps.syncCurrentMultiStateToActiveSubgroup();
+            dep.syncCurrentMultiStateToActiveSubgroup();
             setState({ activeGroupId: safeIdx });
-            deps.normalizeGroupTabState();
+            dep.normalizeGroupTabState();
             syncActiveGroupIdByCurrentTab();
-            deps.loadCurrentMultiStateFromActiveSubgroup();
-            deps.savePersistence();
+            dep.loadCurrentMultiStateFromActiveSubgroup();
+            dep.savePersistence();
             renderGroups();
             renderMultiSubgroups();
             rerenderActiveTabBody();
         }
 
-        function addGroup() {
-            const name = prompt(deps.t("prompt_new_group"), deps.t("default_group_name"));
-            if (!name) return;
+        async function addGroup() {
+            const rawName = await requestPromptValue(translate("prompt_new_group"), translate("default_group_name"));
+            if (typeof rawName !== "string" || !rawName.trim()) return;
+            const name = rawName.trim();
 
-            deps.syncCurrentMultiStateToActiveSubgroup();
+            dep.syncCurrentMultiStateToActiveSubgroup();
             const nextGroup = {
-                name: name.trim(),
+                name,
                 zones: [],
                 baseTimezoneId: "utc",
                 showUtcRow: true,
                 utcRowOrder: 0,
-                fixedDate: (typeof deps.getDefaultFixedDate === "function")
-                    ? deps.getDefaultFixedDate()
+                fixedDate: (typeof safeDeps.getDefaultFixedDate === "function")
+                    ? safeDeps.getDefaultFixedDate()
                     : "",
                 fixedTimeShowLiveNow: false,
-                fixedTimes: (typeof deps.getDefaultFixedTimes === "function")
-                    ? deps.getDefaultFixedTimes()
+                fixedTimes: (typeof safeDeps.getDefaultFixedTimes === "function")
+                    ? safeDeps.getDefaultFixedTimes()
                     : []
             };
-            deps.ensureGroupMultiSubgroups(nextGroup);
+            ensureGroupMultiSubgroupsSafe(nextGroup);
 
             const state = getState();
             const currentGroups = getStateGroups(state);
@@ -110,41 +218,41 @@
                 setState({ activeGroupIdByMainTab: nextMap });
             }
 
-            deps.loadCurrentMultiStateFromActiveSubgroup();
-            deps.savePersistence();
+            dep.loadCurrentMultiStateFromActiveSubgroup();
+            dep.savePersistence();
             renderGroups();
             renderMultiSubgroups();
             rerenderActiveTabBody();
         }
 
-        function renameGroup(idx) {
+        async function renameGroup(idx) {
             const state = getState();
             const groups = getStateGroups(state);
             if (!groups.length) return;
             const safeIdx = clampGroupIndexByLength(idx, groups.length);
             const group = groups[safeIdx];
             if (!group) return;
-            const newName = prompt(deps.t("prompt_rename_group"), group.name);
-            if (!newName || !newName.trim()) return;
-            group.name = newName.trim();
-            deps.savePersistence();
+            const nextRawName = await requestPromptValue(translate("prompt_rename_group"), group.name);
+            if (typeof nextRawName !== "string" || !nextRawName.trim()) return;
+            group.name = nextRawName.trim();
+            dep.savePersistence();
             renderGroups();
             renderMultiSubgroups();
-            deps.showToast(deps.t("toast_name_changed"));
+            dep.showToast(translate("toast_name_changed"));
         }
 
         function deleteGroup(idx) {
             const state = getState();
             const groups = getStateGroups(state);
             if (groups.length <= 1) {
-                deps.showToast(deps.t("toast_group_min"));
+                dep.showToast(translate("toast_group_min"));
                 return;
             }
-            if (!confirmFn(deps.t("confirm_delete_group"))) return;
+            if (!confirmFn(translate("confirm_delete_group"))) return;
 
             const safeIdx = clampGroupIndexByLength(idx, groups.length);
             const currentActiveGroupId = clampGroupIndexByLength(state.activeGroupId, groups.length);
-            deps.syncCurrentMultiStateToActiveSubgroup();
+            dep.syncCurrentMultiStateToActiveSubgroup();
             const nextGroups = [...groups];
             nextGroups.splice(safeIdx, 1);
 
@@ -159,95 +267,102 @@
                 groups: nextGroups,
                 activeGroupId: nextActiveGroupId
             });
-            deps.normalizeGroupTabState();
+            dep.normalizeGroupTabState();
             syncActiveGroupIdByCurrentTab();
-            deps.loadCurrentMultiStateFromActiveSubgroup();
-            deps.savePersistence();
+            dep.loadCurrentMultiStateFromActiveSubgroup();
+            dep.savePersistence();
             renderGroups();
             renderMultiSubgroups();
             rerenderActiveTabBody();
-            deps.showToast(deps.t("toast_group_deleted"));
+            dep.showToast(translate("toast_group_deleted"));
         }
 
         function activateMultiSubgroup(subgroupId) {
-            const group = deps.getCurrentGroup();
+            const group = getCurrentGroup();
             if (!group) return;
-            deps.ensureGroupMultiSubgroups(group);
+            ensureGroupMultiSubgroupsSafe(group);
             if (!group.multiSubgroups.some((subgroup) => subgroup.id === subgroupId)) return;
 
-            deps.syncCurrentMultiStateToActiveSubgroup();
+            dep.syncCurrentMultiStateToActiveSubgroup();
             group.activeMultiSubgroupId = subgroupId;
-            deps.loadCurrentMultiStateFromActiveSubgroup();
-            deps.savePersistence();
+            dep.loadCurrentMultiStateFromActiveSubgroup();
+            dep.savePersistence();
             renderMultiSubgroups();
-            if (deps.isMultiTab()) deps.renderMultiRanges();
+            if (isMultiTab()) dep.renderMultiRanges();
         }
 
-        function addMultiSubgroup() {
-            const group = deps.getCurrentGroup();
+        async function addMultiSubgroup() {
+            const group = getCurrentGroup();
             if (!group) return;
-            deps.ensureGroupMultiSubgroups(group);
+            ensureGroupMultiSubgroupsSafe(group);
 
-            const defaultName = deps.getDefaultMultiSubgroupName(group.multiSubgroups.length);
-            const nextName = prompt(deps.t("prompt_new_subgroup"), defaultName);
-            if (!nextName || !nextName.trim()) return;
+            const defaultName = dep.getDefaultMultiSubgroupName(group.multiSubgroups.length);
+            const nextName = await requestPromptValue(translate("prompt_new_subgroup"), defaultName);
+            if (typeof nextName !== "string" || !nextName.trim()) return;
 
-            deps.syncCurrentMultiStateToActiveSubgroup();
-            const subgroup = deps.createMultiSubgroupState(nextName, group.multiSubgroups.length, null);
+            dep.syncCurrentMultiStateToActiveSubgroup();
+            const subgroup = dep.createMultiSubgroupState(nextName, group.multiSubgroups.length, null);
+            if (!subgroup || typeof subgroup !== "object") return;
             group.multiSubgroups.push(subgroup);
             group.activeMultiSubgroupId = subgroup.id;
-            deps.loadCurrentMultiStateFromActiveSubgroup();
-            deps.savePersistence();
+            dep.loadCurrentMultiStateFromActiveSubgroup();
+            dep.savePersistence();
             renderMultiSubgroups();
-            if (deps.isMultiTab()) deps.renderMultiRanges();
+            if (isMultiTab()) dep.renderMultiRanges();
         }
 
-        function renameMultiSubgroup(subgroupId) {
-            const group = deps.getCurrentGroup();
+        async function renameMultiSubgroup(subgroupId) {
+            const group = getCurrentGroup();
             if (!group) return;
-            deps.ensureGroupMultiSubgroups(group);
+            ensureGroupMultiSubgroupsSafe(group);
             const subgroup = group.multiSubgroups.find((item) => item.id === subgroupId);
             if (!subgroup) return;
 
-            const nextName = prompt(deps.t("prompt_rename_subgroup"), subgroup.name);
-            if (!nextName || !nextName.trim()) return;
-            subgroup.name = deps.sanitizeMultiSubgroupName(nextName, subgroup.name);
-            setState({ multiRangeTitle: deps.sanitizeMultiRangeTitle(subgroup.name) });
-            deps.savePersistence();
+            const nextName = await requestPromptValue(translate("prompt_rename_subgroup"), subgroup.name);
+            if (typeof nextName !== "string" || !nextName.trim()) return;
+            subgroup.name = dep.sanitizeMultiSubgroupName(nextName, subgroup.name) || subgroup.name;
+            setState({ multiRangeTitle: dep.sanitizeMultiRangeTitle(subgroup.name) || subgroup.name });
+            dep.savePersistence();
             renderMultiSubgroups();
-            if (deps.isMultiTab()) deps.renderMultiRanges();
-            deps.showToast(deps.t("toast_subgroup_name_changed"));
+            if (isMultiTab()) dep.renderMultiRanges();
+            dep.showToast(translate("toast_subgroup_name_changed"));
         }
 
         function deleteMultiSubgroup(subgroupId) {
-            const group = deps.getCurrentGroup();
+            const group = getCurrentGroup();
             if (!group) return;
-            deps.ensureGroupMultiSubgroups(group);
+            ensureGroupMultiSubgroupsSafe(group);
             if (group.multiSubgroups.length <= 1) {
-                deps.showToast(deps.t("toast_subgroup_min"));
+                dep.showToast(translate("toast_subgroup_min"));
                 return;
             }
-            if (!confirmFn(deps.t("confirm_delete_subgroup"))) return;
+            if (!confirmFn(translate("confirm_delete_subgroup"))) return;
 
-            deps.syncCurrentMultiStateToActiveSubgroup();
+            dep.syncCurrentMultiStateToActiveSubgroup();
             const removeIdx = group.multiSubgroups.findIndex((item) => item.id === subgroupId);
             if (removeIdx < 0) return;
             group.multiSubgroups.splice(removeIdx, 1);
             if (!group.multiSubgroups.length) {
-                group.multiSubgroups.push(deps.createMultiSubgroupState(deps.getDefaultMultiSubgroupName(0), 0, null));
+                const fallbackSubgroup = dep.createMultiSubgroupState(dep.getDefaultMultiSubgroupName(0), 0, null);
+                if (fallbackSubgroup && typeof fallbackSubgroup === "object") {
+                    group.multiSubgroups.push(fallbackSubgroup);
+                }
             }
+            if (!group.multiSubgroups.length) return;
             group.activeMultiSubgroupId = group.multiSubgroups[Math.max(0, removeIdx - 1)]?.id || group.multiSubgroups[0].id;
-            deps.loadCurrentMultiStateFromActiveSubgroup();
-            deps.savePersistence();
+            dep.loadCurrentMultiStateFromActiveSubgroup();
+            dep.savePersistence();
             renderMultiSubgroups();
-            if (deps.isMultiTab()) deps.renderMultiRanges();
-            deps.showToast(deps.t("toast_subgroup_deleted"));
+            if (isMultiTab()) dep.renderMultiRanges();
+            dep.showToast(translate("toast_subgroup_deleted"));
         }
 
         function renderGroups() {
-            deps.hideFloatingTooltip();
-            const container = document.getElementById("group-tabs-container");
-            const addBtn = document.getElementById("add-group-btn");
+            dep.hideFloatingTooltip();
+            const documentRef = getDocumentRef();
+            if (!documentRef || typeof documentRef.getElementById !== "function" || typeof documentRef.createElement !== "function") return;
+            const container = documentRef.getElementById("group-tabs-container");
+            const addBtn = documentRef.getElementById("add-group-btn");
             if (!container || !addBtn) return;
 
             const state = getState();
@@ -255,13 +370,13 @@
             container.textContent = "";
 
             getStateGroups(state).forEach((group, idx) => {
-                deps.ensureGroupMultiSubgroups(group);
-                const btn = document.createElement("div");
+                ensureGroupMultiSubgroupsSafe(group);
+                const btn = documentRef.createElement("div");
                 btn.className = `group-tab ${idx === activeGroupId ? "active" : ""}`;
                 btn.setAttribute("role", "button");
                 btn.tabIndex = 0;
 
-                const label = document.createElement("span");
+                const label = documentRef.createElement("span");
                 label.className = "group-name-label";
                 label.textContent = group.name;
                 let pointerDownX = 0;
@@ -274,7 +389,7 @@
                 btn.addEventListener("pointerup", (e) => {
                     if (e.button !== 0) return;
                     const target = e.target;
-                    if (target instanceof Element && target.closest(".group-edit-btn, .group-export-btn, .group-import-btn, .group-del-btn")) return;
+                    if (isElementInstance(target) && target.closest(".group-edit-btn, .group-export-btn, .group-import-btn, .group-del-btn")) return;
                     const deltaX = Math.abs(e.clientX - pointerDownX);
                     const deltaY = Math.abs(e.clientY - pointerDownY);
                     if (deltaX > 8 || deltaY > 8) return;
@@ -286,37 +401,37 @@
                     activateGroupTab(idx);
                 });
 
-                const editBtn = document.createElement("button");
+                const editBtn = documentRef.createElement("button");
                 editBtn.className = "group-edit-btn";
                 editBtn.textContent = "✎";
-                deps.setCustomTooltip(editBtn, deps.t("tooltip_edit"));
-                editBtn.onclick = (e) => {
+                dep.setCustomTooltip(editBtn, translate("tooltip_edit"));
+                editBtn.onclick = async (e) => {
                     e.stopPropagation();
-                    renameGroup(idx);
+                    await renameGroup(idx);
                 };
 
-                const exportBtn = document.createElement("button");
+                const exportBtn = documentRef.createElement("button");
                 exportBtn.className = "group-export-btn";
                 exportBtn.textContent = "⤒";
-                deps.setCustomTooltip(exportBtn, deps.t("tooltip_group_export"));
+                dep.setCustomTooltip(exportBtn, translate("tooltip_group_export"));
                 exportBtn.onclick = (e) => {
                     e.stopPropagation();
-                    deps.exportGroupToJSON(idx);
+                    dep.exportGroupToJSON(idx);
                 };
 
-                const importBtn = document.createElement("button");
+                const importBtn = documentRef.createElement("button");
                 importBtn.className = "group-import-btn";
                 importBtn.textContent = "⤓";
-                deps.setCustomTooltip(importBtn, deps.t("tooltip_group_import"));
+                dep.setCustomTooltip(importBtn, translate("tooltip_group_import"));
                 importBtn.onclick = (e) => {
                     e.stopPropagation();
-                    deps.triggerGroupImportFor(idx);
+                    dep.triggerGroupImportFor(idx);
                 };
 
-                const delBtn = document.createElement("button");
+                const delBtn = documentRef.createElement("button");
                 delBtn.className = "group-del-btn";
                 delBtn.textContent = "✕";
-                deps.setCustomTooltip(delBtn, deps.t("tooltip_delete"));
+                dep.setCustomTooltip(delBtn, translate("tooltip_delete"));
                 delBtn.onclick = (e) => {
                     e.stopPropagation();
                     deleteGroup(idx);
@@ -333,21 +448,23 @@
             });
 
             container.appendChild(addBtn);
-            deps.upgradeNativeTitleTooltips(container);
+            dep.upgradeNativeTitleTooltips(container);
         }
 
         function renderMultiSubgroups() {
-            deps.hideFloatingTooltip();
-            const container = document.getElementById("multi-subgroup-tabs-container");
-            const addBtn = document.getElementById("add-multi-subgroup-btn");
+            dep.hideFloatingTooltip();
+            const documentRef = getDocumentRef();
+            if (!documentRef || typeof documentRef.getElementById !== "function" || typeof documentRef.createElement !== "function") return;
+            const container = documentRef.getElementById("multi-subgroup-tabs-container");
+            const addBtn = documentRef.getElementById("add-multi-subgroup-btn");
             if (!container || !addBtn) return;
 
-            if (!deps.isMultiTab()) {
+            if (!isMultiTab()) {
                 container.style.display = "none";
                 return;
             }
 
-            const group = deps.getCurrentGroup();
+            const group = getCurrentGroup();
             if (!group) {
                 container.textContent = "";
                 container.appendChild(addBtn);
@@ -356,10 +473,10 @@
             }
 
             const state = getState();
-            deps.ensureGroupMultiSubgroups(group);
+            ensureGroupMultiSubgroupsSafe(group);
             container.textContent = "";
             group.multiSubgroups.forEach((subgroup) => {
-                const tab = document.createElement("div");
+                const tab = documentRef.createElement("div");
                 const isActive = subgroup.id === group.activeMultiSubgroupId;
                 tab.className = `multi-subgroup-tab ${isActive ? "active" : ""}`;
                 tab.setAttribute("role", "button");
@@ -371,47 +488,47 @@
                     activateMultiSubgroup(subgroup.id);
                 });
 
-                const label = document.createElement("span");
+                const label = documentRef.createElement("span");
                 label.className = "multi-subgroup-name-label";
                 label.textContent = subgroup.name;
                 tab.appendChild(label);
 
                 if (isActive) {
-                    const editBtn = document.createElement("button");
+                    const editBtn = documentRef.createElement("button");
                     editBtn.className = "multi-subgroup-edit-btn";
                     editBtn.type = "button";
                     editBtn.textContent = "✎";
-                    deps.setCustomTooltip(editBtn, deps.t("tooltip_subgroup_edit"));
-                    editBtn.onclick = (e) => {
+                    dep.setCustomTooltip(editBtn, translate("tooltip_subgroup_edit"));
+                    editBtn.onclick = async (e) => {
                         e.stopPropagation();
-                        renameMultiSubgroup(subgroup.id);
+                        await renameMultiSubgroup(subgroup.id);
                     };
 
-                    const exportBtn = document.createElement("button");
+                    const exportBtn = documentRef.createElement("button");
                     exportBtn.className = "multi-subgroup-export-btn";
                     exportBtn.type = "button";
                     exportBtn.textContent = "⤒";
-                    deps.setCustomTooltip(exportBtn, deps.t("tooltip_subgroup_export"));
+                    dep.setCustomTooltip(exportBtn, translate("tooltip_subgroup_export"));
                     exportBtn.onclick = (e) => {
                         e.stopPropagation();
-                        deps.exportSubgroupToJSON(state.activeGroupId, subgroup.id);
+                        dep.exportSubgroupToJSON(state.activeGroupId, subgroup.id);
                     };
 
-                    const importBtn = document.createElement("button");
+                    const importBtn = documentRef.createElement("button");
                     importBtn.className = "multi-subgroup-import-btn";
                     importBtn.type = "button";
                     importBtn.textContent = "⤓";
-                    deps.setCustomTooltip(importBtn, deps.t("tooltip_subgroup_import"));
+                    dep.setCustomTooltip(importBtn, translate("tooltip_subgroup_import"));
                     importBtn.onclick = (e) => {
                         e.stopPropagation();
-                        deps.triggerSubgroupImportFor(state.activeGroupId, subgroup.id);
+                        dep.triggerSubgroupImportFor(state.activeGroupId, subgroup.id);
                     };
 
-                    const delBtn = document.createElement("button");
+                    const delBtn = documentRef.createElement("button");
                     delBtn.className = "multi-subgroup-del-btn";
                     delBtn.type = "button";
                     delBtn.textContent = "✕";
-                    deps.setCustomTooltip(delBtn, deps.t("tooltip_subgroup_delete"));
+                    dep.setCustomTooltip(delBtn, translate("tooltip_subgroup_delete"));
                     delBtn.onclick = (e) => {
                         e.stopPropagation();
                         deleteMultiSubgroup(subgroup.id);
@@ -427,7 +544,7 @@
 
             container.appendChild(addBtn);
             container.style.display = "flex";
-            deps.upgradeNativeTitleTooltips(container);
+            dep.upgradeNativeTitleTooltips(container);
         }
 
         return Object.freeze({

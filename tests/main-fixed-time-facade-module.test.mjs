@@ -205,4 +205,21 @@ describe("GTV main fixed-time facade module", () => {
         expect(ctorArgs.options.lang).toBe("en");
         expect(ctorArgs.options.theme).toBe("dark");
     });
+
+    it("uses injected consoleWarn fallback when date picker module is unavailable", () => {
+        const moduleApi = loadMainFixedTimeFacadeModule();
+        const warned = [];
+        const service = moduleApi.createService({
+            callServiceMethod: (_serviceName, _serviceRef, _methodName, _args = [], options = {}) => options.fallback,
+            consoleWarn: (...args) => {
+                warned.push(args);
+            },
+            getWindowRef: () => ({})
+        });
+
+        service.bindCustomDatePickerForInput({ value: "" }, null, {});
+
+        expect(warned).toHaveLength(1);
+        expect(String(warned[0][0])).toContain("CustomDatePicker module is unavailable");
+    });
 });

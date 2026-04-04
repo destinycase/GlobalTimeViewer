@@ -106,7 +106,16 @@
         });
     }
 
+    function createService(_deps = {}) {
+        return Object.freeze({
+            createSpecMap
+        });
+    }
+
+    const defaultService = createService();
+
     globalObj.GTVMainModuleSpec = Object.freeze({
-        createSpecMap
+        createService,
+        createSpecMap: defaultService.createSpecMap
     });
 })(typeof window !== "undefined" ? window : globalThis);

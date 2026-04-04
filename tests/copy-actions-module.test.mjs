@@ -291,4 +291,71 @@ describe("GTV copy actions module", () => {
 
         await expect(service.copyAllTimezones()).resolves.toBeUndefined();
     });
+
+    it("prefers explicit documentRef and logError dependencies", async () => {
+        const rows = [{ id: "tz-row-explicit" }];
+        const errors = [];
+        const module = loadCopyActionsModule({
+            document: {
+                getElementById() {
+                    return null;
+                },
+                querySelectorAll() {
+                    return [];
+                }
+            }
+        });
+        const service = module.createService({
+            documentRef: {
+                getElementById() {
+                    return null;
+                },
+                querySelectorAll(selector) {
+                    if (selector === "#clocks-container .time-row") return rows;
+                    return [];
+                }
+            },
+            isMultiTab: () => false,
+            isFixedTimeTab: () => false,
+            getRowCopyText: () => "ROW TEXT",
+            writeClipboard: async () => {
+                throw new Error("clipboard denied");
+            },
+            showToast: () => {},
+            t: (key) => key,
+            logError: (...args) => {
+                errors.push(args);
+            }
+        });
+
+        await service.copyAllTimezones();
+
+        expect(errors).toHaveLength(1);
+        expect(String(errors[0][0])).toContain("copyAllTimezones failed:");
+    });
+
+    it("prefers injected getDocumentRef over global document", () => {
+        const globalPreview = { textContent: "", classList: createClassList() };
+        const injectedPreview = { textContent: "", classList: createClassList() };
+        const module = loadCopyActionsModule({
+            document: {
+                getElementById(id) {
+                    return id === "copy-format-preview" ? globalPreview : null;
+                }
+            }
+        });
+        const service = module.createService({
+            getDocumentRef: () => ({
+                getElementById(id) {
+                    return id === "copy-format-preview" ? injectedPreview : null;
+                }
+            }),
+            isShowCopyFormat: () => false
+        });
+
+        service.updateCopyFormatPreview();
+
+        expect(injectedPreview.textContent).toBe("-");
+        expect(globalPreview.textContent).toBe("");
+    });
 });

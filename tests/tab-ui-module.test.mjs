@@ -553,4 +553,62 @@ describe("GTV tab UI module", () => {
         expect(warnings.length).toBeGreaterThan(0);
         expect(String(warnings[0][0])).toContain("Dependency");
     });
+
+    it("prefers injected logWarn over console fallback when dependency throws", () => {
+        const consoleWarnings = [];
+        const injectedWarnings = [];
+        const module = loadTabUiModule({
+            console: {
+                warn(...args) {
+                    consoleWarnings.push(args);
+                }
+            },
+            noWindow: true,
+            document: {
+                getElementById(id) {
+                    if (id === "control-option-row") return { style: {} };
+                    return null;
+                }
+            }
+        });
+        const service = module.createService({
+            logWarn: (...args) => {
+                injectedWarnings.push(args);
+            },
+            refreshMultiRangeControls: () => {
+                throw new Error("refresh failed");
+            }
+        });
+
+        expect(() => service.updateOptionRowVisibility()).not.toThrow();
+        expect(injectedWarnings).toHaveLength(1);
+        expect(consoleWarnings).toHaveLength(0);
+        expect(String(injectedWarnings[0][0])).toContain('Dependency "refreshMultiRangeControls" threw.');
+    });
+
+    it("updateOptionRowVisibility prefers injected getDocumentRefOrNull over global document", () => {
+        const globalOptionRow = { style: {}, querySelectorAll() { return []; } };
+        const injectedOptionRow = { style: {}, querySelectorAll() { return []; } };
+        const module = loadTabUiModule({
+            document: {
+                getElementById(id) {
+                    if (id === "control-option-row") return globalOptionRow;
+                    return null;
+                }
+            }
+        });
+        const service = module.createService({
+            getDocumentRefOrNull: () => ({
+                getElementById(id) {
+                    if (id === "control-option-row") return injectedOptionRow;
+                    return null;
+                }
+            })
+        });
+
+        service.updateOptionRowVisibility();
+
+        expect(injectedOptionRow.style.display).toBe("flex");
+        expect(globalOptionRow.style.display).toBeUndefined();
+    });
 });

@@ -93,6 +93,38 @@ describe("GTV multi-range copy module", () => {
         expect(toasts[0]).toMatchObject({ message: "toast_copy_failed", type: "error" });
     });
 
+    it("copyWholeMultiRange prefers injected consoleError on clipboard failure", async () => {
+        const errors = [];
+        const module = loadMultiRangeCopyModule({
+            console: {
+                error() {
+                    throw new Error("global console should not be used");
+                }
+            }
+        });
+        const service = module.createService({
+            getMultiRanges: () => [{ startUtcMs: 0, endUtcMs: 1000 }],
+            getBaseTimezoneRef: () => ({ id: "utc" }),
+            getRenderableTimezoneRows: () => [],
+            getMultiRangeTitleText: () => "TITLE",
+            buildTimezoneComputedSnapshotForRange: () => ({}),
+            formatSnapshotText: () => "UTC line",
+            writeClipboard: async () => {
+                throw new Error("clipboard denied");
+            },
+            consoleError: (...args) => {
+                errors.push(args);
+            },
+            showToast: () => {},
+            t: (key) => key
+        });
+
+        await service.copyWholeMultiRange(0);
+
+        expect(errors).toHaveLength(1);
+        expect(String(errors[0][0])).toContain("copyWholeMultiRange failed:");
+    });
+
     it("copyWholeMultiRange exits when base reference is unavailable", async () => {
         const module = loadMultiRangeCopyModule();
         const service = module.createService({

@@ -1,7 +1,14 @@
 (function initGtvMainRuntimeServiceConfigBuilder(globalObj) {
     "use strict";
 
-    function createService() {
+    function createService(deps = {}) {
+        const baseDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function resolveDeps(overrides = {}) {
+            const overrideDeps = (overrides && typeof overrides === "object") ? overrides : {};
+            return { ...baseDeps, ...overrideDeps };
+        }
+
         function deferDynamic(d, getter) {
             if (typeof d.deferDynamicCall !== "function") return () => undefined;
             return d.deferDynamicCall(getter);
@@ -13,7 +20,7 @@
         }
 
         function buildMainSelectServicesConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 getDocumentRef: d.getDocumentRefOrNull,
                 getComputedStyle: d.getComputedStyleSafely,
@@ -30,7 +37,7 @@
         }
 
         function buildTimezoneSearchConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 TZ_DATABASE: d.TZ_DATABASE,
                 getZoneMap: d.getZoneMapRef,
@@ -49,7 +56,7 @@
         }
 
         function buildSnapshotFormatConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 DEFAULT_COPY_TIME_PARTS_ENABLED: d.DEFAULT_COPY_TIME_PARTS_ENABLED,
                 I18N_DATA: d.MAIN_I18N_DATA,
@@ -77,7 +84,7 @@
         }
 
         function buildTimeInputMutationsConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 t: deferDynamic(d, d.getTranslatorRef),
                 showToast: deferDynamic(d, d.getShowToastRef),
@@ -108,7 +115,7 @@
         }
 
         function buildMainRowOrderConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 requestUiFrame: d.requestUiFrame,
                 cancelUiFrame: d.cancelUiFrame,
@@ -122,7 +129,7 @@
         }
 
         function buildMainRowViewConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 rowViewCache: d.rowViewCache,
                 maxRuntimeCacheSize: d.MAX_RUNTIME_CACHE_SIZE,
@@ -142,7 +149,7 @@
         }
 
         function buildTableRenderConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 t: d.gtvT,
                 sanitizeCopyFormatOrder: d.sanitizeCopyFormatOrder,
@@ -177,7 +184,7 @@
         }
 
         function buildMainImageExportBridgeProxyConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 getImageExportBridgeService: d.getImageExportBridgeServiceRef,
                 getDefaultTableExportContext: d.createDefaultTableExportContext
@@ -185,7 +192,7 @@
         }
 
         function buildMainImageRuntimeServicesConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_IMAGE_CLONE: d.GTV_IMAGE_CLONE,
                 GTV_IMAGE_FOREIGN_RENDER: d.GTV_IMAGE_FOREIGN_RENDER,
@@ -216,7 +223,7 @@
         }
 
         function buildMainFixedTimeServicesConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_FIXED_TIME_CORE: d.GTV_FIXED_TIME_CORE,
                 GTV_FIXED_TIME_TIMELINE: d.GTV_FIXED_TIME_TIMELINE,
@@ -268,7 +275,7 @@
         }
 
         function buildMainMultiRangeServicesConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_MULTI_RANGE_RENDER: d.GTV_MULTI_RANGE_RENDER,
                 GTV_MULTI_RANGE_COPY: d.GTV_MULTI_RANGE_COPY,
@@ -340,7 +347,7 @@
         }
 
         function buildMainTimeAdjustServicesConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_TIME_ADJUST_UI: d.GTV_TIME_ADJUST_UI,
                 GTV_MULTI_BULK_TOOLS: d.GTV_MULTI_BULK_TOOLS,
@@ -396,7 +403,7 @@
         }
 
         function buildMainGroupStateServicesConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_MULTI_STATE: d.GTV_MULTI_STATE,
                 serviceBootstrap: d.serviceBootstrap,
@@ -420,7 +427,7 @@
         }
 
         function buildMainImageExportNamingProxyConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 getImageExportNamingService: d.getImageExportNamingServiceRef,
                 getCustomOffsetMinutes: d.getCustomOffsetMinutes,
@@ -438,7 +445,7 @@
         }
 
         function buildMainImageExportServicesConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_IMAGE_EXPORT_NAMING: d.GTV_IMAGE_EXPORT_NAMING,
                 GTV_IMAGE_EXPORT_ACTIONS: d.GTV_IMAGE_EXPORT_ACTIONS,
@@ -473,7 +480,7 @@
         }
 
         function buildMainTabServicesConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_FORMAT_CONTROLS: d.GTV_FORMAT_CONTROLS,
                 serviceBootstrap: d.serviceBootstrap,
@@ -574,7 +581,7 @@
         }
 
         function buildMainAppStateServicesConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_APP_STATE_PATCHER: d.GTV_APP_STATE_PATCHER,
                 GTV_APP_PERSISTENCE_STATE: d.GTV_APP_PERSISTENCE_STATE,
@@ -590,7 +597,7 @@
         }
 
         function buildMainAppBootstrapConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 assertRequiredServices: d.assertRequiredServices,
                 loadPersistence: d.loadPersistence,

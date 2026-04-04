@@ -126,4 +126,25 @@ describe("GTV main runtime timezone helpers module", () => {
         await expect(service.writeClipboardText("x")).rejects.toThrow("Clipboard API is unavailable.");
         expect(warnSpy).not.toHaveBeenCalled();
     });
+
+    it("uses injected consoleWarn fallback when clipboard write fails", async () => {
+        const moduleApi = loadMainRuntimeTimezoneHelpersModule();
+        const warned = [];
+        const service = moduleApi.createService({
+            navigatorRef: {
+                clipboard: {
+                    writeText: async () => {
+                        throw new Error("clipboard denied");
+                    }
+                }
+            },
+            consoleWarn: (...args) => {
+                warned.push(args);
+            }
+        });
+
+        await expect(service.writeClipboardText("x")).rejects.toThrow("clipboard denied");
+        expect(warned).toHaveLength(1);
+        expect(String(warned[0][0])).toContain("Clipboard write failed.");
+    });
 });

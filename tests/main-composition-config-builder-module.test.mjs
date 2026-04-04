@@ -52,7 +52,7 @@ describe("GTV main composition config builder module", () => {
         }
     });
 
-    it("builds persistence composition config with expected nested bindings", () => {
+    it("builds persistence composition config with expected nested bindings", async () => {
         const moduleApi = loadMainCompositionConfigBuilderModule();
         const builder = moduleApi.createService();
         const deps = {
@@ -64,6 +64,7 @@ describe("GTV main composition config builder module", () => {
             getRenderListRef: () => () => "render-list",
             getRenderTimelineFrameRef: () => () => "render-timeline",
             confirmFnViaMainFoundation: () => true,
+            promptFnViaMainFoundation: async () => "prompted",
             bindFacadeMethod: (getFacade, methodName) => (...args) => getFacade()[methodName](...args),
             getTimezoneSearchServiceRef: () => ({
                 updateTZDropdown: () => "updated"
@@ -79,6 +80,7 @@ describe("GTV main composition config builder module", () => {
         expect(config.groupTabsConfig.showToast("ok")).toBe("toast:ok");
         expect(config.groupTabsConfig.renderList()).toBe("render-list");
         expect(config.groupTabsConfig.renderTimelineFrame()).toBe("render-timeline");
+        await expect(config.groupTabsConfig.promptFn()).resolves.toBe("prompted");
         expect(config.persistenceConfig.updateTZDropdown()).toBe("updated");
         expect(config.persistenceConfig.document).toEqual({ id: "doc" });
     });
@@ -113,5 +115,23 @@ describe("GTV main composition config builder module", () => {
         expect(config.environment.getDocumentRef).toBe(deps.getDocumentRefOrNull);
         expect(config.environment.getWindowRef).toBe(deps.getWindowRefOrNull);
         expect(config.environment.getGlobalThisRef).toBe(deps.getGlobalThisRefOrNull);
+    });
+
+    it("merges base deps from createService with per-call deps", () => {
+        const moduleApi = loadMainCompositionConfigBuilderModule();
+        const builder = moduleApi.createService({
+            deferDynamicCall: () => () => undefined,
+            bindFacadeMethod: () => () => undefined,
+            getDocumentRefOrNull: () => null,
+            getRuntimeNowMs: () => 555
+        });
+
+        const baseConfig = builder.buildPersistenceCompositionConfig();
+        const overrideConfig = builder.buildPersistenceCompositionConfig({
+            getRuntimeNowMs: () => 777
+        });
+
+        expect(baseConfig.snapshotConfig.now()).toBe(555);
+        expect(overrideConfig.snapshotConfig.now()).toBe(777);
     });
 });

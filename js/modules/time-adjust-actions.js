@@ -1,20 +1,51 @@
 (function initGtvTimeAdjustActions(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getGlobalTimes: toSafeCallable(safeDeps.getGlobalTimes),
+            sanitizeUtcMs: toSafeCallable(safeDeps.sanitizeUtcMs),
+            getTimeAdjustDayStep: toSafeCallable(safeDeps.getTimeAdjustDayStep),
+            getCustomOffsetMinutes: toSafeCallable(safeDeps.getCustomOffsetMinutes),
+            isRealtime: toSafeCallable(safeDeps.isRealtime),
+            updateClocks: toSafeCallable(safeDeps.updateClocks),
+            getBaseTimezoneRef: toSafeCallable(safeDeps.getBaseTimezoneRef),
+            getFixedOffsetForDisplay: toSafeCallable(safeDeps.getFixedOffsetForDisplay),
+            ensureMultiRangeState: toSafeCallable(safeDeps.ensureMultiRangeState),
+            getMultiRanges: toSafeCallable(safeDeps.getMultiRanges),
+            isMultiRangeStartLinked: toSafeCallable(safeDeps.isMultiRangeStartLinked),
+            isMultiTab: toSafeCallable(safeDeps.isMultiTab),
+            renderMultiRanges: toSafeCallable(safeDeps.renderMultiRanges),
+            savePersistence: toSafeCallable(safeDeps.savePersistence),
+            isMultiRangeStartEditEnabled: toSafeCallable(safeDeps.isMultiRangeStartEditEnabled),
+            isMultiRangeEndEditEnabled: toSafeCallable(safeDeps.isMultiRangeEndEditEnabled),
+            syncLinkedRangesFrom: toSafeCallable(safeDeps.syncLinkedRangesFrom),
+            getFixedOffsetForDisplayAtDate: toSafeCallable(safeDeps.getFixedOffsetForDisplayAtDate),
+            getMultiRangeSlotDate: toSafeCallable(safeDeps.getMultiRangeSlotDate),
+            setMultiRangeSlotDate: toSafeCallable(safeDeps.setMultiRangeSlotDate),
+            syncFollowingRangesByDuration: toSafeCallable(safeDeps.syncFollowingRangesByDuration),
+            syncMultiRangeStartLinks: toSafeCallable(safeDeps.syncMultiRangeStartLinks)
+        });
+
+        function shouldRenderMultiRanges() {
+            return !!dep.isMultiTab();
         }
 
         function getGlobalTimesRef() {
-            const value = invokeDep("getGlobalTimes");
+            const value = dep.getGlobalTimes();
             return Array.isArray(value) ? value : [];
         }
 
@@ -23,7 +54,7 @@
         }
 
         function sanitizeUtcMs(value, fallbackMs) {
-            const viaDep = invokeDep("sanitizeUtcMs", value, fallbackMs);
+            const viaDep = dep.sanitizeUtcMs(value, fallbackMs);
             if (Number.isFinite(viaDep)) return Math.trunc(viaDep);
             const parsed = Number(value);
             if (Number.isFinite(parsed)) return Math.trunc(parsed);
@@ -32,7 +63,7 @@
         }
 
         function getAdjustedDayMs(slotIdx, direction) {
-            const days = Number(invokeDep("getTimeAdjustDayStep", slotIdx));
+            const days = Number(dep.getTimeAdjustDayStep(slotIdx));
             const safeDays = Number.isFinite(days) ? days : 1;
             const sign = direction < 0 ? -1 : 1;
             return sign * safeDays * 24 * 60 * 60 * 1000;
@@ -43,7 +74,7 @@
             if (safeBaseRef?.type === "custom") {
                 return {
                     zone: "CUSTOM",
-                    fixedOffsetMinutes: invokeDep("getCustomOffsetMinutes", safeBaseRef)
+                    fixedOffsetMinutes: dep.getCustomOffsetMinutes(safeBaseRef)
                 };
             }
 
@@ -75,7 +106,7 @@
             }
 
             if (!safeDeps.timeService || typeof safeDeps.timeService.adjustDate !== "function") return null;
-            const customDays = Number(invokeDep("getTimeAdjustDayStep", slotIdx));
+            const customDays = Number(dep.getTimeAdjustDayStep(slotIdx));
             const resolved = resolveTimeAdjustZoneAndOffset(baseRef, fixedOffsetMinutes);
             return safeDeps.timeService.adjustDate(
                 baseDate,
@@ -87,30 +118,30 @@
         }
 
         function applyTimeAdjustAction(slotIdx, action) {
-            if (invokeDep("isRealtime")) return;
+            if (dep.isRealtime()) return;
 
             const globalTimes = getGlobalTimesRef();
             if (!Array.isArray(globalTimes) || !globalTimes.length) return;
 
             if (action === "now") {
                 globalTimes[slotIdx] = new Date();
-                invokeDep("updateClocks");
+                dep.updateClocks();
                 return;
             }
             if (action === "set_zero_day" || action === "sync_prev_end") {
                 if (slotIdx === 1 && isValidDate(globalTimes[0])) {
                     globalTimes[1] = new Date(globalTimes[0].getTime());
-                    invokeDep("updateClocks");
+                    dep.updateClocks();
                 }
                 return;
             }
 
             if (!safeDeps.timeService || typeof safeDeps.timeService.adjustDate !== "function") return;
 
-            const baseRef = invokeDep("getBaseTimezoneRef");
-            const defaultFixedOffsetMinutes = invokeDep("getFixedOffsetForDisplay", baseRef);
+            const baseRef = dep.getBaseTimezoneRef();
+            const defaultFixedOffsetMinutes = dep.getFixedOffsetForDisplay(baseRef);
             const { zone, fixedOffsetMinutes } = resolveTimeAdjustZoneAndOffset(baseRef, defaultFixedOffsetMinutes);
-            const customDays = Number(invokeDep("getTimeAdjustDayStep", slotIdx));
+            const customDays = Number(dep.getTimeAdjustDayStep(slotIdx));
             globalTimes[slotIdx] = safeDeps.timeService.adjustDate(
                 globalTimes[slotIdx],
                 action,
@@ -118,7 +149,7 @@
                 fixedOffsetMinutes,
                 Number.isFinite(customDays) ? customDays : 1
             );
-            invokeDep("updateClocks");
+            dep.updateClocks();
         }
 
         function resolveBulkDurationDelta(slotIdx, action) {
@@ -149,8 +180,8 @@
         }
 
         function applyBulkRangeAllAction(slotIdx, action) {
-            invokeDep("ensureMultiRangeState");
-            const multiRanges = invokeDep("getMultiRanges");
+            dep.ensureMultiRangeState();
+            const multiRanges = dep.getMultiRanges();
             if (!Array.isArray(multiRanges) || !multiRanges.length) return;
 
             const baseDurations = multiRanges.map((range) => {
@@ -172,7 +203,7 @@
             for (let idx = 0; idx < multiRanges.length; idx += 1) {
                 const current = multiRanges[idx];
                 if (!current || typeof current !== "object") continue;
-                if (idx === 0 || invokeDep("isMultiRangeStartLinked", idx)) {
+                if (idx === 0 || dep.isMultiRangeStartLinked(idx)) {
                     current.startUtcMs = cursor;
                 } else {
                     current.startUtcMs = sanitizeUtcMs(current.startUtcMs, cursor);
@@ -181,17 +212,17 @@
                 cursor = current.endUtcMs;
             }
 
-            if (invokeDep("isMultiTab")) invokeDep("renderMultiRanges");
-            invokeDep("savePersistence");
+            if (shouldRenderMultiRanges()) dep.renderMultiRanges();
+            dep.savePersistence();
         }
 
         function applyMultiRangeTimeAdjustAction(rangeIdx, slotIdx, action) {
-            if (!invokeDep("isMultiTab")) return;
-            if (rangeIdx > 0 && slotIdx === 0 && !invokeDep("isMultiRangeStartEditEnabled", rangeIdx)) return;
-            if (slotIdx === 1 && !invokeDep("isMultiRangeEndEditEnabled", rangeIdx)) return;
+            if (!shouldRenderMultiRanges()) return;
+            if (rangeIdx > 0 && slotIdx === 0 && !dep.isMultiRangeStartEditEnabled(rangeIdx)) return;
+            if (slotIdx === 1 && !dep.isMultiRangeEndEditEnabled(rangeIdx)) return;
 
-            invokeDep("ensureMultiRangeState");
-            const multiRanges = invokeDep("getMultiRanges");
+            dep.ensureMultiRangeState();
+            const multiRanges = dep.getMultiRanges();
             if (!Array.isArray(multiRanges)) return;
             const range = multiRanges[rangeIdx];
             if (!range || typeof range !== "object") return;
@@ -204,7 +235,7 @@
                     return end - start;
                 });
                 range.startUtcMs = sanitizeUtcMs(multiRanges[rangeIdx - 1]?.endUtcMs, range.startUtcMs);
-                invokeDep("syncLinkedRangesFrom", rangeIdx, {
+                dep.syncLinkedRangesFrom(rangeIdx, {
                     includeCurrent: true,
                     stopAtFirstUnlocked: true,
                     baseDurations: durationSnapshot
@@ -212,10 +243,10 @@
             } else if (slotIdx === 1 && action === "set_zero_day") {
                 range.endUtcMs = range.startUtcMs;
             } else {
-                const baseRef = invokeDep("getBaseTimezoneRef");
+                const baseRef = dep.getBaseTimezoneRef();
                 const anchorDate = new Date(sanitizeUtcMs(range.startUtcMs, Date.now()));
-                const fixedOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", baseRef, anchorDate);
-                const baseDate = invokeDep("getMultiRangeSlotDate", rangeIdx, slotIdx);
+                const fixedOffsetMinutes = dep.getFixedOffsetForDisplayAtDate(baseRef, anchorDate);
+                const baseDate = dep.getMultiRangeSlotDate(rangeIdx, slotIdx);
                 const nextUtcDate = getAdjustedUtcDateByAction(
                     baseDate,
                     action,
@@ -224,17 +255,17 @@
                     fixedOffsetMinutes
                 );
                 if (!isValidDate(nextUtcDate)) return;
-                invokeDep("setMultiRangeSlotDate", rangeIdx, slotIdx, nextUtcDate);
+                dep.setMultiRangeSlotDate(rangeIdx, slotIdx, nextUtcDate);
             }
 
             if (slotIdx === 1) {
-                invokeDep("syncFollowingRangesByDuration", rangeIdx);
+                dep.syncFollowingRangesByDuration(rangeIdx);
             } else if (rangeIdx === 0) {
-                invokeDep("syncMultiRangeStartLinks", 1);
+                dep.syncMultiRangeStartLinks(1);
             }
 
-            invokeDep("renderMultiRanges");
-            invokeDep("savePersistence");
+            dep.renderMultiRanges();
+            dep.savePersistence();
         }
 
         return Object.freeze({

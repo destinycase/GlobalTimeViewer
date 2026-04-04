@@ -113,4 +113,20 @@ describe("GTV main orchestration flow services module", () => {
         expect(() => service.syncCurrentMultiStateToActiveSubgroup()).not.toThrow();
         expect(() => service.loadCurrentMultiStateFromActiveSubgroup()).not.toThrow();
     });
+
+    it("uses injected consoleWarn fallback when warnMissingServiceMethod is not provided", () => {
+        const moduleApi = loadMainOrchestrationFlowServicesModule();
+        const warned = [];
+        const service = moduleApi.createService({
+            consoleWarn: (...args) => {
+                warned.push(args);
+            }
+        });
+
+        service.updateClocks();
+        service.updateClocks();
+
+        expect(warned).toHaveLength(1);
+        expect(String(warned[0][0])).toContain("mainClockOrchestratorService.updateClocks");
+    });
 });

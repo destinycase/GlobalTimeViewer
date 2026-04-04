@@ -96,6 +96,36 @@ describe("GTV multi-range image render module", () => {
         await expect(service.renderMultiRangeSingleToPngDataUrl(0)).rejects.toThrow("Multi-range container not found");
     });
 
+    it("fallback renderer prefers injected getDocumentRefOrNull over global document", async () => {
+        const module = loadMultiRangeImageRenderModule({
+            document: {
+                getElementById() {
+                    throw new Error("global document should not be used");
+                },
+                createElement() {
+                    throw new Error("global document should not be used");
+                },
+                documentElement: {},
+                body: {}
+            }
+        });
+        const service = module.createService({
+            getDocumentRefOrNull: () => ({
+                getElementById() {
+                    return null;
+                },
+                createElement() {
+                    return {};
+                },
+                documentElement: {},
+                body: {}
+            }),
+            waitForDocumentFontsReady: async () => { }
+        });
+
+        await expect(service.renderMultiRangesFallbackDataUrl()).rejects.toThrow("Multi-range container not found");
+    });
+
     it("title renderer produces image data from range titles", async () => {
         const module = loadMultiRangeImageRenderModule({
             document: {

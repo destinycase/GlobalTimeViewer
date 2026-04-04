@@ -20,6 +20,48 @@ const gtvT = (...args) => resolveTranslate()(...args);
 const MAIN_I18N_DATA = (GTV_GLOBAL.I18N_DATA && typeof GTV_GLOBAL.I18N_DATA === "object")
     ? GTV_GLOBAL.I18N_DATA
     : { ko: {}, en: {} };
+function getGlobalHostRef() {
+    if (GTV_GLOBAL && (typeof GTV_GLOBAL === "object" || typeof GTV_GLOBAL === "function")) {
+        return GTV_GLOBAL;
+    }
+    if (typeof globalThis !== "undefined" && globalThis) {
+        return globalThis;
+    }
+    return null;
+}
+
+function getConsoleRefOrNull() {
+    const globalRef = getGlobalHostRef();
+    if (!globalRef || typeof globalRef.console !== "object" || !globalRef.console) {
+        return null;
+    }
+    return globalRef.console;
+}
+
+function bindConsoleMethodOrNoop(methodName) {
+    const consoleRef = getConsoleRefOrNull();
+    const method = consoleRef && typeof consoleRef[methodName] === "function"
+        ? consoleRef[methodName]
+        : null;
+    return method ? method.bind(consoleRef) : (() => {});
+}
+
+function getNavigatorRefOrGlobal() {
+    const globalRef = getGlobalHostRef();
+    if (!globalRef || typeof globalRef.navigator !== "object" || !globalRef.navigator) {
+        return null;
+    }
+    return globalRef.navigator;
+}
+
+function confirmWithGlobalFallback(message) {
+    const globalRef = getGlobalHostRef();
+    const confirmFn = globalRef && typeof globalRef.confirm === "function"
+        ? globalRef.confirm.bind(globalRef)
+        : null;
+    return confirmFn ? !!confirmFn(message) : true;
+}
+
 function assertBindingCreateService(bindingsModule, moduleApiName) {
     if (!bindingsModule || typeof bindingsModule.createService !== "function") {
         throw new Error(`Missing required module API: ${moduleApiName}.createService`);
@@ -704,7 +746,7 @@ assertBindingCreateService(GTV_MAIN_RUNTIME_STATE_CORE_BOOTSTRAP, "GTVMainRuntim
     sanitizeDayNightHourValue,
     syncCurrentLang,
     getFixedTimeSlotCount: (...args) => getFixedTimeSlotCount(...args),
-    getConfirm: (message) => confirm(message),
+    getConfirm: confirmWithGlobalFallback,
     getFormatProfileAllowedKeys: (...args) => getFormatProfileAllowedKeys(...args),
     getFormatProfileAllowedTimePartKeys: (...args) => getFormatProfileAllowedTimePartKeys(...args),
     getPatchedActiveFormatProfileContextState,
@@ -972,7 +1014,7 @@ const {
     moduleRefs: mainResolvedModules,
     runtimeReferenceAccessorService: mainRuntimeReferenceAccessorService,
     patchedStateAccessorService: mainPatchedStateAccessorService,
-    consoleWarn: console.warn.bind(console),
+    consoleWarn: bindConsoleMethodOrNoop("warn"),
     showMissingFeatureToastOnce,
     directStateSetters,
     setIsRealtimeState,
@@ -1113,7 +1155,7 @@ const mainRuntimeCoreFoundationServices = GTV_MAIN_RUNTIME_CORE_FOUNDATION_BOOTS
     confirmRuntime,
     getLocationRefOrNull,
     getDocumentRefOrNull,
-    consoleError: console.error.bind(console),
+    consoleError: bindConsoleMethodOrNoop("error"),
     getPatchedMainTabState,
     getCurrentGroup: () => getCurrentGroup(),
     defaultFixedTimeValue: DEFAULT_FIXED_TIME_VALUE
@@ -1294,8 +1336,8 @@ const {
     callServiceMethod,
     getMainTimezoneFacadeService: () => mainTimezoneFacadeService,
     getTimeCore: () => GTV_TIME_CORE,
-    getConsoleWarn: () => console.warn.bind(console),
-    getNavigatorRef: () => ((typeof navigator === "object" && navigator) ? navigator : null),
+    getConsoleWarn: () => bindConsoleMethodOrNoop("warn"),
+    getNavigatorRef: getNavigatorRefOrGlobal,
     getGroupContextStateService: () => groupContextStateService
 });
 function getCustomOffsetMinutes(tz) {
@@ -2193,7 +2235,7 @@ const mainRuntimeBootstrapWiringServices = GTV_MAIN_RUNTIME_BOOTSTRAP_WIRING.cre
     getPatchedSlotCountState,
     getGlobalTimeState,
     serviceMethodMissingToken: SERVICE_METHOD_MISSING,
-    consoleError: console.error.bind(console),
+    consoleError: bindConsoleMethodOrNoop("error"),
     getMainOrchestrationFlowServices: () => mainOrchestrationFlowServices,
     getTimeInputMutationsService: () => timeInputMutationsService,
     getSnapshotFormatService: () => snapshotFormatService,

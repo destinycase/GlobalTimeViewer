@@ -2,6 +2,9 @@
     "use strict";
 
     function resolveDocumentRef(deps = null) {
+        if (deps?.documentRef && typeof deps.documentRef.createElement === "function") {
+            return deps.documentRef;
+        }
         if (deps?.document && typeof deps.document.createElement === "function") {
             return deps.document;
         }
@@ -15,6 +18,9 @@
     }
 
     function resolveChromeApi(deps = null) {
+        if (deps?.chromeRef && typeof deps.chromeRef === "object") {
+            return deps.chromeRef;
+        }
         if (deps?.chrome && typeof deps.chrome === "object") {
             return deps.chrome;
         }
@@ -27,24 +33,70 @@
         return null;
     }
 
-    function callDep(deps, name, fallback, ...args) {
-        const fn = deps?.[name];
-        if (typeof fn !== "function") return fallback;
-        try {
-            return fn(...args);
-        } catch (_err) {
-            return fallback;
+    function logError(deps, ...args) {
+        if (typeof deps?.logError === "function") {
+            deps.logError(...args);
+            return;
+        }
+        if (typeof deps?.consoleError === "function") {
+            deps.consoleError(...args);
+            return;
+        }
+        if (typeof globalObj?.console?.error === "function") {
+            globalObj.console.error(...args);
+            return;
+        }
+        if (typeof console?.error === "function") {
+            console.error(...args);
         }
     }
 
-    async function callDepAsync(deps, name, fallback, ...args) {
-        const fn = deps?.[name];
-        if (typeof fn !== "function") return fallback;
-        try {
-            return await fn(...args);
-        } catch (_err) {
-            return fallback;
-        }
+    function toSafeCallable(depFn) {
+        if (typeof depFn !== "function") return () => undefined;
+        return (...args) => {
+            try {
+                return depFn(...args);
+            } catch (_err) {
+                return undefined;
+            }
+        };
+    }
+
+    function toSafeAsyncCallable(depFn) {
+        if (typeof depFn !== "function") return async () => undefined;
+        return async (...args) => {
+            try {
+                return await depFn(...args);
+            } catch (_err) {
+                return undefined;
+            }
+        };
+    }
+
+    function createDepFacade(deps = {}) {
+        const safeDeps = (deps && typeof deps === "object") ? deps : {};
+        return Object.freeze({
+            isMultiTab: toSafeCallable(safeDeps.isMultiTab),
+            showToast: toSafeCallable(safeDeps.showToast),
+            t: toSafeCallable(safeDeps.t),
+            ensureMultiRangeState: toSafeCallable(safeDeps.ensureMultiRangeState),
+            renderMultiRangeTitlesToPngDataUrl: toSafeAsyncCallable(safeDeps.renderMultiRangeTitlesToPngDataUrl),
+            getMultiRangeTitlesImageFilename: toSafeCallable(safeDeps.getMultiRangeTitlesImageFilename),
+            renderMultiRangesToPngDataUrl: toSafeAsyncCallable(safeDeps.renderMultiRangesToPngDataUrl),
+            renderMultiRangeSingleToPngDataUrl: toSafeAsyncCallable(safeDeps.renderMultiRangeSingleToPngDataUrl),
+            detectForeignObjectRendererSupport: toSafeAsyncCallable(safeDeps.detectForeignObjectRendererSupport),
+            renderTimezoneTableToPngDataUrl: toSafeAsyncCallable(safeDeps.renderTimezoneTableToPngDataUrl),
+            isDomExceptionLike: toSafeCallable(safeDeps.isDomExceptionLike),
+            setCanUseForeignObjectRenderer: toSafeCallable(safeDeps.setCanUseForeignObjectRenderer),
+            renderTimezoneTableFallbackDataUrl: toSafeAsyncCallable(safeDeps.renderTimezoneTableFallbackDataUrl),
+            getTimezoneTableImageFilename: toSafeCallable(safeDeps.getTimezoneTableImageFilename)
+        });
+    }
+
+    function translate(dep, key, fallback) {
+        const value = dep.t(key);
+        if (typeof value === "string" && value.trim()) return value;
+        return fallback;
     }
 
     function triggerAnchorDownload(dataUrl, filename, deps = null) {
@@ -92,111 +144,104 @@
     }
 
     async function saveMultiRangeTitlesImage(deps) {
+        const dep = createDepFacade(deps);
         try {
-            if (callDep(deps, "isMultiTab", false) !== true) return;
-            callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_generating", "toast_table_image_generating"), { type: "loading" });
-            callDep(deps, "ensureMultiRangeState", null);
-            const dataUrl = await callDepAsync(deps, "renderMultiRangeTitlesToPngDataUrl", "");
-            const fileName = callDep(deps, "getMultiRangeTitlesImageFilename", `GlobalTimeViewer_MultiRanges_Titles_${Date.now()}.png`);
+            if (dep.isMultiTab() !== true) return;
+            dep.showToast(translate(dep, "toast_table_image_generating", "toast_table_image_generating"), { type: "loading" });
+            dep.ensureMultiRangeState();
+            const dataUrl = await dep.renderMultiRangeTitlesToPngDataUrl();
+            const defaultName = `GlobalTimeViewer_MultiRanges_Titles_${Date.now()}.png`;
+            const fileNameRaw = dep.getMultiRangeTitlesImageFilename(defaultName);
+            const fileName = (typeof fileNameRaw === "string" && fileNameRaw.trim()) ? fileNameRaw.trim() : defaultName;
             if (!dataUrl) throw new Error("Image render failed");
             await downloadDataUrl(dataUrl, fileName, deps);
-            callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });
+            dep.showToast(translate(dep, "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });
         } catch (err) {
-            console.error("Failed to save multi-range titles image:", err);
-            callDep(
-                deps,
-                "showToast",
-                null,
-                `${callDep(deps, "t", "toast_table_image_failed", "toast_table_image_failed")}\n(${err?.message || err})`,
+            logError(deps, "Failed to save multi-range titles image:", err);
+            dep.showToast(
+                `${translate(dep, "toast_table_image_failed", "toast_table_image_failed")}\n(${err?.message || err})`,
                 { type: "error", duration: 5000 }
             );
         }
     }
 
     async function saveMultiRangeAllImage(deps) {
+        const dep = createDepFacade(deps);
         try {
-            callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_generating", "toast_table_image_generating"), { type: "loading" });
-            const dataUrl = await callDepAsync(deps, "renderMultiRangesToPngDataUrl", "");
+            dep.showToast(translate(dep, "toast_table_image_generating", "toast_table_image_generating"), { type: "loading" });
+            const dataUrl = await dep.renderMultiRangesToPngDataUrl();
             if (!dataUrl) throw new Error("Image render failed");
             const filename = `GlobalTimeViewer_MultiRanges_All_${Date.now()}.png`;
             await downloadDataUrl(dataUrl, filename, deps);
-            callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });
+            dep.showToast(translate(dep, "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });
         } catch (err) {
-            console.error("Failed to save all multi-range images:", err);
-            callDep(
-                deps,
-                "showToast",
-                null,
-                `${callDep(deps, "t", "toast_table_image_failed", "toast_table_image_failed")}\n(${err?.message || err})`,
+            logError(deps, "Failed to save all multi-range images:", err);
+            dep.showToast(
+                `${translate(dep, "toast_table_image_failed", "toast_table_image_failed")}\n(${err?.message || err})`,
                 { type: "error", duration: 5000 }
             );
         }
     }
 
     async function saveMultiRangeSingleImage(deps, rangeIdx) {
+        const dep = createDepFacade(deps);
         try {
-            callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_generating", "toast_table_image_generating"), { type: "loading" });
-            const dataUrl = await callDepAsync(deps, "renderMultiRangeSingleToPngDataUrl", "", rangeIdx);
+            dep.showToast(translate(dep, "toast_table_image_generating", "toast_table_image_generating"), { type: "loading" });
+            const dataUrl = await dep.renderMultiRangeSingleToPngDataUrl(rangeIdx);
             if (!dataUrl) throw new Error("Image render failed");
             const filename = `GlobalTimeViewer_MultiRange_Range_${rangeIdx + 1}_${Date.now()}.png`;
             await downloadDataUrl(dataUrl, filename, deps);
-            callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });
+            dep.showToast(translate(dep, "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });
         } catch (err) {
-            console.error("Failed to save single multi-range image:", err);
-            callDep(
-                deps,
-                "showToast",
-                null,
-                `${callDep(deps, "t", "toast_table_image_failed", "toast_table_image_failed")}\n(${err?.message || err})`,
+            logError(deps, "Failed to save single multi-range image:", err);
+            dep.showToast(
+                `${translate(dep, "toast_table_image_failed", "toast_table_image_failed")}\n(${err?.message || err})`,
                 { type: "error", duration: 5000 }
             );
         }
     }
 
     async function saveTimezoneTableImage(deps) {
+        const dep = createDepFacade(deps);
         try {
-            if (callDep(deps, "isMultiTab", false) === true) {
+            if (dep.isMultiTab() === true) {
                 await saveMultiRangeAllImage(deps);
                 return;
             }
 
-            callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_generating", "toast_table_image_generating"), { type: "loading" });
-            const supportsPrimaryRenderer = await callDepAsync(deps, "detectForeignObjectRendererSupport", false);
+            dep.showToast(translate(dep, "toast_table_image_generating", "toast_table_image_generating"), { type: "loading" });
+            const supportsPrimaryRenderer = await dep.detectForeignObjectRendererSupport();
             let dataUrl = "";
             if (supportsPrimaryRenderer) {
                 try {
-                    const primaryRenderer = deps?.renderTimezoneTableToPngDataUrl;
-                    if (typeof primaryRenderer !== "function") {
-                        throw new Error("Primary renderer unavailable");
-                    }
-                    dataUrl = await primaryRenderer();
+                    dataUrl = await dep.renderTimezoneTableToPngDataUrl();
+                    if (!dataUrl) throw new Error("Primary renderer unavailable");
                 } catch (primaryErr) {
-                    if (callDep(deps, "isDomExceptionLike", false, primaryErr)) {
-                        callDep(deps, "setCanUseForeignObjectRenderer", null, false);
+                    if (dep.isDomExceptionLike(primaryErr)) {
+                        dep.setCanUseForeignObjectRenderer(false);
                     }
-                    dataUrl = await callDepAsync(deps, "renderTimezoneTableFallbackDataUrl", "");
+                    dataUrl = await dep.renderTimezoneTableFallbackDataUrl();
                 }
             } else {
-                dataUrl = await callDepAsync(deps, "renderTimezoneTableFallbackDataUrl", "");
+                dataUrl = await dep.renderTimezoneTableFallbackDataUrl();
             }
             if (!dataUrl) throw new Error("Image render failed");
-            const baseName = callDep(deps, "getTimezoneTableImageFilename", `GlobalTimeViewer_Table_${Date.now()}`);
+            const defaultName = `GlobalTimeViewer_Table_${Date.now()}`;
+            const baseNameRaw = dep.getTimezoneTableImageFilename(defaultName);
+            const baseName = (typeof baseNameRaw === "string" && baseNameRaw.trim()) ? baseNameRaw.trim() : defaultName;
             const filename = `${baseName}.png`;
             await downloadDataUrl(dataUrl, filename, deps);
-            callDep(deps, "showToast", null, callDep(deps, "t", "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });
+            dep.showToast(translate(dep, "toast_table_image_saved", "toast_table_image_saved"), { type: "success" });
         } catch (err) {
-            console.error("Failed to save timezone table image:", err);
-            callDep(
-                deps,
-                "showToast",
-                null,
-                `${callDep(deps, "t", "toast_table_image_failed", "toast_table_image_failed")}\n(${err?.message || err})`,
+            logError(deps, "Failed to save timezone table image:", err);
+            dep.showToast(
+                `${translate(dep, "toast_table_image_failed", "toast_table_image_failed")}\n(${err?.message || err})`,
                 { type: "error", duration: 5000 }
             );
         }
     }
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const boundDeps = (deps && typeof deps === "object") ? deps : {};
         return Object.freeze({
             downloadDataUrl,

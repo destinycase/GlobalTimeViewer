@@ -1,21 +1,53 @@
 (function initGtvFixedTimeTimeline(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const TIMELINE_TOTAL_SECONDS = Number.isFinite(Number(safeDeps.TIMELINE_TOTAL_SECONDS))
             ? Number(safeDeps.TIMELINE_TOTAL_SECONDS)
             : (24 * 60 * 60);
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVFixedTimeTimeline] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
+
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVFixedTimeTimeline] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
+            ensureGroupFixedTimes: toSafeCallable("ensureGroupFixedTimes", safeDeps.ensureGroupFixedTimes),
+            getGlobalTime: toSafeCallable("getGlobalTime", safeDeps.getGlobalTime),
+            resolveFixedTimeSlotUtcDate: toSafeCallable("resolveFixedTimeSlotUtcDate", safeDeps.resolveFixedTimeSlotUtcDate),
+            getFixedTimeSlotCount: toSafeCallable("getFixedTimeSlotCount", safeDeps.getFixedTimeSlotCount),
+            getDefaultFixedTimeName: toSafeCallable("getDefaultFixedTimeName", safeDeps.getDefaultFixedTimeName),
+            sanitizeFixedTimeId: toSafeCallable("sanitizeFixedTimeId", safeDeps.sanitizeFixedTimeId),
+            sanitizeFixedTimeName: toSafeCallable("sanitizeFixedTimeName", safeDeps.sanitizeFixedTimeName),
+            getFixedTimeSlotHeaderLabel: toSafeCallable("getFixedTimeSlotHeaderLabel", safeDeps.getFixedTimeSlotHeaderLabel)
+        });
 
         function isValidDate(value) {
             return value instanceof Date && Number.isFinite(value.getTime());
@@ -38,22 +70,22 @@
         }
 
         function resolveFixedTimeTimelineSourceDate(slotIdx, baseRef, anchorDate = undefined) {
-            const group = invokeDep("getCurrentGroup");
+            const group = dep.getCurrentGroup();
             if (!group || !baseRef) return null;
-            invokeDep("ensureGroupFixedTimes", group);
+            dep.ensureGroupFixedTimes(group);
             const slot = group.fixedTimes?.[slotIdx];
             if (!slot) return null;
 
             const safeAnchorDate = isValidDate(anchorDate)
                 ? anchorDate
-                : (isValidDate(invokeDep("getGlobalTime", 0)) ? invokeDep("getGlobalTime", 0) : new Date());
-            return invokeDep("resolveFixedTimeSlotUtcDate", slot, baseRef, safeAnchorDate) || null;
+                : (isValidDate(dep.getGlobalTime(0)) ? dep.getGlobalTime(0) : new Date());
+            return dep.resolveFixedTimeSlotUtcDate(slot, baseRef, safeAnchorDate) || null;
         }
 
         function applyFixedTimeSlotTimelineRatio(slotIdx, ratio) {
-            const group = invokeDep("getCurrentGroup");
+            const group = dep.getCurrentGroup();
             if (!group) return false;
-            invokeDep("ensureGroupFixedTimes", group);
+            dep.ensureGroupFixedTimes(group);
             const slot = group.fixedTimes?.[slotIdx];
             if (!slot) return false;
 
@@ -68,31 +100,31 @@
         }
 
         function getFixedTimeTimelineSlots() {
-            const group = invokeDep("getCurrentGroup");
+            const group = dep.getCurrentGroup();
             if (!group) return [];
-            invokeDep("ensureGroupFixedTimes", group);
+            dep.ensureGroupFixedTimes(group);
             return Array.isArray(group.fixedTimes) ? group.fixedTimes : [];
         }
 
         function getFixedTimeTimelineSlotCount() {
-            return invokeDep("getFixedTimeSlotCount", invokeDep("getCurrentGroup"));
+            return dep.getFixedTimeSlotCount(dep.getCurrentGroup());
         }
 
         function getFixedTimeTimelineIndicatorToken() {
-            const group = invokeDep("getCurrentGroup");
+            const group = dep.getCurrentGroup();
             if (!group) return "";
-            invokeDep("ensureGroupFixedTimes", group);
-            const defaultName = invokeDep("getDefaultFixedTimeName");
+            dep.ensureGroupFixedTimes(group);
+            const defaultName = dep.getDefaultFixedTimeName();
             const slots = Array.isArray(group.fixedTimes) ? group.fixedTimes : [];
             return slots.map((slot, idx) => {
-                const id = invokeDep("sanitizeFixedTimeId", slot?.id) || "";
-                const name = invokeDep("sanitizeFixedTimeName", slot?.name, defaultName) || "";
+                const id = dep.sanitizeFixedTimeId(slot?.id) || "";
+                const name = dep.sanitizeFixedTimeName(slot?.name, defaultName) || "";
                 return `${idx}:${id}:${name}`;
             }).join("|");
         }
 
         function getFixedTimeSlotTimelineLabel(slot, slotIdx, slotCount = 1) {
-            return invokeDep("getFixedTimeSlotHeaderLabel", slot, slotIdx, slotCount);
+            return dep.getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount);
         }
 
         return Object.freeze({
@@ -109,4 +141,3 @@
         createService
     });
 })(typeof window !== "undefined" ? window : globalThis);
-

@@ -1,9 +1,16 @@
 (function initGtvMainCompositionConfigBuilder(globalObj) {
     "use strict";
 
-    function createService() {
+    function createService(deps = {}) {
+        const baseDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function resolveDeps(overrides = {}) {
+            const overrideDeps = (overrides && typeof overrides === "object") ? overrides : {};
+            return { ...baseDeps, ...overrideDeps };
+        }
+
         function buildPersistenceCompositionConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_MAIN_GROUP_TABS_SERVICE: d.GTV_MAIN_GROUP_TABS_SERVICE,
                 GTV_MAIN_PERSISTENCE_SNAPSHOT_SERVICES: d.GTV_MAIN_PERSISTENCE_SNAPSHOT_SERVICES,
@@ -13,6 +20,7 @@
                     t: d.t,
                     showToast: d.deferDynamicCall(d.getShowToastRef),
                     confirmFn: d.confirmFnViaMainFoundation,
+                    promptFn: d.promptFnViaMainFoundation,
                     getState: d.getPersistenceState,
                     setState: d.setPersistenceState,
                     isMultiTab: d.isMultiTab,
@@ -145,7 +153,7 @@
         }
 
         function buildRuntimeCompositionConfig(deps = {}) {
-            const d = (deps && typeof deps === "object") ? deps : {};
+            const d = resolveDeps(deps);
             return {
                 GTV_MAIN_UI_RUNTIME_SERVICES: d.GTV_MAIN_UI_RUNTIME_SERVICES,
                 GTV_MAIN_CLOCK_ORCHESTRATOR_SERVICES: d.GTV_MAIN_CLOCK_ORCHESTRATOR_SERVICES,

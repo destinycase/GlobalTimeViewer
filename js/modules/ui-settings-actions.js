@@ -1,21 +1,62 @@
 (function initGtvUiSettingsActions(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVUiSettingsActions] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
 
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVUiSettingsActions] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            exportSettingsToJSON: toSafeCallable("exportSettingsToJSON", safeDeps.exportSettingsToJSON),
+            handleSettingsImportFile: toSafeCallable("handleSettingsImportFile", safeDeps.handleSettingsImportFile),
+            handleGroupImportFile: toSafeCallable("handleGroupImportFile", safeDeps.handleGroupImportFile),
+            clearPendingGroupImport: toSafeCallable("clearPendingGroupImport", safeDeps.clearPendingGroupImport),
+            handleSubgroupImportFile: toSafeCallable("handleSubgroupImportFile", safeDeps.handleSubgroupImportFile),
+            clearPendingSubgroupImport: toSafeCallable("clearPendingSubgroupImport", safeDeps.clearPendingSubgroupImport),
+            resetExceptGroupsAndTimezones: toSafeCallable("resetExceptGroupsAndTimezones", safeDeps.resetExceptGroupsAndTimezones),
+            resetAllSettings: toSafeCallable("resetAllSettings", safeDeps.resetAllSettings)
+        });
+
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
             if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
+            if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
             if (typeof document === "object" && document) return document;
             return null;
         }
@@ -27,7 +68,7 @@
             const exportSettingsBtn = doc.getElementById("export-settings-btn");
             if (exportSettingsBtn?.addEventListener) {
                 exportSettingsBtn.addEventListener("click", () => {
-                    invokeDep("exportSettingsToJSON");
+                    dep.exportSettingsToJSON();
                 });
             }
 
@@ -39,27 +80,27 @@
                     settingsImportFile.click?.();
                 });
                 settingsImportFile.addEventListener?.("change", (event) => {
-                    invokeDep("handleSettingsImportFile", event);
+                    dep.handleSettingsImportFile(event);
                 });
             }
 
             const groupImportFile = doc.getElementById("group-import-file");
             if (groupImportFile?.addEventListener) {
                 groupImportFile.addEventListener("change", (event) => {
-                    invokeDep("handleGroupImportFile", event);
+                    dep.handleGroupImportFile(event);
                 });
                 groupImportFile.addEventListener("cancel", () => {
-                    invokeDep("clearPendingGroupImport");
+                    dep.clearPendingGroupImport();
                 });
             }
 
             const subgroupImportFile = doc.getElementById("subgroup-import-file");
             if (subgroupImportFile?.addEventListener) {
                 subgroupImportFile.addEventListener("change", (event) => {
-                    invokeDep("handleSubgroupImportFile", event);
+                    dep.handleSubgroupImportFile(event);
                 });
                 subgroupImportFile.addEventListener("cancel", () => {
-                    invokeDep("clearPendingSubgroupImport");
+                    dep.clearPendingSubgroupImport();
                 });
             }
         }
@@ -71,14 +112,14 @@
             const resetExceptGroupTzBtn = doc.getElementById("reset-except-group-tz-btn");
             if (resetExceptGroupTzBtn?.addEventListener) {
                 resetExceptGroupTzBtn.addEventListener("click", () => {
-                    invokeDep("resetExceptGroupsAndTimezones");
+                    dep.resetExceptGroupsAndTimezones();
                 });
             }
 
             const resetAllSettingsBtn = doc.getElementById("reset-all-settings-btn");
             if (resetAllSettingsBtn?.addEventListener) {
                 resetAllSettingsBtn.addEventListener("click", () => {
-                    invokeDep("resetAllSettings");
+                    dep.resetAllSettings();
                 });
             }
         }

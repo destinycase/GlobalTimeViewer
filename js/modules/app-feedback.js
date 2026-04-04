@@ -4,40 +4,101 @@
     const BOOTSTRAP_ERROR_LOG_KEY = "GTV_BOOTSTRAP_ERRORS";
     const MAX_BOOTSTRAP_ERROR_LOGS = 10;
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const boundClickHandlers = new WeakMap();
+        const logger = (typeof safeDeps.logError === "function")
+            ? safeDeps.logError
+            : (typeof safeDeps.consoleError === "function")
+                ? safeDeps.consoleError
+            : ((...args) => {
+                if (typeof globalObj?.console?.error === "function") {
+                    globalObj.console.error(...args);
+                    return;
+                }
+                if (typeof console === "object" && console && typeof console.error === "function") {
+                    console.error(...args);
+                }
+            });
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
         }
 
+        const dep = Object.freeze({
+            t: toSafeCallable(safeDeps.t)
+        });
+
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected.getElementById === "function") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected.getElementById === "function") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef.getElementById === "function") {
+                return safeDeps.documentRef;
+            }
             if (safeDeps.document && typeof safeDeps.document.getElementById === "function") {
                 return safeDeps.document;
+            }
+            if (globalObj?.document && typeof globalObj.document.getElementById === "function") {
+                return globalObj.document;
             }
             return (typeof document === "object" && document) ? document : null;
         }
 
         function getLocationRef() {
+            if (typeof safeDeps.getLocationRef === "function") {
+                const injected = safeDeps.getLocationRef();
+                if (injected && typeof injected.reload === "function") return injected;
+            }
+            if (typeof safeDeps.getLocationRefOrNull === "function") {
+                const injected = safeDeps.getLocationRefOrNull();
+                if (injected && typeof injected.reload === "function") return injected;
+            }
+            if (safeDeps.locationRef && typeof safeDeps.locationRef.reload === "function") {
+                return safeDeps.locationRef;
+            }
             if (safeDeps.location && typeof safeDeps.location.reload === "function") {
                 return safeDeps.location;
+            }
+            if (globalObj?.location && typeof globalObj.location.reload === "function") {
+                return globalObj.location;
             }
             return (typeof location === "object" && typeof location.reload === "function") ? location : null;
         }
 
         function getStorageRef() {
             if (
+                safeDeps.storageRef
+                && typeof safeDeps.storageRef.getItem === "function"
+                && typeof safeDeps.storageRef.setItem === "function"
+            ) {
+                return safeDeps.storageRef;
+            }
+            if (
                 safeDeps.storage
                 && typeof safeDeps.storage.getItem === "function"
                 && typeof safeDeps.storage.setItem === "function"
             ) {
                 return safeDeps.storage;
+            }
+            if (
+                globalObj?.localStorage
+                && typeof globalObj.localStorage.getItem === "function"
+                && typeof globalObj.localStorage.setItem === "function"
+            ) {
+                return globalObj.localStorage;
             }
             if (
                 typeof localStorage === "object"
@@ -50,14 +111,36 @@
             return null;
         }
 
-        function getUserAgent() {
-            if (
-                typeof navigator === "object"
-                && navigator
-                && typeof navigator.userAgent === "string"
-            ) {
-                return navigator.userAgent;
+        function getNavigatorRef() {
+            if (typeof safeDeps.getNavigatorRef === "function") {
+                const injected = safeDeps.getNavigatorRef();
+                if (injected && typeof injected === "object") return injected;
             }
+            if (typeof safeDeps.getNavigatorRefOrNull === "function") {
+                const injected = safeDeps.getNavigatorRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.navigatorRef && typeof safeDeps.navigatorRef === "object") {
+                return safeDeps.navigatorRef;
+            }
+            if (safeDeps.navigator && typeof safeDeps.navigator === "object") {
+                return safeDeps.navigator;
+            }
+            if (globalObj?.navigator && typeof globalObj.navigator === "object") {
+                return globalObj.navigator;
+            }
+            return (typeof navigator === "object" && navigator) ? navigator : null;
+        }
+
+        function translate(key, fallbackText = "") {
+            const translated = dep.t(key);
+            if (typeof translated === "string" && translated.trim()) return translated;
+            return String(fallbackText || key || "");
+        }
+
+        function getUserAgent() {
+            const navigatorRef = getNavigatorRef();
+            if (typeof navigatorRef?.userAgent === "string") return navigatorRef.userAgent;
             return "";
         }
 
@@ -65,29 +148,15 @@
             if (typeof safeDeps.writeClipboard === "function") {
                 return await safeDeps.writeClipboard(text);
             }
-            if (
-                typeof navigator === "object"
-                && navigator
-                && navigator.clipboard
-                && typeof navigator.clipboard.writeText === "function"
-            ) {
-                return await navigator.clipboard.writeText(text);
+            const clipboard = getNavigatorRef()?.clipboard;
+            if (clipboard && typeof clipboard.writeText === "function") {
+                return await clipboard.writeText(text);
             }
             throw new Error("Clipboard API unavailable");
         }
 
         function logFatalError(err, errorRecord = null) {
-            if (typeof safeDeps.logError === "function") {
-                safeDeps.logError("FATAL ERROR during app initialization:", err, errorRecord);
-                return;
-            }
-            if (typeof console === "object" && console && typeof console.error === "function") {
-                if (errorRecord) {
-                    console.error("FATAL ERROR during app initialization:", err, errorRecord);
-                    return;
-                }
-                console.error("FATAL ERROR during app initialization:", err);
-            }
+            logger("FATAL ERROR during app initialization:", err, ...(errorRecord ? [errorRecord] : []));
         }
 
         function classifyFatalErrorType(err) {
@@ -166,8 +235,8 @@
                 if (typeof element.setAttribute === "function") {
                     element.setAttribute("data-i18n", key);
                 }
-                const translated = invokeDep("t", key);
-                if (typeof translated === "string" && translated.trim()) {
+                const translated = translate(key, "");
+                if (translated) {
                     element.textContent = translated;
                     return;
                 }
@@ -211,7 +280,7 @@
             bindClickHandler(copyBtn, async () => {
                 try {
                     await writeClipboardText(String(errorCode || ""));
-                    showToast(invokeDep("t", "toast_error_code_copied") || "Error code copied.", { type: "success" });
+                    showToast(translate("toast_error_code_copied", "Error code copied."), { type: "success" });
                 } catch (_err) {
                     // Clipboard can be unavailable in restricted contexts.
                 }
@@ -266,7 +335,7 @@
 
         function showToast(message, options = {}) {
             const doc = getDocumentRef();
-            if (!doc) return;
+            if (!doc || typeof doc.createElement !== "function") return;
             const container = doc.getElementById("toast-container");
             if (!container) return;
             const text = (typeof message === "string") ? message.trim() : "";

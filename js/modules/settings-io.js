@@ -1,7 +1,55 @@
 (function initGtvSettingsIo(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
+        deps = (deps && typeof deps === "object") ? deps : {};
+
+        function getDocumentRef() {
+            if (typeof deps.getDocumentRef === "function") {
+                const injected = deps.getDocumentRef();
+                if (injected && typeof injected.getElementById === "function") {
+                    return injected;
+                }
+            }
+            if (typeof deps.getDocumentRefOrNull === "function") {
+                const injected = deps.getDocumentRefOrNull();
+                if (injected && typeof injected.getElementById === "function") {
+                    return injected;
+                }
+            }
+            if (deps.documentRef && typeof deps.documentRef.getElementById === "function") {
+                return deps.documentRef;
+            }
+            if (deps.document && typeof deps.document.getElementById === "function") {
+                return deps.document;
+            }
+            if (globalObj?.document && typeof globalObj.document.getElementById === "function") {
+                return globalObj.document;
+            }
+            if (typeof document !== "undefined" && document && typeof document.getElementById === "function") {
+                return document;
+            }
+            return null;
+        }
+
+        function logWarn(...args) {
+            if (typeof deps.logWarn === "function") {
+                deps.logWarn(...args);
+                return;
+            }
+            if (typeof deps.consoleWarn === "function") {
+                deps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console?.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
         function createPersistenceWriteError(message, cause = null) {
             const err = new Error(message || "Failed to persist imported settings payload");
             err.code = "PERSISTENCE_WRITE_FAILED";
@@ -217,7 +265,7 @@
                     const normalized = deps.normalizeImportedPayload(payload);
                     if (normalized && typeof normalized === "object") return normalized;
                 } catch (err) {
-                    console.warn("normalizeImportedPayload failed. Falling back to local import sanitization.", err);
+                    logWarn("normalizeImportedPayload failed. Falling back to local import sanitization.", err);
                 }
             }
             return buildSanitizedImportPayload(payload);
@@ -277,17 +325,18 @@
             deps.applyTranslations();
             deps.applyVersionBranding();
 
-            const langSelect = document.getElementById("lang-select");
+            const doc = getDocumentRef();
+            const langSelect = doc?.getElementById?.("lang-select");
             if (langSelect) langSelect.value = deps.getCurrentLang();
 
-            const themeSelect = document.getElementById("theme-select");
+            const themeSelect = doc?.getElementById?.("theme-select");
             if (themeSelect) themeSelect.value = deps.getCurrentTheme();
-            const uiScaleSelect = document.getElementById("ui-scale-select");
+            const uiScaleSelect = doc?.getElementById?.("ui-scale-select");
             if (uiScaleSelect) {
                 deps.populateUiScaleSelect(uiScaleSelect);
                 uiScaleSelect.value = String(deps.getCurrentUiScalePercent());
             }
-            const dayStartSelect = document.getElementById("day-start-select");
+            const dayStartSelect = doc?.getElementById?.("day-start-select");
             if (dayStartSelect) {
                 if (typeof deps.populateDayNightHourSelect === "function") {
                     deps.populateDayNightHourSelect(dayStartSelect);
@@ -296,7 +345,7 @@
                     dayStartSelect.value = String(deps.getDayStartHour());
                 }
             }
-            const nightStartSelect = document.getElementById("night-start-select");
+            const nightStartSelect = doc?.getElementById?.("night-start-select");
             if (nightStartSelect) {
                 if (typeof deps.populateDayNightHourSelect === "function") {
                     deps.populateDayNightHourSelect(nightStartSelect);

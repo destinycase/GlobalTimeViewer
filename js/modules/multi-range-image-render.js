@@ -1,30 +1,81 @@
 (function initGtvMultiRangeImageRender(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVMultiRangeImageRender] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
 
-        async function invokeDepAsync(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return await safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVMultiRangeImageRender] Dependency "${name}" threw.`, err);
-                return undefined;
-            }
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVMultiRangeImageRender] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        function toSafeAsyncCallable(depName, depFn) {
+            if (typeof depFn !== "function") return async () => undefined;
+            return async (...args) => {
+                try {
+                    return await depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVMultiRangeImageRender] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getMultiRanges: toSafeCallable("getMultiRanges", safeDeps.getMultiRanges),
+            getMultiRangeTitleText: toSafeCallable("getMultiRangeTitleText", safeDeps.getMultiRangeTitleText),
+            waitForDocumentFontsReady: toSafeAsyncCallable("waitForDocumentFontsReady", safeDeps.waitForDocumentFontsReady),
+            cloneMultiRangeBlockForImageExport: toSafeCallable("cloneMultiRangeBlockForImageExport", safeDeps.cloneMultiRangeBlockForImageExport),
+            prepareExportCanvas: toSafeCallable("prepareExportCanvas", safeDeps.prepareExportCanvas),
+            drawExportCellText: toSafeCallable("drawExportCellText", safeDeps.drawExportCellText),
+            t: toSafeCallable("t", safeDeps.t),
+            extractTableCellText: toSafeCallable("extractTableCellText", safeDeps.extractTableCellText),
+            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
+            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef)
+        });
+
+        function translate(key) {
+            const value = dep.t(key);
+            return (typeof value === "string" && value) ? value : String(key || "");
         }
 
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
+            if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
+            if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
             return (typeof document === "object" && document) ? document : null;
         }
 
@@ -51,14 +102,14 @@
         }
 
         function getMultiRangeTitles(baseRef) {
-            const ranges = asArray(invokeDep("getMultiRanges"));
+            const ranges = asArray(dep.getMultiRanges());
             return ranges.map((range, rangeIdx) =>
-                invokeDep("getMultiRangeTitleText", rangeIdx, range, baseRef)
+                dep.getMultiRangeTitleText(rangeIdx, range, baseRef)
             );
         }
 
         async function renderMultiRangesFallbackDataUrl(targetRangeIdx = null) {
-            await invokeDepAsync("waitForDocumentFontsReady");
+            await dep.waitForDocumentFontsReady();
 
             const doc = getDocumentRef();
             const containerEl = doc?.getElementById?.("multi-ranges-container");
@@ -73,7 +124,7 @@
             const clonedContainer = doc.createElement("div");
             clonedContainer.className = "multi-ranges-container";
             selectedBlocks.forEach((blockEl) => {
-                const cloned = invokeDep("cloneMultiRangeBlockForImageExport", blockEl);
+                const cloned = dep.cloneMultiRangeBlockForImageExport(blockEl);
                 if (cloned) clonedContainer.appendChild(cloned);
             });
 
@@ -131,7 +182,7 @@
                 sum + titleHeight + metric.tableHeight + (idx < metrics.length - 1 ? blockGap : 0)
             ), 0);
 
-            const renderTarget = invokeDep("prepareExportCanvas", sourceWidth, sourceHeight, pageBg);
+            const renderTarget = dep.prepareExportCanvas(sourceWidth, sourceHeight, pageBg);
             const canvas = renderTarget?.canvas;
             const ctx = renderTarget?.ctx;
             if (!canvas || !ctx) throw new Error("Canvas context unavailable");
@@ -151,7 +202,7 @@
             const exportTitleFont = `700 16px ${monoFont} `;
 
             const drawCellText = (text, x, y, w, h, align = "left", color = textColor, font = exportBodyFont) => {
-                invokeDep("drawExportCellText", ctx, text, x, y, w, h, { align, color, font, clip: true });
+                dep.drawExportCellText(ctx, text, x, y, w, h, { align, color, font, clip: true });
             };
 
             const isCenterBodyCell = (cell) => {
@@ -168,7 +219,7 @@
 
             let y = 0;
             metrics.forEach((metric, metricIdx) => {
-                const titleText = metric.titleText || `${invokeDep("t", "default_subgroup_name")} ${metricIdx + 1} `;
+                const titleText = metric.titleText || `${translate("default_subgroup_name")} ${metricIdx + 1} `;
                 ctx.fillStyle = titleBg;
                 ctx.fillRect(0, y, sourceWidth, titleHeight);
                 ctx.strokeStyle = borderColor;
@@ -217,7 +268,7 @@
                     for (let c = 0; c < metric.colWidths.length; c++) {
                         const w = metric.colWidths[c];
                         const cell = cells[c];
-                        const text = invokeDep("extractTableCellText", cell) || "";
+                        const text = dep.extractTableCellText(cell) || "";
                         const center = isCenterBodyCell(cell);
                         drawCellText(text, rowX, rowY, w, h, center ? "center" : "left", textColor, exportBodyFont);
                         rowX += w;
@@ -241,10 +292,10 @@
         }
 
         async function renderMultiRangeTitlesToPngDataUrl() {
-            await invokeDepAsync("waitForDocumentFontsReady");
+            await dep.waitForDocumentFontsReady();
 
-            invokeDep("ensureMultiRangeState");
-            const baseRef = invokeDep("getBaseTimezoneRef");
+            dep.ensureMultiRangeState();
+            const baseRef = dep.getBaseTimezoneRef();
             const titles = getMultiRangeTitles(baseRef);
             if (!titles.length) throw new Error("No multi-range title data to render");
 
@@ -275,7 +326,7 @@
             const contentHeight = (titles.length * rowHeight) + (Math.max(0, titles.length - 1) * rowGap);
             const sourceHeight = contentHeight + (topBottomPadding * 2);
 
-            const renderTarget = invokeDep("prepareExportCanvas", sourceWidth, sourceHeight, pageBg);
+            const renderTarget = dep.prepareExportCanvas(sourceWidth, sourceHeight, pageBg);
             const canvas = renderTarget?.canvas;
             const ctx = renderTarget?.ctx;
             if (!canvas || !ctx) throw new Error("Canvas context unavailable");
@@ -283,7 +334,7 @@
             let y = topBottomPadding;
             titles.forEach((titleText, idx) => {
                 const rowBg = idx % 2 === 0 ? "rgba(56, 189, 248, 0.12)" : "rgba(56, 189, 248, 0.08)";
-                const resolvedTitle = (String(titleText || "").trim()) || `${invokeDep("t", "default_subgroup_name")} ${idx + 1} `;
+                const resolvedTitle = (String(titleText || "").trim()) || `${translate("default_subgroup_name")} ${idx + 1} `;
 
                 ctx.fillStyle = rowBg;
                 ctx.fillRect(0, y, sourceWidth, rowHeight);
@@ -292,7 +343,7 @@
                 ctx.lineWidth = 1;
                 ctx.strokeRect(0.5, y + 0.5, Math.max(1, sourceWidth - 1), Math.max(1, rowHeight - 1));
 
-                invokeDep("drawExportCellText", ctx, resolvedTitle, 0, y, sourceWidth, rowHeight, {
+                dep.drawExportCellText(ctx, resolvedTitle, 0, y, sourceWidth, rowHeight, {
                     align: "left",
                     color: accentColor,
                     font: titleFont,
@@ -317,4 +368,3 @@
         createService
     });
 })(typeof window !== "undefined" ? window : globalThis);
-

@@ -2,6 +2,7 @@ const semanticSafetyRules = Object.freeze({
     "no-debugger": "error",
     "no-dupe-keys": "error",
     "no-duplicate-case": "error",
+    eqeqeq: ["error", "always"],
     "no-loss-of-precision": "error",
     "no-template-curly-in-string": "error",
     "no-unreachable": "error",
@@ -35,7 +36,8 @@ module.exports = [
             "dist_extension/**",
             "coverage/**",
             "node_modules/**",
-            "js/vendor/**"
+            "js/vendor/**",
+            "js/bundle.js"
         ]
     },
     {

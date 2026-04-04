@@ -49,7 +49,7 @@
     });
     const FORMAT_PROFILE_CONTEXT_KEYS = Object.freeze(["live", "fixed", "fixed-extra", "multi", "fixed-time"]);
 
-    globalObj.GTVMainConstants = Object.freeze({
+    const MAIN_CONSTANTS = Object.freeze({
         COPY_FORMAT_KEYS,
         TIME_PART_KEYS,
         PERIOD_RESULT_IDS,
@@ -73,5 +73,14 @@
         DEFAULT_DISPLAY_TIME_PARTS_ENABLED,
         DEFAULT_COPY_TIME_PARTS_ENABLED,
         FORMAT_PROFILE_CONTEXT_KEYS
+    });
+
+    function createService(_deps = {}) {
+        return MAIN_CONSTANTS;
+    }
+
+    globalObj.GTVMainConstants = Object.freeze({
+        createService,
+        ...MAIN_CONSTANTS
     });
 })(typeof window !== "undefined" ? window : globalThis);

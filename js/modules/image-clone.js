@@ -1,11 +1,21 @@
 (function initGtvImageClone(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
             if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
+            if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
             if (typeof document === "object" && document) return document;
             return null;
         }

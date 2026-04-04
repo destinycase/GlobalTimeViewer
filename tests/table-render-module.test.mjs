@@ -170,6 +170,70 @@ describe("GTV table render module", () => {
         expect(service.createInteractiveTimezoneRow({ id: "utc" }, 1, ["timezone"], "utc")).toBe(null);
     });
 
+    it("createInteractiveTimezoneRow prefers injected documentRef when global document is unavailable", () => {
+        let rowCreateCount = 0;
+        const module = loadTableRenderModule({
+            document: {
+                createElement() {
+                    throw new Error("global document should not be used");
+                }
+            }
+        });
+        const service = module.createService({
+            documentRef: {
+                documentElement: {
+                    lang: "en",
+                    getAttribute() {
+                        return "dark";
+                    }
+                },
+                createElement(tagName) {
+                    if (tagName === "tr") rowCreateCount += 1;
+                    return createElementStub();
+                }
+            },
+            getDisplayTimePartsEnabled: () => ({ date: false, time: false, dn: false, weekday: false }),
+            getZoneDisplayName: () => "UTC"
+        });
+
+        const row = service.createInteractiveTimezoneRow({ id: "utc", zone: "UTC", type: "standard" }, 1, ["timezone"], "utc");
+
+        expect(row).not.toBe(null);
+        expect(rowCreateCount).toBe(1);
+    });
+
+    it("createInteractiveTimezoneRow prefers injected getDocumentRefOrNull when global document is unavailable", () => {
+        let rowCreateCount = 0;
+        const module = loadTableRenderModule({
+            document: {
+                createElement() {
+                    throw new Error("global document should not be used");
+                }
+            }
+        });
+        const service = module.createService({
+            getDocumentRefOrNull: () => ({
+                documentElement: {
+                    lang: "en",
+                    getAttribute() {
+                        return "dark";
+                    }
+                },
+                createElement(tagName) {
+                    if (tagName === "tr") rowCreateCount += 1;
+                    return createElementStub();
+                }
+            }),
+            getDisplayTimePartsEnabled: () => ({ date: false, time: false, dn: false, weekday: false }),
+            getZoneDisplayName: () => "UTC"
+        });
+
+        const row = service.createInteractiveTimezoneRow({ id: "utc", zone: "UTC", type: "standard" }, 1, ["timezone"], "utc");
+
+        expect(row).not.toBe(null);
+        expect(rowCreateCount).toBe(1);
+    });
+
     it("getRenderableTimezoneRows handles non-array zones input", () => {
         const module = loadTableRenderModule();
         const service = module.createService({

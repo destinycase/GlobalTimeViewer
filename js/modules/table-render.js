@@ -1,25 +1,92 @@
 (function initGtvTableRender(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
+            if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
+            if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
             return (typeof document === "object" && document) ? document : null;
         }
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVTableRender] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
 
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVTableRender] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            t: toSafeCallable("t", safeDeps.t),
+            getGlobalTime: toSafeCallable("getGlobalTime", safeDeps.getGlobalTime),
+            getZoneDisplayNameForUiAtDate: toSafeCallable("getZoneDisplayNameForUiAtDate", safeDeps.getZoneDisplayNameForUiAtDate),
+            getZoneDisplayName: toSafeCallable("getZoneDisplayName", safeDeps.getZoneDisplayName),
+            getDisplayFormatEnabled: toSafeCallable("getDisplayFormatEnabled", safeDeps.getDisplayFormatEnabled),
+            getDisplayTimePartsEnabled: toSafeCallable("getDisplayTimePartsEnabled", safeDeps.getDisplayTimePartsEnabled),
+            getDisplayFormatOrder: toSafeCallable("getDisplayFormatOrder", safeDeps.getDisplayFormatOrder),
+            sanitizeCopyFormatOrder: toSafeCallable("sanitizeCopyFormatOrder", safeDeps.sanitizeCopyFormatOrder),
+            getSlotCount: toSafeCallable("getSlotCount", safeDeps.getSlotCount),
+            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
+            isRealtime: toSafeCallable("isRealtime", safeDeps.isRealtime),
+            copyRow: toSafeCallable("copyRow", safeDeps.copyRow),
+            removeTimezone: toSafeCallable("removeTimezone", safeDeps.removeTimezone),
+            handleTimeChange: toSafeCallable("handleTimeChange", safeDeps.handleTimeChange),
+            createDragGhostFromRow: toSafeCallable("createDragGhostFromRow", safeDeps.createDragGhostFromRow),
+            clearDragGhost: toSafeCallable("clearDragGhost", safeDeps.clearDragGhost),
+            saveOrder: toSafeCallable("saveOrder", safeDeps.saveOrder),
+            updateClocks: toSafeCallable("updateClocks", safeDeps.updateClocks),
+            getCurrentGroupZones: toSafeCallable("getCurrentGroupZones", safeDeps.getCurrentGroupZones),
+            isCurrentGroupUtcRowVisible: toSafeCallable("isCurrentGroupUtcRowVisible", safeDeps.isCurrentGroupUtcRowVisible),
+            getUTCRef: toSafeCallable("getUTCRef", safeDeps.getUTCRef),
+            getCurrentGroupUtcRowOrder: toSafeCallable("getCurrentGroupUtcRowOrder", safeDeps.getCurrentGroupUtcRowOrder),
+            hideFloatingTooltip: toSafeCallable("hideFloatingTooltip", safeDeps.hideFloatingTooltip),
+            renderMultiRanges: toSafeCallable("renderMultiRanges", safeDeps.renderMultiRanges),
+            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
+            escapeHtml: toSafeCallable("escapeHtml", safeDeps.escapeHtml),
+            renderBaseTimeSelect: toSafeCallable("renderBaseTimeSelect", safeDeps.renderBaseTimeSelect),
+            updateTimeAdjustPanel: toSafeCallable("updateTimeAdjustPanel", safeDeps.updateTimeAdjustPanel),
+            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
+        });
+
+        function isRealtimeMode() {
+            return !!dep.isRealtime();
+        }
+
         function translate(key) {
-            const value = invokeDep("t", key);
+            const value = dep.t(key);
             if (typeof value === "string" && value) return value;
             return String(key || "");
         }
@@ -29,7 +96,7 @@
         }
 
         function getSlotZeroAnchorDate() {
-            const slotZero = invokeDep("getGlobalTime", 0);
+            const slotZero = dep.getGlobalTime(0);
             if (isValidDate(slotZero)) return slotZero;
             return new Date();
         }
@@ -49,33 +116,33 @@
         }
 
         function getZoneDisplayNameForUiAtDate(tz, anchorDate = getSlotZeroAnchorDate()) {
-            const uiName = invokeDep("getZoneDisplayNameForUiAtDate", tz, anchorDate);
+            const uiName = dep.getZoneDisplayNameForUiAtDate(tz, anchorDate);
             if (typeof uiName === "string" && uiName.trim()) return uiName;
-            const baseName = invokeDep("getZoneDisplayName", tz);
+            const baseName = dep.getZoneDisplayName(tz);
             if (typeof baseName === "string" && baseName.trim()) return baseName;
             return "";
         }
 
         function getDisplayEnabledMap() {
-            const enabled = invokeDep("getDisplayFormatEnabled");
+            const enabled = dep.getDisplayFormatEnabled();
             return (enabled && typeof enabled === "object") ? enabled : {};
         }
 
         function getDisplayTimePartsEnabledMap() {
-            const enabled = invokeDep("getDisplayTimePartsEnabled");
+            const enabled = dep.getDisplayTimePartsEnabled();
             return (enabled && typeof enabled === "object") ? enabled : {};
         }
 
         function getSafeDisplayOrder() {
-            const order = invokeDep("getDisplayFormatOrder");
-            const sanitized = invokeDep("sanitizeCopyFormatOrder", order);
+            const order = dep.getDisplayFormatOrder();
+            const sanitized = dep.sanitizeCopyFormatOrder(order);
             if (Array.isArray(sanitized)) return sanitized;
             if (Array.isArray(order)) return order;
             return [];
         }
 
         function getSlotCountSafe() {
-            const value = Number(invokeDep("getSlotCount"));
+            const value = Number(dep.getSlotCount());
             return Number.isFinite(value) ? value : 1;
         }
 
@@ -83,7 +150,7 @@
             const columns = [];
             const safeSlotCount = Number.isFinite(Number(effectiveSlotCount)) ? Number(effectiveSlotCount) : 1;
             const enabledMap = getDisplayEnabledMap();
-            const isMultiTab = !!invokeDep("isMultiTab");
+            const isMultiTab = !!dep.isMultiTab();
             getSafeDisplayOrder().forEach((key) => {
                 if (key === "time") {
                     if (!enabledMap[key] && !isMultiTab) return;
@@ -147,7 +214,7 @@
         }
 
         function getDisplayColumnHeader(colKey) {
-            const useRangeTimeLabels = !invokeDep("isRealtime") && getSlotCountSafe() > 1;
+            const useRangeTimeLabels = !isRealtimeMode() && getSlotCountSafe() > 1;
             switch (colKey) {
                 case "timezone":
                     return `<th style="width: 110px;">${translate("th_tz_abbr")}</th>`;
@@ -200,7 +267,7 @@
                 case "time_main":
                 case "time_extra": {
                     const slotIdx = colKey === "time_main" ? 0 : 1;
-                    return buildTimeColumnCell(slotIdx, slotCountToRender, { isReadonly: invokeDep("isRealtime") });
+                    return buildTimeColumnCell(slotIdx, slotCountToRender, { isReadonly: isRealtimeMode() });
                 }
                 case "period_days":
                     return `<td class="period-days-cell"><span class="period-days-text">-</span></td>`;
@@ -222,7 +289,7 @@
                 case "time_main":
                 case "time_extra": {
                     const slotIdx = colKey === "time_main" ? 0 : 1;
-                    return buildTimeColumnCell(slotIdx, slotCountToRender, { isReadonly: invokeDep("isRealtime") });
+                    return buildTimeColumnCell(slotIdx, slotCountToRender, { isReadonly: isRealtimeMode() });
                 }
                 case "period_days":
                     return `<td class="period-days-cell"><span class="period-days-text">-</span></td>`;
@@ -268,10 +335,10 @@
             applyZoneCodeKindClass(tr.querySelector(".zone-code"), safeTz);
 
             const copyBtn = tr.querySelector(".copy-row-btn");
-            if (copyBtn) copyBtn.addEventListener("click", () => invokeDep("copyRow", safeRowId));
+            if (copyBtn) copyBtn.addEventListener("click", () => dep.copyRow(safeRowId));
 
             const removeBtn = tr.querySelector(".remove-row-btn");
-            if (removeBtn) removeBtn.addEventListener("click", () => invokeDep("removeTimezone", safeRowId));
+            if (removeBtn) removeBtn.addEventListener("click", () => dep.removeTimezone(safeRowId));
 
             Array.from(tr.querySelectorAll(".time-input") || []).forEach((input) => {
                 const slotIdx = parseInt(input.dataset.slot, 10);
@@ -292,10 +359,10 @@
                     });
                 }
 
-                input.onchange = (e) => invokeDep("handleTimeChange", e.target.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
+                input.onchange = (e) => dep.handleTimeChange(e.target.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
                 input.onkeydown = (e) => {
                     if (e.key === "Enter") {
-                        invokeDep("handleTimeChange", e.target.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
+                        dep.handleTimeChange(e.target.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
                         input.blur();
                     }
                 };
@@ -309,15 +376,15 @@
                     if (e.dataTransfer) {
                         e.dataTransfer.effectAllowed = "move";
                         e.dataTransfer.setData("text/plain", safeRowId);
-                        const ghost = invokeDep("createDragGhostFromRow", tr);
+                        const ghost = dep.createDragGhostFromRow(tr);
                         e.dataTransfer.setDragImage(ghost || tr, 20, 20);
                     }
                 });
                 dragHandle.addEventListener("dragend", () => {
                     tr.classList.remove("dragging");
-                    invokeDep("clearDragGhost");
-                    invokeDep("saveOrder");
-                    invokeDep("updateClocks");
+                    dep.clearDragGhost();
+                    dep.saveOrder();
+                    dep.updateClocks();
                 });
             }
 
@@ -326,15 +393,15 @@
 
         function getRenderableTimezoneRows(baseRef) {
             const safeBaseRef = (baseRef && typeof baseRef === "object") ? baseRef : { id: "utc" };
-            const currentZones = invokeDep("getCurrentGroupZones");
+            const currentZones = dep.getCurrentGroupZones();
             const zoneRows = (Array.isArray(currentZones) ? currentZones : []).filter(
                 (tz) => tz && typeof tz === "object" && tz.id !== safeBaseRef.id && !(tz.type === "standard" && tz.zone === "UTC")
             );
             const rowsToRender = [...zoneRows];
-            if (safeBaseRef.id !== "utc" && invokeDep("isCurrentGroupUtcRowVisible")) {
-                const utcRef = invokeDep("getUTCRef");
+            if (safeBaseRef.id !== "utc" && dep.isCurrentGroupUtcRowVisible()) {
+                const utcRef = dep.getUTCRef();
                 if (utcRef && typeof utcRef === "object") {
-                    const utcRowOrder = Number(invokeDep("getCurrentGroupUtcRowOrder"));
+                    const utcRowOrder = Number(dep.getCurrentGroupUtcRowOrder());
                     const safeUtcRowOrder = Number.isFinite(utcRowOrder) ? utcRowOrder : 0;
                     const insertIndex = Math.min(Math.max(safeUtcRowOrder, 0), rowsToRender.length);
                     rowsToRender.splice(insertIndex, 0, utcRef);
@@ -346,18 +413,18 @@
         function renderList() {
             const doc = getDocumentRef();
             if (!doc) return;
-            invokeDep("hideFloatingTooltip");
-            if (invokeDep("isMultiTab")) {
-                invokeDep("renderMultiRanges");
+            dep.hideFloatingTooltip();
+            if (dep.isMultiTab()) {
+                dep.renderMultiRanges();
                 return;
             }
 
-            const effectiveSlotCount = invokeDep("isRealtime") ? 1 : getSlotCountSafe();
+            const effectiveSlotCount = isRealtimeMode() ? 1 : getSlotCountSafe();
             const displayColumns = getDisplayColumns(effectiveSlotCount);
-            const baseRef = invokeDep("getBaseTimezoneRef") || { id: "utc", zone: "UTC" };
+            const baseRef = dep.getBaseTimezoneRef() || { id: "utc", zone: "UTC" };
             const anchorDate = getSlotZeroAnchorDate();
             const baseZoneName = getZoneDisplayNameForUiAtDate(baseRef, anchorDate) || "";
-            const escapedBaseZoneName = invokeDep("escapeHtml", baseZoneName);
+            const escapedBaseZoneName = dep.escapeHtml(baseZoneName);
             const baseRefName = (typeof escapedBaseZoneName === "string") ? escapedBaseZoneName : String(baseZoneName);
             const theadRow = doc.querySelector?.("#table-head tr");
 
@@ -387,7 +454,7 @@
             baseRow.insertAdjacentHTML('beforeend', baseInner);
             applyZoneCodeKindClass(baseRow.querySelector(".zone-code"), baseRef);
             const baseCopyBtn = baseRow.querySelector(".copy-row-btn");
-            if (baseCopyBtn) baseCopyBtn.addEventListener("click", () => invokeDep("copyRow", baseRef.id));
+            if (baseCopyBtn) baseCopyBtn.addEventListener("click", () => dep.copyRow(baseRef.id));
             container.appendChild(baseRow);
 
             for (let i = 0; i < effectiveSlotCount; i++) {
@@ -410,14 +477,14 @@
                         });
                     }
 
-                    input.onchange = (e) => invokeDep("handleTimeChange", e.target.value, baseRef.zone || "CUSTOM", i, baseRef.id, inputMode);
+                    input.onchange = (e) => dep.handleTimeChange(e.target.value, baseRef.zone || "CUSTOM", i, baseRef.id, inputMode);
                     input.onkeydown = (e) => {
                         if (e.key === "Enter") {
-                            invokeDep("handleTimeChange", e.target.value, baseRef.zone || "CUSTOM", i, baseRef.id, inputMode);
+                            dep.handleTimeChange(e.target.value, baseRef.zone || "CUSTOM", i, baseRef.id, inputMode);
                             input.blur();
                         }
                     };
-                    if (invokeDep("isRealtime")) input.readOnly = true;
+                    if (isRealtimeMode()) input.readOnly = true;
                 });
             }
 
@@ -429,10 +496,10 @@
                 if (row) container.appendChild(row);
             });
 
-            invokeDep("renderBaseTimeSelect");
-            invokeDep("updateTimeAdjustPanel");
-            invokeDep("updateClocks");
-            invokeDep("upgradeNativeTitleTooltips", container);
+            dep.renderBaseTimeSelect();
+            dep.updateTimeAdjustPanel();
+            dep.updateClocks();
+            dep.upgradeNativeTitleTooltips(container);
         }
 
         return Object.freeze({

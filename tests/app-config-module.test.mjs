@@ -63,6 +63,16 @@ describe("GTV app config module", () => {
         expect(Object.isFrozen(config)).toBe(true);
     });
 
+    it("exposes createService with immutable config payload", () => {
+        const moduleApi = loadAppConfig();
+        const config = moduleApi.createService();
+
+        expect(typeof moduleApi.createService).toBe("function");
+        expect(Object.isFrozen(config)).toBe(true);
+        expect(config.VERSION).toBe(moduleApi.VERSION);
+        expect(config.STORAGE_KEY).toBe(moduleApi.STORAGE_KEY);
+    });
+
     it("keeps fallback migration keys within cleanup key list", () => {
         const config = loadAppConfig();
         const cleanupKeys = new Set(config.LEGACY_STORAGE_KEYS);

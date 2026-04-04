@@ -223,7 +223,7 @@ describe("GTV group tabs module", () => {
         }
     });
 
-    it("addGroup handles non-array groups state and initializes first group", () => {
+    it("addGroup handles non-array groups state and initializes first group", async () => {
         const module = loadGroupTabsModule({
             prompt: () => "New Group"
         });
@@ -235,7 +235,7 @@ describe("GTV group tabs module", () => {
         };
         const service = module.createService(createBaseDeps(state));
 
-        service.addGroup();
+        await service.addGroup();
 
         expect(Array.isArray(state.groups)).toBe(true);
         expect(state.groups.length).toBe(1);
@@ -243,7 +243,7 @@ describe("GTV group tabs module", () => {
         expect(state.activeGroupId).toBe(0);
     });
 
-    it("addGroup initializes fixedDate from dependency", () => {
+    it("addGroup initializes fixedDate from dependency", async () => {
         const module = loadGroupTabsModule({
             prompt: () => "With Date"
         });
@@ -257,7 +257,7 @@ describe("GTV group tabs module", () => {
             getDefaultFixedDate: () => "2026-03-15"
         }));
 
-        service.addGroup();
+        await service.addGroup();
 
         expect(state.groups[0].fixedDate).toBe("2026-03-15");
     });
@@ -288,6 +288,28 @@ describe("GTV group tabs module", () => {
         const service = module.createService(createBaseDeps(state));
 
         expect(() => service.renderGroups()).not.toThrow();
+    });
+
+    it("createService handles null deps and exposes safe no-op render methods", () => {
+        const module = loadGroupTabsModule();
+        const service = module.createService(null);
+
+        expect(service).toMatchObject({
+            activateGroupTab: expect.any(Function),
+            addGroup: expect.any(Function),
+            renameGroup: expect.any(Function),
+            activateMultiSubgroup: expect.any(Function),
+            addMultiSubgroup: expect.any(Function),
+            renameMultiSubgroup: expect.any(Function),
+            deleteMultiSubgroup: expect.any(Function),
+            renderGroups: expect.any(Function),
+            renderMultiSubgroups: expect.any(Function)
+        });
+        expect(() => service.renderGroups()).not.toThrow();
+        expect(() => service.renderMultiSubgroups()).not.toThrow();
+        expect(() => service.activateGroupTab(0)).not.toThrow();
+        expect(() => service.activateMultiSubgroup("sg-1")).not.toThrow();
+        expect(() => service.deleteMultiSubgroup("sg-1")).not.toThrow();
     });
 
     it("activateGroupTab rerenders fixed-time body and timeline", () => {
@@ -352,7 +374,95 @@ describe("GTV group tabs module", () => {
         expect(state.groups[0].multiSubgroups).toHaveLength(2);
     });
 
-    it("renameGroup trims name, persists, and shows toast", () => {
+    it("addGroup uses injected promptFn instead of global prompt", async () => {
+        const module = loadGroupTabsModule({
+            prompt: () => {
+                throw new Error("global prompt should not be called");
+            }
+        });
+        const state = {
+            groups: [],
+            activeGroupId: 0,
+            currentMainTab: "live",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 }
+        };
+        let promptCalls = 0;
+        const service = module.createService(createBaseDeps(state, {
+            promptFn: async () => {
+                promptCalls += 1;
+                return "Injected Group";
+            }
+        }));
+
+        await service.addGroup();
+
+        expect(promptCalls).toBe(1);
+        expect(state.groups[0].name).toBe("Injected Group");
+    });
+
+    it("addGroup falls back to deps.prompt when promptFn is absent", async () => {
+        const module = loadGroupTabsModule({
+            prompt: () => {
+                throw new Error("global prompt should not be called");
+            }
+        });
+        const state = {
+            groups: [],
+            activeGroupId: 0,
+            currentMainTab: "live",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 }
+        };
+        let promptCalls = 0;
+        const service = module.createService(createBaseDeps(state, {
+            promptFn: undefined,
+            prompt: () => {
+                promptCalls += 1;
+                return "Deps Prompt Group";
+            }
+        }));
+
+        await service.addGroup();
+
+        expect(promptCalls).toBe(1);
+        expect(state.groups[0].name).toBe("Deps Prompt Group");
+    });
+
+    it("deleteMultiSubgroup falls back to deps.confirm when confirmFn is absent", () => {
+        const module = loadGroupTabsModule({
+            confirm: () => {
+                throw new Error("global confirm should not be called");
+            }
+        });
+        const state = {
+            groups: [{
+                name: "A",
+                multiSubgroups: [
+                    { id: "sg-1", name: "Subgroup 1" },
+                    { id: "sg-2", name: "Subgroup 2" }
+                ],
+                activeMultiSubgroupId: "sg-1"
+            }],
+            activeGroupId: 0,
+            currentMainTab: "live",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 }
+        };
+        let confirmCalls = 0;
+        const service = module.createService(createBaseDeps(state, {
+            isMultiTab: () => true,
+            confirmFn: undefined,
+            confirm: () => {
+                confirmCalls += 1;
+                return true;
+            }
+        }));
+
+        service.deleteMultiSubgroup("sg-2");
+
+        expect(confirmCalls).toBe(1);
+        expect(state.groups[0].multiSubgroups).toHaveLength(1);
+    });
+
+    it("renameGroup trims name, persists, and shows toast", async () => {
         const module = loadGroupTabsModule({
             prompt: () => "  Renamed Group  "
         });
@@ -369,7 +479,7 @@ describe("GTV group tabs module", () => {
             showToast: (key) => { toastKey = key; }
         }));
 
-        service.renameGroup(0);
+        await service.renameGroup(0);
 
         expect(state.groups[0].name).toBe("Renamed Group");
         expect(saveCalls).toBe(1);
@@ -449,7 +559,7 @@ describe("GTV group tabs module", () => {
         expect(renderTabsCalls).toBe(0);
     });
 
-    it("addMultiSubgroup aborts when prompt is blank", () => {
+    it("addMultiSubgroup aborts when prompt is blank", async () => {
         const module = loadGroupTabsModule({
             prompt: () => "   "
         });
@@ -469,7 +579,7 @@ describe("GTV group tabs module", () => {
             savePersistence: () => { saveCalls += 1; }
         }));
 
-        service.addMultiSubgroup();
+        await service.addMultiSubgroup();
 
         expect(state.groups[0].multiSubgroups).toHaveLength(1);
         expect(saveCalls).toBe(0);
@@ -588,7 +698,7 @@ describe("GTV group tabs module", () => {
         expect(saveCalls).toBe(0);
     });
 
-    it("addGroup aborts when prompt is empty", () => {
+    it("addGroup aborts when prompt is empty", async () => {
         const module = loadGroupTabsModule({
             prompt: () => ""
         });
@@ -603,13 +713,13 @@ describe("GTV group tabs module", () => {
             savePersistence: () => { saveCalls += 1; }
         }));
 
-        service.addGroup();
+        await service.addGroup();
 
         expect(state.groups).toHaveLength(1);
         expect(saveCalls).toBe(0);
     });
 
-    it("renameGroup and renameMultiSubgroup safely no-op on invalid targets", () => {
+    it("renameGroup and renameMultiSubgroup safely no-op on invalid targets", async () => {
         const module = loadGroupTabsModule({
             prompt: () => " "
         });
@@ -624,8 +734,8 @@ describe("GTV group tabs module", () => {
             savePersistence: () => { saveCalls += 1; }
         }));
 
-        service.renameGroup(5);
-        service.renameMultiSubgroup("missing-id");
+        await service.renameGroup(5);
+        await service.renameMultiSubgroup("missing-id");
 
         expect(saveCalls).toBe(0);
         expect(state.groups[0].name).toBe("A");
@@ -687,7 +797,7 @@ describe("GTV group tabs module", () => {
         }
     });
 
-    it("renderGroups rename/export/import handlers invoke expected actions", () => {
+    it("renderGroups rename/export/import handlers invoke expected actions", async () => {
         const groupContainer = createElementStub("div");
         const addBtn = createElementStub("button");
         const module = loadGroupTabsModule({
@@ -721,7 +831,7 @@ describe("GTV group tabs module", () => {
         const editBtn = firstTab.children.find((child) => child.className === "group-edit-btn");
         const exportBtn = firstTab.children.find((child) => child.className === "group-export-btn");
         const importBtn = firstTab.children.find((child) => child.className === "group-import-btn");
-        editBtn.onclick?.({ stopPropagation() { } });
+        await editBtn.onclick?.({ stopPropagation() { } });
         exportBtn.onclick?.({ stopPropagation() { } });
         importBtn.onclick?.({ stopPropagation() { } });
 
@@ -730,7 +840,7 @@ describe("GTV group tabs module", () => {
         expect(importCalls).toBe(1);
     });
 
-    it("renderMultiSubgroups active tab handlers rename/export/import/delete", () => {
+    it("renderMultiSubgroups active tab handlers rename/export/import/delete", async () => {
         const subgroupContainer = createElementStub("div");
         const addBtn = createElementStub("button");
         const module = loadGroupTabsModule({
@@ -777,7 +887,7 @@ describe("GTV group tabs module", () => {
         const importBtn = activeTab.children.find((child) => child.className === "multi-subgroup-import-btn");
         const delBtn = activeTab.children.find((child) => child.className === "multi-subgroup-del-btn");
 
-        editBtn.onclick?.({ stopPropagation() { } });
+        await editBtn.onclick?.({ stopPropagation() { } });
         exportBtn.onclick?.({ stopPropagation() { } });
         importBtn.onclick?.({ stopPropagation() { } });
         delBtn.onclick?.({ stopPropagation() { } });
@@ -815,5 +925,49 @@ describe("GTV group tabs module", () => {
 
         expect(state.groups[0].multiSubgroups).toHaveLength(2);
         expect(saveCalls).toBe(0);
+    });
+
+    it("renderGroups prefers injected getDocumentRef over global document", () => {
+        const globalContainer = createElementStub("div");
+        const globalAddBtn = createElementStub("button");
+        const injectedContainer = createElementStub("div");
+        const injectedAddBtn = createElementStub("button");
+        const globalDoc = {
+            getElementById(id) {
+                if (id === "group-tabs-container") return globalContainer;
+                if (id === "add-group-btn") return globalAddBtn;
+                return null;
+            },
+            createElement(tagName) {
+                return createElementStub(tagName);
+            }
+        };
+        const injectedDoc = {
+            getElementById(id) {
+                if (id === "group-tabs-container") return injectedContainer;
+                if (id === "add-group-btn") return injectedAddBtn;
+                return null;
+            },
+            createElement(tagName) {
+                return createElementStub(tagName);
+            }
+        };
+        const module = loadGroupTabsModule({
+            document: globalDoc
+        });
+        const state = {
+            groups: [{ name: "A" }, { name: "B" }],
+            activeGroupId: 0,
+            currentMainTab: "live",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 }
+        };
+        const service = module.createService(createBaseDeps(state, {
+            getDocumentRef: () => injectedDoc
+        }));
+
+        service.renderGroups();
+
+        expect(injectedContainer.children.length).toBeGreaterThan(0);
+        expect(globalContainer.children.length).toBe(0);
     });
 });

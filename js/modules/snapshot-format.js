@@ -1,38 +1,59 @@
 (function initGtvSnapshotFormat(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const defaultCopyTimePartsEnabled = (safeDeps.DEFAULT_COPY_TIME_PARTS_ENABLED && typeof safeDeps.DEFAULT_COPY_TIME_PARTS_ENABLED === "object")
             ? safeDeps.DEFAULT_COPY_TIME_PARTS_ENABLED
             : Object.freeze({ dn: true, date: true, time: true, weekday: true });
 
-        function callDep(name, fallback, ...args) {
-            const fn = safeDeps[name];
-            if (typeof fn !== "function") return fallback;
-            try {
-                return fn(...args);
-            } catch (_err) {
-                return fallback;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
         }
+
+        const dep = Object.freeze({
+            pad: toSafeCallable(safeDeps.pad),
+            getCurrentLang: toSafeCallable(safeDeps.getCurrentLang),
+            getDayNightMarkerByHour: toSafeCallable(safeDeps.getDayNightMarkerByHour),
+            getUTCRef: toSafeCallable(safeDeps.getUTCRef),
+            getBaseTimezoneRef: toSafeCallable(safeDeps.getBaseTimezoneRef),
+            getCurrentGroupZones: toSafeCallable(safeDeps.getCurrentGroupZones),
+            getCustomOffsetMinutes: toSafeCallable(safeDeps.getCustomOffsetMinutes),
+            getFixedOffsetForDisplay: toSafeCallable(safeDeps.getFixedOffsetForDisplay),
+            normalizeCustomAbbr: toSafeCallable(safeDeps.normalizeCustomAbbr),
+            getZoneAbbreviation: toSafeCallable(safeDeps.getZoneAbbreviation),
+            getSignedInclusiveDaySpan: toSafeCallable(safeDeps.getSignedInclusiveDaySpan),
+            getSignedDurationDayHourMinute: toSafeCallable(safeDeps.getSignedDurationDayHourMinute),
+            t: toSafeCallable(safeDeps.t),
+            getZoneDisplayName: toSafeCallable(safeDeps.getZoneDisplayName),
+            getGlobalTimes: toSafeCallable(safeDeps.getGlobalTimes),
+            isRealtime: toSafeCallable(safeDeps.isRealtime),
+            getSlotCount: toSafeCallable(safeDeps.getSlotCount),
+            sanitizeTimePartsEnabled: toSafeCallable(safeDeps.sanitizeTimePartsEnabled),
+            sanitizeCopyFormatOrder: toSafeCallable(safeDeps.sanitizeCopyFormatOrder)
+        });
+
+        const timeDep = Object.freeze({
+            toDateTime: toSafeCallable(safeDeps?.timeService?.toDateTime),
+            resolveLocalDateParts: toSafeCallable(safeDeps?.timeService?.resolveLocalDateParts)
+        });
 
         function safePad(value) {
-            return callDep("pad", String(Math.max(0, Math.trunc(Number(value) || 0))).padStart(2, "0"), value);
-        }
-
-        function safeTimeServiceMethod(name, fallback, ...args) {
-            const fn = safeDeps?.timeService?.[name];
-            if (typeof fn !== "function") return fallback;
-            try {
-                return fn(...args);
-            } catch (_err) {
-                return fallback;
-            }
+            const fallback = String(Math.max(0, Math.trunc(Number(value) || 0))).padStart(2, "0");
+            const padded = dep.pad(value);
+            return (typeof padded === "string" && padded) ? padded : fallback;
         }
 
         function getDayNamesByLang() {
-            const lang = callDep("getCurrentLang", "en");
+            const langRaw = dep.getCurrentLang();
+            const lang = (typeof langRaw === "string" && langRaw.trim()) ? langRaw.trim() : "en";
             return safeDeps.I18N_DATA?.[lang]?.days || safeDeps.I18N_DATA?.en?.days || [];
         }
 
@@ -44,7 +65,7 @@
         }
 
         function resolveDayNightMarkerByHour(hour) {
-            const marker = callDep("getDayNightMarkerByHour", "", hour);
+            const marker = dep.getDayNightMarkerByHour(hour);
             const normalized = normalizeDayNightMarker(marker);
             if (normalized) return normalized;
             const numericHour = Number.parseInt(hour, 10);
@@ -76,10 +97,10 @@
 
         function getTimezoneRefById(id) {
             if (!id) return null;
-            if (id === "utc") return callDep("getUTCRef", null);
-            const baseRef = callDep("getBaseTimezoneRef", null);
+            if (id === "utc") return dep.getUTCRef() || null;
+            const baseRef = dep.getBaseTimezoneRef() || null;
             if (baseRef?.id === id) return baseRef;
-            const zones = callDep("getCurrentGroupZones", []);
+            const zones = dep.getCurrentGroupZones();
             if (!Array.isArray(zones)) return null;
             return zones.find((zone) => zone?.id === id) || null;
         }
@@ -104,9 +125,12 @@
         }
 
         function resolveSnapshotOffsetMinutes(tz, anchorDate, fixedDisplayOffsetMinutes = null) {
-            if (tz?.type === "custom") return callDep("getCustomOffsetMinutes", 0, tz);
+            if (tz?.type === "custom") {
+                const customOffset = Number(dep.getCustomOffsetMinutes(tz));
+                return Number.isFinite(customOffset) ? Math.trunc(customOffset) : 0;
+            }
             if (Number.isFinite(fixedDisplayOffsetMinutes)) return Math.trunc(fixedDisplayOffsetMinutes);
-            const dt = safeTimeServiceMethod("toDateTime", null, anchorDate, tz?.zone || "UTC");
+            const dt = timeDep.toDateTime(anchorDate, tz?.zone || "UTC");
             const offset = Number(dt?.offset);
             return Number.isFinite(offset) ? Math.trunc(offset) : 0;
         }
@@ -124,12 +148,12 @@
             const hasFixedOption = Object.prototype.hasOwnProperty.call(options || {}, "fixedDisplayOffsetMinutes");
             const fixedDisplayOffsetMinutes = hasFixedOption
                 ? options.fixedDisplayOffsetMinutes
-                : callDep("getFixedOffsetForDisplay", null, tz);
+                : dep.getFixedOffsetForDisplay(tz);
             const zone = tz.type === "custom" ? "CUSTOM" : (tz.zone || "UTC");
 
             const zoneCodeMain = (tz.type === "custom")
-                ? callDep("normalizeCustomAbbr", "", tz.abbr)
-                : callDep("getZoneAbbreviation", "", tz, anchorDate);
+                ? String(dep.normalizeCustomAbbr(tz.abbr) || "")
+                : String(dep.getZoneAbbreviation(tz, anchorDate) || "");
             const offsetStr = formatOffsetLabel(resolveSnapshotOffsetMinutes(tz, anchorDate, fixedDisplayOffsetMinutes));
             const dayNamesByLang = getDayNamesByLang();
 
@@ -142,8 +166,10 @@
 
             safeDates.forEach((slotDate) => {
                 const validDate = toValidDate(slotDate, fallbackDate) || fallbackDate;
-                const effectiveOffset = tz.type === "custom" ? callDep("getCustomOffsetMinutes", 0, tz) : fixedDisplayOffsetMinutes;
-                const parts = safeTimeServiceMethod("resolveLocalDateParts", null, validDate, zone, tz.id, effectiveOffset);
+                const effectiveOffset = tz.type === "custom"
+                    ? (Number(dep.getCustomOffsetMinutes(tz)) || 0)
+                    : fixedDisplayOffsetMinutes;
+                const parts = timeDep.resolveLocalDateParts(validDate, zone, tz.id, effectiveOffset);
                 if (!parts) return;
 
                 const hour = Number.isFinite(parts?.H) ? Math.trunc(parts.H) : 0;
@@ -171,15 +197,16 @@
             let periodDaysText = "";
             let periodTimeText = "";
             if (timeValues.length > 1) {
-                const spanDays = callDep("getSignedInclusiveDaySpan", null, timeValues[0], timeValues[1]);
-                const spanTime = callDep("getSignedDurationDayHourMinute", null, timeValues[0], timeValues[1]);
-                periodDaysText = spanDays === null ? "" : `${spanDays}${callDep("t", "d", "unit_days_suffix")}`;
+                const spanDays = dep.getSignedInclusiveDaySpan(timeValues[0], timeValues[1]);
+                const spanTime = dep.getSignedDurationDayHourMinute(timeValues[0], timeValues[1]);
+                const daySuffix = String(dep.t("unit_days_suffix") || "d");
+                periodDaysText = spanDays === null || spanDays === undefined ? "" : `${spanDays}${daySuffix}`;
                 periodTimeText = spanTime === null ? "" : spanTime;
             }
 
             return {
                 timezone: zoneCodeMain,
-                region: callDep("getZoneDisplayName", "", tz),
+                region: String(dep.getZoneDisplayName(tz) || ""),
                 offset: offsetStr,
                 times: timeValues,
                 dates: dateValues,
@@ -196,9 +223,11 @@
             const tz = getTimezoneRefById(id);
             if (!tz) return null;
 
-            const globalTimes = callDep("getGlobalTimes", []);
+            const globalTimesRaw = dep.getGlobalTimes();
+            const globalTimes = Array.isArray(globalTimesRaw) ? globalTimesRaw : [];
             const anchorDate = globalTimes[0] instanceof Date ? globalTimes[0] : new Date();
-            const effectiveSlotCount = callDep("isRealtime", false) ? 1 : callDep("getSlotCount", 1);
+            const rawSlotCount = Number(dep.getSlotCount());
+            const effectiveSlotCount = dep.isRealtime() ? 1 : (Number.isFinite(rawSlotCount) ? Math.max(1, rawSlotCount) : 1);
             const slotDates = Array.from({ length: effectiveSlotCount }, (_, idx) =>
                 (globalTimes[idx] instanceof Date) ? globalTimes[idx] : anchorDate
             );
@@ -207,7 +236,10 @@
         }
 
         function formatTimeTextByParts(snapshot, timePartsEnabled) {
-            const safeParts = callDep("sanitizeTimePartsEnabled", defaultCopyTimePartsEnabled, timePartsEnabled, "copy");
+            const safePartsRaw = dep.sanitizeTimePartsEnabled(timePartsEnabled, "copy");
+            const safeParts = (safePartsRaw && typeof safePartsRaw === "object")
+                ? safePartsRaw
+                : defaultCopyTimePartsEnabled;
             const dates = Array.isArray(snapshot.dates) ? snapshot.dates : [];
             const clocks = Array.isArray(snapshot.clocks) ? snapshot.clocks : [];
             const dayNames = Array.isArray(snapshot.dayNames) ? snapshot.dayNames : [];
@@ -269,7 +301,8 @@
         function formatSnapshotText(snapshot, order, enabled, timePartsEnabled = defaultCopyTimePartsEnabled) {
             if (!snapshot) return "";
             const orderedParts = [];
-            const safeOrder = callDep("sanitizeCopyFormatOrder", [], order);
+            const safeOrderRaw = dep.sanitizeCopyFormatOrder(order);
+            const safeOrder = Array.isArray(safeOrderRaw) ? safeOrderRaw : [];
             (Array.isArray(safeOrder) ? safeOrder : []).forEach((key) => {
                 if (!enabled?.[key]) return;
                 const value = getCopyFieldText(snapshot, key, { timePartsEnabled });

@@ -3,15 +3,62 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+        const getWindowRef = (typeof safeDeps.getWindowRef === "function")
+            ? safeDeps.getWindowRef
+            : (() => {
+                if (safeDeps.windowRef && typeof safeDeps.windowRef === "object") return safeDeps.windowRef;
+                if (safeDeps.window && typeof safeDeps.window === "object") return safeDeps.window;
+                if (globalObj?.window && typeof globalObj.window === "object") return globalObj.window;
+                if (typeof window === "object" && window) return window;
+                if (globalObj && typeof globalObj === "object") return globalObj;
+                return null;
+            });
+        const getDocumentRef = (typeof safeDeps.getDocumentRef === "function")
+            ? safeDeps.getDocumentRef
+            : (() => {
+                if (safeDeps.documentRef && typeof safeDeps.documentRef.getElementById === "function") return safeDeps.documentRef;
+                if (safeDeps.document && typeof safeDeps.document.getElementById === "function") return safeDeps.document;
+                const windowRef = getWindowRef();
+                if (windowRef?.document && typeof windowRef.document.getElementById === "function") return windowRef.document;
+                if (globalObj?.document && typeof globalObj.document.getElementById === "function") return globalObj.document;
+                if (typeof document !== "undefined" && document && typeof document.getElementById === "function") return document;
+                return null;
+            });
         const bootstrapStepTimeoutMs = Number.isFinite(Number(safeDeps.bootstrapStepTimeoutMs))
             ? Math.max(1000, Math.trunc(Number(safeDeps.bootstrapStepTimeoutMs)))
             : 10000;
         const setTimeoutFn = (typeof safeDeps.setTimeoutFn === "function")
             ? safeDeps.setTimeoutFn
-            : ((fn, ms) => setTimeout(fn, ms));
+            : ((fn, ms) => {
+                const windowRef = getWindowRef();
+                if (windowRef && typeof windowRef.setTimeout === "function") {
+                    return windowRef.setTimeout(fn, ms);
+                }
+                if (typeof globalObj?.setTimeout === "function") {
+                    return globalObj.setTimeout(fn, ms);
+                }
+                if (typeof setTimeout === "function") {
+                    return setTimeout(fn, ms);
+                }
+                if (typeof fn === "function") fn();
+                return 0;
+            });
         const clearTimeoutFn = (typeof safeDeps.clearTimeoutFn === "function")
             ? safeDeps.clearTimeoutFn
-            : ((id) => clearTimeout(id));
+            : ((id) => {
+                const windowRef = getWindowRef();
+                if (windowRef && typeof windowRef.clearTimeout === "function") {
+                    windowRef.clearTimeout(id);
+                    return;
+                }
+                if (typeof globalObj?.clearTimeout === "function") {
+                    globalObj.clearTimeout(id);
+                    return;
+                }
+                if (typeof clearTimeout === "function") {
+                    clearTimeout(id);
+                }
+            });
         const assertRequiredServices = (typeof safeDeps.assertRequiredServices === "function")
             ? safeDeps.assertRequiredServices
             : (() => {});
@@ -115,19 +162,20 @@
         const removeLoadingOverlay = (typeof safeDeps.removeLoadingOverlay === "function")
             ? safeDeps.removeLoadingOverlay
             : (() => {
-                // 기본 구현: DOM에서 직접 오버레이 제거
                 try {
-                    const overlay = (typeof document !== "undefined")
-                        ? document.getElementById("app-loading-overlay")
-                        : null;
-                    if (overlay) {
-                        overlay.classList.add("hidden");
-                        // 페이드 아웃 완료 후 DOM에서 제거
-                        overlay.addEventListener("transitionend", () => overlay.remove(), { once: true });
-                        // transitionend 미발생 대비 폴백 제거
-                        setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 600);
+                    const documentRef = getDocumentRef();
+                    const overlay = documentRef?.getElementById?.("app-loading-overlay") || null;
+                    if (!overlay) return;
+                    overlay.classList?.add?.("hidden");
+                    if (typeof overlay.addEventListener === "function") {
+                        overlay.addEventListener("transitionend", () => overlay.remove?.(), { once: true });
                     }
-                } catch (_e) { /* 오버레이 제거 실패는 앱 동작에 영향 없음 */ }
+                    setTimeoutFn(() => {
+                        if (overlay.parentNode && typeof overlay.remove === "function") {
+                            overlay.remove();
+                        }
+                    }, 600);
+                } catch (_e) {}
             });
 
         async function initApp() {
@@ -152,10 +200,8 @@
                 startRealtimeTicker();
                 switchMainTab(getCurrentMainTab());
                 updateClocks();
-                // 부트스트랩 성공: 로딩 오버레이 제거
                 removeLoadingOverlay();
             } catch (err) {
-                // 오류 배너 표시 전에 먼저 오버레이를 제거해 배너가 보이도록 한다.
                 removeLoadingOverlay();
                 showFatalError(err);
             }
@@ -164,7 +210,6 @@
         return Object.freeze({
             initApp
         });
-
     }
 
     globalObj.GTVMainAppBootstrap = Object.freeze({

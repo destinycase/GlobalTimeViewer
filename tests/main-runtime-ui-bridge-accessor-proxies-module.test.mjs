@@ -128,4 +128,23 @@ describe("GTV main runtime UI bridge accessor proxies module", () => {
         expect(String(errorLogs[0][0])).toContain("FATAL ERROR during app initialization");
         expect(errorLogs[0][1]).toBe(err);
     });
+
+    it("prefers logError dependency over consoleError for fatal fallback logs", () => {
+        const moduleApi = loadMainRuntimeUiBridgeAccessorProxiesModule();
+        const missingToken = Symbol("missing");
+        const logErrorCalls = [];
+        const consoleErrorCalls = [];
+        const service = moduleApi.createService({
+            callServiceMethod: (_serviceName, _serviceRef, _methodName, _args, options = {}) => options.fallback,
+            serviceMethodMissingToken: missingToken,
+            logError: (...args) => logErrorCalls.push(args),
+            consoleError: (...args) => consoleErrorCalls.push(args)
+        });
+
+        service.showFatalError(new Error("fatal"));
+
+        expect(logErrorCalls).toHaveLength(1);
+        expect(consoleErrorCalls).toHaveLength(0);
+        expect(String(logErrorCalls[0][0])).toContain("FATAL ERROR during app initialization");
+    });
 });

@@ -1,4 +1,4 @@
-﻿(function initGtvMainRuntimeServiceBridgeHelpers(globalObj) {
+(function initGtvMainRuntimeServiceBridgeHelpers(globalObj) {
     "use strict";
 
     function createService(deps = {}) {
@@ -18,10 +18,23 @@
         const getTranslator = (typeof safeDeps.getTranslator === "function")
             ? safeDeps.getTranslator
             : (() => ((key) => String(key ?? "")));
+        const logWarn = (typeof safeDeps.logWarn === "function")
+            ? safeDeps.logWarn
+            : (typeof safeDeps.consoleWarn === "function")
+                ? safeDeps.consoleWarn
+                : ((...args) => {
+                    if (typeof globalObj?.console?.warn === "function") {
+                        globalObj.console.warn(...args);
+                        return;
+                    }
+                    if (typeof console === "object" && console && typeof console.warn === "function") {
+                        console.warn(...args);
+                    }
+                });
         const warnFallback = (typeof safeDeps.warnFallback === "function")
             ? safeDeps.warnFallback
             : ((serviceName, methodName) => {
-                console.warn(`[GTV] ${serviceName}.${methodName} is unavailable. Fallback path will be used.`);
+                logWarn(`[GTV] ${serviceName}.${methodName} is unavailable. Fallback path will be used.`);
             });
 
         function getBridgeService() {

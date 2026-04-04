@@ -274,4 +274,126 @@ describe("GTV format controls module", () => {
         const displayMenu = displayDropdown?.children?.[1] || null;
         expect(displayMenu?.children?.length || 0).toBe(3);
     });
+
+    it("renderCopyFormatControls prefers injected documentRef over global document", () => {
+        const globalRow = createElementStub();
+        const globalDisplayList = createElementStub();
+        const globalCopyList = createElementStub();
+        const injectedRow = createElementStub();
+        const injectedDisplayList = createElementStub();
+        const injectedCopyList = createElementStub();
+        const module = loadFormatControlsModule({
+            document: {
+                getElementById(id) {
+                    if (id === "copy-format-row") return globalRow;
+                    if (id === "display-format-list") return globalDisplayList;
+                    if (id === "copy-format-list") return globalCopyList;
+                    return null;
+                },
+                createElement() {
+                    return createElementStub();
+                },
+                querySelectorAll() {
+                    return [];
+                },
+                addEventListener() { }
+            }
+        });
+        const service = module.createService({
+            documentRef: {
+                getElementById(id) {
+                    if (id === "copy-format-row") return injectedRow;
+                    if (id === "display-format-list") return injectedDisplayList;
+                    if (id === "copy-format-list") return injectedCopyList;
+                    return null;
+                },
+                createElement() {
+                    return createElementStub();
+                },
+                querySelectorAll() {
+                    return [];
+                },
+                addEventListener() { }
+            },
+            COPY_FORMAT_KEYS: ["timezone"],
+            TIME_PART_KEYS: ["date"],
+            t: (key) => key,
+            isShowCopyFormat: () => true,
+            getDisplayFormatOrder: () => ["timezone"],
+            getDisplayFormatEnabled: () => ({ timezone: true }),
+            getDisplayTimePartsEnabled: () => ({ date: true }),
+            getCopyFormatOrder: () => ["timezone"],
+            getCopyFormatEnabled: () => ({ timezone: true }),
+            getCopyTimePartsEnabled: () => ({ date: true }),
+            updateCopyFormatPreview: () => { }
+        });
+
+        service.renderCopyFormatControls();
+
+        expect(injectedDisplayList.children.map((item) => item.dataset.key)).toEqual(["timezone"]);
+        expect(injectedCopyList.children.map((item) => item.dataset.key)).toEqual(["timezone"]);
+        expect(globalDisplayList.children).toHaveLength(0);
+        expect(globalCopyList.children).toHaveLength(0);
+    });
+
+    it("renderCopyFormatControls prefers injected getDocumentRefOrNull over global document", () => {
+        const globalRow = createElementStub();
+        const globalDisplayList = createElementStub();
+        const globalCopyList = createElementStub();
+        const injectedRow = createElementStub();
+        const injectedDisplayList = createElementStub();
+        const injectedCopyList = createElementStub();
+        const module = loadFormatControlsModule({
+            document: {
+                getElementById(id) {
+                    if (id === "copy-format-row") return globalRow;
+                    if (id === "display-format-list") return globalDisplayList;
+                    if (id === "copy-format-list") return globalCopyList;
+                    return null;
+                },
+                createElement() {
+                    return createElementStub();
+                },
+                querySelectorAll() {
+                    return [];
+                },
+                addEventListener() { }
+            }
+        });
+        const service = module.createService({
+            getDocumentRefOrNull: () => ({
+                getElementById(id) {
+                    if (id === "copy-format-row") return injectedRow;
+                    if (id === "display-format-list") return injectedDisplayList;
+                    if (id === "copy-format-list") return injectedCopyList;
+                    return null;
+                },
+                createElement() {
+                    return createElementStub();
+                },
+                querySelectorAll() {
+                    return [];
+                },
+                addEventListener() { }
+            }),
+            COPY_FORMAT_KEYS: ["timezone"],
+            TIME_PART_KEYS: ["date"],
+            t: (key) => key,
+            isShowCopyFormat: () => true,
+            getDisplayFormatOrder: () => ["timezone"],
+            getDisplayFormatEnabled: () => ({ timezone: true }),
+            getDisplayTimePartsEnabled: () => ({ date: true }),
+            getCopyFormatOrder: () => ["timezone"],
+            getCopyFormatEnabled: () => ({ timezone: true }),
+            getCopyTimePartsEnabled: () => ({ date: true }),
+            updateCopyFormatPreview: () => { }
+        });
+
+        service.renderCopyFormatControls();
+
+        expect(injectedDisplayList.children.map((item) => item.dataset.key)).toEqual(["timezone"]);
+        expect(injectedCopyList.children.map((item) => item.dataset.key)).toEqual(["timezone"]);
+        expect(globalDisplayList.children).toHaveLength(0);
+        expect(globalCopyList.children).toHaveLength(0);
+    });
 });

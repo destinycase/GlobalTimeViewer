@@ -163,9 +163,14 @@ const EN_I18N = {
     overlay_select_tz: "Select Timezone",
     overlay_standard_tz_list: "Standard Time List",
     overlay_country_region_tz_list: "Country - Region List",
+    placeholder_timezone_search: "Search city, timezone, abbreviation, or UTC offset...",
+    overlay_no_tz_results: "No matching timezones found.",
 
     default_group_name: "Default Group",
     btn_rename: "Rename",
+    btn_confirm: "Confirm",
+    btn_cancel: "Cancel",
+    btn_clear: "Clear",
     default_subgroup_name: "Aux Group",
     prompt_new_group: "Enter a new group name:",
     prompt_rename_group: "Rename group to:",
@@ -496,6 +501,11 @@ Object.assign(EN_I18N, {
 });
 
 Object.assign(KO_OVERRIDES, {
+    placeholder_timezone_search: "\uB3C4\uC2DC, \uC2DC\uAC04\uB300, \uC57D\uC5B4, UTC \uC624\uD504\uC14B \uAC80\uC0C9...",
+    overlay_no_tz_results: "\uC77C\uCE58\uD558\uB294 \uC2DC\uAC04\uB300\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    btn_confirm: "\uD655\uC778",
+    btn_cancel: "\uCDE8\uC18C",
+    btn_clear: "\uC9C0\uC6B0\uAE30",
     error_fatal_desc_module_load: "\uD544\uC218 \uC2A4\uD06C\uB9BD\uD2B8\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uD655\uC7A5 \uD504\uB85C\uADF8\uB7A8\uC744 \uB2E4\uC2DC \uB85C\uB4DC\uD574 \uC8FC\uC138\uC694.",
     error_fatal_desc_persistence: "\uC800\uC7A5\uB41C \uB370\uC774\uD130\uB97C \uBCF5\uC6D0\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uC7AC\uC2DC\uB3C4\uD558\uAC70\uB098 \uC124\uC815\uC744 \uCD08\uAE30\uD654\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
     error_fatal_desc_state: "\uC560\uD50C\uB9AC\uCF00\uC774\uC158 \uC0C1\uD0DC \uCD08\uAE30\uD654\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uC7AC\uC2DC\uB3C4\uD558\uAC70\uB098 \uC124\uC815\uC744 \uCD08\uAE30\uD654\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",

@@ -21,10 +21,22 @@
             invokeGetterMethod(getter, methodName, args, fallback);
     }
 
+    function createService(_deps = {}) {
+        return Object.freeze({
+            resolveService,
+            invokeServiceMethod,
+            invokeGetterMethod,
+            createGetterMethodInvoker
+        });
+    }
+
+    const defaultService = createService();
+
     globalObj.GTVServiceInvokeUtils = Object.freeze({
-        resolveService,
-        invokeServiceMethod,
-        invokeGetterMethod,
-        createGetterMethodInvoker
+        createService,
+        resolveService: defaultService.resolveService,
+        invokeServiceMethod: defaultService.invokeServiceMethod,
+        invokeGetterMethod: defaultService.invokeGetterMethod,
+        createGetterMethodInvoker: defaultService.createGetterMethodInvoker
     });
 })(typeof window !== "undefined" ? window : globalThis);

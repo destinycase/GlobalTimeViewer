@@ -1,4 +1,4 @@
-﻿(function initGtvMainRuntimePatchedStateFallback(globalObj) {
+(function initGtvMainRuntimePatchedStateFallback(globalObj) {
     "use strict";
 
     function createService(deps = {}) {

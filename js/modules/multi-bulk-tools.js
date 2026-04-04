@@ -1,25 +1,77 @@
 (function initGtvMultiBulkTools(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
+            if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
+            if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
             return (typeof document === "object" && document) ? document : null;
         }
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVMultiBulkTools] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
 
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVMultiBulkTools] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            t: toSafeCallable("t", safeDeps.t),
+            getMultiRangeCount: toSafeCallable("getMultiRangeCount", safeDeps.getMultiRangeCount),
+            renderTimeAdjustSet: toSafeCallable("renderTimeAdjustSet", safeDeps.renderTimeAdjustSet),
+            applyBulkRangeAllAction: toSafeCallable("applyBulkRangeAllAction", safeDeps.applyBulkRangeAllAction),
+            createTimeAdjustActionButton: toSafeCallable("createTimeAdjustActionButton", safeDeps.createTimeAdjustActionButton),
+            createTimeAdjustDivider: toSafeCallable("createTimeAdjustDivider", safeDeps.createTimeAdjustDivider),
+            applyFirstRangeStartAdjustAction: toSafeCallable("applyFirstRangeStartAdjustAction", safeDeps.applyFirstRangeStartAdjustAction),
+            setAllMultiRangeStartEditEnabled: toSafeCallable("setAllMultiRangeStartEditEnabled", safeDeps.setAllMultiRangeStartEditEnabled),
+            setAllMultiRangeEndEditEnabled: toSafeCallable("setAllMultiRangeEndEditEnabled", safeDeps.setAllMultiRangeEndEditEnabled),
+            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
+        });
+
+        function callBulkAllAction(slotIdx, action) {
+            return dep.applyBulkRangeAllAction(slotIdx, action);
+        }
+
+        function callFirstRangeStartAdjustAction(slotIdx, action) {
+            return dep.applyFirstRangeStartAdjustAction(slotIdx, action);
+        }
+
         function translate(key) {
-            const value = invokeDep("t", key);
+            const value = dep.t(key);
             if (typeof value === "string" && value) return value;
             return String(key || "");
         }
@@ -43,7 +95,7 @@
         }
 
         function getMultiRangeCount() {
-            const value = Number(invokeDep("getMultiRangeCount"));
+            const value = Number(dep.getMultiRangeCount());
             return Number.isFinite(value) ? Math.max(0, value) : 0;
         }
 
@@ -67,20 +119,19 @@
             allTools.style.alignItems = "flex-start";
             allTools.style.gap = "8px";
 
-            const bulkSet = invokeDep("renderTimeAdjustSet", 1, {
+            const bulkSet = dep.renderTimeAdjustSet(1, {
                 labelText: translate("label_range_bulk"),
                 disabled: !hasRanges,
-                onAction: (slotIdx, action) => invokeDep("applyBulkRangeAllAction", slotIdx, action),
+                onAction: callBulkAllAction,
                 includeFixedActions: false
             });
             if (!bulkSet || typeof bulkSet.appendChild !== "function") return;
 
-            const zeroDayBtn = invokeDep(
-                "createTimeAdjustActionButton",
+            const zeroDayBtn = dep.createTimeAdjustActionButton(
                 "btn_set_zero_day",
                 1,
                 "set_zero_day",
-                (slotIdx, action) => invokeDep("applyBulkRangeAllAction", slotIdx, action),
+                callBulkAllAction,
                 !hasRanges
             );
             if (zeroDayBtn?.classList && typeof zeroDayBtn.classList.add === "function") {
@@ -91,7 +142,7 @@
             const firstActionNode = bulkChildren.find((_node, idx) => idx > 0) || null;
             if (zeroDayBtn && firstActionNode && typeof bulkSet.insertBefore === "function") {
                 bulkSet.insertBefore(zeroDayBtn, firstActionNode);
-                const divider = invokeDep("createTimeAdjustDivider");
+                const divider = dep.createTimeAdjustDivider();
                 if (divider) bulkSet.insertBefore(divider, firstActionNode);
             } else if (zeroDayBtn) {
                 bulkSet.appendChild(zeroDayBtn);
@@ -101,10 +152,10 @@
             bulkToolBlock.className = "multi-tool-block";
             bulkToolBlock.appendChild(bulkSet);
 
-            const firstRangeStartSet = invokeDep("renderTimeAdjustSet", 0, {
+            const firstRangeStartSet = dep.renderTimeAdjustSet(0, {
                 labelText: translate("label_start_time_adjust"),
                 disabled: !hasRanges,
-                onAction: (slotIdx, action) => invokeDep("applyFirstRangeStartAdjustAction", slotIdx, action),
+                onAction: callFirstRangeStartAdjustAction,
                 includeFixedActions: true,
                 includeSyncPreviousEndAction: false
             });
@@ -134,24 +185,24 @@
             bulkToggleSet.appendChild(bulkToggleLabel);
             const enableStartBtn = createBulkToggleButton(
                 translate("btn_enable_all_start_time_adjust"),
-                () => invokeDep("setAllMultiRangeStartEditEnabled", true, { persist: true, rerender: true })
+                () => dep.setAllMultiRangeStartEditEnabled(true, { persist: true, rerender: true })
             );
             if (enableStartBtn) bulkToggleSet.appendChild(enableStartBtn);
             const disableStartBtn = createBulkToggleButton(
                 translate("btn_disable_all_start_time_adjust"),
-                () => invokeDep("setAllMultiRangeStartEditEnabled", false, { persist: true, rerender: true })
+                () => dep.setAllMultiRangeStartEditEnabled(false, { persist: true, rerender: true })
             );
             if (disableStartBtn) bulkToggleSet.appendChild(disableStartBtn);
-            const toggleDivider = invokeDep("createTimeAdjustDivider");
+            const toggleDivider = dep.createTimeAdjustDivider();
             if (toggleDivider) bulkToggleSet.appendChild(toggleDivider);
             const enableEndBtn = createBulkToggleButton(
                 translate("btn_enable_all_end_time_adjust"),
-                () => invokeDep("setAllMultiRangeEndEditEnabled", true, { persist: true, rerender: true })
+                () => dep.setAllMultiRangeEndEditEnabled(true, { persist: true, rerender: true })
             );
             if (enableEndBtn) bulkToggleSet.appendChild(enableEndBtn);
             const disableEndBtn = createBulkToggleButton(
                 translate("btn_disable_all_end_time_adjust"),
-                () => invokeDep("setAllMultiRangeEndEditEnabled", false, { persist: true, rerender: true })
+                () => dep.setAllMultiRangeEndEditEnabled(false, { persist: true, rerender: true })
             );
             if (disableEndBtn) bulkToggleSet.appendChild(disableEndBtn);
             const toggleToolBlock = doc.createElement("div");
@@ -226,7 +277,7 @@
             } else {
                 syncZeroButtonWidth();
             }
-            invokeDep("upgradeNativeTitleTooltips", allTools);
+            dep.upgradeNativeTitleTooltips(allTools);
         }
 
         return Object.freeze({

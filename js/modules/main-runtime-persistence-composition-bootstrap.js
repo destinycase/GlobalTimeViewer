@@ -41,6 +41,7 @@
             deferDynamicCall: safeDeps.deferDynamicCall,
             getShowToastRef: safeDeps.getShowToastRef,
             confirmFnViaMainFoundation: safeDeps.confirmFnViaMainFoundation,
+            promptFnViaMainFoundation: safeDeps.promptFnViaMainFoundation,
             getPersistenceState: safeDeps.getPersistenceState,
             setPersistenceState: safeDeps.setPersistenceState,
             isMultiTab: safeDeps.isMultiTab,

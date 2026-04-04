@@ -84,4 +84,19 @@ describe("GTV main service method bridge module", () => {
         expect(service.callServiceMethod("target", target, "sum", [2])).toBe(5);
         expect(service.callServiceMethod("target", target, "missing", [2], { fallback: 7 })).toBe(7);
     });
+
+    it("uses injected consoleWarn fallback when onWarnMissingMethod is omitted", () => {
+        const moduleApi = loadMainServiceMethodBridgeModule();
+        const warned = [];
+        const service = moduleApi.createService({
+            consoleWarn: (...args) => {
+                warned.push(args);
+            }
+        });
+
+        service.callServiceMethod("svc", null, "missing", [], { fallback: null });
+
+        expect(warned).toHaveLength(1);
+        expect(String(warned[0][0])).toContain("svc.missing");
+    });
 });

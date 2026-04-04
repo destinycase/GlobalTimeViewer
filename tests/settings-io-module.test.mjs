@@ -408,6 +408,130 @@ describe("GTV settings IO module", () => {
         expect(String(loaded.logs.warn[0][0])).toContain("normalizeImportedPayload failed");
     });
 
+    it("prefers injected documentRef and logWarn dependencies", async () => {
+        const langSelect = { value: "" };
+        const themeSelect = { value: "" };
+        const uiScaleSelect = { value: "" };
+        const dayStartSelect = { value: "" };
+        const nightStartSelect = { value: "" };
+        const injectedDocument = {
+            getElementById(id) {
+                return {
+                    "lang-select": langSelect,
+                    "theme-select": themeSelect,
+                    "ui-scale-select": uiScaleSelect,
+                    "day-start-select": dayStartSelect,
+                    "night-start-select": nightStartSelect
+                }[id] || null;
+            }
+        };
+        const loaded = loadSettingsIoModule({
+            globals: {
+                document: {
+                    getElementById() {
+                        return null;
+                    }
+                }
+            }
+        });
+        const warned = [];
+        const populatedDayNight = [];
+        const service = loaded.module.createService(createBaseDeps({
+            documentRef: injectedDocument,
+            logWarn: (...args) => {
+                warned.push(args);
+            },
+            normalizeImportedPayload: () => {
+                throw new Error("normalize error");
+            },
+            getStorageValue: async () => "en",
+            loadThemePreference: async () => "light",
+            loadUiScalePreference: async () => 125,
+            getCurrentUiScalePercent: () => 125,
+            getDayStartHour: () => 7,
+            getNightStartHour: () => 19,
+            populateDayNightHourSelect: (element) => {
+                populatedDayNight.push(element);
+            }
+        }));
+
+        await service.applyImportedSettings({
+            data: {
+                groups: [],
+                currentMainTab: "broken"
+            }
+        });
+
+        expect(warned).toHaveLength(1);
+        expect(loaded.logs.warn).toHaveLength(0);
+        expect(langSelect.value).toBe("en");
+        expect(themeSelect.value).toBe("light");
+        expect(uiScaleSelect.value).toBe("125");
+        expect(dayStartSelect.value).toBe("7");
+        expect(nightStartSelect.value).toBe("19");
+        expect(populatedDayNight).toEqual([dayStartSelect, nightStartSelect]);
+    });
+
+    it("prefers injected getDocumentRefOrNull dependency when direct document dep is unusable", async () => {
+        const langSelect = { value: "" };
+        const themeSelect = { value: "" };
+        const uiScaleSelect = { value: "" };
+        const dayStartSelect = { value: "" };
+        const nightStartSelect = { value: "" };
+        const injectedDocument = {
+            getElementById(id) {
+                return {
+                    "lang-select": langSelect,
+                    "theme-select": themeSelect,
+                    "ui-scale-select": uiScaleSelect,
+                    "day-start-select": dayStartSelect,
+                    "night-start-select": nightStartSelect
+                }[id] || null;
+            }
+        };
+        const loaded = loadSettingsIoModule({
+            globals: {
+                document: {
+                    getElementById() {
+                        return null;
+                    }
+                }
+            }
+        });
+        const populatedDayNight = [];
+        const service = loaded.module.createService(createBaseDeps({
+            document: {
+                getElementById() {
+                    throw new Error("direct document dep should not be used");
+                }
+            },
+            getDocumentRefOrNull: () => injectedDocument,
+            getStorageValue: async () => "en",
+            loadThemePreference: async () => "light",
+            loadUiScalePreference: async () => 125,
+            getCurrentUiScalePercent: () => 125,
+            getDayStartHour: () => 7,
+            getNightStartHour: () => 19,
+            populateDayNightHourSelect: (element) => {
+                populatedDayNight.push(element);
+            }
+        }));
+
+        await service.applyImportedSettings({
+            data: {
+                groups: [],
+                currentMainTab: "broken"
+            }
+        });
+
+        expect(langSelect.value).toBe("en");
+        expect(themeSelect.value).toBe("light");
+        expect(uiScaleSelect.value).toBe("125");
+        expect(dayStartSelect.value).toBe("7");
+        expect(nightStartSelect.value).toBe("19");
+        expect(populatedDayNight).toEqual([dayStartSelect, nightStartSelect]);
+    });
+
     it("clones raw groups when sanitizeGroup dependency is unavailable", async () => {
         const loaded = loadSettingsIoModule();
         const sourceGroup = {

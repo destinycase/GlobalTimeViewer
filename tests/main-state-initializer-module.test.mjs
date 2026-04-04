@@ -140,4 +140,30 @@ describe("GTV main state initializer module", () => {
         expect(state.displayFormatOrder).not.toBe(initial.displayFormatOrder);
         expect(state.groups).not.toBe(initial.groups);
     });
+
+    it("merges base deps from createService with per-call deps", () => {
+        const moduleApi = loadMainStateInitializerModule();
+        const service = moduleApi.createService({
+            defaults: {
+                defaultTimeAdjustDayStep: 3,
+                defaultMultiRangeTitle: "Base Title"
+            },
+            t: () => "Base Translation"
+        });
+
+        const baseState = service.deriveInitialState({
+            initialMainState: {},
+            copyFormatKeys: []
+        });
+        const overrideState = service.deriveInitialState({
+            initialMainState: {},
+            copyFormatKeys: [],
+            t: () => "Override Translation"
+        });
+
+        expect(baseState.timeAdjustDayStepBySlot).toEqual([3, 3]);
+        expect(baseState.multiRangeTitle).toBe("Base Translation");
+        expect(overrideState.timeAdjustDayStepBySlot).toEqual([3, 3]);
+        expect(overrideState.multiRangeTitle).toBe("Override Translation");
+    });
 });

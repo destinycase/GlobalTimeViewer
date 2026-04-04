@@ -4,17 +4,62 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getState: toSafeCallable(safeDeps.getState),
+            setState: toSafeCallable(safeDeps.setState),
+            t: toSafeCallable(safeDeps.t),
+            showToast: toSafeCallable(safeDeps.showToast),
+            updateClocks: toSafeCallable(safeDeps.updateClocks),
+            savePersistence: toSafeCallable(safeDeps.savePersistence),
+            setStorageValue: toSafeCallable(safeDeps.setStorageValue),
+            getStorageValue: toSafeCallable(safeDeps.getStorageValue)
+        });
+
+        function awaitIfPromiseLike(value) {
+            if (value && typeof value.then === "function") {
+                return value;
             }
+            return Promise.resolve();
+        }
+
+        function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") {
+                return safeDeps.documentRef;
+            }
+            if (safeDeps.document && typeof safeDeps.document === "object") {
+                return safeDeps.document;
+            }
+            if (globalObj?.document && typeof globalObj.document === "object") {
+                return globalObj.document;
+            }
+            return (typeof document === "object" && document) ? document : null;
         }
 
         function readState() {
-            const state = invokeDep("getState");
+            const state = dep.getState();
             if (!state || typeof state !== "object") {
                 return {
                     uiScale: 1.0,
@@ -29,7 +74,7 @@
 
         function patchState(next = {}) {
             if (!next || typeof next !== "object") return;
-            invokeDep("setState", next);
+            dep.setState(next);
         }
 
         function getUiScaleDefaultPercent() {
@@ -108,9 +153,11 @@
 
         function populateDayNightHourSelect(selectEl) {
             if (!selectEl) return;
+            const documentRef = getDocumentRef();
+            if (!documentRef || typeof documentRef.createElement !== "function") return;
             selectEl.textContent = "";
             getDayNightHourOptions().forEach((hour) => {
-                const option = document.createElement("option");
+                const option = documentRef.createElement("option");
                 option.value = String(hour);
                 option.textContent = `${pad2(hour)}:00`;
                 selectEl.appendChild(option);
@@ -139,8 +186,8 @@
             const nextNightStartHour = sanitizeDayNightHour(nightStartHourInput, current.nightStartHour);
             if (nextNightStartHour <= nextDayStartHour) {
                 if (safeOptions.showToast !== false) {
-                    const toastMessage = invokeDep("t", "toast_day_night_invalid_order") || "Invalid day/night order";
-                    invokeDep("showToast", toastMessage, { type: "error" });
+                    const toastMessage = dep.t("toast_day_night_invalid_order") || "Invalid day/night order";
+                    dep.showToast(toastMessage, { type: "error" });
                 }
                 return {
                     ok: false,
@@ -155,10 +202,10 @@
             });
 
             if (safeOptions.rerender !== false) {
-                invokeDep("updateClocks");
+                dep.updateClocks();
             }
             if (safeOptions.persist !== false) {
-                const saveResult = invokeDep("savePersistence");
+                const saveResult = dep.savePersistence();
                 if (saveResult && typeof saveResult.then === "function") {
                     await saveResult;
                 }
@@ -185,31 +232,34 @@
             const safePercent = sanitizeUiScalePercent(scalePercent);
             const nextScale = safePercent / 100;
             patchState({ uiScale: nextScale });
+            const documentRef = getDocumentRef();
 
-            if (document.documentElement) {
-                document.documentElement.style.setProperty("--ui-zoom", nextScale.toFixed(2));
-                document.documentElement.style.zoom = String(nextScale);
-                document.documentElement.style.overflow = "hidden";
+            if (documentRef?.documentElement) {
+                documentRef.documentElement.style.setProperty("--ui-zoom", nextScale.toFixed(2));
+                documentRef.documentElement.style.zoom = String(nextScale);
+                documentRef.documentElement.style.overflow = "hidden";
             }
-            if (document.body) {
-                document.body.style.overflow = "hidden";
+            if (documentRef?.body) {
+                documentRef.body.style.overflow = "hidden";
             }
 
             if (persist) {
-                await invokeDep("setStorageValue", safeDeps.UI_SCALE_STORAGE_KEY, String(safePercent));
+                await awaitIfPromiseLike(dep.setStorageValue(safeDeps.UI_SCALE_STORAGE_KEY, String(safePercent)));
             }
         }
 
         async function loadUiScalePreference() {
-            const val = await invokeDep("getStorageValue", safeDeps.UI_SCALE_STORAGE_KEY, getUiScaleDefaultPercent());
+            const val = await dep.getStorageValue(safeDeps.UI_SCALE_STORAGE_KEY, getUiScaleDefaultPercent());
             return sanitizeUiScalePercent(val);
         }
 
         function populateUiScaleSelect(selectEl) {
             if (!selectEl) return;
+            const documentRef = getDocumentRef();
+            if (!documentRef || typeof documentRef.createElement !== "function") return;
             selectEl.textContent = "";
             getUiScalePercentOptions().forEach((percent) => {
-                const option = document.createElement("option");
+                const option = documentRef.createElement("option");
                 option.value = String(percent);
                 option.textContent = `${percent}%`;
                 selectEl.appendChild(option);
@@ -224,16 +274,17 @@
         async function applyTheme(theme, persist = true) {
             const nextTheme = sanitizeTheme(theme);
             patchState({ currentTheme: nextTheme });
-            if (document.documentElement) {
-                document.documentElement.setAttribute("data-theme", nextTheme);
+            const documentRef = getDocumentRef();
+            if (documentRef?.documentElement) {
+                documentRef.documentElement.setAttribute("data-theme", nextTheme);
             }
             if (persist) {
-                await invokeDep("setStorageValue", safeDeps.THEME_STORAGE_KEY, nextTheme);
+                await awaitIfPromiseLike(dep.setStorageValue(safeDeps.THEME_STORAGE_KEY, nextTheme));
             }
         }
 
         async function loadThemePreference() {
-            const val = await invokeDep("getStorageValue", safeDeps.THEME_STORAGE_KEY, "dark");
+            const val = await dep.getStorageValue(safeDeps.THEME_STORAGE_KEY, "dark");
             return sanitizeTheme(val);
         }
 
@@ -241,8 +292,9 @@
             const i18nData = (safeDeps.I18N_DATA && typeof safeDeps.I18N_DATA === "object") ? safeDeps.I18N_DATA : {};
             const nextLang = i18nData[lang] ? lang : "ko";
             patchState({ currentLang: nextLang });
-            if (document.documentElement) {
-                document.documentElement.lang = nextLang;
+            const documentRef = getDocumentRef();
+            if (documentRef?.documentElement) {
+                documentRef.documentElement.lang = nextLang;
             }
         }
 

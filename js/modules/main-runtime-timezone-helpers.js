@@ -27,6 +27,12 @@
         const getConsoleWarn = (typeof safeDeps.getConsoleWarn === "function")
             ? safeDeps.getConsoleWarn
             : (() => {
+                if (typeof safeDeps.consoleWarn === "function") {
+                    return safeDeps.consoleWarn;
+                }
+                if (typeof globalObj?.console?.warn === "function") {
+                    return globalObj.console.warn.bind(globalObj.console);
+                }
                 if (typeof console === "object" && console && typeof console.warn === "function") {
                     return console.warn.bind(console);
                 }
@@ -34,7 +40,13 @@
             });
         const getNavigatorRef = (typeof safeDeps.getNavigatorRef === "function")
             ? safeDeps.getNavigatorRef
-            : (() => ((typeof navigator === "object" && navigator) ? navigator : null));
+            : (() => {
+                if (safeDeps.navigatorRef && typeof safeDeps.navigatorRef === "object") return safeDeps.navigatorRef;
+                if (safeDeps.navigator && typeof safeDeps.navigator === "object") return safeDeps.navigator;
+                if (globalObj?.navigator && typeof globalObj.navigator === "object") return globalObj.navigator;
+                if (typeof navigator === "object" && navigator) return navigator;
+                return null;
+            });
         const getGroupContextStateService = (typeof safeDeps.getGroupContextStateService === "function")
             ? safeDeps.getGroupContextStateService
             : (() => null);

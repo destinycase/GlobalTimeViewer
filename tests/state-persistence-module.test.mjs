@@ -439,6 +439,43 @@ describe("GTV state persistence module", () => {
         expect(appliedState.currentMainTab).toBe("live");
     });
 
+    it("loadPersistence preserves fixed-time main tab when sanitizer allows it", async () => {
+        const localStorage = createLocalStorageStub();
+        localStorage.setItem("TEST_STORAGE_KEY", JSON.stringify({
+            groups: [{
+                name: "Fixed Time Group",
+                zones: [],
+                baseTimezoneId: "utc",
+                showUtcRow: true,
+                utcRowOrder: 0,
+                fixedDate: "2026-03-31",
+                fixedTimes: [{ id: "ft-1", name: "A", time: "09:00" }]
+            }],
+            activeGroupId: 0,
+            currentMainTab: "fixed-time",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 },
+            slotCount: 1,
+            showCopyFormat: false,
+            showTimeline: true
+        }));
+        let appliedState = null;
+        const loaded = loadStatePersistenceModule({ localStorage });
+        const service = loaded.module.createService(createBaseDeps({
+            sanitizeMainTab(value) {
+                return value;
+            },
+            setState(next) {
+                appliedState = next;
+            }
+        }));
+
+        await service.loadPersistence();
+
+        expect(appliedState).toBeTruthy();
+        expect(appliedState.currentMainTab).toBe("fixed-time");
+        expect(appliedState.isRealtime).toBe(false);
+    });
+
     it("loadPersistence reads legacy fallback keys when primary key is empty", async () => {
         const legacyPayload = JSON.stringify({
             groups: [{
@@ -788,6 +825,158 @@ describe("GTV state persistence module", () => {
         expect(groupsState).toBeTruthy();
         expect(groupsState.currentMainTab).toBe("live");
         expect(groupsState.slotCount).toBe(1);
+    });
+
+    it("supports explicit *Ref dependency keys for document, localStorage, and chrome storage", async () => {
+        const globalStorage = createLocalStorageStub();
+        globalStorage.setItem("GLOBAL_ONLY", "keep");
+        const localStorageRef = createLocalStorageStub();
+        localStorageRef.setItem("TEST_LANG", "en");
+        const chromeStore = new Map();
+        const removedKeys = [];
+        const langSelect = { value: "" };
+        const themeSelect = { value: "" };
+        const uiScaleSelect = { value: "" };
+        const dayStartSelect = { value: "" };
+        const nightStartSelect = { value: "" };
+        let confirmCount = 0;
+        let populateUiScaleCount = 0;
+        const loaded = loadStatePersistenceModule({
+            localStorage: globalStorage,
+            confirm: () => {
+                throw new Error("global confirm should not be used");
+            },
+            chrome: null
+        });
+        const service = loaded.module.createService(createBaseDeps({
+            confirmFn() {
+                confirmCount += 1;
+                return true;
+            },
+            documentRef: {
+                getElementById(id) {
+                    if (id === "lang-select") return langSelect;
+                    if (id === "theme-select") return themeSelect;
+                    if (id === "ui-scale-select") return uiScaleSelect;
+                    if (id === "day-start-select") return dayStartSelect;
+                    if (id === "night-start-select") return nightStartSelect;
+                    return null;
+                }
+            },
+            localStorageRef,
+            chromeRef: {
+                storage: {
+                    local: {
+                        async get(key) {
+                            return chromeStore.has(key) ? { [key]: chromeStore.get(key) } : {};
+                        },
+                        async set(payload) {
+                            Object.entries(payload || {}).forEach(([key, value]) => {
+                                chromeStore.set(key, value);
+                            });
+                        },
+                        async remove(keys) {
+                            const normalizedKeys = Array.isArray(keys) ? keys : [keys];
+                            normalizedKeys.forEach((key) => {
+                                removedKeys.push(key);
+                                chromeStore.delete(key);
+                            });
+                        }
+                    }
+                }
+            },
+            loadThemePreference: async () => "light",
+            loadUiScalePreference: async () => 125,
+            getCurrentUiScalePercent: () => 125,
+            populateUiScaleSelect() {
+                populateUiScaleCount += 1;
+            },
+            getPersistenceSnapshot: () => ({ reset: true })
+        }));
+
+        await service.resetAllSettings();
+
+        expect(confirmCount).toBe(1);
+        expect(removedKeys).toEqual(expect.arrayContaining([
+            "TEST_STORAGE_KEY",
+            "TEST_THEME",
+            "TEST_LANG",
+            "TEST_UI_SCALE"
+        ]));
+        expect(langSelect.value).toBe("ko");
+        expect(themeSelect.value).toBe("light");
+        expect(uiScaleSelect.value).toBe("125");
+        expect(dayStartSelect.value).toBe("6");
+        expect(nightStartSelect.value).toBe("18");
+        expect(populateUiScaleCount).toBe(1);
+        expect(globalStorage.getItem("GLOBAL_ONLY")).toBe("keep");
+
+        const storedRaw = chromeStore.get("TEST_STORAGE_KEY");
+        const stored = unwrapStoredPersistencePayload(storedRaw);
+        expect(stored.isEnvelope).toBe(true);
+        expect(stored.data).toEqual({ reset: true });
+    });
+
+    it("prefers injected getDocumentRefOrNull when direct document dep is unusable", async () => {
+        const langSelect = { value: "" };
+        const themeSelect = { value: "" };
+        const uiScaleSelect = { value: "" };
+        const dayStartSelect = { value: "" };
+        const nightStartSelect = { value: "" };
+        let confirmCount = 0;
+        const loaded = loadStatePersistenceModule({
+            confirm: () => {
+                throw new Error("global confirm should not be used");
+            },
+            chrome: null
+        });
+        const service = loaded.module.createService(createBaseDeps({
+            confirmFn() {
+                confirmCount += 1;
+                return true;
+            },
+            document: {
+                getElementById() {
+                    throw new Error("direct document dep should not be used");
+                }
+            },
+            getDocumentRefOrNull: () => ({
+                getElementById(id) {
+                    if (id === "lang-select") return langSelect;
+                    if (id === "theme-select") return themeSelect;
+                    if (id === "ui-scale-select") return uiScaleSelect;
+                    if (id === "day-start-select") return dayStartSelect;
+                    if (id === "night-start-select") return nightStartSelect;
+                    return null;
+                }
+            }),
+            loadThemePreference: async () => "light",
+            loadUiScalePreference: async () => 125,
+            getCurrentUiScalePercent: () => 125,
+            getPersistenceSnapshot: () => ({ reset: true })
+        }));
+
+        await service.resetAllSettings();
+
+        expect(confirmCount).toBe(1);
+        expect(langSelect.value).toBe("ko");
+        expect(themeSelect.value).toBe("light");
+        expect(uiScaleSelect.value).toBe("125");
+        expect(dayStartSelect.value).toBe("6");
+        expect(nightStartSelect.value).toBe("18");
+    });
+
+    it("createService tolerates null deps for storage helpers", async () => {
+        const loaded = loadStatePersistenceModule();
+        const service = loaded.module.createService(null);
+
+        const writeResult = await service.setStorageValue("NULL_KEY", "NULL_VALUE");
+        const storedValue = await service.getStorageValue("NULL_KEY", null);
+
+        expect(writeResult.ok).toBe(true);
+        expect(storedValue).toBe("NULL_VALUE");
+        expect(service.getDefaultGroups()[0].name).toBe("default_group_name");
+        await expect(service.loadPersistence()).resolves.toBeUndefined();
     });
 
     it("loadPersistence includes sanitized formatProfiles when provided", async () => {

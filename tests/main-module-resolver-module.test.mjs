@@ -98,4 +98,21 @@ describe("GTV main module resolver", () => {
             }
         })).toThrow("Missing required module API: GTVTimezoneData");
     });
+
+    it("exposes createService and supports rootRef override", () => {
+        const { moduleApi } = loadMainModuleResolver();
+        const rootRef = {
+            GTVScoped: {
+                createService: () => ({ ok: true })
+            }
+        };
+        const service = moduleApi.createService({ rootRef });
+        const resolved = service.resolveModule("GTVScoped", {
+            errorLabel: "GTVScoped",
+            requiredMethod: "createService"
+        });
+
+        expect(Object.isFrozen(service)).toBe(true);
+        expect(typeof resolved.createService).toBe("function");
+    });
 });

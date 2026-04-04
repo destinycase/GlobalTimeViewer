@@ -1,5 +1,8 @@
 # Global Time Viewer v3.12.1
 
+## 아키텍처
+- 런타임 부트스트랩과 서비스 계층 개요: `docs/ARCHITECTURE.md`
+
 ## 확장 프로그램
 - https://chromewebstore.google.com/detail/ojmkgfaeececindhbegihnonpndkbnho?utm_source=item-share-cb
 

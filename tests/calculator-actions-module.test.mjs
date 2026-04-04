@@ -168,6 +168,34 @@ describe("GTV calculator actions module", () => {
         expect(observedOptions?.t("a")).toBe("tr:a");
     });
 
+    it("initCalculators prefers deps.windowRef over global window api", () => {
+        let observedOptions = null;
+        const module = loadCalculatorActionsModule({
+            window: {
+                GTVCalculator: {
+                    initCalculators() {
+                        throw new Error("global window calculator should not be used");
+                    }
+                }
+            }
+        });
+        const service = module.createService({
+            windowRef: {
+                GTVCalculator: {
+                    initCalculators(options) {
+                        observedOptions = options;
+                    }
+                }
+            },
+            t: (key) => `tr:${key}`
+        });
+
+        service.initCalculators();
+
+        expect(typeof observedOptions?.copyText).toBe("function");
+        expect(observedOptions?.t("x")).toBe("tr:x");
+    });
+
     it("initCalculators logs error when calculator api is unavailable", () => {
         const module = loadCalculatorActionsModule();
         const errors = [];
@@ -282,6 +310,123 @@ describe("GTV calculator actions module", () => {
         expect(errors.length).toBe(1);
         expect(String(errors[0][0])).toContain("copyText failed:");
         expect(toasts).toEqual([{ message: "toast_copy_failed", options: { type: "error" } }]);
+    });
+
+    it("prefers explicit windowRef, documentRef, navigatorRef, and consoleError dependencies", async () => {
+        const module = loadCalculatorActionsModule({
+            window: {},
+            document: {
+                getElementById() {
+                    throw new Error("global document should not be used");
+                }
+            },
+            navigator: {
+                clipboard: {
+                    async writeText() {
+                        throw new Error("global navigator should not be used");
+                    }
+                }
+            },
+            console: {
+                error() {
+                    throw new Error("global console should not be used");
+                }
+            }
+        });
+        const copied = [];
+        const errors = [];
+        let observedOptions = null;
+        const documentRef = {
+            getElementById(id) {
+                if (id === "plain-text") return { textContent: " injected text " };
+                if (id === "failing-input") return { value: "1700000000" };
+                return null;
+            }
+        };
+        const navigatorRef = {
+            clipboard: {
+                async writeText(text) {
+                    if (text === "1700000000") throw new Error("clipboard denied");
+                    copied.push(text);
+                }
+            }
+        };
+        const windowRef = {
+            GTVCalculator: {
+                initCalculators(options) {
+                    observedOptions = options;
+                }
+            }
+        };
+        const service = module.createService({
+            windowRef,
+            documentRef,
+            navigatorRef,
+            consoleError: (...args) => {
+                errors.push(args);
+            },
+            t: (key) => key,
+            showToast: () => {}
+        });
+
+        service.initCalculators();
+        await service.copyText("plain-text", false);
+        await service.copyText("failing-input", true);
+
+        expect(typeof observedOptions?.copyText).toBe("function");
+        expect(copied).toEqual(["injected text"]);
+        expect(errors).toHaveLength(1);
+        expect(String(errors[0][0])).toContain("copyText failed:");
+    });
+
+    it("prefers getter-based window/document/navigator refs when provided", async () => {
+        const module = loadCalculatorActionsModule({
+            window: {},
+            document: {
+                getElementById() {
+                    throw new Error("global document should not be used");
+                }
+            },
+            navigator: {
+                clipboard: {
+                    async writeText() {
+                        throw new Error("global navigator should not be used");
+                    }
+                }
+            }
+        });
+        const copied = [];
+        let observedOptions = null;
+        const service = module.createService({
+            getWindowRefOrNull: () => ({
+                GTVCalculator: {
+                    initCalculators(options) {
+                        observedOptions = options;
+                    }
+                }
+            }),
+            getDocumentRef: () => ({
+                getElementById(id) {
+                    if (id === "plain-text") return { textContent: " getter text " };
+                    return null;
+                }
+            }),
+            getNavigatorRefOrNull: () => ({
+                clipboard: {
+                    async writeText(text) {
+                        copied.push(String(text));
+                    }
+                }
+            }),
+            t: (key) => key,
+            showToast: () => {}
+        });
+
+        service.initCalculators();
+        await service.copyText("plain-text", false);
+
+        expect(typeof observedOptions?.copyText).toBe("function");
+        expect(copied).toEqual(["getter text"]);
     });
 
     it("translate falls back to key string when translator is missing or empty", async () => {

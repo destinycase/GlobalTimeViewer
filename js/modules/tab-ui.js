@@ -1,25 +1,90 @@
 (function initGtvTabUi(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
+            if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
+            if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
             return (typeof document === "object" && document) ? document : null;
         }
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVTabUI] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
 
-        function getBooleanDep(name, fallback = false) {
-            const value = invokeDep(name);
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVTabUI] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            sanitizeMainTab: toSafeCallable("sanitizeMainTab", safeDeps.sanitizeMainTab),
+            clampGroupIndex: toSafeCallable("clampGroupIndex", safeDeps.clampGroupIndex),
+            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
+            isFixedTimeTab: toSafeCallable("isFixedTimeTab", safeDeps.isFixedTimeTab),
+            getIsRealtime: toSafeCallable("getIsRealtime", safeDeps.getIsRealtime),
+            getShowCopyFormat: toSafeCallable("getShowCopyFormat", safeDeps.getShowCopyFormat),
+            getShowTimeline: toSafeCallable("getShowTimeline", safeDeps.getShowTimeline),
+            refreshMultiRangeControls: toSafeCallable("refreshMultiRangeControls", safeDeps.refreshMultiRangeControls),
+            hideFloatingTooltip: toSafeCallable("hideFloatingTooltip", safeDeps.hideFloatingTooltip),
+            syncCurrentMultiStateToActiveSubgroup: toSafeCallable("syncCurrentMultiStateToActiveSubgroup", safeDeps.syncCurrentMultiStateToActiveSubgroup),
+            getCurrentMainTab: toSafeCallable("getCurrentMainTab", safeDeps.getCurrentMainTab),
+            getActiveGroupId: toSafeCallable("getActiveGroupId", safeDeps.getActiveGroupId),
+            getActiveGroupIdByMainTab: toSafeCallable("getActiveGroupIdByMainTab", safeDeps.getActiveGroupIdByMainTab),
+            setCurrentMainTab: toSafeCallable("setCurrentMainTab", safeDeps.setCurrentMainTab),
+            setActiveGroupId: toSafeCallable("setActiveGroupId", safeDeps.setActiveGroupId),
+            setActiveGroupIdByMainTab: toSafeCallable("setActiveGroupIdByMainTab", safeDeps.setActiveGroupIdByMainTab),
+            normalizeGroupTabState: toSafeCallable("normalizeGroupTabState", safeDeps.normalizeGroupTabState),
+            setIsRealtime: toSafeCallable("setIsRealtime", safeDeps.setIsRealtime),
+            syncRealtimeNow: toSafeCallable("syncRealtimeNow", safeDeps.syncRealtimeNow),
+            getSlotCount: toSafeCallable("getSlotCount", safeDeps.getSlotCount),
+            renderTimelineFrame: toSafeCallable("renderTimelineFrame", safeDeps.renderTimelineFrame),
+            renderBaseTimeSelect: toSafeCallable("renderBaseTimeSelect", safeDeps.renderBaseTimeSelect),
+            loadCurrentMultiStateFromActiveSubgroup: toSafeCallable("loadCurrentMultiStateFromActiveSubgroup", safeDeps.loadCurrentMultiStateFromActiveSubgroup),
+            renderGroups: toSafeCallable("renderGroups", safeDeps.renderGroups),
+            renderMultiSubgroups: toSafeCallable("renderMultiSubgroups", safeDeps.renderMultiSubgroups),
+            renderMultiRanges: toSafeCallable("renderMultiRanges", safeDeps.renderMultiRanges),
+            renderFixedTimeTab: toSafeCallable("renderFixedTimeTab", safeDeps.renderFixedTimeTab),
+            updateTimeAdjustPanel: toSafeCallable("updateTimeAdjustPanel", safeDeps.updateTimeAdjustPanel),
+            renderList: toSafeCallable("renderList", safeDeps.renderList),
+            renderCopyFormatControls: toSafeCallable("renderCopyFormatControls", safeDeps.renderCopyFormatControls),
+            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence)
+        });
+
+        function getBooleanDep(resolver, fallback = false) {
+            const value = resolver();
             if (value === undefined) return !!fallback;
             return !!value;
         }
@@ -32,13 +97,13 @@
         }
 
         function sanitizeMainTab(tab) {
-            const nextTab = invokeDep("sanitizeMainTab", tab);
+            const nextTab = dep.sanitizeMainTab(tab);
             if (typeof nextTab === "string" && nextTab.trim()) return nextTab;
             return getMainTab(tab);
         }
 
         function clampGroupIndex(index) {
-            const clamped = invokeDep("clampGroupIndex", index);
+            const clamped = dep.clampGroupIndex(index);
             const numeric = Number(clamped);
             if (Number.isFinite(numeric)) return numeric;
             const parsed = Number(index);
@@ -100,9 +165,9 @@
             const multiControlsFrame = doc.getElementById("multi-controls-frame");
             const saveTableImageBtn = doc.getElementById("save-table-image-btn");
             const saveMultiRangeTitlesImageBtn = doc.getElementById("save-multi-range-titles-image-btn");
-            const isMulti = getBooleanDep("isMultiTab");
-            const isFixedTime = getBooleanDep("isFixedTimeTab");
-            const isRealtime = getBooleanDep("getIsRealtime");
+            const isMulti = getBooleanDep(dep.isMultiTab);
+            const isFixedTime = getBooleanDep(dep.isFixedTimeTab);
+            const isRealtime = getBooleanDep(dep.getIsRealtime);
 
             setElementDisplay(optionRow, "flex");
             setElementDisplay(extraTimeGroup, (isRealtime || isMulti || isFixedTime) ? "none" : "flex");
@@ -116,20 +181,20 @@
             setElementDisplay(multiToolsRow, isMulti ? "flex" : "none");
             setElementDisplay(saveTableImageBtn, "");
             setElementDisplay(saveMultiRangeTitlesImageBtn, isMulti ? "" : "none");
-            if (!getBooleanDep("getShowCopyFormat") && copyFormatRow) setElementDisplay(copyFormatRow, "none");
-            invokeDep("refreshMultiRangeControls");
+            if (!getBooleanDep(dep.getShowCopyFormat) && copyFormatRow) setElementDisplay(copyFormatRow, "none");
+            dep.refreshMultiRangeControls();
             refreshOptionToggleDividers();
         }
 
         function switchMainTab(tab) {
             const doc = getDocumentRef();
             const nextTab = sanitizeMainTab(tab);
-            invokeDep("hideFloatingTooltip");
-            invokeDep("syncCurrentMultiStateToActiveSubgroup");
+            dep.hideFloatingTooltip();
+            dep.syncCurrentMultiStateToActiveSubgroup();
 
-            let currentMainTab = getMainTab(invokeDep("getCurrentMainTab"));
-            let activeGroupId = clampGroupIndex(invokeDep("getActiveGroupId"));
-            const rawActiveGroupIdByMainTab = invokeDep("getActiveGroupIdByMainTab");
+            let currentMainTab = getMainTab(dep.getCurrentMainTab());
+            let activeGroupId = clampGroupIndex(dep.getActiveGroupId());
+            const rawActiveGroupIdByMainTab = dep.getActiveGroupIdByMainTab();
             const activeGroupIdByMainTab = {
                 live: 0,
                 fixed: 0,
@@ -149,10 +214,10 @@
                 activeGroupId = clampGroupIndex(activeGroupId);
             }
 
-            invokeDep("setCurrentMainTab", currentMainTab);
-            invokeDep("setActiveGroupId", activeGroupId);
-            invokeDep("setActiveGroupIdByMainTab", activeGroupIdByMainTab);
-            invokeDep("normalizeGroupTabState");
+            dep.setCurrentMainTab(currentMainTab);
+            dep.setActiveGroupId(activeGroupId);
+            dep.setActiveGroupIdByMainTab(activeGroupIdByMainTab);
+            dep.normalizeGroupTabState();
 
             if (doc && typeof doc.querySelectorAll === "function") {
                 const navButtons = Array.from(doc.querySelectorAll(".nav-item") || []);
@@ -160,9 +225,9 @@
                     toggleClass(btn, "active", btn?.dataset?.tab === currentMainTab);
                 });
             }
-            const isMulti = getBooleanDep("isMultiTab");
+            const isMulti = getBooleanDep(dep.isMultiTab);
             const isCalc = currentMainTab === "calc";
-            const isFixedTime = getBooleanDep("isFixedTimeTab");
+            const isFixedTime = getBooleanDep(dep.isFixedTimeTab);
             toggleClass(doc?.getElementById?.("timezone-section"), "active", !isCalc && !isMulti && !isFixedTime);
             toggleClass(doc?.getElementById?.("fixed-time-section"), "active", isFixedTime);
             toggleClass(doc?.getElementById?.("multi-range-section"), "active", isMulti);
@@ -172,10 +237,10 @@
             const topControlBar = doc?.getElementById?.("top-control-bar");
             if (topControlBar) topControlBar.style.display = isCalc ? "none" : "flex";
 
-            invokeDep("setIsRealtime", currentMainTab === "live");
-            const isRealtime = getBooleanDep("getIsRealtime");
+            dep.setIsRealtime(currentMainTab === "live");
+            const isRealtime = getBooleanDep(dep.getIsRealtime);
             if (isRealtime) {
-                invokeDep("syncRealtimeNow");
+                dep.syncRealtimeNow();
             }
             const extraTimeToggle = doc?.getElementById?.("toggle-extra-time");
             const copyFormatToggle = doc?.getElementById?.("toggle-copy-format");
@@ -186,35 +251,35 @@
                 if (isRealtime) extraTimeToggle.checked = false;
                 else if (isFixedTime) extraTimeToggle.checked = false;
                 else if (isMulti) extraTimeToggle.checked = true;
-                else extraTimeToggle.checked = (Number(invokeDep("getSlotCount")) > 1);
+                else extraTimeToggle.checked = (Number(dep.getSlotCount()) > 1);
             }
 
             if (copyFormatToggle) {
-                copyFormatToggle.checked = getBooleanDep("getShowCopyFormat");
+                copyFormatToggle.checked = getBooleanDep(dep.getShowCopyFormat);
             }
             if (timelineToggle) {
-                timelineToggle.checked = getBooleanDep("getShowTimeline");
+                timelineToggle.checked = getBooleanDep(dep.getShowTimeline);
             }
             updateOptionRowVisibility();
-            invokeDep("renderTimelineFrame");
+            dep.renderTimelineFrame();
 
             if (isMulti) {
-                invokeDep("renderBaseTimeSelect");
-                invokeDep("loadCurrentMultiStateFromActiveSubgroup");
+                dep.renderBaseTimeSelect();
+                dep.loadCurrentMultiStateFromActiveSubgroup();
             }
-            invokeDep("renderGroups");
-            invokeDep("renderMultiSubgroups");
+            dep.renderGroups();
+            dep.renderMultiSubgroups();
             if (isMulti) {
-                invokeDep("renderMultiRanges");
+                dep.renderMultiRanges();
             } else if (isFixedTime) {
-                invokeDep("renderFixedTimeTab");
-                invokeDep("updateTimeAdjustPanel");
+                dep.renderFixedTimeTab();
+                dep.updateTimeAdjustPanel();
             } else {
-                invokeDep("renderList");
-                invokeDep("updateTimeAdjustPanel");
+                dep.renderList();
+                dep.updateTimeAdjustPanel();
             }
-            invokeDep("renderCopyFormatControls");
-            invokeDep("savePersistence");
+            dep.renderCopyFormatControls();
+            dep.savePersistence();
         }
 
         return Object.freeze({

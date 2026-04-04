@@ -33,17 +33,24 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
         }
 
+        const dep = Object.freeze({
+            getStateSource: toSafeCallable(safeDeps.getStateSource),
+            setIsRealtimeState: toSafeCallable(safeDeps.setIsRealtimeState)
+        });
+
         function getStateSnapshot() {
-            const source = invokeDep("getStateSource");
+            const source = dep.getStateSource();
             const safeSource = (source && typeof source === "object") ? source : {};
             const snapshot = {};
             PATCHABLE_KEYS.forEach((key) => {
@@ -71,7 +78,7 @@
             });
 
             if (Object.prototype.hasOwnProperty.call(next, "isRealtime")) {
-                invokeDep("setIsRealtimeState", next.isRealtime);
+                dep.setIsRealtimeState(next.isRealtime);
             }
         }
 

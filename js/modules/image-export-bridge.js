@@ -1,20 +1,36 @@
 (function initGtvImageExportBridge(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getDefaultTableExportContext: toSafeCallable(safeDeps.getDefaultTableExportContext),
+            getImageCloneService: toSafeCallable(safeDeps.getImageCloneService),
+            getImageForeignRenderService: toSafeCallable(safeDeps.getImageForeignRenderService),
+            getTableImageRenderService: toSafeCallable(safeDeps.getTableImageRenderService),
+            getMultiRangeImageRenderService: toSafeCallable(safeDeps.getMultiRangeImageRenderService),
+            getImageExportActionsService: toSafeCallable(safeDeps.getImageExportActionsService)
+        });
+
+        function getServiceFromDep(getter) {
+            const service = getter();
+            return (service && typeof service === "object") ? service : null;
         }
 
         function getDefaultTableExportContext() {
-            const fallback = invokeDep("getDefaultTableExportContext");
+            const fallback = dep.getDefaultTableExportContext();
             if (!fallback || typeof fallback !== "object") {
                 return {
                     table: null,
@@ -26,23 +42,23 @@
         }
 
         function getImageCloneService() {
-            return invokeDep("getImageCloneService");
+            return getServiceFromDep(dep.getImageCloneService);
         }
 
         function getImageForeignRenderService() {
-            return invokeDep("getImageForeignRenderService");
+            return getServiceFromDep(dep.getImageForeignRenderService);
         }
 
         function getTableImageRenderService() {
-            return invokeDep("getTableImageRenderService");
+            return getServiceFromDep(dep.getTableImageRenderService);
         }
 
         function getMultiRangeImageRenderService() {
-            return invokeDep("getMultiRangeImageRenderService");
+            return getServiceFromDep(dep.getMultiRangeImageRenderService);
         }
 
         function getImageExportActionsService() {
-            return invokeDep("getImageExportActionsService");
+            return getServiceFromDep(dep.getImageExportActionsService);
         }
 
         function collectDocumentCssText() {

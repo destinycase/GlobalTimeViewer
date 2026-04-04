@@ -303,6 +303,114 @@ describe("GTV timezone search module", () => {
         expect(typeof callback).toBe("function");
     });
 
+    it("queueStandardTimezoneWarmup prefers injected logWarn when warmup fails", () => {
+        let callback = null;
+        const supportedValues = ["UTC"];
+        supportedValues.forEach = () => {
+            throw new Error("warmup failed");
+        };
+        const module = loadTimezoneSearchModule({
+            requestIdleCallback(fn) {
+                callback = fn;
+            },
+            Intl: {
+                supportedValuesOf() {
+                    return supportedValues;
+                }
+            }
+        });
+        const warned = [];
+        const service = module.createService({
+            logWarn: (...args) => {
+                warned.push(args);
+            }
+        });
+
+        service.queueStandardTimezoneWarmup();
+        callback();
+
+        expect(warned).toHaveLength(1);
+        expect(String(warned[0][0])).toContain("Failed to warm up standard timezone cache.");
+    });
+
+    it("updateTZDropdown prefers injected documentRef over global document", () => {
+        const globalQuickSelect = createElementStub("select");
+        const globalPlaceholder = createElementStub("option");
+        globalQuickSelect.options = [globalPlaceholder];
+        const injectedQuickSelect = createElementStub("select");
+        const injectedPlaceholder = createElementStub("option");
+        injectedQuickSelect.options = [injectedPlaceholder];
+        const globalDoc = createDocumentStub({
+            "tz-quick-select": globalQuickSelect
+        });
+        const injectedDoc = createDocumentStub({
+            "tz-quick-select": injectedQuickSelect
+        });
+        const module = loadTimezoneSearchModule({
+            document: globalDoc
+        });
+        const service = module.createService({
+            documentRef: injectedDoc,
+            TZ_DATABASE: [
+                {
+                    zone: "Asia/Seoul",
+                    name: "Korea",
+                    city: "Seoul",
+                    name_en: "Korea",
+                    city_en: "Seoul"
+                }
+            ],
+            ZONE_MAP: {
+                "Asia/Seoul": "KST"
+            },
+            ...createOffsetAndAbbrDeps()
+        });
+
+        service.updateTZDropdown();
+
+        expect(injectedQuickSelect.options.length).toBeGreaterThan(1);
+        expect(globalQuickSelect.options.length).toBe(1);
+    });
+
+    it("updateTZDropdown prefers injected getDocumentRefOrNull over global document", () => {
+        const globalQuickSelect = createElementStub("select");
+        const globalPlaceholder = createElementStub("option");
+        globalQuickSelect.options = [globalPlaceholder];
+        const injectedQuickSelect = createElementStub("select");
+        const injectedPlaceholder = createElementStub("option");
+        injectedQuickSelect.options = [injectedPlaceholder];
+        const globalDoc = createDocumentStub({
+            "tz-quick-select": globalQuickSelect
+        });
+        const injectedDoc = createDocumentStub({
+            "tz-quick-select": injectedQuickSelect
+        });
+        const module = loadTimezoneSearchModule({
+            document: globalDoc
+        });
+        const service = module.createService({
+            getDocumentRefOrNull: () => injectedDoc,
+            TZ_DATABASE: [
+                {
+                    zone: "Asia/Seoul",
+                    name: "Korea",
+                    city: "Seoul",
+                    name_en: "Korea",
+                    city_en: "Seoul"
+                }
+            ],
+            ZONE_MAP: {
+                "Asia/Seoul": "KST"
+            },
+            ...createOffsetAndAbbrDeps()
+        });
+
+        service.updateTZDropdown();
+
+        expect(injectedQuickSelect.options.length).toBeGreaterThan(1);
+        expect(globalQuickSelect.options.length).toBe(1);
+    });
+
     it("addFromSearchWithData uses selectable entries and forwards addTimezone", () => {
         const added = [];
         const module = loadTimezoneSearchModule();
@@ -563,6 +671,8 @@ describe("GTV timezone search module", () => {
         const list = createElementStub("div");
         const standardTabBtn = createElementStub("button");
         const countryTabBtn = createElementStub("button");
+        const searchInput = createElementStub("input");
+        const clearSearchBtn = createElementStub("button");
         const closeOverlayBtn = createElementStub("button");
         const doc = createDocumentStub({
             "tz-quick-select": quickSelect,
@@ -571,6 +681,8 @@ describe("GTV timezone search module", () => {
             "full-tz-list": list,
             "tz-tab-standard": standardTabBtn,
             "tz-tab-country": countryTabBtn,
+            "tz-search-input": searchInput,
+            "tz-search-clear": clearSearchBtn,
             "close-overlay": closeOverlayBtn
         });
 
@@ -605,10 +717,20 @@ describe("GTV timezone search module", () => {
         expect(list.children.length).toBeGreaterThan(0);
         expect(standardTabBtn.classList.contains("active")).toBe(true);
         expect(standardTabBtn.getAttribute("aria-selected")).toBe("true");
+        expect(clearSearchBtn.disabled).toBe(true);
+
+        searchInput.value = "UTC+09:00";
+        searchInput.dispatchEvent({ type: "input", target: searchInput });
+        expect(list.children).toHaveLength(1);
+        expect(clearSearchBtn.disabled).toBe(false);
 
         countryTabBtn.dispatchEvent({ type: "click", target: countryTabBtn });
         expect(countryTabBtn.classList.contains("active")).toBe(true);
         expect(countryTabBtn.getAttribute("aria-selected")).toBe("true");
+
+        clearSearchBtn.dispatchEvent({ type: "click", target: clearSearchBtn });
+        expect(searchInput.value).toBe("");
+        expect(clearSearchBtn.disabled).toBe(true);
 
         closeOverlayBtn.onclick();
         expect(overlay.style.display).toBe("none");
@@ -649,5 +771,30 @@ describe("GTV timezone search module", () => {
         expect(serviceKo.getTimezoneEntryTitle(entry)).toBe("\uC77C\uBCF8 - \uB3C4\uCFC4");
         expect(serviceEn.getTimezoneEntryTitle(entry)).toBe("Japan - Tokyo");
     });
-});
 
+    it("filterTimezoneEntries matches title, abbreviation, and UTC offset", () => {
+        const module = loadTimezoneSearchModule();
+        const service = module.createService({
+            ...createOffsetAndAbbrDeps(),
+            TZ_DATABASE: [
+                {
+                    zone: "Asia/Seoul",
+                    name: "Korea",
+                    city: "Seoul",
+                    name_en: "Korea",
+                    city_en: "Seoul"
+                }
+            ],
+            ZONE_MAP: {
+                "Asia/Seoul": "KST"
+            }
+        });
+
+        const entries = service.getSelectableTZEntries();
+
+        expect(service.filterTimezoneEntries(entries, "seoul")).toHaveLength(1);
+        expect(service.filterTimezoneEntries(entries, "kst")).toHaveLength(1);
+        expect(service.filterTimezoneEntries(entries, "utc+09:00")).toHaveLength(1);
+        expect(service.filterTimezoneEntries(entries, "missing")).toHaveLength(0);
+    });
+});

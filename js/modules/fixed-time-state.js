@@ -4,13 +4,59 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getCurrentGroup: toSafeCallable(safeDeps.getCurrentGroup),
+            ensureGroupFixedTimes: toSafeCallable(safeDeps.ensureGroupFixedTimes),
+            sanitizeFixedTimeSlotCount: toSafeCallable(safeDeps.sanitizeFixedTimeSlotCount),
+            sanitizeFixedDateValue: toSafeCallable(safeDeps.sanitizeFixedDateValue),
+            isFixedTimeTab: toSafeCallable(safeDeps.isFixedTimeTab),
+            renderFixedTimeTab: toSafeCallable(safeDeps.renderFixedTimeTab),
+            renderTimelineFrame: toSafeCallable(safeDeps.renderTimelineFrame),
+            savePersistence: toSafeCallable(safeDeps.savePersistence),
+            sanitizeFixedTimeShowLiveNow: toSafeCallable(safeDeps.sanitizeFixedTimeShowLiveNow),
+            showToast: toSafeCallable(safeDeps.showToast),
+            t: toSafeCallable(safeDeps.t),
+            createUniqueFixedTimeId: toSafeCallable(safeDeps.createUniqueFixedTimeId),
+            createDefaultFixedTimeSlot: toSafeCallable(safeDeps.createDefaultFixedTimeSlot)
+        });
+
+        function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected.getElementById === "function") {
+                    return injected;
+                }
             }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected.getElementById === "function") {
+                    return injected;
+                }
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef.getElementById === "function") {
+                return safeDeps.documentRef;
+            }
+            if (safeDeps.document && typeof safeDeps.document.getElementById === "function") {
+                return safeDeps.document;
+            }
+            if (globalObj?.document && typeof globalObj.document.getElementById === "function") {
+                return globalObj.document;
+            }
+            if (typeof document === "object" && document && typeof document.getElementById === "function") {
+                return document;
+            }
+            return null;
         }
 
         function getMinSlotCount() {
@@ -23,61 +69,62 @@
             return Number.isFinite(parsed) ? Math.max(getMinSlotCount(), Math.trunc(parsed)) : 5;
         }
 
-        function getFixedTimeSlotCount(group = invokeDep("getCurrentGroup")) {
+        function getFixedTimeSlotCount(group = dep.getCurrentGroup()) {
             const safeGroup = (group && typeof group === "object") ? group : null;
             if (!safeGroup) return getMinSlotCount();
-            invokeDep("ensureGroupFixedTimes", safeGroup);
-            const sanitizeCount = invokeDep("sanitizeFixedTimeSlotCount", safeGroup.fixedTimes?.length);
+            dep.ensureGroupFixedTimes(safeGroup);
+            const sanitizeCount = dep.sanitizeFixedTimeSlotCount(safeGroup.fixedTimes?.length);
             return Number.isFinite(sanitizeCount) ? sanitizeCount : getMinSlotCount();
         }
 
         function setCurrentGroupFixedDate(rawValue, options = {}) {
             const { persist = true, rerender = true } = options;
-            const group = invokeDep("getCurrentGroup");
+            const group = dep.getCurrentGroup();
             if (!group) return false;
-            invokeDep("ensureGroupFixedTimes", group);
-            const nextDate = invokeDep("sanitizeFixedDateValue", rawValue, group.fixedDate || "");
+            dep.ensureGroupFixedTimes(group);
+            const nextDate = dep.sanitizeFixedDateValue(rawValue, group.fixedDate || "");
             if (group.fixedDate === nextDate) return false;
             group.fixedDate = nextDate;
-            if (rerender && invokeDep("isFixedTimeTab")) {
-                invokeDep("renderFixedTimeTab");
-                invokeDep("renderTimelineFrame");
+            if (rerender && dep.isFixedTimeTab()) {
+                dep.renderFixedTimeTab();
+                dep.renderTimelineFrame();
             }
-            if (persist) invokeDep("savePersistence");
+            if (persist) dep.savePersistence();
             return true;
         }
 
-        function getCurrentGroupFixedTimeShowLiveNow(group = invokeDep("getCurrentGroup")) {
+        function getCurrentGroupFixedTimeShowLiveNow(group = dep.getCurrentGroup()) {
             const safeGroup = (group && typeof group === "object") ? group : null;
             if (!safeGroup) return false;
-            invokeDep("ensureGroupFixedTimes", safeGroup);
-            const sanitized = invokeDep("sanitizeFixedTimeShowLiveNow", safeGroup.fixedTimeShowLiveNow, false);
+            dep.ensureGroupFixedTimes(safeGroup);
+            const sanitized = dep.sanitizeFixedTimeShowLiveNow(safeGroup.fixedTimeShowLiveNow, false);
             if (sanitized === undefined) return !!safeGroup.fixedTimeShowLiveNow;
             return !!sanitized;
         }
 
         function setCurrentGroupFixedTimeShowLiveNow(enabled, options = {}) {
             const { persist = true, rerender = true } = options;
-            const group = invokeDep("getCurrentGroup");
+            const group = dep.getCurrentGroup();
             if (!group) return false;
-            invokeDep("ensureGroupFixedTimes", group);
-            const sanitized = invokeDep("sanitizeFixedTimeShowLiveNow", enabled, false);
+            dep.ensureGroupFixedTimes(group);
+            const sanitized = dep.sanitizeFixedTimeShowLiveNow(enabled, false);
             const nextEnabled = (sanitized === undefined) ? !!enabled : !!sanitized;
             if (!!group.fixedTimeShowLiveNow === nextEnabled) return false;
             group.fixedTimeShowLiveNow = nextEnabled;
-            if (rerender && invokeDep("isFixedTimeTab")) {
-                invokeDep("renderFixedTimeTab");
-                invokeDep("renderTimelineFrame");
+            if (rerender && dep.isFixedTimeTab()) {
+                dep.renderFixedTimeTab();
+                dep.renderTimelineFrame();
             }
-            if (persist) invokeDep("savePersistence");
+            if (persist) dep.savePersistence();
             return true;
         }
 
         function refreshFixedTimeSlotCountControls() {
-            const group = invokeDep("getCurrentGroup");
-            const countInput = document.getElementById("fixed-time-slot-count-input");
-            const decreaseBtn = document.getElementById("fixed-time-slot-count-decrease");
-            const increaseBtn = document.getElementById("fixed-time-slot-count-increase");
+            const group = dep.getCurrentGroup();
+            const doc = getDocumentRef();
+            const countInput = doc?.getElementById?.("fixed-time-slot-count-input");
+            const decreaseBtn = doc?.getElementById?.("fixed-time-slot-count-decrease");
+            const increaseBtn = doc?.getElementById?.("fixed-time-slot-count-increase");
             if (!group) {
                 if (countInput) countInput.value = String(getMinSlotCount());
                 if (decreaseBtn) decreaseBtn.disabled = true;
@@ -93,28 +140,28 @@
 
         function setFixedTimeSlotCount(value, options = {}) {
             const { persist = true, rerender = true, showBoundaryToast = false } = options;
-            const group = invokeDep("getCurrentGroup");
+            const group = dep.getCurrentGroup();
             if (!group) return false;
-            invokeDep("ensureGroupFixedTimes", group);
+            dep.ensureGroupFixedTimes(group);
 
             const parsed = parseInt(value, 10);
-            const nextCount = invokeDep("sanitizeFixedTimeSlotCount", value);
+            const nextCount = dep.sanitizeFixedTimeSlotCount(value);
             if (showBoundaryToast && Number.isFinite(parsed)) {
                 if (parsed > getMaxSlotCount()) {
-                    invokeDep("showToast", invokeDep("t", "toast_fixed_time_max"), { type: "info" });
+                    dep.showToast(dep.t("toast_fixed_time_max"), { type: "info" });
                 } else if (parsed < getMinSlotCount()) {
-                    invokeDep("showToast", invokeDep("t", "toast_fixed_time_min"), { type: "info" });
+                    dep.showToast(dep.t("toast_fixed_time_min"), { type: "info" });
                 }
             }
 
             const currentCount = getFixedTimeSlotCount(group);
             if (nextCount === currentCount) {
                 refreshFixedTimeSlotCountControls();
-                if (rerender && invokeDep("isFixedTimeTab")) {
-                    invokeDep("renderFixedTimeTab");
-                    invokeDep("renderTimelineFrame");
+                if (rerender && dep.isFixedTimeTab()) {
+                    dep.renderFixedTimeTab();
+                    dep.renderTimelineFrame();
                 }
-                if (persist) invokeDep("savePersistence");
+                if (persist) dep.savePersistence();
                 return false;
             }
 
@@ -122,17 +169,17 @@
                 group.fixedTimes = group.fixedTimes.slice(0, nextCount);
             } else {
                 while (group.fixedTimes.length < nextCount) {
-                    const nextId = invokeDep("createUniqueFixedTimeId", group);
-                    group.fixedTimes.push(invokeDep("createDefaultFixedTimeSlot", nextId));
+                    const nextId = dep.createUniqueFixedTimeId(group);
+                    group.fixedTimes.push(dep.createDefaultFixedTimeSlot(nextId));
                 }
             }
-            invokeDep("ensureGroupFixedTimes", group);
+            dep.ensureGroupFixedTimes(group);
             refreshFixedTimeSlotCountControls();
-            if (rerender && invokeDep("isFixedTimeTab")) {
-                invokeDep("renderFixedTimeTab");
-                invokeDep("renderTimelineFrame");
+            if (rerender && dep.isFixedTimeTab()) {
+                dep.renderFixedTimeTab();
+                dep.renderTimelineFrame();
             }
-            if (persist) invokeDep("savePersistence");
+            if (persist) dep.savePersistence();
             return true;
         }
 

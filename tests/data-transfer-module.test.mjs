@@ -274,6 +274,43 @@ describe("GTV data transfer module", () => {
         expect(clickCount).toBe(1);
     });
 
+    it("triggerGroupImportFor prefers injected documentRef and windowRef", () => {
+        let clickCount = 0;
+        const groupImportInput = {
+            value: "selected",
+            files: [],
+            click() {
+                clickCount += 1;
+            }
+        };
+        const loaded = loadDataTransferModule({
+            document: {
+                getElementById() {
+                    throw new Error("global document should not be used");
+                }
+            },
+            window: {}
+        });
+        const windowRef = {
+            addEventListener() {},
+            removeEventListener() {}
+        };
+        const service = loaded.module.createService(createBaseDeps({
+            documentRef: {
+                getElementById(id) {
+                    if (id === "group-import-file") return groupImportInput;
+                    return null;
+                }
+            },
+            windowRef
+        }));
+
+        service.triggerGroupImportFor(0);
+
+        expect(groupImportInput.value).toBe("");
+        expect(clickCount).toBe(1);
+    });
+
     it("clearPendingGroupImport resets pending target before import handling", async () => {
         const groupImportInput = {
             value: "selected",
@@ -585,6 +622,38 @@ describe("GTV data transfer module", () => {
         expect(loaded.logs.error.length).toBeGreaterThan(0);
     });
 
+    it("exportGroupToJSON prefers injected consoleError over global console", () => {
+        const loaded = loadDataTransferModule({
+            document: {
+                getElementById() {
+                    return null;
+                },
+                createElement() {
+                    throw new Error("dom-create-failed");
+                },
+                body: {
+                    appendChild() {}
+                }
+            }
+        });
+        const toasts = [];
+        const errors = [];
+        const service = loaded.module.createService(createBaseDeps({
+            consoleError: (...args) => {
+                errors.push(args);
+            },
+            showToast(message) {
+                toasts.push(String(message));
+            }
+        }));
+
+        service.exportGroupToJSON(0);
+
+        expect(toasts).toContain("toast_group_export_failed");
+        expect(errors).toHaveLength(1);
+        expect(loaded.logs.error).toHaveLength(0);
+    });
+
     it("export group/subgroup uses injected document dependency instead of global document", () => {
         const anchors = [];
         const loaded = loadDataTransferModule({
@@ -883,6 +952,63 @@ describe("GTV data transfer module", () => {
         expect(anchors).toHaveLength(1);
         expect(anchors[0].download.startsWith("GlobalTimeViewer_subgroup_")).toBe(true);
         expect(anchors[0].download.endsWith(".json")).toBe(true);
+        expect(anchors[0].clicked).toBe(1);
+        expect(toasts[0].startsWith("toast_subgroup_export_success:")).toBe(true);
+    });
+
+    it("exportSubgroupToJSON prefers getter-based document ref over global document", () => {
+        const anchors = [];
+        const loaded = loadDataTransferModule({
+            document: {
+                getElementById() {
+                    return null;
+                },
+                createElement() {
+                    throw new Error("global document should not be used");
+                },
+                body: {
+                    appendChild() {
+                        throw new Error("global document body should not be used");
+                    }
+                }
+            }
+        });
+        const toasts = [];
+        const service = loaded.module.createService(createBaseDeps({
+            getDocumentRefOrNull: () => ({
+                getElementById() {
+                    return null;
+                },
+                createElement(tag) {
+                    if (tag !== "a") return {};
+                    return {
+                        href: "",
+                        download: "",
+                        clicked: 0,
+                        click() {
+                            this.clicked += 1;
+                        },
+                        remove() {}
+                    };
+                },
+                body: {
+                    appendChild(node) {
+                        anchors.push(node);
+                    }
+                }
+            }),
+            showToast(message) {
+                toasts.push(String(message));
+            },
+            tFormat(key, payload) {
+                return `${key}:${payload?.filename || ""}`;
+            }
+        }));
+
+        service.exportSubgroupToJSON(0, "sg-1");
+
+        expect(anchors).toHaveLength(1);
+        expect(anchors[0].download.startsWith("GlobalTimeViewer_subgroup_")).toBe(true);
         expect(anchors[0].clicked).toBe(1);
         expect(toasts[0].startsWith("toast_subgroup_export_success:")).toBe(true);
     });

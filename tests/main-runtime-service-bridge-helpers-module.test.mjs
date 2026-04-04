@@ -1,4 +1,4 @@
-﻿import path from "node:path";
+import path from "node:path";
 import { createRequire } from "node:module";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -98,5 +98,19 @@ describe("GTV main runtime service bridge helpers module", () => {
 
         const fallbackService = moduleApi.createService();
         expect(fallbackService.renderMultiRangesSafely()).toBe(undefined);
+    });
+
+    it("uses injected consoleWarn fallback when bridge warn method is unavailable", () => {
+        const moduleApi = loadMainRuntimeServiceBridgeHelpersModule();
+        const warned = [];
+        const service = moduleApi.createService({
+            getMainServiceMethodBridgeService: () => null,
+            consoleWarn: (...args) => warned.push(args)
+        });
+
+        service.warnMissingServiceMethod("svc", "missing");
+
+        expect(warned).toHaveLength(1);
+        expect(String(warned[0][0])).toContain("svc.missing");
     });
 });

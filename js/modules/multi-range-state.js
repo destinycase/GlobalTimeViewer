@@ -4,17 +4,35 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getState: toSafeCallable(safeDeps.getState),
+            setState: toSafeCallable(safeDeps.setState),
+            t: toSafeCallable(safeDeps.t),
+            sanitizeUtcMs: toSafeCallable(safeDeps.sanitizeUtcMs),
+            getGlobalTimes: toSafeCallable(safeDeps.getGlobalTimes),
+            isMultiTab: toSafeCallable(safeDeps.isMultiTab),
+            renderMultiRanges: toSafeCallable(safeDeps.renderMultiRanges),
+            savePersistence: toSafeCallable(safeDeps.savePersistence),
+            showToast: toSafeCallable(safeDeps.showToast)
+        });
+
+        function savePersistenceSafe() {
+            return dep.savePersistence();
         }
 
         function readState() {
-            const state = invokeDep("getState");
+            const state = dep.getState();
             if (!state || typeof state !== "object") {
                 return {
                     multiRangeCount: 1,
@@ -30,16 +48,16 @@
 
         function patchState(next = {}) {
             if (!next || typeof next !== "object") return;
-            invokeDep("setState", next);
+            dep.setState(next);
         }
 
         function translate(key) {
-            const text = invokeDep("t", key);
+            const text = dep.t(key);
             return (typeof text === "string" && text) ? text : String(key || "");
         }
 
         function sanitizeUtcMs(value, fallbackMs) {
-            const viaDep = invokeDep("sanitizeUtcMs", value, fallbackMs);
+            const viaDep = dep.sanitizeUtcMs(value, fallbackMs);
             if (Number.isFinite(viaDep)) return viaDep;
             const parsed = Number(value);
             if (Number.isFinite(parsed)) return parsed;
@@ -70,7 +88,7 @@
         }
 
         function getDefaultMultiRangeBounds() {
-            const globalTimes = invokeDep("getGlobalTimes");
+            const globalTimes = dep.getGlobalTimes();
             const safeTimes = Array.isArray(globalTimes) ? globalTimes : [];
             const nowMs = Date.now();
             const startMs = sanitizeUtcMs(safeTimes[0]?.getTime?.(), nowMs);
@@ -166,13 +184,13 @@
         }
 
         function renderIfMultiTab() {
-            if (!invokeDep("isMultiTab")) return;
-            invokeDep("renderMultiRanges");
+            if (!dep.isMultiTab()) return;
+            dep.renderMultiRanges();
         }
 
         function persistIfNeeded(persist) {
             if (!persist) return;
-            invokeDep("savePersistence");
+            savePersistenceSafe();
         }
 
         function setMultiRangeStartEditEnabled(rangeIdx, enabled, options = {}) {
@@ -361,9 +379,9 @@
 
             if (showBoundaryToast && Number.isFinite(parsed)) {
                 if (parsed >= getMaxCount()) {
-                    invokeDep("showToast", translate("toast_range_count_max"));
+                    dep.showToast(translate("toast_range_count_max"));
                 } else if (parsed <= getMinCount()) {
-                    invokeDep("showToast", translate("toast_range_count_min"));
+                    dep.showToast(translate("toast_range_count_min"));
                 }
             }
 
@@ -383,7 +401,7 @@
             nextCollapsed[rangeIdx] = !nextCollapsed[rangeIdx];
             patchState({ multiRangeCollapsed: nextCollapsed });
             renderIfMultiTab();
-            invokeDep("savePersistence");
+            savePersistenceSafe();
         }
 
         function setMultiRangesCollapsedBelow(rangeIdx, collapsed) {
@@ -399,7 +417,7 @@
             }
             patchState({ multiRangeCollapsed: nextCollapsed });
             renderIfMultiTab();
-            invokeDep("savePersistence");
+            savePersistenceSafe();
         }
 
         function getMultiRangeSlotDate(rangeIdx, slotIdx) {

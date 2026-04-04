@@ -221,6 +221,37 @@ describe("GTV table image render module", () => {
         expect(context.rowSelector).toBe("#clocks-container tr.time-row");
     });
 
+    it("getActiveTableExportContext prefers injected getDocumentRefOrNull over global document", () => {
+        const timezoneTable = { id: "timezone-table-injected-context" };
+        const module = loadTableImageRenderModule({
+            document: {
+                getElementById() {
+                    throw new Error("global document should not be used");
+                }
+            }
+        });
+        const service = module.createService({
+            getDocumentRefOrNull: () => ({
+                getElementById(id) {
+                    if (id === "timezone-section") {
+                        return {
+                            querySelector(selector) {
+                                return selector === ".data-table" ? timezoneTable : null;
+                            }
+                        };
+                    }
+                    return null;
+                }
+            }),
+            isFixedTimeTab: () => false
+        });
+
+        const context = service.getActiveTableExportContext();
+        expect(context.table).toBe(timezoneTable);
+        expect(context.headerSelector).toBe("#table-head th");
+        expect(context.rowSelector).toBe("#clocks-container tr.time-row");
+    });
+
     it("delegates primary table render via clone and foreignObject renderer", async () => {
         const timezoneTable = { id: "timezone-table" };
         const cloned = { id: "cloned-table" };
@@ -367,5 +398,28 @@ describe("GTV table image render module", () => {
         });
 
         await expect(service.renderTimezoneTableFallbackDataUrl()).rejects.toThrow("Table element not found");
+    });
+
+    it("uses injected logWarn when async dependency invocation throws", async () => {
+        const warned = [];
+        const module = loadTableImageRenderModule({
+            document: {
+                getElementById() {
+                    return null;
+                }
+            }
+        });
+        const service = module.createService({
+            logWarn: (...args) => {
+                warned.push(args);
+            },
+            waitForDocumentFontsReady: async () => {
+                throw new Error("font warmup failed");
+            }
+        });
+
+        await expect(service.renderTimezoneTableFallbackDataUrl()).rejects.toThrow("Table element not found");
+        expect(warned).toHaveLength(1);
+        expect(String(warned[0][0])).toContain('Dependency "waitForDocumentFontsReady" threw.');
     });
 });

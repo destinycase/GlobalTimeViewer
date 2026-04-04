@@ -1,25 +1,104 @@
-﻿(function initGtvMultiRangeRender(globalObj) {
+(function initGtvMultiRangeRender(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
+            if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
+            if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
             return (typeof document === "object" && document) ? document : null;
         }
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVMultiRangeRender] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
 
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVMultiRangeRender] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            t: toSafeCallable("t", safeDeps.t),
+            getCurrentLang: toSafeCallable("getCurrentLang", safeDeps.getCurrentLang),
+            getZoneDisplayNameForUiAtDate: toSafeCallable("getZoneDisplayNameForUiAtDate", safeDeps.getZoneDisplayNameForUiAtDate),
+            getZoneDisplayName: toSafeCallable("getZoneDisplayName", safeDeps.getZoneDisplayName),
+            getDayNightMarkerByHour: toSafeCallable("getDayNightMarkerByHour", safeDeps.getDayNightMarkerByHour),
+            buildTimezoneComputedSnapshotForDates: toSafeCallable("buildTimezoneComputedSnapshotForDates", safeDeps.buildTimezoneComputedSnapshotForDates),
+            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
+            sanitizeMultiSubgroupName: toSafeCallable("sanitizeMultiSubgroupName", safeDeps.sanitizeMultiSubgroupName),
+            getCurrentMultiSubgroupName: toSafeCallable("getCurrentMultiSubgroupName", safeDeps.getCurrentMultiSubgroupName),
+            sanitizeMultiRangeTitle: toSafeCallable("sanitizeMultiRangeTitle", safeDeps.sanitizeMultiRangeTitle),
+            getMultiRangeTitle: toSafeCallable("getMultiRangeTitle", safeDeps.getMultiRangeTitle),
+            buildStaticRowCell: toSafeCallable("buildStaticRowCell", safeDeps.buildStaticRowCell),
+            buildDynamicRowCell: toSafeCallable("buildDynamicRowCell", safeDeps.buildDynamicRowCell),
+            copyMultiRangeRow: toSafeCallable("copyMultiRangeRow", safeDeps.copyMultiRangeRow),
+            isMultiRangeStartEditEnabled: toSafeCallable("isMultiRangeStartEditEnabled", safeDeps.isMultiRangeStartEditEnabled),
+            isMultiRangeEndEditEnabled: toSafeCallable("isMultiRangeEndEditEnabled", safeDeps.isMultiRangeEndEditEnabled),
+            handleMultiRangeTimeChange: toSafeCallable("handleMultiRangeTimeChange", safeDeps.handleMultiRangeTimeChange),
+            hideFloatingTooltip: toSafeCallable("hideFloatingTooltip", safeDeps.hideFloatingTooltip),
+            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
+            refreshMultiRangeControls: toSafeCallable("refreshMultiRangeControls", safeDeps.refreshMultiRangeControls),
+            renderMultiBulkToolSets: toSafeCallable("renderMultiBulkToolSets", safeDeps.renderMultiBulkToolSets),
+            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
+            getDisplayColumns: toSafeCallable("getDisplayColumns", safeDeps.getDisplayColumns),
+            getRenderableTimezoneRows: toSafeCallable("getRenderableTimezoneRows", safeDeps.getRenderableTimezoneRows),
+            getMultiRanges: toSafeCallable("getMultiRanges", safeDeps.getMultiRanges),
+            getMultiRangeCollapsed: toSafeCallable("getMultiRangeCollapsed", safeDeps.getMultiRangeCollapsed),
+            getMultiRangeCount: toSafeCallable("getMultiRangeCount", safeDeps.getMultiRangeCount),
+            escapeHtml: toSafeCallable("escapeHtml", safeDeps.escapeHtml),
+            saveMultiRangeSingleImage: toSafeCallable("saveMultiRangeSingleImage", safeDeps.saveMultiRangeSingleImage),
+            copyWholeMultiRange: toSafeCallable("copyWholeMultiRange", safeDeps.copyWholeMultiRange),
+            setMultiRangesCollapsedBelow: toSafeCallable("setMultiRangesCollapsedBelow", safeDeps.setMultiRangesCollapsedBelow),
+            toggleMultiRangeCollapsed: toSafeCallable("toggleMultiRangeCollapsed", safeDeps.toggleMultiRangeCollapsed),
+            renderTimeAdjustSet: toSafeCallable("renderTimeAdjustSet", safeDeps.renderTimeAdjustSet),
+            applyMultiRangeTimeAdjustAction: toSafeCallable("applyMultiRangeTimeAdjustAction", safeDeps.applyMultiRangeTimeAdjustAction),
+            attachTimeAdjustToggleLabel: toSafeCallable("attachTimeAdjustToggleLabel", safeDeps.attachTimeAdjustToggleLabel),
+            setMultiRangeStartEditEnabled: toSafeCallable("setMultiRangeStartEditEnabled", safeDeps.setMultiRangeStartEditEnabled),
+            setMultiRangeEndEditEnabled: toSafeCallable("setMultiRangeEndEditEnabled", safeDeps.setMultiRangeEndEditEnabled),
+            getMultiDisplayColumnHeader: toSafeCallable("getMultiDisplayColumnHeader", safeDeps.getMultiDisplayColumnHeader),
+            updateTimeAdjustPanel: toSafeCallable("updateTimeAdjustPanel", safeDeps.updateTimeAdjustPanel),
+            updateCopyFormatPreview: toSafeCallable("updateCopyFormatPreview", safeDeps.updateCopyFormatPreview),
+            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
+        });
+
+        function applyMultiRangeAction(rangeIdx, slotIdx, action) {
+            return dep.applyMultiRangeTimeAdjustAction(rangeIdx, slotIdx, action);
+        }
+
         function translate(key) {
-            const value = invokeDep("t", key);
+            const value = dep.t(key);
             if (typeof value === "string" && value) return value;
             return String(key || "");
         }
@@ -37,7 +116,7 @@
         }
 
         function getCurrentLang() {
-            return invokeDep("getCurrentLang") === "ko" ? "ko" : "en";
+            return dep.getCurrentLang() === "ko" ? "ko" : "en";
         }
 
         function isValidDate(value) {
@@ -60,9 +139,9 @@
 
         function getZoneDisplayNameForUiAtDate(tz, anchorDate) {
             const safeAnchorDate = isValidDate(anchorDate) ? anchorDate : new Date();
-            const uiName = invokeDep("getZoneDisplayNameForUiAtDate", tz, safeAnchorDate);
+            const uiName = dep.getZoneDisplayNameForUiAtDate(tz, safeAnchorDate);
             if (typeof uiName === "string" && uiName.trim()) return uiName;
-            return invokeDep("getZoneDisplayName", tz) || "";
+            return dep.getZoneDisplayName(tz) || "";
         }
 
         function getDayNightGlyph(marker) {
@@ -72,7 +151,7 @@
         }
 
         function resolveDayNightMarkerByHour(hour) {
-            const marker = String(invokeDep("getDayNightMarkerByHour", hour) || "").trim().toUpperCase();
+            const marker = String(dep.getDayNightMarkerByHour(hour) || "").trim().toUpperCase();
             if (marker === "DAY" || marker === "NIGHT") return marker;
             const numericHour = Number.parseInt(hour, 10);
             const safeHour = ((Number.isFinite(numericHour) ? numericHour : 0) % 24 + 24) % 24;
@@ -87,8 +166,7 @@
         }
 
         function getTimezoneDisplayPointAtDate(date, tz, fixedDisplayOffsetMinutes = null) {
-            const snapshot = invokeDep(
-                "buildTimezoneComputedSnapshotForDates",
+            const snapshot = dep.buildTimezoneComputedSnapshotForDates(
                 tz,
                 [date],
                 { fixedDisplayOffsetMinutes }
@@ -111,9 +189,8 @@
 
         function buildTimezoneComputedSnapshotForRange(tz, startDate, endDate) {
             if (!tz) return null;
-            const fixedDisplayOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", tz, startDate);
-            return invokeDep(
-                "buildTimezoneComputedSnapshotForDates",
+            const fixedDisplayOffsetMinutes = dep.getFixedOffsetForDisplayAtDate(tz, startDate);
+            return dep.buildTimezoneComputedSnapshotForDates(
                 tz,
                 [startDate, endDate],
                 { fixedDisplayOffsetMinutes }
@@ -191,10 +268,9 @@
 
         function getMultiRangeTitleText(rangeIdx, range, baseRef) {
             const safeRange = (range && typeof range === "object") ? range : { startUtcMs: 0, endUtcMs: 0 };
-            const safeTitle = invokeDep(
-                "sanitizeMultiSubgroupName",
-                invokeDep("getCurrentMultiSubgroupName"),
-                invokeDep("sanitizeMultiRangeTitle", invokeDep("getMultiRangeTitle"))
+            const safeTitle = dep.sanitizeMultiSubgroupName(
+                dep.getCurrentMultiSubgroupName(),
+                dep.sanitizeMultiRangeTitle(dep.getMultiRangeTitle())
             ) || "";
             const durationText = formatRangeDurationText(safeRange.startUtcMs, safeRange.endUtcMs);
             const baseSnapshot = buildTimezoneComputedSnapshotForRange(
@@ -229,9 +305,9 @@
             let inner = "";
             displayColumns.forEach((colKey) => {
                 if (isBase) {
-                    inner += String(invokeDep("buildStaticRowCell", colKey, 2, baseNameHtml) || "");
+                    inner += String(dep.buildStaticRowCell(colKey, 2, baseNameHtml) || "");
                 } else {
-                    inner += String(invokeDep("buildDynamicRowCell", colKey, 2) || "");
+                    inner += String(dep.buildDynamicRowCell(colKey, 2) || "");
                 }
             });
             inner += `<td class="export-exclude copy-cell"><div class="btn-group"><button class="sm-btn copy-row-btn" title="${translate("tooltip_copy")}">&#128203;</button></div></td>`;
@@ -248,7 +324,7 @@
 
             const copyBtn = tr.querySelector(".copy-row-btn");
             if (copyBtn) {
-                copyBtn.addEventListener("click", () => invokeDep("copyMultiRangeRow", rangeIdx, safeRowId));
+                copyBtn.addEventListener("click", () => dep.copyMultiRangeRow(rangeIdx, safeRowId));
             }
 
             const inputs = asArray(tr.querySelectorAll(".time-input"));
@@ -256,8 +332,8 @@
                 const slotIdx = parseInt(input.dataset?.slot, 10);
                 const inputMode = input.dataset?.inputMode || "datetime";
                 const timezoneId = safeRowId === "utc" ? null : safeTz.id;
-                const lockedByChain = slotIdx === 0 && rangeIdx > 0 && !invokeDep("isMultiRangeStartEditEnabled", rangeIdx);
-                const lockedByEndToggle = slotIdx === 1 && !invokeDep("isMultiRangeEndEditEnabled", rangeIdx);
+                const lockedByChain = slotIdx === 0 && rangeIdx > 0 && !dep.isMultiRangeStartEditEnabled(rangeIdx);
+                const lockedByEndToggle = slotIdx === 1 && !dep.isMultiRangeEndEditEnabled(rangeIdx);
                 const lockedByToggle = lockedByChain || lockedByEndToggle;
 
                 const triggerBtn = input.parentElement?.querySelector?.(`.trigger-slot-${slotIdx}`);
@@ -281,12 +357,12 @@
 
                 input.onchange = (e) => {
                     if (lockedByToggle) return;
-                    invokeDep("handleMultiRangeTimeChange", rangeIdx, e.target.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
+                    dep.handleMultiRangeTimeChange(rangeIdx, e.target.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
                 };
                 input.onkeydown = (e) => {
                     if (e.key !== "Enter") return;
                     if (!lockedByToggle) {
-                        invokeDep("handleMultiRangeTimeChange", rangeIdx, input.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
+                        dep.handleMultiRangeTimeChange(rangeIdx, input.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
                     }
                     input.blur();
                 };
@@ -305,25 +381,25 @@
             const doc = getDocumentRef();
             if (!doc || typeof doc.getElementById !== "function" || typeof doc.createElement !== "function") return;
 
-            invokeDep("hideFloatingTooltip");
+            dep.hideFloatingTooltip();
             const container = doc.getElementById("multi-ranges-container");
             if (!container) return;
 
-            invokeDep("ensureMultiRangeState");
-            invokeDep("refreshMultiRangeControls");
-            invokeDep("renderMultiBulkToolSets");
+            dep.ensureMultiRangeState();
+            dep.refreshMultiRangeControls();
+            dep.renderMultiBulkToolSets();
 
-            const baseRef = invokeDep("getBaseTimezoneRef");
+            const baseRef = dep.getBaseTimezoneRef();
             if (!baseRef) {
                 destroyDatePickersInRoot(container);
                 container.innerHTML = "";
                 return;
             }
-            const displayColumns = asArray(invokeDep("getDisplayColumns", 2));
-            const rowsToRender = asArray(invokeDep("getRenderableTimezoneRows", baseRef));
-            const multiRanges = asArray(invokeDep("getMultiRanges"));
-            const multiRangeCollapsed = asArray(invokeDep("getMultiRangeCollapsed"));
-            const multiRangeCountRaw = Number(invokeDep("getMultiRangeCount"));
+            const displayColumns = asArray(dep.getDisplayColumns(2));
+            const rowsToRender = asArray(dep.getRenderableTimezoneRows(baseRef));
+            const multiRanges = asArray(dep.getMultiRanges());
+            const multiRangeCollapsed = asArray(dep.getMultiRangeCollapsed());
+            const multiRangeCountRaw = Number(dep.getMultiRangeCount());
             const multiRangeCount = Number.isFinite(multiRangeCountRaw) ? multiRangeCountRaw : multiRanges.length;
 
             destroyDatePickersInRoot(container);
@@ -331,7 +407,7 @@
             multiRanges.forEach((range, rangeIdx) => {
                 const rangeAnchorDate = new Date(range?.startUtcMs);
                 const baseZoneName = getZoneDisplayNameForUiAtDate(baseRef, rangeAnchorDate) || "";
-                const escapedBaseZoneName = invokeDep("escapeHtml", baseZoneName);
+                const escapedBaseZoneName = dep.escapeHtml(baseZoneName);
                 const baseRefName = (typeof escapedBaseZoneName === "string") ? escapedBaseZoneName : String(baseZoneName);
 
                 const block = doc.createElement("div");
@@ -360,7 +436,7 @@
                 saveRangeBtn.className = "sm-btn multi-range-save-btn";
                 saveRangeBtn.textContent = translate("btn_save_image_range");
                 saveRangeBtn.addEventListener("click", () => {
-                    invokeDep("saveMultiRangeSingleImage", rangeIdx);
+                    dep.saveMultiRangeSingleImage(rangeIdx);
                 });
 
                 const copyRangeBtn = doc.createElement("button");
@@ -368,7 +444,7 @@
                 copyRangeBtn.className = "sm-btn multi-range-copy-btn";
                 copyRangeBtn.textContent = translate("btn_copy_range");
                 copyRangeBtn.addEventListener("click", () => {
-                    invokeDep("copyWholeMultiRange", rangeIdx);
+                    dep.copyWholeMultiRange(rangeIdx);
                 });
 
                 const collapseBelowBtn = doc.createElement("button");
@@ -376,20 +452,20 @@
                 collapseBelowBtn.className = "sm-btn multi-range-toggle-btn";
                 collapseBelowBtn.textContent = translate("btn_collapse_below");
                 collapseBelowBtn.disabled = rangeIdx >= (multiRangeCount - 1);
-                collapseBelowBtn.addEventListener("click", () => invokeDep("setMultiRangesCollapsedBelow", rangeIdx, true));
+                collapseBelowBtn.addEventListener("click", () => dep.setMultiRangesCollapsedBelow(rangeIdx, true));
 
                 const expandBelowBtn = doc.createElement("button");
                 expandBelowBtn.type = "button";
                 expandBelowBtn.className = "sm-btn multi-range-toggle-btn";
                 expandBelowBtn.textContent = translate("btn_expand_below");
                 expandBelowBtn.disabled = rangeIdx >= (multiRangeCount - 1);
-                expandBelowBtn.addEventListener("click", () => invokeDep("setMultiRangesCollapsedBelow", rangeIdx, false));
+                expandBelowBtn.addEventListener("click", () => dep.setMultiRangesCollapsedBelow(rangeIdx, false));
 
                 const toggleBtn = doc.createElement("button");
                 toggleBtn.type = "button";
                 toggleBtn.className = "sm-btn multi-range-toggle-btn";
                 toggleBtn.textContent = isCollapsed ? translate("btn_expand_this_range") : translate("btn_collapse_this_range");
-                toggleBtn.addEventListener("click", () => invokeDep("toggleMultiRangeCollapsed", rangeIdx));
+                toggleBtn.addEventListener("click", () => dep.toggleMultiRangeCollapsed(rangeIdx));
 
                 headerActions.appendChild(saveRangeBtn);
                 headerActions.appendChild(copyRangeBtn);
@@ -404,42 +480,40 @@
 
                 const adjustRow = doc.createElement("div");
                 adjustRow.className = "multi-range-adjust-row";
-                const startAdjustEnabled = !!invokeDep("isMultiRangeStartEditEnabled", rangeIdx);
+                const startAdjustEnabled = !!dep.isMultiRangeStartEditEnabled(rangeIdx);
                 const startAdjustSet = (rangeIdx > 0)
-                    ? invokeDep("renderTimeAdjustSet", 0, {
+                    ? dep.renderTimeAdjustSet(0, {
                         labelText: translate("label_start_time_adjust"),
                         includeFixedActions: false,
                         includeSyncPreviousEndAction: true,
                         disabled: !startAdjustEnabled,
-                        onAction: (slotIdx, action) => invokeDep("applyMultiRangeTimeAdjustAction", rangeIdx, slotIdx, action)
+                        onAction: (slotIdx, action) => applyMultiRangeAction(rangeIdx, slotIdx, action)
                     })
                     : null;
                 if (startAdjustSet) {
-                    invokeDep(
-                        "attachTimeAdjustToggleLabel",
+                    dep.attachTimeAdjustToggleLabel(
                         startAdjustSet,
                         startAdjustEnabled,
                         translate("label_start_time_adjust"),
-                        (nextChecked) => invokeDep("setMultiRangeStartEditEnabled", rangeIdx, nextChecked, { persist: true, rerender: true })
+                        (nextChecked) => dep.setMultiRangeStartEditEnabled(rangeIdx, nextChecked, { persist: true, rerender: true })
                     );
                     adjustRow.appendChild(startAdjustSet);
                 }
 
-                const endAdjustEnabled = !!invokeDep("isMultiRangeEndEditEnabled", rangeIdx);
-                const endAdjustSet = invokeDep("renderTimeAdjustSet", 1, {
+                const endAdjustEnabled = !!dep.isMultiRangeEndEditEnabled(rangeIdx);
+                const endAdjustSet = dep.renderTimeAdjustSet(1, {
                     labelText: translate("label_extra_time_adjust"),
                     includeFixedActions: false,
                     includeZeroDayAction: true,
                     disabled: !endAdjustEnabled,
-                    onAction: (slotIdx, action) => invokeDep("applyMultiRangeTimeAdjustAction", rangeIdx, slotIdx, action)
+                    onAction: (slotIdx, action) => applyMultiRangeAction(rangeIdx, slotIdx, action)
                 });
                 if (endAdjustSet) {
-                    invokeDep(
-                        "attachTimeAdjustToggleLabel",
+                    dep.attachTimeAdjustToggleLabel(
                         endAdjustSet,
                         endAdjustEnabled,
                         translate("label_extra_time_adjust"),
-                        (nextChecked) => invokeDep("setMultiRangeEndEditEnabled", rangeIdx, nextChecked, { persist: true, rerender: true })
+                        (nextChecked) => dep.setMultiRangeEndEditEnabled(rangeIdx, nextChecked, { persist: true, rerender: true })
                     );
                     adjustRow.appendChild(endAdjustSet);
                 }
@@ -452,7 +526,7 @@
 
                 const thead = doc.createElement("thead");
                 const headCells = [];
-                headCells.push(...displayColumns.map((colKey) => invokeDep("getMultiDisplayColumnHeader", colKey)).filter(Boolean));
+                headCells.push(...displayColumns.map((colKey) => dep.getMultiDisplayColumnHeader(colKey)).filter(Boolean));
                 headCells.push(`<th class="export-exclude" style="width: 70px;">${translate("th_copy")}</th>`);
                 thead.insertAdjacentHTML("afterbegin", `<tr>${headCells.join("")}</tr>`);
                 table.appendChild(thead);
@@ -487,9 +561,9 @@
                 container.appendChild(block);
             });
 
-            invokeDep("updateTimeAdjustPanel");
-            invokeDep("updateCopyFormatPreview");
-            invokeDep("upgradeNativeTitleTooltips", container);
+            dep.updateTimeAdjustPanel();
+            dep.updateCopyFormatPreview();
+            dep.upgradeNativeTitleTooltips(container);
         }
 
         return Object.freeze({

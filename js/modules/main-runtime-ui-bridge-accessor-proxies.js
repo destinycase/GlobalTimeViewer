@@ -43,9 +43,19 @@
         const serviceMethodMissingToken = Object.prototype.hasOwnProperty.call(safeDeps, "serviceMethodMissingToken")
             ? safeDeps.serviceMethodMissingToken
             : Symbol("GTV_SERVICE_METHOD_MISSING");
-        const consoleError = (typeof safeDeps.consoleError === "function")
-            ? safeDeps.consoleError
-            : console.error.bind(console);
+        const logError = (typeof safeDeps.logError === "function")
+            ? safeDeps.logError
+            : (typeof safeDeps.consoleError === "function")
+                ? safeDeps.consoleError
+                : ((...args) => {
+                    if (typeof globalObj?.console?.error === "function") {
+                        globalObj.console.error(...args);
+                        return;
+                    }
+                    if (typeof console === "object" && console && typeof console.error === "function") {
+                        console.error(...args);
+                    }
+                });
 
         function showFatalError(err) {
             const result = callServiceMethod(
@@ -56,7 +66,7 @@
                 { fallback: serviceMethodMissingToken }
             );
             if (result === serviceMethodMissingToken) {
-                consoleError("FATAL ERROR during app initialization:", err);
+                logError("FATAL ERROR during app initialization:", err);
             }
             return result;
         }

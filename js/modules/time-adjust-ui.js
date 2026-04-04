@@ -1,24 +1,63 @@
 (function initGtvTimeAdjustUi(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") {
+                return safeDeps.documentRef;
+            }
+            if (safeDeps.document && typeof safeDeps.document === "object") {
+                return safeDeps.document;
+            }
+            if (globalObj?.document && typeof globalObj.document === "object") {
+                return globalObj.document;
+            }
             return (typeof document === "object" && document) ? document : null;
         }
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            t: toSafeCallable(safeDeps.t),
+            applyTimeAdjustAction: toSafeCallable(safeDeps.applyTimeAdjustAction),
+            getTimeAdjustDayStepValue: toSafeCallable(safeDeps.getTimeAdjustDayStepValue),
+            setTimeAdjustDayStepValue: toSafeCallable(safeDeps.setTimeAdjustDayStepValue),
+            savePersistence: toSafeCallable(safeDeps.savePersistence),
+            getCurrentMainTab: toSafeCallable(safeDeps.getCurrentMainTab),
+            isRealtime: toSafeCallable(safeDeps.isRealtime),
+            getSlotCount: toSafeCallable(safeDeps.getSlotCount),
+            upgradeNativeTitleTooltips: toSafeCallable(safeDeps.upgradeNativeTitleTooltips)
+        });
+
+        function callAction(slotIdx, action) {
+            return dep.applyTimeAdjustAction(slotIdx, action);
         }
 
         function translate(key) {
-            const value = invokeDep("t", key);
+            const value = dep.t(key);
             if (typeof value === "string" && value) return value;
             return String(key || "");
         }
@@ -48,7 +87,7 @@
 
         function resolveActionHandler(onAction) {
             if (typeof onAction === "function") return onAction;
-            return (typeof safeDeps.applyTimeAdjustAction === "function") ? safeDeps.applyTimeAdjustAction : null;
+            return callAction;
         }
 
         function createTimeAdjustActionButton(labelKey, slotIdx, action, onAction = null, disabled = false) {
@@ -110,12 +149,12 @@
         }
 
         function getTimeAdjustDayStep(slotIdx) {
-            return sanitizeTimeAdjustDayStep(invokeDep("getTimeAdjustDayStepValue", slotIdx));
+            return sanitizeTimeAdjustDayStep(dep.getTimeAdjustDayStepValue(slotIdx));
         }
 
         function setTimeAdjustDayStep(slotIdx, value) {
             const safeValue = sanitizeTimeAdjustDayStep(value);
-            invokeDep("setTimeAdjustDayStepValue", slotIdx, safeValue);
+            dep.setTimeAdjustDayStepValue(slotIdx, safeValue);
             return safeValue;
         }
 
@@ -162,7 +201,7 @@
             const syncInputAndLabel = (persist = false) => {
                 const normalized = setTimeAdjustDayStep(slotIdx, dayInput.value);
                 dayInput.value = String(normalized);
-                if (persist) invokeDep("savePersistence");
+                if (persist) dep.savePersistence();
             };
 
             dayInput.addEventListener("input", () => syncInputAndLabel(true));
@@ -258,7 +297,7 @@
             const buttonsContainer = doc.getElementById("time-adjust-buttons");
             if (!frame || !row || !buttonsContainer) return;
 
-            const visible = invokeDep("getCurrentMainTab") === "fixed";
+            const visible = dep.getCurrentMainTab() === "fixed";
             frame.style.display = visible ? "block" : "none";
             row.style.display = visible ? "block" : "none";
 
@@ -267,7 +306,7 @@
                 return;
             }
 
-            const effectiveSlotCount = invokeDep("isRealtime") ? 1 : (Number(invokeDep("getSlotCount")) || 1);
+            const effectiveSlotCount = dep.isRealtime() ? 1 : (Number(dep.getSlotCount()) || 1);
             buttonsContainer.innerHTML = "";
             if (effectiveSlotCount > 1) {
                 appendChildIfPossible(buttonsContainer, renderTimeAdjustSet(0, {
@@ -329,7 +368,7 @@
                 }
             }
 
-            invokeDep("upgradeNativeTitleTooltips", buttonsContainer);
+            dep.upgradeNativeTitleTooltips(buttonsContainer);
         }
 
         return Object.freeze({

@@ -569,4 +569,22 @@ describe("GTV main runtime service config builder module", () => {
         expect(config.updateClocks()).toBe("update-clocks");
         expect(config.getCurrentMainTab()).toBe("live");
     });
+
+    it("merges base deps from createService with per-call deps", () => {
+        const moduleApi = loadMainRuntimeServiceConfigBuilderModule();
+        const builder = moduleApi.createService({
+            gtvT: (key) => `base:${key}`,
+            savePersistenceSafely: () => "base-save"
+        });
+
+        const baseConfig = builder.buildMainSelectServicesConfig();
+        const overrideConfig = builder.buildMainSelectServicesConfig({
+            gtvT: (key) => `override:${key}`
+        });
+
+        expect(baseConfig.t("x")).toBe("base:x");
+        expect(baseConfig.savePersistence()).toBe("base-save");
+        expect(overrideConfig.t("x")).toBe("override:x");
+        expect(overrideConfig.savePersistence()).toBe("base-save");
+    });
 });

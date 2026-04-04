@@ -8,8 +8,10 @@
         return moduleApi;
     }
 
-    function resolveDocumentRef(explicitDocument) {
+    function resolveDocumentRef(explicitDocument, fallbackDocument = null) {
         if (explicitDocument) return explicitDocument;
+        if (fallbackDocument) return fallbackDocument;
+        if (globalObj?.document) return globalObj.document;
         if (typeof document === "object" && document) return document;
         return null;
     }
@@ -23,7 +25,8 @@
         const multiRangeImageRenderApi = requireCreateServiceModule(safeDeps.GTV_MULTI_RANGE_IMAGE_RENDER, "GTVMultiRangeImageRender");
 
         const imageCloneService = imageCloneApi.createService({
-            document: resolveDocumentRef(safeDeps.document)
+            documentRef: resolveDocumentRef(safeDeps.documentRef, safeDeps.document),
+            document: resolveDocumentRef(safeDeps.documentRef, safeDeps.document)
         });
 
         const imageForeignRenderService = imageForeignRenderApi.createService({

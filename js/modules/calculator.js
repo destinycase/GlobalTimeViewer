@@ -3,20 +3,148 @@
 
     const COUNTDOWN_SLOT_COUNT = 3;
     const COUNTDOWN_STORAGE_KEY = "GTV_CalcCountdown_v1";
+    // Use createService DI by default; resolve global fallbacks at call time only.
+    
+    function getGlobalStorageRef() {
+        if (
+            globalObj?.localStorage
+            && typeof globalObj.localStorage.getItem === "function"
+            && typeof globalObj.localStorage.setItem === "function"
+        ) {
+            return globalObj.localStorage;
+        }
+        if (
+            typeof localStorage !== "undefined"
+            && localStorage
+            && typeof localStorage.getItem === "function"
+            && typeof localStorage.setItem === "function"
+        ) {
+            return localStorage;
+        }
+        return null;
+    }
 
-    // 모듈 수준 레거시 참조 — createService() 미사용 시 하위 호환성 유지용
-    const GTV_TIME_CORE = globalObj?.GTVTimeCore || null;
-    const LuxonDateTime = globalObj?.luxon?.DateTime || null;
-    const storage = globalObj?.localStorage || (typeof localStorage !== "undefined" ? localStorage : null);
-    const doc = globalObj?.document || (typeof document !== "undefined" ? document : null);
-    const pad2 = (typeof GTV_TIME_CORE?.pad === "function")
-        ? GTV_TIME_CORE.pad
-        : ((value) => String(Math.max(0, Math.trunc(Number(value) || 0))).padStart(2, "0"));
+    function getGlobalDocumentRef() {
+        if (globalObj?.document && typeof globalObj.document.getElementById === "function") {
+            return globalObj.document;
+        }
+        if (typeof document !== "undefined" && document && typeof document.getElementById === "function") {
+            return document;
+        }
+        return null;
+    }
 
-    // ── 내부 헬퍼 (모듈 스코프) ────────────────────────────────────────────────
+    function getGlobalLuxonDateTimeRef() {
+        return globalObj?.luxon?.DateTime || null;
+    }
+
+    function defaultPad2(value) {
+        return String(Math.max(0, Math.trunc(Number(value) || 0))).padStart(2, "0");
+    }
+
+    function resolveStorageRef(safeDeps) {
+        if (typeof safeDeps.getStorageRef === "function") {
+            const injected = safeDeps.getStorageRef();
+            if (
+                injected
+                && typeof injected.getItem === "function"
+                && typeof injected.setItem === "function"
+            ) {
+                return injected;
+            }
+        }
+        if (typeof safeDeps.getStorageRefOrNull === "function") {
+            const injected = safeDeps.getStorageRefOrNull();
+            if (
+                injected
+                && typeof injected.getItem === "function"
+                && typeof injected.setItem === "function"
+            ) {
+                return injected;
+            }
+        }
+        if (
+            safeDeps.storageRef
+            && typeof safeDeps.storageRef.getItem === "function"
+            && typeof safeDeps.storageRef.setItem === "function"
+        ) {
+            return safeDeps.storageRef;
+        }
+        if (
+            safeDeps.storage
+            && typeof safeDeps.storage.getItem === "function"
+            && typeof safeDeps.storage.setItem === "function"
+        ) {
+            return safeDeps.storage;
+        }
+        return getGlobalStorageRef();
+    }
+
+    function resolveDocumentRef(safeDeps) {
+        if (typeof safeDeps.getDocumentRef === "function") {
+            const injected = safeDeps.getDocumentRef();
+            if (injected && typeof injected.getElementById === "function") {
+                return injected;
+            }
+        }
+        if (typeof safeDeps.getDocumentRefOrNull === "function") {
+            const injected = safeDeps.getDocumentRefOrNull();
+            if (injected && typeof injected.getElementById === "function") {
+                return injected;
+            }
+        }
+        if (
+            safeDeps.documentRef
+            && typeof safeDeps.documentRef.getElementById === "function"
+        ) {
+            return safeDeps.documentRef;
+        }
+        if (
+            safeDeps.document
+            && typeof safeDeps.document.getElementById === "function"
+        ) {
+            return safeDeps.document;
+        }
+        return getGlobalDocumentRef();
+    }
+
+    function resolveLuxonDateTimeRef(safeDeps) {
+        if (typeof safeDeps.getLuxonDateTimeRef === "function") {
+            const injected = safeDeps.getLuxonDateTimeRef();
+            if (injected) return injected;
+        }
+        if (typeof safeDeps.getLuxonDateTimeRefOrNull === "function") {
+            const injected = safeDeps.getLuxonDateTimeRefOrNull();
+            if (injected) return injected;
+        }
+        return safeDeps.luxonDateTimeRef || safeDeps.LuxonDateTime || getGlobalLuxonDateTimeRef();
+    }
+
+    function resolveDatePickerCtor(safeDeps) {
+        if (typeof safeDeps.datePickerCtor === "function") return safeDeps.datePickerCtor;
+        if (typeof safeDeps.CustomDatePicker === "function") return safeDeps.CustomDatePicker;
+        return (typeof globalObj?.CustomDatePicker === "function") ? globalObj.CustomDatePicker : null;
+    }
+
+    function resolveRefreshTargetRef(safeDeps) {
+        if (safeDeps.refreshTargetRef && typeof safeDeps.refreshTargetRef === "object") {
+            return safeDeps.refreshTargetRef;
+        }
+        return (typeof globalObj !== "undefined" && globalObj) ? globalObj : null;
+    }
+
+    function resolvePad2Ref(safeDeps) {
+        if (typeof safeDeps.pad2 === "function") return safeDeps.pad2;
+        if (typeof safeDeps.timeCoreRef?.pad === "function") return safeDeps.timeCoreRef.pad;
+        if (typeof safeDeps.GTVTimeCore?.pad === "function") return safeDeps.GTVTimeCore.pad;
+        if (typeof globalObj?.GTVTimeCore?.pad === "function") return globalObj.GTVTimeCore.pad;
+        return defaultPad2;
+    }
+
+    // Internal helpers (module scope)
 
     function makeDocHelpers(docRef) {
-        const _doc = docRef || doc;
+        const _doc = docRef || getGlobalDocumentRef();
         return {
             getElementById(id) {
                 if (!_doc || typeof _doc.getElementById !== "function") return null;
@@ -49,57 +177,233 @@
         return calcSection.classList.contains("active");
     }
 
-    function toValidDate(value) {
-        if (!value) return null;
-        const parsed = new Date(value);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+    const LOCAL_DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
+    const SQL_DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/;
+    const ISO_WITH_EXPLICIT_ZONE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/i;
+    const RFC2822_PATTERN = /^(?:[A-Za-z]{3},\s*)?\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\s+\d{2}:\d{2}(?::\d{2})?\s+(?:[A-Za-z]{1,5}|[+-]\d{4})$/;
+
+    function isValidDateObject(value) {
+        return value instanceof Date && !Number.isNaN(value.getTime());
     }
 
-    function formatDateOnly(dateObj) {
+    function buildValidatedLocalDate(year, month, day, hour = 0, minute = 0, second = 0) {
+        const y = Number(year);
+        const m = Number(month);
+        const d = Number(day);
+        const h = Number(hour);
+        const min = Number(minute);
+        const sec = Number(second);
+        const built = new Date(y, m - 1, d, h, min, sec, 0);
+        if (Number.isNaN(built.getTime())) return null;
+        if (
+            built.getFullYear() !== y ||
+            built.getMonth() !== m - 1 ||
+            built.getDate() !== d ||
+            built.getHours() !== h ||
+            built.getMinutes() !== min ||
+            built.getSeconds() !== sec
+        ) {
+            return null;
+        }
+        return built;
+    }
+
+    function buildValidatedUtcDate(year, month, day, hour = 0, minute = 0, second = 0) {
+        const y = Number(year);
+        const m = Number(month);
+        const d = Number(day);
+        const h = Number(hour);
+        const min = Number(minute);
+        const sec = Number(second);
+        const built = new Date(Date.UTC(y, m - 1, d, h, min, sec, 0));
+        if (Number.isNaN(built.getTime())) return null;
+        if (
+            built.getUTCFullYear() !== y ||
+            built.getUTCMonth() !== m - 1 ||
+            built.getUTCDate() !== d ||
+            built.getUTCHours() !== h ||
+            built.getUTCMinutes() !== min ||
+            built.getUTCSeconds() !== sec
+        ) {
+            return null;
+        }
+        return built;
+    }
+
+    function parseLocalDateOnlyString(raw) {
+        const matched = String(raw || "").trim().match(DATE_ONLY_PATTERN);
+        if (!matched) return null;
+        return buildValidatedLocalDate(matched[1], matched[2], matched[3]);
+    }
+
+    function parseLocalDateTimeString(raw) {
+        const matched = String(raw || "").trim().match(LOCAL_DATETIME_PATTERN);
+        if (!matched) return null;
+        return buildValidatedLocalDate(
+            matched[1], matched[2], matched[3],
+            matched[4], matched[5], matched[6] || 0
+        );
+    }
+
+    function parseUtcDateTimeString(raw) {
+        const matched = String(raw || "").trim().match(LOCAL_DATETIME_PATTERN);
+        if (!matched) return null;
+        return buildValidatedUtcDate(
+            matched[1], matched[2], matched[3],
+            matched[4], matched[5], matched[6] || 0
+        );
+    }
+
+    function parseUtcDateOnlyString(raw) {
+        const matched = String(raw || "").trim().match(DATE_ONLY_PATTERN);
+        if (!matched) return null;
+        return buildValidatedUtcDate(matched[1], matched[2], matched[3]);
+    }
+
+    function parseSqlDateTimeString(raw) {
+        const matched = String(raw || "").trim().match(SQL_DATETIME_PATTERN);
+        if (!matched) return null;
+        return buildValidatedLocalDate(
+            matched[1], matched[2], matched[3],
+            matched[4], matched[5], matched[6]
+        );
+    }
+
+    function parseZonedIsoString(raw) {
+        const normalized = String(raw || "").trim();
+        if (!ISO_WITH_EXPLICIT_ZONE_PATTERN.test(normalized)) return null;
+        const epochMs = Date.parse(normalized);
+        return Number.isFinite(epochMs) ? new Date(epochMs) : null;
+    }
+
+    function parseRfc2822String(raw) {
+        const normalized = String(raw || "").trim();
+        if (!RFC2822_PATTERN.test(normalized)) return null;
+        const epochMs = Date.parse(normalized);
+        return Number.isFinite(epochMs) ? new Date(epochMs) : null;
+    }
+
+    function parseIsoLocalDateString(raw, luxonDT) {
+        const normalized = String(raw || "").trim();
+        if (!normalized) return null;
+        const hasExplicitZone = ISO_WITH_EXPLICIT_ZONE_PATTERN.test(normalized);
+
+        if (luxonDT && typeof luxonDT.fromISO === "function") {
+            const parsed = hasExplicitZone
+                ? luxonDT.fromISO(normalized, { setZone: true })
+                : luxonDT.fromISO(normalized, { zone: "local" });
+            if (parsed?.isValid) return parsed.toJSDate();
+        }
+
+        return parseZonedIsoString(normalized)
+            || parseLocalDateTimeString(normalized)
+            || parseLocalDateOnlyString(normalized);
+    }
+
+    function parseIsoUtcDateString(raw, luxonDT) {
+        const normalized = String(raw || "").trim();
+        if (!normalized) return null;
+        const hasExplicitZone = ISO_WITH_EXPLICIT_ZONE_PATTERN.test(normalized);
+
+        if (luxonDT && typeof luxonDT.fromISO === "function") {
+            const parsed = hasExplicitZone
+                ? luxonDT.fromISO(normalized, { setZone: true })
+                : luxonDT.fromISO(normalized, { zone: "utc" });
+            if (parsed?.isValid) return parsed.toJSDate();
+        }
+
+        return parseZonedIsoString(normalized)
+            || parseUtcDateTimeString(normalized)
+            || parseUtcDateOnlyString(normalized);
+    }
+
+    function parseSqlDateWithLuxon(raw, luxonDT) {
+        const normalized = String(raw || "").trim();
+        if (!normalized) return null;
+
+        if (luxonDT && typeof luxonDT.fromSQL === "function") {
+            const parsed = luxonDT.fromSQL(normalized, { zone: "local" });
+            if (parsed?.isValid) return parsed.toJSDate();
+        }
+        if (luxonDT && typeof luxonDT.fromFormat === "function") {
+            const parsed = luxonDT.fromFormat(normalized, "yyyy-LL-dd HH:mm:ss", { zone: "local" });
+            if (parsed?.isValid) return parsed.toJSDate();
+        }
+
+        return parseSqlDateTimeString(normalized);
+    }
+
+    function parseRfc2822DateWithLuxon(raw, luxonDT) {
+        const normalized = String(raw || "").trim();
+        if (!normalized) return null;
+
+        if (luxonDT && typeof luxonDT.fromRFC2822 === "function") {
+            const parsed = luxonDT.fromRFC2822(normalized, { setZone: true });
+            if (parsed?.isValid) return parsed.toJSDate();
+        }
+
+        return parseRfc2822String(normalized);
+    }
+
+    function toValidDate(value, luxonDT = getGlobalLuxonDateTimeRef()) {
+        if (!value) return null;
+        if (isValidDateObject(value)) return new Date(value.getTime());
+        if (typeof value === "number" && Number.isFinite(value)) {
+            const parsed = new Date(value);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+        if (typeof value !== "string") return null;
+        return parseIsoLocalDateString(value, luxonDT)
+            || parseSqlDateWithLuxon(value, luxonDT)
+            || parseRfc2822DateWithLuxon(value, luxonDT);
+    }
+
+    function formatDateOnly(dateObj, padFn = defaultPad2) {
         const year = dateObj.getFullYear();
-        const month = pad2(dateObj.getMonth() + 1);
-        const day = pad2(dateObj.getDate());
+        const month = padFn(dateObj.getMonth() + 1);
+        const day = padFn(dateObj.getDate());
         return `${year}-${month}-${day}`;
     }
 
-    function formatDateTimeForInput(dateObj) {
+    function formatDateTimeForInput(dateObj, padFn = defaultPad2) {
         const year = dateObj.getFullYear();
-        const month = pad2(dateObj.getMonth() + 1);
-        const day = pad2(dateObj.getDate());
-        const hour = pad2(dateObj.getHours());
-        const minute = pad2(dateObj.getMinutes());
-        const second = pad2(dateObj.getSeconds());
+        const month = padFn(dateObj.getMonth() + 1);
+        const day = padFn(dateObj.getDate());
+        const hour = padFn(dateObj.getHours());
+        const minute = padFn(dateObj.getMinutes());
+        const second = padFn(dateObj.getSeconds());
         return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
     }
 
-    function formatLocalDateTime(dateObj) {
+    function formatLocalDateTime(dateObj, padFn = defaultPad2) {
         const year = dateObj.getFullYear();
-        const month = pad2(dateObj.getMonth() + 1);
-        const day = pad2(dateObj.getDate());
-        const hour = pad2(dateObj.getHours());
-        const minute = pad2(dateObj.getMinutes());
-        const second = pad2(dateObj.getSeconds());
+        const month = padFn(dateObj.getMonth() + 1);
+        const day = padFn(dateObj.getDate());
+        const hour = padFn(dateObj.getHours());
+        const minute = padFn(dateObj.getMinutes());
+        const second = padFn(dateObj.getSeconds());
         return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
     }
 
-    function formatUTCDateTime(dateObj) {
+    function formatUTCDateTime(dateObj, padFn = defaultPad2) {
         const year = dateObj.getUTCFullYear();
-        const month = pad2(dateObj.getUTCMonth() + 1);
-        const day = pad2(dateObj.getUTCDate());
-        const hour = pad2(dateObj.getUTCHours());
-        const minute = pad2(dateObj.getUTCMinutes());
-        const second = pad2(dateObj.getUTCSeconds());
+        const month = padFn(dateObj.getUTCMonth() + 1);
+        const day = padFn(dateObj.getUTCDate());
+        const hour = padFn(dateObj.getUTCHours());
+        const minute = padFn(dateObj.getUTCMinutes());
+        const second = padFn(dateObj.getUTCSeconds());
         return `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
     }
 
-    function formatUTCDateOnlyStartOfDay(dateObj) {
+    function formatUTCDateOnlyStartOfDay(dateObj, padFn = defaultPad2) {
         const year = dateObj.getUTCFullYear();
-        const month = pad2(dateObj.getUTCMonth() + 1);
-        const day = pad2(dateObj.getUTCDate());
+        const month = padFn(dateObj.getUTCMonth() + 1);
+        const day = padFn(dateObj.getUTCDate());
         return `${year}-${month}-${day} 00:00:00`;
     }
 
-    // ── 카운트다운 ──────────────────────────────────────────────────────────────
+    // ?? 移댁슫?몃떎????????????????????????????????????????????????????????????????
 
     function buildCountdownDefaultName(slotIdx, t) {
         const prefix = (t("calc_countdown_default_prefix") || "Countdown").trim() || "Countdown";
@@ -124,7 +428,7 @@
                 if (!storageRef || typeof storageRef.setItem !== "function") return;
                 storageRef.setItem(COUNTDOWN_STORAGE_KEY, JSON.stringify(state));
             } catch (_err) {
-                // 계산기 전용 보조 상태 저장 실패는 무시한다.
+                // 怨꾩궛湲??꾩슜 蹂댁“ ?곹깭 ????ㅽ뙣??臾댁떆?쒕떎.
             }
         }
 
@@ -168,7 +472,7 @@
         return null;
     }
 
-    function formatCountdownText(remainingMs, t) {
+    function formatCountdownText(remainingMs, t, padFn = defaultPad2) {
         const clampedMs = Math.max(0, Math.floor(remainingMs));
         const totalSeconds = Math.floor(clampedMs / 1000);
         const days = Math.floor(totalSeconds / 86400);
@@ -176,11 +480,14 @@
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
         const daySuffix = t("calc_countdown_day_suffix") || "d";
-        return `${pad2(days)}${daySuffix} ${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
+        return `${padFn(days)}${daySuffix} ${padFn(hours)}:${padFn(minutes)}:${padFn(seconds)}`;
     }
 
-    function renderCountdownSlot(slotIdx, refs, countdownState, t, helpers, options) {
+    function renderCountdownSlot(slotIdx, refs, countdownState, t, helpers, runtime = {}, options) {
         const { syncMeta = false } = (options && typeof options === "object") ? options : {};
+        const datePickerCtor = (typeof runtime.datePickerCtor === "function") ? runtime.datePickerCtor : null;
+        const luxonDT = runtime.luxonDT || getGlobalLuxonDateTimeRef();
+        const padFn = (typeof runtime.pad2 === "function") ? runtime.pad2 : defaultPad2;
         const slot = countdownState[slotIdx];
         const nameBtn = refs.nameButtons[slotIdx];
         const nameInput = refs.nameInputs[slotIdx];
@@ -199,9 +506,8 @@
                 nameInput.value = slot.name;
             }
 
-            const DatePickerCtor = globalObj?.CustomDatePicker;
-            if (typeof DatePickerCtor === "function" && !targetInput._cdp) {
-                targetInput._cdp = new DatePickerCtor(targetInput, {
+            if (datePickerCtor && !targetInput._cdp) {
+                targetInput._cdp = new datePickerCtor(targetInput, {
                     type: "datetime",
                     lang: helpers.getCurrentLang(),
                     theme: helpers.getCurrentTheme(),
@@ -210,12 +516,12 @@
             }
 
             if (slot.targetIso) {
-                const targetDate = toValidDate(slot.targetIso);
+                const targetDate = toValidDate(slot.targetIso, luxonDT);
                 if (targetInput._cdp) {
                     if (targetDate) targetInput._cdp.setDate(targetDate);
                     else targetInput._cdp.setDate(null);
                 } else {
-                    targetInput.value = targetDate ? formatDateTimeForInput(targetDate) : "";
+                    targetInput.value = targetDate ? formatDateTimeForInput(targetDate, padFn) : "";
                 }
             } else {
                 if (targetInput._cdp) targetInput._cdp.setDate(null);
@@ -236,14 +542,14 @@
 
         if (!Number.isFinite(remainingMs)) {
             toggleBtn.textContent = slot.active ? t("calc_countdown_stop") : t("calc_countdown_start");
-            displayEl.textContent = formatCountdownText(0, t);
+            displayEl.textContent = formatCountdownText(0, t, padFn);
             displayEl.classList.remove("expired");
             statusEl.textContent = "";
             statusEl.classList.remove("expired");
             return;
         }
 
-        displayEl.textContent = formatCountdownText(remainingMs, t);
+        displayEl.textContent = formatCountdownText(remainingMs, t, padFn);
         if (expired || (!slot.active && remainingMs === 0 && !!slot.targetIso)) {
             displayEl.classList.add("expired");
             statusEl.classList.add("expired");
@@ -258,13 +564,14 @@
     }
 
     /**
-     * initCountdown — 클로저 기반 타이머 관리
-     * @param {function} t - 번역 함수
-     * @param {object} helpers - DOM 헬퍼 (getElementById 등)
+     * initCountdown ???대줈? 湲곕컲 ??대㉧ 愿由?
+     * @param {function} t - 踰덉뿭 ?⑥닔
+     * @param {object} helpers - DOM ?ы띁 (getElementById ??
      * @param {object} cdStorage - { loadCountdownState, saveCountdownState }
-     * @param {object} timerIds - { countdownTimerId } 참조 객체 (외부에서 소유)
+     * @param {object} timerIds - { countdownTimerId } 李몄“ 媛앹껜 (?몃??먯꽌 ?뚯쑀)
      */
-    function initCountdown(t, helpers, cdStorage, timerIds) {
+    function initCountdown(t, helpers, cdStorage, timerIds, runtime = {}) {
+        const luxonDT = runtime.luxonDT || getGlobalLuxonDateTimeRef();
         const nameButtons = helpers.querySelectorAll(".countdown-name-btn");
         const nameInputs = helpers.querySelectorAll(".countdown-name-input");
         const toggleButtons = helpers.querySelectorAll(".countdown-toggle-btn");
@@ -282,13 +589,13 @@
             return { refresh: () => { } };
         }
 
-        // 클로저 내부 상태 — 모듈 전역 오염 없음
+        // ?대줈? ?대? ?곹깭 ??紐⑤뱢 ?꾩뿭 ?ㅼ뿼 ?놁쓬
         const countdownState = normalizeCountdownState(cdStorage.loadCountdownState(), t);
         const refs = { nameButtons, nameInputs, toggleButtons, targetInputs, displayEls, statusEls };
 
         const saveState = () => cdStorage.saveCountdownState(countdownState);
         const render = (i, opts) => {
-            const expired = renderCountdownSlot(i, refs, countdownState, t, helpers, opts);
+            const expired = renderCountdownSlot(i, refs, countdownState, t, helpers, runtime, opts);
             if (expired) saveState();
         };
 
@@ -341,8 +648,8 @@
 
             targetInput.addEventListener("change", () => {
                 const parsed = (targetInput._cdp && targetInput._cdp.selectedDate)
-                    ? new Date(targetInput._cdp.selectedDate)
-                    : toValidDate(targetInput.value);
+                    ? toValidDate(targetInput._cdp.selectedDate, luxonDT)
+                    : toValidDate(targetInput.value, luxonDT);
                 if (!parsed) {
                     countdownState[i].targetIso = "";
                     countdownState[i].active = false;
@@ -377,7 +684,7 @@
                             ? Math.max(0, Math.floor(remainingMs))
                             : null;
                     } else {
-                        const parsed = toValidDate(targetInput.value) || toValidDate(slot.targetIso);
+                        const parsed = toValidDate(targetInput.value, luxonDT) || toValidDate(slot.targetIso, luxonDT);
                         if (!parsed) return;
                         slot.targetIso = parsed.toISOString();
                         slot.active = true;
@@ -395,7 +702,7 @@
             });
         });
 
-        // 이전 타이머 정리 후 새 타이머 등록 (클로저 내부 timerIds 객체 사용)
+        // ?댁쟾 ??대㉧ ?뺣━ ??????대㉧ ?깅줉 (?대줈? ?대? timerIds 媛앹껜 ?ъ슜)
         if (timerIds.countdown !== null && timerIds.countdown !== undefined) {
             clearInterval(timerIds.countdown);
         }
@@ -419,9 +726,10 @@
         };
     }
 
-    // ── Unix 타임스탬프 변환기 ──────────────────────────────────────────────────
+    // ?? Unix ??꾩뒪?ы봽 蹂?섍린 ??????????????????????????????????????????????????
 
-    function initUnixTimestampConverter(t, helpers, luxonDT, timerIds) {
+    function initUnixTimestampConverter(t, helpers, luxonDT, timerIds, runtime = {}) {
+        const padFn = (typeof runtime.pad2 === "function") ? runtime.pad2 : defaultPad2;
         const unixNowValue = helpers.getElementById("unix-now-value");
         const unixNowMsValue = helpers.getElementById("unix-now-ms-value");
         const unixSyncNowBtn = helpers.getElementById("unix-sync-now-btn");
@@ -464,16 +772,16 @@
 
         const formatIsoLocalWithOffset = (dateObj) => {
             const year = dateObj.getFullYear();
-            const month = pad2(dateObj.getMonth() + 1);
-            const day = pad2(dateObj.getDate());
-            const hour = pad2(dateObj.getHours());
-            const minute = pad2(dateObj.getMinutes());
-            const second = pad2(dateObj.getSeconds());
+            const month = padFn(dateObj.getMonth() + 1);
+            const day = padFn(dateObj.getDate());
+            const hour = padFn(dateObj.getHours());
+            const minute = padFn(dateObj.getMinutes());
+            const second = padFn(dateObj.getSeconds());
             const totalOffsetMinutes = -dateObj.getTimezoneOffset();
             const sign = totalOffsetMinutes >= 0 ? "+" : "-";
             const absOffset = Math.abs(totalOffsetMinutes);
-            const offsetHour = pad2(Math.floor(absOffset / 60));
-            const offsetMinute = pad2(absOffset % 60);
+            const offsetHour = padFn(Math.floor(absOffset / 60));
+            const offsetMinute = padFn(absOffset % 60);
             return `${year}-${month}-${day}T${hour}:${minute}:${second}${sign}${offsetHour}:${offsetMinute}`;
         };
 
@@ -503,9 +811,9 @@
                 unixSec: String(Math.floor(safeEpochMs / 1000)),
                 unixMs: String(safeEpochMs),
                 isoLocal: formatIsoLocalWithOffset(dateObj),
-                isoUtc: formatUTCDateTime(dateObj),
+                isoUtc: formatUTCDateTime(dateObj, padFn),
                 rfc2822: dateObj.toUTCString(),
-                sql: formatLocalDateTime(dateObj),
+                sql: formatLocalDateTime(dateObj, padFn),
                 human: dateObj.toLocaleString(locale, {
                     year: "numeric",
                     month: "long",
@@ -562,36 +870,18 @@
                 return Number.isFinite(ms) ? Math.trunc(ms) : null;
             }
 
-            if (luxonDT) {
-                let parsed = null;
-                if (key === "iso_local") {
-                    parsed = luxonDT.fromISO(raw, { setZone: true });
-                    if (!parsed.isValid) parsed = luxonDT.fromISO(raw, { zone: "local" });
-                } else if (key === "iso_utc") {
-                    parsed = luxonDT.fromISO(raw, { setZone: true });
-                    if (!parsed.isValid) parsed = luxonDT.fromISO(raw, { zone: "utc" });
-                } else if (key === "rfc2822") {
-                    parsed = luxonDT.fromRFC2822(raw, { setZone: true });
-                } else if (key === "sql") {
-                    parsed = luxonDT.fromSQL(raw, { setZone: true });
-                    if (!parsed.isValid) parsed = luxonDT.fromFormat(raw, "yyyy-LL-dd HH:mm:ss", { zone: "local" });
-                }
-                if (parsed && parsed.isValid) return Math.trunc(parsed.toMillis());
+            let parsedDate = null;
+            if (key === "iso_local") {
+                parsedDate = parseIsoLocalDateString(raw, luxonDT);
+            } else if (key === "iso_utc") {
+                parsedDate = parseIsoUtcDateString(raw, luxonDT);
+            } else if (key === "rfc2822") {
+                parsedDate = parseRfc2822DateWithLuxon(raw, luxonDT);
+            } else if (key === "sql") {
+                parsedDate = parseSqlDateWithLuxon(raw, luxonDT);
             }
 
-            if (key === "sql") {
-                const sqlMatched = raw.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
-                if (sqlMatched) {
-                    const asDate = new Date(
-                        Number(sqlMatched[1]), Number(sqlMatched[2]) - 1, Number(sqlMatched[3]),
-                        Number(sqlMatched[4]), Number(sqlMatched[5]), Number(sqlMatched[6])
-                    );
-                    if (!Number.isNaN(asDate.getTime())) return asDate.getTime();
-                }
-            }
-
-            const fallbackDate = new Date(raw);
-            return Number.isNaN(fallbackDate.getTime()) ? null : fallbackDate.getTime();
+            return isValidDateObject(parsedDate) ? Math.trunc(parsedDate.getTime()) : null;
         };
 
         const handleFieldInput = (key, fieldEl) => {
@@ -621,7 +911,7 @@
         });
         if (unixSyncNowBtn) unixSyncNowBtn.addEventListener("click", syncNow);
 
-        // 이전 타이머 정리 후 새 타이머 등록
+        // ?댁쟾 ??대㉧ ?뺣━ ??????대㉧ ?깅줉
         if (timerIds.unix !== null && timerIds.unix !== undefined) {
             clearInterval(timerIds.unix);
         }
@@ -637,7 +927,7 @@
         };
     }
 
-    // ── 단위 변환기 ─────────────────────────────────────────────────────────────
+    // ?? ?⑥쐞 蹂?섍린 ?????????????????????????????????????????????????????????????
 
     function initConverter(helpers) {
         const secIn = helpers.getElementById("conv-sec");
@@ -673,9 +963,11 @@
         dayIn.oninput = (e) => updateFrom(e.target.value, "day");
     }
 
-    // ── 기간/날짜 계산기 ─────────────────────────────────────────────────────────
+    // ?? 湲곌컙/?좎쭨 怨꾩궛湲??????????????????????????????????????????????????????????
 
-    function initPeriodAndDateShift(t, helpers) {
+    function initPeriodAndDateShift(t, helpers, runtime = {}) {
+        const datePickerCtor = (typeof runtime.datePickerCtor === "function") ? runtime.datePickerCtor : null;
+        const padFn = (typeof runtime.pad2 === "function") ? runtime.pad2 : defaultPad2;
         const periodStart = helpers.getElementById("period-start");
         const periodEnd = helpers.getElementById("period-end");
         const periodSwapBtn = helpers.getElementById("period-swap-btn");
@@ -699,9 +991,8 @@
         }
 
         const applyPicker = (el, iconId) => {
-            const DatePickerCtor = globalObj?.CustomDatePicker;
-            if (typeof DatePickerCtor === "function" && !el._cdp) {
-                el._cdp = new DatePickerCtor(el, {
+            if (datePickerCtor && !el._cdp) {
+                el._cdp = new datePickerCtor(el, {
                     type: "date",
                     lang: helpers.getCurrentLang(),
                     theme: helpers.getCurrentTheme(),
@@ -714,12 +1005,12 @@
         applyPicker(periodEnd, "period-end-trigger");
         applyPicker(offsetStart, "offset-start-trigger");
 
-        // 기간 계산용: UTC 자정으로 파싱 (DST 경계 오류 방지)
+        // 湲곌컙 怨꾩궛?? UTC ?먯젙?쇰줈 ?뚯떛 (DST 寃쎄퀎 ?ㅻ쪟 諛⑹?)
         const getPickerDateUtc = (el) => {
             let val = el.value;
             if (el._cdp && el._cdp.selectedDate) {
                 const d = new Date(el._cdp.selectedDate);
-                val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                val = `${d.getFullYear()}-${padFn(d.getMonth() + 1)}-${padFn(d.getDate())}`;
             }
             if (val) {
                 const parts = val.split("-");
@@ -735,9 +1026,9 @@
             return null;
         };
 
-        // 기간 계산과 오프셋 계산에서 동일한 UTC 날짜 파싱 로직을 재사용한다.
+        // 湲곌컙 怨꾩궛怨??ㅽ봽??怨꾩궛?먯꽌 ?숈씪??UTC ?좎쭨 ?뚯떛 濡쒖쭅???ъ궗?⑺븳??
         const today = new Date();
-        const todayText = formatDateOnly(today);
+        const todayText = formatDateOnly(today, padFn);
         if (!periodStart.value) periodStart.value = todayText;
         if (!periodEnd.value) periodEnd.value = todayText;
         if (!offsetStart.value) offsetStart.value = todayText;
@@ -754,7 +1045,7 @@
             const endD = getPickerDateUtc(periodEnd);
 
             if (startD && endD) {
-                // Math.trunc 사용: 시작일 > 종료일(음수) 시 오방향 반올림 버그 방지
+                // Math.trunc ?ъ슜: ?쒖옉??> 醫낅즺???뚯닔) ???ㅻ갑??諛섏삱由?踰꾧렇 諛⑹?
                 const diffMs = endD.getTime() - startD.getTime();
                 setPeriodResult(periodDayRes, Math.trunc(diffMs / 86400000), t("unit_days_suffix"));
                 setPeriodResult(periodHourRes, Math.trunc(diffMs / 3600000), t("unit_hours_suffix"));
@@ -788,7 +1079,7 @@
                 if (resultDate.getUTCDate() !== targetDay) resultDate.setUTCDate(0);
             }
 
-            offsetResult.value = formatUTCDateOnlyStartOfDay(resultDate);
+            offsetResult.value = formatUTCDateOnlyStartOfDay(resultDate, padFn);
         };
 
         [periodStart, periodEnd, offsetStart, offsetValueInput, offsetUnit, offsetDirection].forEach((el) => {
@@ -814,17 +1105,17 @@
 
         if (periodSwapBtn) {
             periodSwapBtn.addEventListener("click", () => {
-                // CDP 상태까지 고려해 교환(Swap) 로직을 보완
+                // CDP ?곹깭源뚯? 怨좊젮??援먰솚(Swap) 濡쒖쭅??蹂댁셿
                 const startD = getPickerDateUtc(periodStart);
                 const endD = getPickerDateUtc(periodEnd);
                 if (startD && endD) {
                     if (periodStart._cdp) periodStart._cdp.setDate(endD);
-                    else periodStart.value = formatDateOnly(endD);
+                    else periodStart.value = formatDateOnly(endD, padFn);
                     if (periodEnd._cdp) periodEnd._cdp.setDate(startD);
-                    else periodEnd.value = formatDateOnly(startD);
+                    else periodEnd.value = formatDateOnly(startD, padFn);
                     updateAll();
                 } else {
-                    // 폴백: 값만 교체
+                    // ?대갚: 媛믩쭔 援먯껜
                     const startValue = periodStart.value;
                     periodStart.value = periodEnd.value;
                     periodEnd.value = startValue;
@@ -837,7 +1128,7 @@
         return { refresh: updateAll };
     }
 
-    // ── 복사 버튼 바인딩 ─────────────────────────────────────────────────────────
+    // ?? 蹂듭궗 踰꾪듉 諛붿씤???????????????????????????????????????????????????????????
 
     function bindCopyButtons(copyText, helpers, copyBindings) {
         if (!Array.isArray(copyBindings)) return;
@@ -847,31 +1138,33 @@
             btn.addEventListener("click", () => copyText(targetId, isInput));
         });
     }
-
-    // ── createService — DI 패턴 공식 진입점 ────────────────────────────────────
+    // Use createService DI by default; resolve global fallbacks at call time only.
 
     /**
      * createService(deps)
-     * 타이머 변수를 클로저 내부에 격리해 외부 오염을 방지한다.
-     * destroy()로 모든 타이머를 명시적으로 정리할 수 있다.
-     * 기존 initCalculators() 인터페이스도 유지한다.
+     * ??대㉧ 蹂?섎? ?대줈? ?대???寃⑸━???몃? ?ㅼ뿼??諛⑹??쒕떎.
+     * destroy()濡?紐⑤뱺 ??대㉧瑜?紐낆떆?곸쑝濡??뺣━?????덈떎.
+     * 湲곗〈 initCalculators() ?명꽣?섏씠?ㅻ룄 ?좎??쒕떎.
      */
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        // DI 주입: 테스트에서 mock 교체 가능
-        const _storage = (safeDeps.storage && typeof safeDeps.storage === "object")
-            ? safeDeps.storage
-            : storage;
-        const _luxonDT = safeDeps.LuxonDateTime || LuxonDateTime;
-        const _doc = safeDeps.document || doc;
+        const storageRef = resolveStorageRef(safeDeps);
+        const luxonDT = resolveLuxonDateTimeRef(safeDeps);
+        const documentRef = resolveDocumentRef(safeDeps);
+        const refreshTargetRef = resolveRefreshTargetRef(safeDeps);
+        const runtime = Object.freeze({
+            luxonDT,
+            datePickerCtor: resolveDatePickerCtor(safeDeps),
+            pad2: resolvePad2Ref(safeDeps)
+        });
 
-        // 클로저 내부 타이머 참조 — 외부 전역 변수 오염 없음
+        // ?대줈? ?대? ??대㉧ 李몄“ ???몃? ?꾩뿭 蹂???ㅼ뿼 ?놁쓬
         const timerIds = { countdown: null, unix: null };
 
         /**
-         * destroy() — 모든 타이머를 정리한다.
-         * 재초기화하거나 탭을 닫을 때 명시적으로 호출한다.
+         * destroy() ??紐⑤뱺 ??대㉧瑜??뺣━?쒕떎.
+         * ?ъ큹湲고솕?섍굅????쓣 ?レ쓣 ??紐낆떆?곸쑝濡??몄텧?쒕떎.
          */
         function destroy() {
             if (timerIds.countdown !== null && timerIds.countdown !== undefined) {
@@ -889,12 +1182,12 @@
             const t = (typeof opts.t === "function") ? opts.t : ((key) => key);
             const copyText = (typeof opts.copyText === "function") ? opts.copyText : (async () => { });
 
-            const helpers = makeDocHelpers(_doc);
-            const cdStorage = makeCountdownStorage(_storage);
+            const helpers = makeDocHelpers(documentRef);
+            const cdStorage = makeCountdownStorage(storageRef);
 
-            const periodAndShift = initPeriodAndDateShift(t, helpers);
-            const countdown = initCountdown(t, helpers, cdStorage, timerIds);
-            const unixConverter = initUnixTimestampConverter(t, helpers, _luxonDT, timerIds);
+            const periodAndShift = initPeriodAndDateShift(t, helpers, runtime);
+            const countdown = initCountdown(t, helpers, cdStorage, timerIds, runtime);
+            const unixConverter = initUnixTimestampConverter(t, helpers, luxonDT, timerIds, runtime);
             initConverter(helpers);
 
             bindCopyButtons(copyText, helpers, [
@@ -918,8 +1211,8 @@
                 ["copy-unix-human-btn", "unix-human-input", true]
             ]);
 
-            if (typeof globalObj !== "undefined") {
-                globalObj.__gtvCalcRefresh = () => {
+            if (refreshTargetRef) {
+                refreshTargetRef.__gtvCalcRefresh = () => {
                     periodAndShift.refresh();
                     countdown.refresh();
                     unixConverter.refresh();
@@ -939,14 +1232,14 @@
         return Object.freeze({ initCalculators, destroy });
     }
 
-    // ── 하위 호환 진입점 — 기존 main.js가 GTVCalculator.initCalculators()를 사용하는 경우 ──
+    // ?? ?섏쐞 ?명솚 吏꾩엯????湲곗〈 main.js媛 GTVCalculator.initCalculators()瑜??ъ슜?섎뒗 寃쎌슦 ??
 
     /**
-     * @deprecated createService() 사용을 권장한다.
-     * 기존 호출 코드의 무중단 유지를 위해 남겨둔 래퍼.
+     * @deprecated createService() ?ъ슜??沅뚯옣?쒕떎.
+     * 湲곗〈 ?몄텧 肄붾뱶??臾댁쨷???좎?瑜??꾪빐 ?④꺼???섑띁.
      */
     function initCalculators(options) {
-        // 기본 서비스 인스턴스를 생성해 위임한다.
+        // 湲곕낯 ?쒕퉬???몄뒪?댁뒪瑜??앹꽦???꾩엫?쒕떎.
         const svc = createService({});
         svc.initCalculators(options);
     }

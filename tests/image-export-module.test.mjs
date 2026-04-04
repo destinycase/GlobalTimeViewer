@@ -176,6 +176,44 @@ test("saveTimezoneTableImage handles missing deps safely", async () => {
     }
 });
 
+test("saveTimezoneTableImage prefers injected documentRef and consoleError dependencies", async () => {
+    const globalDoc = createDocumentStub();
+    const injectedDoc = createDocumentStub();
+    const api = createApi({ documentStub: globalDoc });
+    const loggedErrors = [];
+
+    const successService = api.createService({
+        documentRef: injectedDoc,
+        isMultiTab: () => false,
+        detectForeignObjectRendererSupport: async () => false,
+        renderTimezoneTableFallbackDataUrl: async () => "data:image/png;base64,BOUND",
+        getTimezoneTableImageFilename: () => "injected-doc",
+        showToast: () => { },
+        t: (key) => key
+    });
+
+    await successService.saveTimezoneTableImage();
+
+    expect(injectedDoc.anchors.length).toBe(1);
+    expect(globalDoc.anchors.length).toBe(0);
+
+    const failureService = api.createService({
+        consoleError: (...args) => {
+            loggedErrors.push(args);
+        },
+        isMultiTab: () => false,
+        detectForeignObjectRendererSupport: async () => false,
+        renderTimezoneTableFallbackDataUrl: async () => "",
+        showToast: () => { },
+        t: (key) => key
+    });
+
+    await failureService.saveTimezoneTableImage();
+
+    expect(loggedErrors).toHaveLength(1);
+    expect(String(loggedErrors[0][0])).toContain("Failed to save timezone table image");
+});
+
 test("saveTimezoneTableImage uses combined multi-range renderer in multi tab", async () => {
     const doc = createDocumentStub();
     const api = createApi({ documentStub: doc });

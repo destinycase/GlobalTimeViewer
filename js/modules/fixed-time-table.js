@@ -1,22 +1,106 @@
 (function initGtvFixedTimeTable(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const liveNowElementMap = new Map();
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVFixedTimeTable] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
 
+        function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") {
+                return safeDeps.documentRef;
+            }
+            if (safeDeps.document && typeof safeDeps.document === "object") {
+                return safeDeps.document;
+            }
+            if (globalObj?.document && typeof globalObj.document === "object") {
+                return globalObj.document;
+            }
+            if (typeof document === "object" && document) {
+                return document;
+            }
+            return null;
+        }
+
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVFixedTimeTable] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            t: toSafeCallable("t", safeDeps.t),
+            sanitizeCopyFormatOrderForContext: toSafeCallable("sanitizeCopyFormatOrderForContext", safeDeps.sanitizeCopyFormatOrderForContext),
+            getDisplayFormatOrder: toSafeCallable("getDisplayFormatOrder", safeDeps.getDisplayFormatOrder),
+            sanitizeCopyFormatEnabledForContext: toSafeCallable("sanitizeCopyFormatEnabledForContext", safeDeps.sanitizeCopyFormatEnabledForContext),
+            getDisplayFormatEnabled: toSafeCallable("getDisplayFormatEnabled", safeDeps.getDisplayFormatEnabled),
+            formatUtcOffsetLabel: toSafeCallable("formatUtcOffsetLabel", safeDeps.formatUtcOffsetLabel),
+            getCustomOffsetMinutes: toSafeCallable("getCustomOffsetMinutes", safeDeps.getCustomOffsetMinutes),
+            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
+            getTimezoneOffset: toSafeCallable("getTimezoneOffset", safeDeps.getTimezoneOffset),
+            getZoneDisplayNameForUiAtDate: toSafeCallable("getZoneDisplayNameForUiAtDate", safeDeps.getZoneDisplayNameForUiAtDate),
+            getZoneDisplayName: toSafeCallable("getZoneDisplayName", safeDeps.getZoneDisplayName),
+            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
+            getRenderableTimezoneRows: toSafeCallable("getRenderableTimezoneRows", safeDeps.getRenderableTimezoneRows),
+            getFixedTimeDisplayPartsEnabled: toSafeCallable("getFixedTimeDisplayPartsEnabled", safeDeps.getFixedTimeDisplayPartsEnabled),
+            buildFixedTimeDisplayPayloadAtUtc: toSafeCallable("buildFixedTimeDisplayPayloadAtUtc", safeDeps.buildFixedTimeDisplayPayloadAtUtc),
+            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
+            ensureGroupFixedTimes: toSafeCallable("ensureGroupFixedTimes", safeDeps.ensureGroupFixedTimes),
+            getFixedTimeTimelineIndicatorColor: toSafeCallable("getFixedTimeTimelineIndicatorColor", safeDeps.getFixedTimeTimelineIndicatorColor),
+            getFixedTimeSlotHeaderLabel: toSafeCallable("getFixedTimeSlotHeaderLabel", safeDeps.getFixedTimeSlotHeaderLabel),
+            renameFixedTimeSlot: toSafeCallable("renameFixedTimeSlot", safeDeps.renameFixedTimeSlot),
+            copyFixedTimeSlotColumn: toSafeCallable("copyFixedTimeSlotColumn", safeDeps.copyFixedTimeSlotColumn),
+            getGlobalTime: toSafeCallable("getGlobalTime", safeDeps.getGlobalTime),
+            resolveFixedTimeSlotUtcDate: toSafeCallable("resolveFixedTimeSlotUtcDate", safeDeps.resolveFixedTimeSlotUtcDate),
+            getZoneAbbreviation: toSafeCallable("getZoneAbbreviation", safeDeps.getZoneAbbreviation),
+            buildFixedTimeCellInputValue: toSafeCallable("buildFixedTimeCellInputValue", safeDeps.buildFixedTimeCellInputValue),
+            bindCustomDatePickerForInput: toSafeCallable("bindCustomDatePickerForInput", safeDeps.bindCustomDatePickerForInput),
+            applyFixedTimeSlotByTimezoneInput: toSafeCallable("applyFixedTimeSlotByTimezoneInput", safeDeps.applyFixedTimeSlotByTimezoneInput),
+            copyFixedTimeCellByTimezone: toSafeCallable("copyFixedTimeCellByTimezone", safeDeps.copyFixedTimeCellByTimezone),
+            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
+        });
+
+        function getRenderableTimezoneRowsSafe(baseRef) {
+            return asArray(dep.getRenderableTimezoneRows(baseRef));
+        }
+
         function translate(key) {
-            const value = invokeDep("t", key);
+            const value = dep.t(key);
             if (typeof value === "string" && value) return value;
             return String(key || "");
         }
@@ -77,8 +161,8 @@
         }
 
         function getFixedTimeDisplayColumns() {
-            const order = invokeDep("sanitizeCopyFormatOrderForContext", invokeDep("getDisplayFormatOrder"), "fixed-time");
-            const enabled = invokeDep("sanitizeCopyFormatEnabledForContext", invokeDep("getDisplayFormatEnabled"), "display", "fixed-time");
+            const order = dep.sanitizeCopyFormatOrderForContext(dep.getDisplayFormatOrder(), "fixed-time");
+            const enabled = dep.sanitizeCopyFormatEnabledForContext(dep.getDisplayFormatEnabled(), "display", "fixed-time");
             const columns = [];
             asArray(order).forEach((key) => {
                 if (key === "time") {
@@ -97,23 +181,23 @@
             if (!tz || typeof tz !== "object") return "";
             const safeAnchorDate = isValidDate(anchorDate) ? anchorDate : new Date();
             if (tz.type === "custom") {
-                return invokeDep("formatUtcOffsetLabel", invokeDep("getCustomOffsetMinutes", tz)) || "";
+                return dep.formatUtcOffsetLabel(dep.getCustomOffsetMinutes(tz)) || "";
             }
             if (tz.zone === "UTC") {
-                return invokeDep("formatUtcOffsetLabel", 0) || "";
+                return dep.formatUtcOffsetLabel(0) || "";
             }
-            const fixedOffset = invokeDep("getFixedOffsetForDisplayAtDate", tz, safeAnchorDate);
+            const fixedOffset = dep.getFixedOffsetForDisplayAtDate(tz, safeAnchorDate);
             if (Number.isFinite(fixedOffset)) {
-                return invokeDep("formatUtcOffsetLabel", fixedOffset) || "";
+                return dep.formatUtcOffsetLabel(fixedOffset) || "";
             }
-            return invokeDep("formatUtcOffsetLabel", invokeDep("getTimezoneOffset", tz.zone || "UTC", safeAnchorDate)) || "";
+            return dep.formatUtcOffsetLabel(dep.getTimezoneOffset(tz.zone || "UTC", safeAnchorDate)) || "";
         }
 
         function getZoneDisplayNameForUiAtDate(tz, anchorDate) {
             const safeAnchorDate = isValidDate(anchorDate) ? anchorDate : new Date();
-            const uiName = invokeDep("getZoneDisplayNameForUiAtDate", tz, safeAnchorDate);
+            const uiName = dep.getZoneDisplayNameForUiAtDate(tz, safeAnchorDate);
             if (typeof uiName === "string" && uiName.trim()) return uiName;
-            return invokeDep("getZoneDisplayName", tz) || "";
+            return dep.getZoneDisplayName(tz) || "";
         }
 
         function applyZoneCodeKindClass(zoneCodeEl, timezoneRef = null) {
@@ -125,14 +209,16 @@
 
         function appendReadonlyTimeDisplay(targetCell, payload, displayPartsEnabled) {
             if (!targetCell) return;
+            const documentRef = getDocumentRef();
+            if (!documentRef || typeof documentRef.createElement !== "function") return;
             const safeParts = (displayPartsEnabled && typeof displayPartsEnabled === "object")
                 ? displayPartsEnabled
                 : {};
-            const wrapper = document.createElement("div");
+            const wrapper = documentRef.createElement("div");
             wrapper.className = "time-day-group";
 
             if (safeParts.dn) {
-                const dnEl = document.createElement("span");
+                const dnEl = documentRef.createElement("span");
                 dnEl.className = "dn-icon";
                 dnEl.textContent = payload?.dayNightGlyph || "";
                 dnEl.title = payload?.dayNightMarker === "DAY" ? translate("dn_day") : translate("dn_night");
@@ -140,7 +226,7 @@
             }
 
             if (safeParts.time) {
-                const clockEl = document.createElement("input");
+                const clockEl = documentRef.createElement("input");
                 clockEl.type = "text";
                 clockEl.className = "time-input live-time-input fixed-time-clock";
                 clockEl.spellcheck = false;
@@ -151,7 +237,7 @@
 
             if (safeParts.weekday && payload?.dayName) {
                 const weekdayIdx = Number(payload.weekdayIndex);
-                const dayEl = document.createElement("span");
+                const dayEl = documentRef.createElement("span");
                 const isSun = weekdayIdx === 0;
                 const isSat = weekdayIdx === 6;
                 dayEl.className = `day-badge${isSun ? " day-sun" : (isSat ? " day-sat" : "")}`;
@@ -160,7 +246,7 @@
             }
 
             if (!wrapper.children.length) {
-                const emptyEl = document.createElement("span");
+                const emptyEl = documentRef.createElement("span");
                 emptyEl.className = "fixed-time-empty";
                 emptyEl.textContent = payload?.clock || "--:--:--";
                 wrapper.appendChild(emptyEl);
@@ -170,16 +256,17 @@
         }
 
         function renderFixedTimeTable(isLiveTick = false) {
-            if (typeof document !== "object" || !document) return;
-            const body = document.getElementById("fixed-time-body");
+            const documentRef = getDocumentRef();
+            if (!documentRef || typeof documentRef.getElementById !== "function") return;
+            const body = documentRef.getElementById("fixed-time-body");
             if (!body) return;
 
             if (isLiveTick) {
-                const baseRef = invokeDep("getBaseTimezoneRef");
+                const baseRef = dep.getBaseTimezoneRef();
                 if (!baseRef) return;
-                const rows = [baseRef, ...asArray(invokeDep("getRenderableTimezoneRows", baseRef))];
+                const rows = [baseRef, ...getRenderableTimezoneRowsSafe(baseRef)];
                 const liveNowUtcDate = new Date();
-                const displayPartsEnabled = invokeDep("getFixedTimeDisplayPartsEnabled") || {};
+                const displayPartsEnabled = dep.getFixedTimeDisplayPartsEnabled() || {};
 
                 rows.forEach((tz, idx) => {
                     if (!tz) return;
@@ -198,7 +285,7 @@
                         liveNowElementMap.set(cacheKey, cached);
                     }
 
-                    const payload = invokeDep("buildFixedTimeDisplayPayloadAtUtc", liveNowUtcDate, tz);
+                    const payload = dep.buildFixedTimeDisplayPayloadAtUtc(liveNowUtcDate, tz);
                     if (!payload) return;
 
                     if (displayPartsEnabled.dn && cached.dnEl) {
@@ -208,7 +295,7 @@
 
                     if (displayPartsEnabled.time && cached.clockEl) {
                         // 포커스 중인 경우 업데이트 방지 (보통 readonly라 상관없지만 일관성 유지)
-                        if (document.activeElement !== cached.clockEl) {
+                        if (documentRef.activeElement !== cached.clockEl) {
                             cached.clockEl.value = payload.clock || "--:--:--";
                         }
                     }
@@ -225,17 +312,18 @@
 
             liveNowElementMap.clear();
 
-            const headRow = document.querySelector("#fixed-time-table-head tr");
-            const group = invokeDep("getCurrentGroup");
+            if (typeof documentRef.querySelector !== "function") return;
+            const headRow = documentRef.querySelector("#fixed-time-table-head tr");
+            const group = dep.getCurrentGroup();
             if (!headRow || !group) return;
 
-            invokeDep("ensureGroupFixedTimes", group);
+            dep.ensureGroupFixedTimes(group);
             const fixedTimes = asArray(group.fixedTimes);
             const showLiveNowColumn = !!group.fixedTimeShowLiveNow;
-            const displayPartsEnabled = invokeDep("getFixedTimeDisplayPartsEnabled") || {};
+            const displayPartsEnabled = dep.getFixedTimeDisplayPartsEnabled() || {};
             const slotLayout = getFixedTimeSlotLayoutMetrics(displayPartsEnabled);
             const displayColumns = getFixedTimeDisplayColumns();
-            const fixedTimeTable = document.querySelector(".fixed-time-table");
+            const fixedTimeTable = documentRef.querySelector(".fixed-time-table");
             if (fixedTimeTable?.style && typeof fixedTimeTable.style.setProperty === "function") {
                 fixedTimeTable.style.setProperty("--fixed-time-slot-min-width", `${slotLayout.columnMinWidthPx}px`);
                 fixedTimeTable.style.setProperty("--fixed-time-input-width", `${slotLayout.inputWidthPx}px`);
@@ -245,21 +333,21 @@
 
             displayColumns.forEach((colKey) => {
                 if (colKey === "timezone") {
-                    const timezoneHead = document.createElement("th");
+                    const timezoneHead = documentRef.createElement("th");
                     timezoneHead.style.width = "110px";
                     timezoneHead.textContent = translate("th_tz_abbr");
                     headRow.appendChild(timezoneHead);
                     return;
                 }
                 if (colKey === "region") {
-                    const nameHead = document.createElement("th");
+                    const nameHead = documentRef.createElement("th");
                     nameHead.style.width = "220px";
                     nameHead.textContent = translate("th_region");
                     headRow.appendChild(nameHead);
                     return;
                 }
                 if (colKey === "offset") {
-                    const offsetHead = document.createElement("th");
+                    const offsetHead = documentRef.createElement("th");
                     offsetHead.style.width = "140px";
                     offsetHead.textContent = translate("th_utc_offset");
                     headRow.appendChild(offsetHead);
@@ -268,7 +356,7 @@
                 if (colKey !== "time_slots") return;
 
                 if (showLiveNowColumn) {
-                    const liveNowHead = document.createElement("th");
+                    const liveNowHead = documentRef.createElement("th");
                     liveNowHead.className = "dynamic-col";
                     liveNowHead.style.width = "170px";
                     liveNowHead.textContent = translate("th_fixed_time_live_now");
@@ -276,54 +364,54 @@
                 }
 
                 fixedTimes.forEach((slot, slotIdx) => {
-                    const slotHead = document.createElement("th");
+                    const slotHead = documentRef.createElement("th");
                     slotHead.className = "dynamic-col fixed-time-slot-head-cell";
                     slotHead.style.minWidth = `${slotLayout.columnMinWidthPx}px`;
 
-                    const slotHeadWrap = document.createElement("div");
+                    const slotHeadWrap = documentRef.createElement("div");
                     slotHeadWrap.className = "fixed-time-slot-head";
 
-                    const slotHeadTop = document.createElement("div");
+                    const slotHeadTop = documentRef.createElement("div");
                     slotHeadTop.className = "fixed-time-slot-head-top";
 
-                    const colorDot = document.createElement("span");
+                    const colorDot = documentRef.createElement("span");
                     colorDot.className = "fixed-time-slot-dot";
-                    colorDot.style.background = invokeDep("getFixedTimeTimelineIndicatorColor", slotIdx) || "";
+                    colorDot.style.background = dep.getFixedTimeTimelineIndicatorColor(slotIdx) || "";
                     colorDot.setAttribute("aria-hidden", "true");
 
-                    const markerWrap = document.createElement("span");
+                    const markerWrap = documentRef.createElement("span");
                     markerWrap.className = "fixed-time-slot-marker";
                     markerWrap.appendChild(colorDot);
 
-                    const slotTitle = document.createElement("span");
+                    const slotTitle = documentRef.createElement("span");
                     slotTitle.className = "fixed-time-slot-title";
-                    slotTitle.textContent = invokeDep("getFixedTimeSlotHeaderLabel", slot, slotIdx, fixedTimes.length) || "";
+                    slotTitle.textContent = dep.getFixedTimeSlotHeaderLabel(slot, slotIdx, fixedTimes.length) || "";
 
-                    const slotTitleWrap = document.createElement("span");
+                    const slotTitleWrap = documentRef.createElement("span");
                     slotTitleWrap.className = "fixed-time-slot-title-wrap";
                     slotTitleWrap.appendChild(markerWrap);
                     slotTitleWrap.appendChild(slotTitle);
 
-                    const renameBtn = document.createElement("button");
+                    const renameBtn = documentRef.createElement("button");
                     renameBtn.type = "button";
                     renameBtn.className = "sm-btn fixed-time-slot-rename-btn export-exclude";
                     renameBtn.title = translate("btn_rename");
                     renameBtn.textContent = "\u270E";
                     renameBtn.addEventListener("click", () => {
-                        invokeDep("renameFixedTimeSlot", slotIdx);
+                        dep.renameFixedTimeSlot(slotIdx);
                     });
                     slotHeadTop.appendChild(renameBtn);
 
-                    const copySlotBtn = document.createElement("button");
+                    const copySlotBtn = documentRef.createElement("button");
                     copySlotBtn.type = "button";
                     copySlotBtn.className = "sm-btn fixed-time-slot-copy-btn custom-tooltip export-exclude";
                     copySlotBtn.title = translate("tooltip_copy");
                     copySlotBtn.textContent = "\uD83D\uDCCB";
                     copySlotBtn.addEventListener("click", async () => {
-                        await invokeDep("copyFixedTimeSlotColumn", slotIdx);
+                        await dep.copyFixedTimeSlotColumn(slotIdx);
                     });
 
-                    const actionsWrap = document.createElement("span");
+                    const actionsWrap = documentRef.createElement("span");
                     actionsWrap.className = "fixed-time-slot-actions";
                     actionsWrap.appendChild(renameBtn);
                     actionsWrap.appendChild(copySlotBtn);
@@ -339,17 +427,18 @@
 
             destroyDatePickersInRoot(body);
             body.textContent = "";
-            const baseRef = invokeDep("getBaseTimezoneRef");
+            const baseRef = dep.getBaseTimezoneRef();
             if (!baseRef) return;
-            const rows = [baseRef, ...asArray(invokeDep("getRenderableTimezoneRows", baseRef))];
-            const anchorDate = isValidDate(invokeDep("getGlobalTime", 0))
-                ? invokeDep("getGlobalTime", 0)
+            const rows = [baseRef, ...getRenderableTimezoneRowsSafe(baseRef)];
+            const globalTimeSlot0 = dep.getGlobalTime(0);
+            const anchorDate = isValidDate(globalTimeSlot0)
+                ? globalTimeSlot0
                 : new Date();
-            const slotUtcDates = fixedTimes.map((slot) => invokeDep("resolveFixedTimeSlotUtcDate", slot, baseRef, anchorDate));
+            const slotUtcDates = fixedTimes.map((slot) => dep.resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate));
             const liveNowUtcDate = new Date();
 
             rows.forEach((tz) => {
-                const row = document.createElement("tr");
+                const row = documentRef.createElement("tr");
                 row.className = "time-row fixed-time-row";
                 row.id = `tz-row-${tz.id}`;
                 const isBaseRow = tz.id === baseRef.id;
@@ -359,13 +448,13 @@
                 const offsetAnchorDate = isValidDate(slotUtcDates[0]) ? slotUtcDates[0] : anchorDate;
                 displayColumns.forEach((colKey) => {
                     if (colKey === "timezone") {
-                        const tzCell = document.createElement("td");
+                        const tzCell = documentRef.createElement("td");
                         tzCell.className = "timezone-cell";
-                        const abbrWrap = document.createElement("div");
+                        const abbrWrap = documentRef.createElement("div");
                         abbrWrap.className = "abbr-cell";
-                        const zoneCode = document.createElement("span");
+                        const zoneCode = documentRef.createElement("span");
                         zoneCode.className = "zone-code";
-                        zoneCode.textContent = invokeDep("getZoneAbbreviation", tz, anchorDate) || "";
+                        zoneCode.textContent = dep.getZoneAbbreviation(tz, anchorDate) || "";
                         applyZoneCodeKindClass(zoneCode, tz);
                         abbrWrap.appendChild(zoneCode);
                         tzCell.appendChild(abbrWrap);
@@ -374,10 +463,10 @@
                     }
 
                     if (colKey === "region") {
-                        const nameCell = document.createElement("td");
-                        const zoneInfo = document.createElement("div");
+                        const nameCell = documentRef.createElement("td");
+                        const zoneInfo = documentRef.createElement("div");
                         zoneInfo.className = "zone-info";
-                        const zoneName = document.createElement("span");
+                        const zoneName = documentRef.createElement("span");
                         zoneName.className = "zone-name";
                         zoneName.textContent = getZoneDisplayNameForUiAtDate(tz, offsetAnchorDate) || "";
                         zoneInfo.appendChild(zoneName);
@@ -387,8 +476,8 @@
                     }
 
                     if (colKey === "offset") {
-                        const offsetCell = document.createElement("td");
-                        const offsetText = document.createElement("span");
+                        const offsetCell = documentRef.createElement("td");
+                        const offsetText = documentRef.createElement("span");
                         offsetText.className = "offset-text";
                         offsetText.textContent = getFixedTimeOffsetTextAtDate(tz, offsetAnchorDate);
                         offsetCell.appendChild(offsetText);
@@ -399,27 +488,27 @@
                     if (colKey !== "time_slots") return;
 
                     if (showLiveNowColumn) {
-                        const liveNowCell = document.createElement("td");
+                        const liveNowCell = documentRef.createElement("td");
                         liveNowCell.className = "fixed-time-time fixed-time-live-now";
                         liveNowCell.dataset.tzId = String(tz.id || "");
-                        const liveNowPayload = invokeDep("buildFixedTimeDisplayPayloadAtUtc", liveNowUtcDate, tz);
+                        const liveNowPayload = dep.buildFixedTimeDisplayPayloadAtUtc(liveNowUtcDate, tz);
                         appendReadonlyTimeDisplay(liveNowCell, liveNowPayload, displayPartsEnabled);
                         row.appendChild(liveNowCell);
                     }
 
                     slotUtcDates.forEach((utcDate, slotIdx) => {
-                        const timeCell = document.createElement("td");
+                        const timeCell = documentRef.createElement("td");
                         timeCell.className = "fixed-time-time";
-                        const payload = invokeDep("buildFixedTimeDisplayPayloadAtUtc", utcDate, tz);
-                        const cellWrap = document.createElement("div");
+                        const payload = dep.buildFixedTimeDisplayPayloadAtUtc(utcDate, tz);
+                        const cellWrap = documentRef.createElement("div");
                         cellWrap.className = "fixed-time-cell-wrap";
 
-                        const timeGroup = document.createElement("div");
+                        const timeGroup = documentRef.createElement("div");
                         timeGroup.className = "time-day-group";
                         let hasTimeGroupContent = false;
 
                         if (displayPartsEnabled.dn) {
-                            const dnEl = document.createElement("span");
+                            const dnEl = documentRef.createElement("span");
                             dnEl.className = "dn-icon";
                             dnEl.textContent = payload?.dayNightGlyph || "";
                             dnEl.title = payload?.dayNightMarker === "DAY" ? translate("dn_day") : translate("dn_night");
@@ -430,17 +519,17 @@
                         let timeInput = null;
                         let triggerBtn = null;
                         if (displayPartsEnabled.time) {
-                            timeInput = document.createElement("input");
+                            timeInput = documentRef.createElement("input");
                             timeInput.type = "text";
                             timeInput.className = "time-input fixed-time-time-input";
                             timeInput.spellcheck = false;
-                            timeInput.value = invokeDep("buildFixedTimeCellInputValue", utcDate, tz) || "";
+                            timeInput.value = dep.buildFixedTimeCellInputValue(utcDate, tz) || "";
                             timeGroup.appendChild(timeInput);
                             hasTimeGroupContent = true;
                         }
 
                         if (displayPartsEnabled.weekday && payload?.dayName) {
-                            const dayEl = document.createElement("span");
+                            const dayEl = documentRef.createElement("span");
                             const isSun = payload.weekdayIndex === 0;
                             const isSat = payload.weekdayIndex === 6;
                             dayEl.className = `day-badge${isSun ? " day-sun" : (isSat ? " day-sat" : "")}`;
@@ -450,7 +539,7 @@
                         }
 
                         if (displayPartsEnabled.time) {
-                            triggerBtn = document.createElement("button");
+                            triggerBtn = documentRef.createElement("button");
                             triggerBtn.type = "button";
                             triggerBtn.className = "calendar-btn";
                             triggerBtn.tabIndex = -1;
@@ -461,12 +550,12 @@
                         }
 
                         if (timeInput && triggerBtn) {
-                            invokeDep("bindCustomDatePickerForInput", timeInput, triggerBtn, { preserveValue: true, type: "time" });
-                            timeInput.value = invokeDep("buildFixedTimeCellInputValue", utcDate, tz) || "";
+                            dep.bindCustomDatePickerForInput(timeInput, triggerBtn, { preserveValue: true, type: "time" });
+                            timeInput.value = dep.buildFixedTimeCellInputValue(utcDate, tz) || "";
 
                             const commitCellInput = () => {
                                 const latestInput = String(timeInput.value || "").trim();
-                                invokeDep("applyFixedTimeSlotByTimezoneInput", slotIdx, tz, latestInput, utcDate);
+                                dep.applyFixedTimeSlotByTimezoneInput(slotIdx, tz, latestInput, utcDate);
                             };
                             timeInput.addEventListener("change", commitCellInput);
                             timeInput.addEventListener("keydown", (event) => {
@@ -481,13 +570,13 @@
                             cellWrap.appendChild(timeGroup);
                         }
 
-                        const copyBtn = document.createElement("button");
+                        const copyBtn = documentRef.createElement("button");
                         copyBtn.type = "button";
                         copyBtn.className = "sm-btn fixed-time-copy-btn custom-tooltip export-exclude";
                         copyBtn.title = translate("tooltip_copy");
                         copyBtn.textContent = "\uD83D\uDCCB";
                         copyBtn.addEventListener("click", async () => {
-                            await invokeDep("copyFixedTimeCellByTimezone", tz, utcDate);
+                            await dep.copyFixedTimeCellByTimezone(tz, utcDate);
                         });
                         cellWrap.appendChild(copyBtn);
 
@@ -498,8 +587,8 @@
 
                 body.appendChild(row);
             });
-            invokeDep("upgradeNativeTitleTooltips", headRow);
-            invokeDep("upgradeNativeTitleTooltips", body);
+            dep.upgradeNativeTitleTooltips(headRow);
+            dep.upgradeNativeTitleTooltips(body);
         }
 
         return Object.freeze({

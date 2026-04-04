@@ -8,7 +8,11 @@
             : (() => null);
         const sanitizeBaseTimezoneId = (typeof safeDeps.sanitizeBaseTimezoneId === "function")
             ? safeDeps.sanitizeBaseTimezoneId
-            : ((value) => (value == null ? "utc" : String(value || "").trim().toLowerCase() || "utc"));
+            : ((value) => (
+                value === null || value === undefined
+                    ? "utc"
+                    : String(value || "").trim().toLowerCase() || "utc"
+            ));
         const renderList = (typeof safeDeps.renderList === "function")
             ? safeDeps.renderList
             : (() => { });

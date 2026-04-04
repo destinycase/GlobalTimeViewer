@@ -269,6 +269,39 @@ describe("GTV fixed time core module", () => {
         expect(payload.dayNightMarker).toBe("NIGHT");
     });
 
+    it("prefers injected logWarn dependency when helper resolution throws", () => {
+        const module = loadFixedTimeCoreModule({
+            console: {
+                warn() {
+                    throw new Error("global warn should not be used");
+                }
+            }
+        });
+        const warnings = [];
+        const service = module.createService({
+            I18N_DATA: {
+                en: { days: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] }
+            },
+            getCurrentLang: () => "en",
+            getDayNightMarkerByHour: () => {
+                throw new Error("marker failure");
+            },
+            logWarn: (...args) => {
+                warnings.push(args);
+            },
+            ...buildTimezoneDeps()
+        });
+
+        const payload = service.buildFixedTimeDisplayPayloadAtUtc(
+            new Date("2026-03-07T00:00:00.000Z"),
+            { zone: "Asia/Seoul" }
+        );
+
+        expect(payload.dayNightMarker).toBe("DAY");
+        expect(warnings).toHaveLength(1);
+        expect(String(warnings[0][0])).toContain("Dependency \"getDayNightMarkerByHour\" threw.");
+    });
+
     it("handles unknown marker glyphs and display part defaults", () => {
         const module = loadFixedTimeCoreModule();
         const service = module.createService({

@@ -158,6 +158,8 @@ describe("GTV main persistence services module", () => {
         expect(translationsCalled).toBe(1);
         config.ensureGroupMultiSubgroups({}, {});
         expect(subgroupCalled).toBe(1);
+        expect(config.documentRef).toBe(documentRef);
+        expect(config.windowRef).toBe(windowRef);
         expect(config.document).toBe(documentRef);
         expect(config.window).toBe(windowRef);
     });

@@ -1,30 +1,71 @@
 (function initGtvTableImageRender(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVTableImageRender] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
 
-        async function invokeDepAsync(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return await safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVTableImageRender] Dependency "${name}" threw.`, err);
-                return undefined;
-            }
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVTableImageRender] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
         }
+
+        function toSafeAsyncCallable(depName, depFn) {
+            if (typeof depFn !== "function") return async () => undefined;
+            return async (...args) => {
+                try {
+                    return await depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVTableImageRender] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            isFixedTimeTab: toSafeCallable("isFixedTimeTab", safeDeps.isFixedTimeTab),
+            waitForDocumentFontsReady: toSafeAsyncCallable("waitForDocumentFontsReady", safeDeps.waitForDocumentFontsReady),
+            prepareExportCanvas: toSafeCallable("prepareExportCanvas", safeDeps.prepareExportCanvas),
+            drawExportCellText: toSafeCallable("drawExportCellText", safeDeps.drawExportCellText),
+            cloneTableForImageExport: toSafeCallable("cloneTableForImageExport", safeDeps.cloneTableForImageExport)
+        });
 
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
+            if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
+            if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
             return (typeof document === "object" && document) ? document : null;
         }
 
@@ -99,7 +140,7 @@
                     rowSelector: "#clocks-container tr.time-row"
                 };
             }
-            if (invokeDep("isFixedTimeTab")) {
+            if (dep.isFixedTimeTab()) {
                 const section = doc.getElementById("fixed-time-section");
                 const table = section ? section.querySelector?.(".data-table") : null;
                 return {
@@ -118,7 +159,7 @@
         }
 
         async function renderTimezoneTableFallbackDataUrl() {
-            await invokeDepAsync("waitForDocumentFontsReady");
+            await dep.waitForDocumentFontsReady();
 
             const doc = getDocumentRef();
             const context = getActiveTableExportContext();
@@ -147,7 +188,7 @@
             const bodyStyle = getComputedStyleSafe(doc.body || doc.documentElement);
             const pageBg = bodyStyle.backgroundColor || "#0f172a";
 
-            const renderTarget = invokeDep("prepareExportCanvas", tableWidth, tableHeight, pageBg);
+            const renderTarget = dep.prepareExportCanvas(tableWidth, tableHeight, pageBg);
             const canvas = renderTarget?.canvas;
             const ctx = renderTarget?.ctx;
             if (!canvas || !ctx) throw new Error("Canvas context unavailable");
@@ -164,7 +205,7 @@
             const exportHeaderFont = `600 13px ${monoFont} `;
 
             const drawCellText = (text, x, y, w, h, align = "left", color = textColor, font = exportBodyFont) => {
-                invokeDep("drawExportCellText", ctx, text, x, y, w, h, { align, color, font });
+                dep.drawExportCellText(ctx, text, x, y, w, h, { align, color, font });
             };
 
             const isCenterHeader = () => true;
@@ -238,7 +279,7 @@
             const tableEl = context.table;
             if (!tableEl) throw new Error("Timezone table not found");
 
-            const cloned = invokeDep("cloneTableForImageExport", tableEl);
+            const cloned = dep.cloneTableForImageExport(tableEl);
             const renderer = safeDeps.renderElementWithForeignObjectToPngDataUrl;
             if (typeof renderer !== "function") {
                 throw new Error("Primary renderer unavailable");

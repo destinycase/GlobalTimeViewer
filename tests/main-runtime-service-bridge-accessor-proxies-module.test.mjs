@@ -102,4 +102,19 @@ describe("GTV main runtime service bridge accessor proxies module", () => {
         expect(warnSpy).toHaveBeenCalled();
         warnSpy.mockRestore();
     });
+
+    it("uses injected consoleWarn fallback when runtime and bridge warn methods are unavailable", () => {
+        const moduleApi = loadMainRuntimeServiceBridgeAccessorProxiesModule();
+        const warned = [];
+        const service = moduleApi.createService({
+            getMainRuntimeServiceBridgeHelpersService: () => null,
+            getMainServiceMethodBridgeService: () => null,
+            consoleWarn: (...args) => warned.push(args)
+        });
+
+        service.warnMissingServiceMethod("svc", "missing");
+
+        expect(warned).toHaveLength(1);
+        expect(String(warned[0][0])).toContain("svc.missing");
+    });
 });

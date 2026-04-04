@@ -1,7 +1,7 @@
 (function initGtvFormatControls(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         let timePartsOutsideHandlerBound = false;
         let copyFormatDragGhostEl = null;
@@ -16,32 +16,83 @@
             });
 
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") {
+                return safeDeps.documentRef;
+            }
+            if (safeDeps.document && typeof safeDeps.document === "object") {
+                return safeDeps.document;
+            }
+            if (globalObj?.document && typeof globalObj.document === "object") {
+                return globalObj.document;
+            }
             return (typeof document === "object" && document) ? document : null;
         }
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            t: toSafeCallable(safeDeps.t),
+            getActiveCopyFormatKeys: toSafeCallable(safeDeps.getActiveCopyFormatKeys),
+            getActiveTimePartKeys: toSafeCallable(safeDeps.getActiveTimePartKeys),
+            isShowCopyFormat: toSafeCallable(safeDeps.isShowCopyFormat),
+            updateCopyFormatPreview: toSafeCallable(safeDeps.updateCopyFormatPreview),
+            getDisplayFormatOrder: toSafeCallable(safeDeps.getDisplayFormatOrder),
+            getDisplayFormatEnabled: toSafeCallable(safeDeps.getDisplayFormatEnabled),
+            setDisplayFormatEnabled: toSafeCallable(safeDeps.setDisplayFormatEnabled),
+            renderList: toSafeCallable(safeDeps.renderList),
+            savePersistence: toSafeCallable(safeDeps.savePersistence),
+            setDisplayFormatOrder: toSafeCallable(safeDeps.setDisplayFormatOrder),
+            sanitizeCopyFormatOrder: toSafeCallable(safeDeps.sanitizeCopyFormatOrder),
+            getDisplayTimePartsEnabled: toSafeCallable(safeDeps.getDisplayTimePartsEnabled),
+            setDisplayTimePartsEnabled: toSafeCallable(safeDeps.setDisplayTimePartsEnabled),
+            getCopyFormatOrder: toSafeCallable(safeDeps.getCopyFormatOrder),
+            getCopyFormatEnabled: toSafeCallable(safeDeps.getCopyFormatEnabled),
+            setCopyFormatEnabled: toSafeCallable(safeDeps.setCopyFormatEnabled),
+            setCopyFormatOrder: toSafeCallable(safeDeps.setCopyFormatOrder),
+            getCopyTimePartsEnabled: toSafeCallable(safeDeps.getCopyTimePartsEnabled),
+            setCopyTimePartsEnabled: toSafeCallable(safeDeps.setCopyTimePartsEnabled),
+            upgradeNativeTitleTooltips: toSafeCallable(safeDeps.upgradeNativeTitleTooltips)
+        });
+
+        function savePersistenceSafe() {
+            return dep.savePersistence();
         }
 
         function translate(key) {
-            const translated = invokeDep("t", key);
+            const translated = dep.t(key);
             if (typeof translated === "string" && translated) return translated;
             return String(key || "");
         }
 
         function getCopyFormatKeys() {
-            const activeKeys = invokeDep("getActiveCopyFormatKeys");
+            const activeKeys = dep.getActiveCopyFormatKeys();
             if (Array.isArray(activeKeys) && activeKeys.length) return activeKeys;
             return Array.isArray(safeDeps.COPY_FORMAT_KEYS) ? safeDeps.COPY_FORMAT_KEYS : [];
         }
 
         function getTimePartKeys() {
-            const activeKeys = invokeDep("getActiveTimePartKeys");
+            const activeKeys = dep.getActiveTimePartKeys();
             if (Array.isArray(activeKeys) && activeKeys.length) return activeKeys;
             return Array.isArray(safeDeps.TIME_PART_KEYS) ? safeDeps.TIME_PART_KEYS : [];
         }
@@ -239,7 +290,7 @@
 
                 const dragHandle = doc.createElement("span");
                 dragHandle.className = "copy-format-drag";
-                dragHandle.textContent = "⋮⋮";
+                dragHandle.textContent = "??떘";
                 dragHandle.draggable = true;
 
                 const label = doc.createElement("label");
@@ -357,84 +408,84 @@
             const copyList = doc.getElementById("copy-format-list");
             if (!row || !displayList || !copyList) return;
 
-            const showCopyFormat = !!invokeDep("isShowCopyFormat");
+            const showCopyFormat = !!dep.isShowCopyFormat();
             row.style.display = showCopyFormat ? "flex" : "none";
             if (!showCopyFormat) {
                 displayList.textContent = "";
                 copyList.textContent = "";
-                invokeDep("updateCopyFormatPreview");
+                dep.updateCopyFormatPreview();
                 return;
             }
 
             renderFormatControlList(
                 displayList,
-                invokeDep("getDisplayFormatOrder"),
-                invokeDep("getDisplayFormatEnabled"),
+                dep.getDisplayFormatOrder(),
+                dep.getDisplayFormatEnabled(),
                 {
                     onToggle: (key, checked) => {
-                        const currentEnabled = invokeDep("getDisplayFormatEnabled");
-                        invokeDep("setDisplayFormatEnabled", {
+                        const currentEnabled = dep.getDisplayFormatEnabled();
+                        dep.setDisplayFormatEnabled({
                             ...((currentEnabled && typeof currentEnabled === "object") ? currentEnabled : {}),
                             [key]: checked
                         });
-                        invokeDep("renderList");
-                        invokeDep("updateCopyFormatPreview");
-                        invokeDep("savePersistence");
+                        dep.renderList();
+                        dep.updateCopyFormatPreview();
+                        savePersistenceSafe();
                     },
                     onReorder: (nextOrder) => {
-                        invokeDep("setDisplayFormatOrder", invokeDep("sanitizeCopyFormatOrder", nextOrder));
-                        invokeDep("renderList");
-                        invokeDep("updateCopyFormatPreview");
-                        invokeDep("savePersistence");
+                        dep.setDisplayFormatOrder(dep.sanitizeCopyFormatOrder(nextOrder));
+                        dep.renderList();
+                        dep.updateCopyFormatPreview();
+                        savePersistenceSafe();
                     },
-                    timePartsEnabled: invokeDep("getDisplayTimePartsEnabled"),
+                    timePartsEnabled: dep.getDisplayTimePartsEnabled(),
                     onTimePartToggle: (partKey, checked) => {
-                        const currentParts = invokeDep("getDisplayTimePartsEnabled");
-                        invokeDep("setDisplayTimePartsEnabled", {
+                        const currentParts = dep.getDisplayTimePartsEnabled();
+                        dep.setDisplayTimePartsEnabled({
                             ...((currentParts && typeof currentParts === "object") ? currentParts : {}),
                             [partKey]: checked
                         });
-                        invokeDep("renderList");
-                        invokeDep("updateCopyFormatPreview");
-                        invokeDep("savePersistence");
+                        dep.renderList();
+                        dep.updateCopyFormatPreview();
+                        savePersistenceSafe();
                     }
                 }
             );
 
             renderFormatControlList(
                 copyList,
-                invokeDep("getCopyFormatOrder"),
-                invokeDep("getCopyFormatEnabled"),
+                dep.getCopyFormatOrder(),
+                dep.getCopyFormatEnabled(),
                 {
                     onToggle: (key, checked) => {
-                        const currentEnabled = invokeDep("getCopyFormatEnabled");
-                        invokeDep("setCopyFormatEnabled", {
+                        const currentEnabled = dep.getCopyFormatEnabled();
+                        dep.setCopyFormatEnabled({
                             ...((currentEnabled && typeof currentEnabled === "object") ? currentEnabled : {}),
                             [key]: checked
                         });
-                        invokeDep("updateCopyFormatPreview");
-                        invokeDep("savePersistence");
+                        dep.updateCopyFormatPreview();
+                        savePersistenceSafe();
                     },
                     onReorder: (nextOrder) => {
-                        invokeDep("setCopyFormatOrder", invokeDep("sanitizeCopyFormatOrder", nextOrder));
-                        invokeDep("updateCopyFormatPreview");
-                        invokeDep("savePersistence");
+                        dep.setCopyFormatOrder(dep.sanitizeCopyFormatOrder(nextOrder));
+                        dep.updateCopyFormatPreview();
+                        savePersistenceSafe();
                     },
-                    timePartsEnabled: invokeDep("getCopyTimePartsEnabled"),
+                    timePartsEnabled: dep.getCopyTimePartsEnabled(),
                     onTimePartToggle: (partKey, checked) => {
-                        const currentParts = invokeDep("getCopyTimePartsEnabled");
-                        invokeDep("setCopyTimePartsEnabled", {
+                        const currentParts = dep.getCopyTimePartsEnabled();
+                        dep.setCopyTimePartsEnabled({
                             ...((currentParts && typeof currentParts === "object") ? currentParts : {}),
                             [partKey]: checked
                         });
-                        invokeDep("updateCopyFormatPreview");
-                        invokeDep("savePersistence");
+                        dep.updateCopyFormatPreview();
+                        savePersistenceSafe();
                     }
                 }
             );
 
-            invokeDep("updateCopyFormatPreview");
-            invokeDep("upgradeNativeTitleTooltips", row);
+            dep.updateCopyFormatPreview();
+            dep.upgradeNativeTitleTooltips(row);
         }
 
         return Object.freeze({

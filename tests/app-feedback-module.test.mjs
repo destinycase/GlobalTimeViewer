@@ -342,6 +342,158 @@ describe("GTV app feedback module", () => {
         expect(copied).toEqual([codeEl.textContent]);
     });
 
+    it("supports explicit *Ref dependency keys for document, location, storage, and navigator", async () => {
+        const module = loadAppFeedbackModule();
+        const banner = createElementStub("div");
+        const retryBtn = createElementStub("button");
+        const copyBtn = createElementStub("button");
+        const titleEl = createElementStub("h2");
+        const descEl = createElementStub("p");
+        const codeWrap = createElementStub("div");
+        const codeEl = createElementStub("code");
+        const detailsEl = createElementStub("pre");
+        const toastContainer = createElementStub("div");
+        let reloadCount = 0;
+        const storageState = new Map();
+        const copied = [];
+
+        const service = module.createService({
+            documentRef: {
+                getElementById(id) {
+                    if (id === "fatal-error-banner") return banner;
+                    if (id === "fatal-error-retry-btn") return retryBtn;
+                    if (id === "fatal-error-copy-btn") return copyBtn;
+                    if (id === "fatal-error-title") return titleEl;
+                    if (id === "fatal-error-desc") return descEl;
+                    if (id === "fatal-error-code-wrap") return codeWrap;
+                    if (id === "fatal-error-code") return codeEl;
+                    if (id === "fatal-error-details-content") return detailsEl;
+                    if (id === "toast-container") return toastContainer;
+                    return null;
+                },
+                createElement(tag) {
+                    return createElementStub(tag);
+                }
+            },
+            locationRef: {
+                reload() {
+                    reloadCount += 1;
+                }
+            },
+            storageRef: {
+                getItem(key) {
+                    return storageState.has(key) ? storageState.get(key) : null;
+                },
+                setItem(key, value) {
+                    storageState.set(key, value);
+                }
+            },
+            navigatorRef: {
+                userAgent: "GTV-Test-Agent",
+                clipboard: {
+                    writeText: async (value) => {
+                        copied.push(String(value));
+                    }
+                }
+            },
+            t: (key) => key,
+            logError: () => {}
+        });
+
+        service.showFatalError(new Error("storage quota exceeded"));
+        expect(descEl.textContent).toBe("error_fatal_desc_persistence");
+
+        const storedLogs = JSON.parse(storageState.get("GTV_BOOTSTRAP_ERRORS"));
+        expect(storedLogs).toHaveLength(1);
+        expect(storedLogs[0].type).toBe("persistence");
+        expect(storedLogs[0].userAgent).toBe("GTV-Test-Agent");
+
+        await retryBtn.trigger("click");
+        expect(reloadCount).toBe(1);
+
+        await copyBtn.trigger("click");
+        expect(copied).toEqual([codeEl.textContent]);
+        expect(toastContainer.children).toHaveLength(1);
+        expect(toastContainer.children[0].className).toContain("toast success");
+    });
+
+    it("prefers getter-based refs for document, location, storage, and navigator", async () => {
+        const module = loadAppFeedbackModule();
+        const banner = createElementStub("div");
+        const retryBtn = createElementStub("button");
+        const copyBtn = createElementStub("button");
+        const titleEl = createElementStub("h2");
+        const descEl = createElementStub("p");
+        const codeWrap = createElementStub("div");
+        const codeEl = createElementStub("code");
+        const detailsEl = createElementStub("pre");
+        const toastContainer = createElementStub("div");
+        let reloadCount = 0;
+        const storageState = new Map();
+        const copied = [];
+
+        globalThis.document = {
+            getElementById() {
+                throw new Error("global document should not be used");
+            }
+        };
+
+        const service = module.createService({
+            getDocumentRefOrNull: () => ({
+                getElementById(id) {
+                    if (id === "fatal-error-banner") return banner;
+                    if (id === "fatal-error-retry-btn") return retryBtn;
+                    if (id === "fatal-error-copy-btn") return copyBtn;
+                    if (id === "fatal-error-title") return titleEl;
+                    if (id === "fatal-error-desc") return descEl;
+                    if (id === "fatal-error-code-wrap") return codeWrap;
+                    if (id === "fatal-error-code") return codeEl;
+                    if (id === "fatal-error-details-content") return detailsEl;
+                    if (id === "toast-container") return toastContainer;
+                    return null;
+                },
+                createElement(tag) {
+                    return createElementStub(tag);
+                }
+            }),
+            getLocationRef: () => ({
+                reload() {
+                    reloadCount += 1;
+                }
+            }),
+            storageRef: {
+                getItem(key) {
+                    return storageState.has(key) ? storageState.get(key) : null;
+                },
+                setItem(key, value) {
+                    storageState.set(key, value);
+                }
+            },
+            getNavigatorRefOrNull: () => ({
+                userAgent: "GTV-Getter-Agent",
+                clipboard: {
+                    writeText: async (value) => {
+                        copied.push(String(value));
+                    }
+                }
+            }),
+            t: (key) => key,
+            logError: () => {}
+        });
+
+        service.showFatalError(new Error("state mismatch"));
+        expect(descEl.textContent).toBe("error_fatal_desc_state");
+        const storedLogs = JSON.parse(storageState.get("GTV_BOOTSTRAP_ERRORS"));
+        expect(storedLogs).toHaveLength(1);
+        expect(storedLogs[0].userAgent).toBe("GTV-Getter-Agent");
+
+        await retryBtn.trigger("click");
+        expect(reloadCount).toBe(1);
+        await copyBtn.trigger("click");
+        expect(copied).toEqual([codeEl.textContent]);
+        expect(toastContainer.children).toHaveLength(1);
+    });
+
     it("showFatalError falls back to global console and no-op DOM when unavailable", () => {
         const module = loadAppFeedbackModule();
         let loggedArgs = null;
@@ -358,5 +510,19 @@ describe("GTV app feedback module", () => {
         } finally {
             console.error = originalError;
         }
+    });
+
+    it("showFatalError prefers injected consoleError dependency when logError is unavailable", () => {
+        const module = loadAppFeedbackModule();
+        const loggedArgs = [];
+        const service = module.createService({
+            consoleError: (...args) => {
+                loggedArgs.push(args);
+            }
+        });
+
+        expect(() => service.showFatalError(new Error("fatal"))).not.toThrow();
+        expect(loggedArgs).toHaveLength(1);
+        expect(String(loggedArgs[0][0])).toContain("FATAL ERROR during app initialization");
     });
 });

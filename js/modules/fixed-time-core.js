@@ -1,18 +1,53 @@
 (function initGtvFixedTimeCore(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVFixedTimeCore] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
+
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVFixedTimeCore] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getCurrentLang: toSafeCallable("getCurrentLang", safeDeps.getCurrentLang),
+            getDayNightMarkerByHour: toSafeCallable("getDayNightMarkerByHour", safeDeps.getDayNightMarkerByHour),
+            sanitizeFixedTimeValue: toSafeCallable("sanitizeFixedTimeValue", safeDeps.sanitizeFixedTimeValue),
+            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
+            getLocalPartsByTimezone: toSafeCallable("getLocalPartsByTimezone", safeDeps.getLocalPartsByTimezone),
+            getFixedDateParts: toSafeCallable("getFixedDateParts", safeDeps.getFixedDateParts),
+            getUTCDateFromLocalParts: toSafeCallable("getUTCDateFromLocalParts", safeDeps.getUTCDateFromLocalParts),
+            sanitizeTimePartsEnabledForContext: toSafeCallable("sanitizeTimePartsEnabledForContext", safeDeps.sanitizeTimePartsEnabledForContext),
+            getDisplayTimePartsEnabled: toSafeCallable("getDisplayTimePartsEnabled", safeDeps.getDisplayTimePartsEnabled),
+            getDefaultFixedTimeName: toSafeCallable("getDefaultFixedTimeName", safeDeps.getDefaultFixedTimeName),
+            sanitizeFixedTimeName: toSafeCallable("sanitizeFixedTimeName", safeDeps.sanitizeFixedTimeName),
+            t: toSafeCallable("t", safeDeps.t)
+        });
 
         function isValidDate(value) {
             return value instanceof Date && Number.isFinite(value.getTime());
@@ -25,7 +60,7 @@
         }
 
         function getCurrentLang() {
-            const lang = invokeDep("getCurrentLang");
+            const lang = dep.getCurrentLang();
             return (typeof lang === "string" && lang) ? lang : "en";
         }
 
@@ -54,7 +89,7 @@
         }
 
         function resolveDayNightMarkerByHour(hour) {
-            const marker = invokeDep("getDayNightMarkerByHour", hour);
+            const marker = dep.getDayNightMarkerByHour(hour);
             const normalized = normalizeDayNightMarker(marker);
             if (normalized) return normalized;
             const numericHour = Number.parseInt(hour, 10);
@@ -64,7 +99,7 @@
 
         function getFixedTimeSlotParts(slot) {
             const defaultValue = String(safeDeps.DEFAULT_FIXED_TIME_VALUE || "09:00");
-            const safeTime = invokeDep("sanitizeFixedTimeValue", slot?.time, defaultValue) || defaultValue;
+            const safeTime = dep.sanitizeFixedTimeValue(slot?.time, defaultValue) || defaultValue;
             const [hourText, minuteText] = String(safeTime).split(":");
             const hour = parseInt(hourText, 10);
             const minute = parseInt(minuteText, 10);
@@ -79,13 +114,13 @@
 
             const safeAnchor = isValidDate(anchorDate) ? anchorDate : new Date();
             try {
-                const baseOffset = invokeDep("getFixedOffsetForDisplayAtDate", baseRef, safeAnchor);
-                const baseLocal = invokeDep("getLocalPartsByTimezone", safeAnchor, baseRef, baseOffset);
-                const fixedDateParts = invokeDep("getFixedDateParts");
+                const baseOffset = dep.getFixedOffsetForDisplayAtDate(baseRef, safeAnchor);
+                const baseLocal = dep.getLocalPartsByTimezone(safeAnchor, baseRef, baseOffset);
+                const fixedDateParts = dep.getFixedDateParts();
                 const year = Number.isFinite(fixedDateParts?.year) ? fixedDateParts.year : baseLocal.year;
                 const month = Number.isFinite(fixedDateParts?.month) ? fixedDateParts.month : baseLocal.month;
                 const day = Number.isFinite(fixedDateParts?.day) ? fixedDateParts.day : baseLocal.day;
-                const utcDate = invokeDep("getUTCDateFromLocalParts", {
+                const utcDate = dep.getUTCDateFromLocalParts({
                     year,
                     month,
                     day,
@@ -103,8 +138,8 @@
         function buildFixedTimeDisplayPayloadAtUtc(utcDate, tz) {
             if (!isValidDate(utcDate) || !tz) return null;
             try {
-                const fixedOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", tz, utcDate);
-                const localParts = invokeDep("getLocalPartsByTimezone", utcDate, tz, fixedOffsetMinutes);
+                const fixedOffsetMinutes = dep.getFixedOffsetForDisplayAtDate(tz, utcDate);
+                const localParts = dep.getLocalPartsByTimezone(utcDate, tz, fixedOffsetMinutes);
                 const weekdayIndex = new Date(Date.UTC(
                     localParts.year,
                     Math.max(0, localParts.month - 1),
@@ -129,9 +164,8 @@
         }
 
         function getFixedTimeDisplayPartsEnabled() {
-            const safe = invokeDep(
-                "sanitizeTimePartsEnabledForContext",
-                invokeDep("getDisplayTimePartsEnabled"),
+            const safe = dep.sanitizeTimePartsEnabledForContext(
+                dep.getDisplayTimePartsEnabled(),
                 "display",
                 "fixed-time"
             );
@@ -143,9 +177,9 @@
         }
 
         function getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount = 1) {
-            const defaultName = invokeDep("getDefaultFixedTimeName");
-            const safeName = invokeDep("sanitizeFixedTimeName", slot?.name, defaultName);
-            const fixedLabel = String(invokeDep("t", "th_fixed_time") || "Fixed Time");
+            const defaultName = dep.getDefaultFixedTimeName();
+            const safeName = dep.sanitizeFixedTimeName(slot?.name, defaultName);
+            const fixedLabel = String(dep.t("th_fixed_time") || "Fixed Time");
             if (safeName === defaultName && slotCount > 1) {
                 return `${fixedLabel} ${slotIdx + 1}`;
             }

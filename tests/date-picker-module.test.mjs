@@ -177,6 +177,7 @@ function createSandbox() {
         "Event",
         "AbortController",
         "CustomDatePicker",
+        "GTVDatePicker",
         "console"
     ];
     const previous = new Map();
@@ -232,6 +233,41 @@ test("CustomDatePicker initializes placeholder and input class", () => {
     expect(input.classList.contains("custom-date-picker-input")).toBe(true);
     expect(input.placeholder).toBe("YYYY-MM-DD");
     expect(picker.popup.parentNode).toBe(sandbox.document.body);
+});
+
+test("date picker module exposes frozen namespace without breaking legacy global", () => {
+    const sandbox = createSandbox();
+    expect(sandbox.GTVDatePicker?.CustomDatePicker).toBe(sandbox.CustomDatePicker);
+    expect(Object.isFrozen(sandbox.GTVDatePicker)).toBe(true);
+});
+
+test("date picker module exposes createService with frozen service", () => {
+    const sandbox = createSandbox();
+    const service = sandbox.GTVDatePicker.createService();
+    const input = sandbox.document.createElement("input");
+    const picker = service.createDatePicker(input, { type: "date", lang: "en" });
+
+    expect(Object.isFrozen(service)).toBe(true);
+    expect(service.CustomDatePicker).toBe(sandbox.CustomDatePicker);
+    expect(picker instanceof sandbox.CustomDatePicker).toBe(true);
+});
+
+test("date picker createService prefers injected constructor", () => {
+    const sandbox = createSandbox();
+    const calls = [];
+    function MockDatePicker(inputEl, options = {}) {
+        this.input = inputEl;
+        this.options = options;
+        calls.push({ inputEl, options });
+    }
+
+    const service = sandbox.GTVDatePicker.createService({ datePickerCtor: MockDatePicker });
+    const input = sandbox.document.createElement("input");
+    const picker = service.createDatePicker(input, { type: "time", lang: "ko" });
+
+    expect(service.CustomDatePicker).toBe(MockDatePicker);
+    expect(picker instanceof MockDatePicker).toBe(true);
+    expect(calls).toHaveLength(1);
 });
 
 test("setDate formats date and datetime values correctly", () => {

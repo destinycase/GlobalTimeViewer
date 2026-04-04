@@ -234,6 +234,74 @@ describe("GTV fixed time state module", () => {
         expect(increaseBtn.disabled).toBe(false);
     });
 
+    it("refreshFixedTimeSlotCountControls prefers injected documentRef over global document", () => {
+        const globalCountInput = createInput();
+        const globalDecreaseBtn = createButton();
+        const globalIncreaseBtn = createButton();
+        const injectedCountInput = createInput();
+        const injectedDecreaseBtn = createButton();
+        const injectedIncreaseBtn = createButton();
+        const group = { fixedTimes: [{}, {}] };
+        const module = loadFixedTimeStateModule({
+            document: createDocumentStub({
+                "fixed-time-slot-count-input": globalCountInput,
+                "fixed-time-slot-count-decrease": globalDecreaseBtn,
+                "fixed-time-slot-count-increase": globalIncreaseBtn
+            })
+        });
+        const service = module.createService({
+            documentRef: createDocumentStub({
+                "fixed-time-slot-count-input": injectedCountInput,
+                "fixed-time-slot-count-decrease": injectedDecreaseBtn,
+                "fixed-time-slot-count-increase": injectedIncreaseBtn
+            }),
+            getCurrentGroup: () => group,
+            ensureGroupFixedTimes: () => { },
+            sanitizeFixedTimeSlotCount: (value) => Number(value)
+        });
+
+        service.refreshFixedTimeSlotCountControls();
+
+        expect(injectedCountInput.value).toBe("2");
+        expect(injectedDecreaseBtn.disabled).toBe(false);
+        expect(injectedIncreaseBtn.disabled).toBe(false);
+        expect(globalCountInput.value).toBe("");
+    });
+
+    it("refreshFixedTimeSlotCountControls prefers injected getDocumentRefOrNull over global document", () => {
+        const globalCountInput = createInput();
+        const globalDecreaseBtn = createButton();
+        const globalIncreaseBtn = createButton();
+        const injectedCountInput = createInput();
+        const injectedDecreaseBtn = createButton();
+        const injectedIncreaseBtn = createButton();
+        const group = { fixedTimes: [{}, {}] };
+        const module = loadFixedTimeStateModule({
+            document: createDocumentStub({
+                "fixed-time-slot-count-input": globalCountInput,
+                "fixed-time-slot-count-decrease": globalDecreaseBtn,
+                "fixed-time-slot-count-increase": globalIncreaseBtn
+            })
+        });
+        const service = module.createService({
+            getDocumentRefOrNull: () => createDocumentStub({
+                "fixed-time-slot-count-input": injectedCountInput,
+                "fixed-time-slot-count-decrease": injectedDecreaseBtn,
+                "fixed-time-slot-count-increase": injectedIncreaseBtn
+            }),
+            getCurrentGroup: () => group,
+            ensureGroupFixedTimes: () => { },
+            sanitizeFixedTimeSlotCount: (value) => Number(value)
+        });
+
+        service.refreshFixedTimeSlotCountControls();
+
+        expect(injectedCountInput.value).toBe("2");
+        expect(injectedDecreaseBtn.disabled).toBe(false);
+        expect(injectedIncreaseBtn.disabled).toBe(false);
+        expect(globalCountInput.value).toBe("");
+    });
+
     it("setFixedTimeSlotCount returns false when group is missing", () => {
         const module = loadFixedTimeStateModule();
         const service = module.createService({

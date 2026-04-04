@@ -12,6 +12,19 @@
         const getMainGroupLocalizationService = (typeof safeDeps.getMainGroupLocalizationService === "function")
             ? safeDeps.getMainGroupLocalizationService
             : (() => null);
+        const logWarn = (typeof safeDeps.logWarn === "function")
+            ? safeDeps.logWarn
+            : (typeof safeDeps.consoleWarn === "function")
+                ? safeDeps.consoleWarn
+                : ((...args) => {
+                    if (typeof globalObj?.console?.warn === "function") {
+                        globalObj.console.warn(...args);
+                        return;
+                    }
+                    if (typeof console === "object" && console && typeof console.warn === "function") {
+                        console.warn(...args);
+                    }
+                });
 
         const warnedMissingMethods = new Set();
         const warnMissingServiceMethod = (typeof safeDeps.warnMissingServiceMethod === "function")
@@ -20,7 +33,7 @@
                 const key = `${serviceName}.${methodName}`;
                 if (warnedMissingMethods.has(key)) return;
                 warnedMissingMethods.add(key);
-                console.warn(`[GTV] ${key} is unavailable. Fallback path will be used.`);
+                logWarn(`[GTV] ${key} is unavailable. Fallback path will be used.`);
             });
 
         function getServiceMethod(serviceName, serviceRef, methodName) {

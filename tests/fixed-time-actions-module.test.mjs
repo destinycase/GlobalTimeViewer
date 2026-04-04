@@ -247,6 +247,48 @@ describe("GTV fixed time actions module", () => {
         expect(failEvents.filter((event) => event.message === "toast_copy_failed")).toHaveLength(2);
     });
 
+    it("prefers injected logWarn and logError dependencies", async () => {
+        const module = loadFixedTimeActionsModule({
+            console: {
+                warn() {
+                    throw new Error("global warn should not be used");
+                },
+                error() {
+                    throw new Error("global error should not be used");
+                }
+            }
+        });
+        const warnings = [];
+        const errors = [];
+        const service = module.createService({
+            logWarn: (...args) => {
+                warnings.push(args);
+            },
+            logError: (...args) => {
+                errors.push(args);
+            },
+            sanitizeCopyFormatOrderForContext: () => {
+                throw new Error("copy format failure");
+            },
+            writeClipboard: async () => {
+                throw new Error("clipboard denied");
+            },
+            t: (key) => key,
+            showToast: () => {}
+        });
+
+        service.getFixedTimeCopyState();
+        await service.copyFixedTimeCellPayload(
+            { dayNightGlyph: "AM", clock: "09:00:00", dayName: "Sat" },
+            { dn: true, time: true, weekday: false }
+        );
+
+        expect(warnings).toHaveLength(1);
+        expect(String(warnings[0][0])).toContain("Dependency \"sanitizeCopyFormatOrderForContext\" threw.");
+        expect(errors).toHaveLength(1);
+        expect(String(errors[0][0])).toContain("copyFixedTimeCellPayload failed:");
+    });
+
     it("parses fixed-time input parts and exposes input value", () => {
         const module = loadFixedTimeActionsModule();
         const service = module.createService({

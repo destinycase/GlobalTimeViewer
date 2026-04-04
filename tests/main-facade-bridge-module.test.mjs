@@ -88,9 +88,10 @@ describe("GTV main facade bridge module", () => {
         expect(service.sanitizeUtcRowOrderViaTimeCore).toBe("bound:sanitizeUtcRowOrder");
         expect(service.sanitizeUtcMsViaTimeCore).toBe("bound:sanitizeUtcMs");
         expect(service.confirmFnViaMainFoundation).toBe("bound:confirmFn");
+        expect(service.promptFnViaMainFoundation).toBe("bound:promptFn");
         expect(service.addTimezone()).toBe("ok");
         expect(service.getUtcMinuteCacheKey()).toBe("cache");
-        expect(bindFacadeMethod).toHaveBeenCalledTimes(3);
+        expect(bindFacadeMethod).toHaveBeenCalledTimes(4);
         expect(facadeBindingsModule.createService).toHaveBeenCalledWith({
             bindFacadeMethod,
             getMainTimezoneFacadeServiceRef,

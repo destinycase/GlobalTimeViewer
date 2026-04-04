@@ -477,4 +477,73 @@ describe("GTV main ui utils module", () => {
 
         expect(service.createDragGhostFromRow({})).toBe(null);
     });
+
+    it("uses injected documentRef/windowRef when globals are unavailable", () => {
+        const env = createUiTestEnv();
+        const moduleApi = loadMainUiUtilsModule({
+            window: {},
+            document: null,
+            console,
+            Element: FakeElement,
+            HTMLElement: FakeHTMLElement
+        });
+        const service = moduleApi.createService({
+            documentRef: env.documentMock,
+            windowRef: env.windowMock,
+            ElementCtor: FakeElement,
+            HTMLElementCtor: FakeHTMLElement
+        });
+
+        service.bindFloatingTooltipEvents();
+        expect(env.documentMock.getListenerCount("pointerenter")).toBe(1);
+        expect(env.windowMock.getListenerCount("scroll")).toBe(1);
+
+        const target = new FakeHTMLElement("BUTTON");
+        target.isConnected = true;
+        target.setAttribute("data-tooltip", "Injected Tooltip");
+        target.setBoundingClientRect({
+            left: 10,
+            top: 6,
+            width: 20,
+            height: 12,
+            bottom: 18
+        });
+
+        env.documentMock.dispatchEvent("pointerenter", { target });
+        const tooltip = env.documentMock.body.children.find((el) => el.id === "app-floating-tooltip");
+        expect(tooltip).toBeTruthy();
+        expect(tooltip.textContent).toBe("Injected Tooltip");
+        expect(tooltip.classList.contains("visible")).toBe(true);
+    });
+
+    it("uses injected getDocumentRefOrNull/getWindowRefOrNull when direct deps are unusable", () => {
+        const env = createUiTestEnv();
+        const moduleApi = loadMainUiUtilsModule({
+            window: {},
+            document: null,
+            console,
+            Element: FakeElement,
+            HTMLElement: FakeHTMLElement
+        });
+        const service = moduleApi.createService({
+            document: {
+                addEventListener() {
+                    throw new Error("direct document dep should not be used");
+                }
+            },
+            window: {
+                addEventListener() {
+                    throw new Error("direct window dep should not be used");
+                }
+            },
+            getDocumentRefOrNull: () => env.documentMock,
+            getWindowRefOrNull: () => env.windowMock,
+            ElementCtor: FakeElement,
+            HTMLElementCtor: FakeHTMLElement
+        });
+
+        service.bindFloatingTooltipEvents();
+        expect(env.documentMock.getListenerCount("pointerenter")).toBe(1);
+        expect(env.windowMock.getListenerCount("scroll")).toBe(1);
+    });
 });

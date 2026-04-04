@@ -57,6 +57,7 @@ describe("GTV main group tabs service module", () => {
         let renderGroupsCalled = 0;
         let renderMultiSubgroupsCalled = 0;
         const transferCalls = [];
+        const promptFn = async () => "prompted";
 
         const groupTabsService = {
             renderGroups: () => {
@@ -77,6 +78,7 @@ describe("GTV main group tabs service module", () => {
             t: (key) => key,
             showToast: () => {},
             confirmFn: () => false,
+            promptFn,
             getState: () => ({}),
             setState: () => {},
             isMultiTab: () => false,
@@ -112,6 +114,7 @@ describe("GTV main group tabs service module", () => {
 
         expect(result.groupTabsService).toBe(groupTabsService);
         expect(config.confirmFn()).toBe(false);
+        expect(config.promptFn).toBe(promptFn);
 
         config.renderGroups();
         config.renderMultiSubgroups();

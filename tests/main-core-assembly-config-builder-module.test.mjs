@@ -131,4 +131,21 @@ describe("GTV main core assembly config builder module", () => {
         expect(config.documentRef).toEqual({ title: "doc" });
         expect(typeof config.logError).toBe("function");
     });
+
+    it("merges base deps from createService with per-call deps", () => {
+        const moduleApi = loadMainCoreAssemblyConfigBuilderModule();
+        const builder = moduleApi.createService({
+            deferDynamicCall: (getter) => (...args) => getter()(...args),
+            getShowToastRef: () => (message) => `base:${message}`
+        });
+
+        const baseConfig = builder.buildMainCoreAssemblyConfig();
+        const overrideConfig = builder.buildMainCoreAssemblyConfig({
+            deferDynamicCall: (getter) => (...args) => getter()(...args),
+            getShowToastRef: () => (message) => `override:${message}`
+        });
+
+        expect(baseConfig.showToast("x")).toBe("base:x");
+        expect(overrideConfig.showToast("x")).toBe("override:x");
+    });
 });

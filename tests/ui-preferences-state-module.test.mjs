@@ -181,6 +181,102 @@ describe("GTV ui preferences state module", () => {
         expect(doc.documentElement.lang).toBe("ko");
     });
 
+    it("uses injected documentRef when global document is unavailable", async () => {
+        const moduleApi = loadUiPreferencesStateModule();
+        const doc = createDocumentStub();
+        delete globalThis.document;
+
+        const statePatches = [];
+        const service = moduleApi.createService({
+            documentRef: doc,
+            DEFAULT_UI_SCALE_PERCENT: 100,
+            MIN_UI_SCALE_PERCENT: 80,
+            MAX_UI_SCALE_PERCENT: 120,
+            UI_SCALE_PERCENT_OPTIONS: [80, 100, 120],
+            THEME_LIST: ["dark", "light"],
+            I18N_DATA: { ko: { ok: true }, en: { ok: true } },
+            setState: (next) => statePatches.push(next)
+        });
+
+        const selectEl = {
+            textContent: "old",
+            children: [],
+            appendChild(child) {
+                this.children.push(child);
+                return child;
+            }
+        };
+
+        service.populateUiScaleSelect(selectEl);
+        expect(selectEl.children.map((child) => child.value)).toEqual(["80", "100", "120"]);
+
+        await service.applyUiScale("120", false);
+        expect(doc.documentElement.style.zoom).toBe("1.2");
+        expect(doc.body.style.overflow).toBe("hidden");
+
+        await service.applyTheme("light", false);
+        expect(doc.documentElement["data-theme"]).toBe("light");
+
+        service.setCurrentLang("en");
+        expect(statePatches).toContainEqual({ currentLang: "en" });
+        expect(doc.documentElement.lang).toBe("en");
+    });
+
+    it("uses injected getDocumentRefOrNull when direct document dep is unusable", async () => {
+        const moduleApi = loadUiPreferencesStateModule();
+        const doc = createDocumentStub();
+        delete globalThis.document;
+
+        const statePatches = [];
+        const service = moduleApi.createService({
+            document: {
+                createElement() {
+                    throw new Error("direct document dep should not be used");
+                }
+            },
+            getDocumentRefOrNull: () => doc,
+            DEFAULT_UI_SCALE_PERCENT: 100,
+            MIN_UI_SCALE_PERCENT: 80,
+            MAX_UI_SCALE_PERCENT: 120,
+            UI_SCALE_PERCENT_OPTIONS: [80, 100, 120],
+            THEME_LIST: ["dark", "light"],
+            I18N_DATA: { ko: { ok: true }, en: { ok: true } },
+            setState: (next) => statePatches.push(next)
+        });
+
+        await service.applyTheme("light", false);
+        expect(doc.documentElement["data-theme"]).toBe("light");
+
+        service.setCurrentLang("en");
+        expect(statePatches).toContainEqual({ currentLang: "en" });
+        expect(doc.documentElement.lang).toBe("en");
+    });
+
+    it("uses injected document when documentRef is unavailable", async () => {
+        const moduleApi = loadUiPreferencesStateModule();
+        const doc = createDocumentStub();
+        delete globalThis.document;
+
+        const statePatches = [];
+        const service = moduleApi.createService({
+            document: doc,
+            DEFAULT_UI_SCALE_PERCENT: 100,
+            MIN_UI_SCALE_PERCENT: 80,
+            MAX_UI_SCALE_PERCENT: 120,
+            UI_SCALE_PERCENT_OPTIONS: [80, 100, 120],
+            THEME_LIST: ["dark", "light"],
+            I18N_DATA: { ko: { ok: true }, en: { ok: true } },
+            setState: (next) => statePatches.push(next)
+        });
+
+        await service.applyTheme("light", false);
+        expect(doc.documentElement["data-theme"]).toBe("light");
+
+        service.setCurrentLang("en");
+        expect(statePatches).toContainEqual({ currentLang: "en" });
+        expect(doc.documentElement.lang).toBe("en");
+    });
+
     it("applies day/night range changes with validation and rerender hooks", async () => {
         const moduleApi = loadUiPreferencesStateModule();
         const doc = createDocumentStub();

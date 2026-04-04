@@ -148,4 +148,40 @@ describe("GTV main image runtime services module", () => {
         const moduleApi = loadMainImageRuntimeServicesModule();
         expect(() => moduleApi.createService({})).toThrow("Missing required module API: GTVImageClone.createService");
     });
+
+    it("prefers injected documentRef over legacy document when wiring image clone service", () => {
+        const moduleApi = loadMainImageRuntimeServicesModule();
+        const injectedDocRef = { id: "injected-doc" };
+        const legacyDocRef = { id: "legacy-doc" };
+        let cloneConfig = null;
+
+        moduleApi.createService({
+            GTV_IMAGE_CLONE: {
+                createService: (cfg) => {
+                    cloneConfig = cfg;
+                    return { id: "clone" };
+                }
+            },
+            GTV_IMAGE_FOREIGN_RENDER: {
+                createService: () => ({ id: "foreign" })
+            },
+            GTV_IMAGE_EXPORT_BRIDGE: {
+                createService: () => ({ id: "bridge" })
+            },
+            GTV_TABLE_IMAGE_RENDER: {
+                createService: () => ({
+                    id: "table-render",
+                    extractTableCellText: () => ""
+                })
+            },
+            GTV_MULTI_RANGE_IMAGE_RENDER: {
+                createService: () => ({ id: "multi-render" })
+            },
+            documentRef: injectedDocRef,
+            document: legacyDocRef
+        });
+
+        expect(cloneConfig.documentRef).toBe(injectedDocRef);
+        expect(cloneConfig.document).toBe(injectedDocRef);
+    });
 });

@@ -4,13 +4,48 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getCurrentGroupZones: toSafeCallable(safeDeps.getCurrentGroupZones),
+            getCustomOffsetMinutes: toSafeCallable(safeDeps.getCustomOffsetMinutes),
+            getFixedOffsetForDisplayAtDate: toSafeCallable(safeDeps.getFixedOffsetForDisplayAtDate),
+            resolveLocalDateParts: toSafeCallable(safeDeps.resolveLocalDateParts),
+            getGlobalTime: toSafeCallable(safeDeps.getGlobalTime),
+            buildStrictUtcDateFromParts: toSafeCallable(safeDeps.buildStrictUtcDateFromParts),
+            showToast: toSafeCallable(safeDeps.showToast),
+            t: toSafeCallable(safeDeps.t),
+            renderMultiRanges: toSafeCallable(safeDeps.renderMultiRanges),
+            renderList: toSafeCallable(safeDeps.renderList),
+            parseDateTimeParts: toSafeCallable(safeDeps.parseDateTimeParts),
+            getTimezoneOffset: toSafeCallable(safeDeps.getTimezoneOffset),
+            isRealtime: toSafeCallable(safeDeps.isRealtime),
+            setGlobalTime: toSafeCallable(safeDeps.setGlobalTime),
+            updateClocks: toSafeCallable(safeDeps.updateClocks),
+            isMultiTab: toSafeCallable(safeDeps.isMultiTab),
+            isMultiRangeStartEditEnabled: toSafeCallable(safeDeps.isMultiRangeStartEditEnabled),
+            isMultiRangeEndEditEnabled: toSafeCallable(safeDeps.isMultiRangeEndEditEnabled),
+            ensureMultiRangeState: toSafeCallable(safeDeps.ensureMultiRangeState),
+            getMultiRanges: toSafeCallable(safeDeps.getMultiRanges),
+            getMultiRangeSlotDate: toSafeCallable(safeDeps.getMultiRangeSlotDate),
+            setMultiRangeSlotDate: toSafeCallable(safeDeps.setMultiRangeSlotDate),
+            syncFollowingRangesByDuration: toSafeCallable(safeDeps.syncFollowingRangesByDuration),
+            syncMultiRangeStartLinks: toSafeCallable(safeDeps.syncMultiRangeStartLinks),
+            savePersistence: toSafeCallable(safeDeps.savePersistence)
+        });
+
+        function translate(key) {
+            const translated = dep.t(key);
+            return (typeof translated === "string" && translated) ? translated : String(key || "");
         }
 
         function isValidDate(value) {
@@ -18,7 +53,7 @@
         }
 
         function getCurrentGroupZones() {
-            const zones = invokeDep("getCurrentGroupZones");
+            const zones = dep.getCurrentGroupZones();
             return Array.isArray(zones) ? zones : [];
         }
 
@@ -40,7 +75,7 @@
                     tz = currentZones.find((z) => z && z.id === timezoneId) || null;
                 }
                 if (!tz) return null;
-                const shifted = new Date(sourceDate.getTime() + (invokeDep("getCustomOffsetMinutes", tz) * 60000));
+                const shifted = new Date(sourceDate.getTime() + (dep.getCustomOffsetMinutes(tz) * 60000));
                 return {
                     Y: shifted.getUTCFullYear(),
                     M: shifted.getUTCMonth() + 1,
@@ -50,7 +85,7 @@
 
             if (timezoneId) {
                 const zoneRef = getCurrentGroupZones().find((item) => item && item.id === timezoneId) || null;
-                const fixedOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", zoneRef, sourceDate);
+                const fixedOffsetMinutes = dep.getFixedOffsetForDisplayAtDate(zoneRef, sourceDate);
                 if (Number.isFinite(fixedOffsetMinutes)) {
                     const shifted = new Date(sourceDate.getTime() + (fixedOffsetMinutes * 60000));
                     return {
@@ -61,7 +96,7 @@
                 }
             }
 
-            const parts = invokeDep("resolveLocalDateParts", sourceDate, timezone, timezoneId, null);
+            const parts = dep.resolveLocalDateParts(sourceDate, timezone, timezoneId, null);
             if (!parts || typeof parts !== "object") return null;
             if (!Number.isFinite(parts.Y) || !Number.isFinite(parts.M) || !Number.isFinite(parts.D)) return null;
             return { Y: parts.Y, M: parts.M, D: parts.D };
@@ -70,27 +105,27 @@
         function resolveLocalDatePartsByTimezone(timezone, slotIdx, timezoneId = null) {
             return resolveLocalDatePartsByTimezoneAtDate(
                 timezone,
-                invokeDep("getGlobalTime", slotIdx),
+                dep.getGlobalTime(slotIdx),
                 timezoneId
             );
         }
 
         function buildStrictUtcDateFromParts(parts) {
-            const date = invokeDep("buildStrictUtcDateFromParts", parts);
+            const date = dep.buildStrictUtcDateFromParts(parts);
             return isValidDate(date) ? date : null;
         }
 
         function showInvalidDateFeedback(isMultiRange = false) {
-            invokeDep("showToast", invokeDep("t", "toast_invalid_date"));
+            dep.showToast(translate("toast_invalid_date"));
             if (isMultiRange) {
-                invokeDep("renderMultiRanges");
+                dep.renderMultiRanges();
             } else {
-                invokeDep("renderList");
+                dep.renderList();
             }
         }
 
         function parseLocalInputParts(val, timezone, slotIdx, timezoneId, inputMode, baseDateResolver = null) {
-            const parts = invokeDep("parseDateTimeParts", val, inputMode);
+            const parts = dep.parseDateTimeParts(val, inputMode);
             if (!parts) return null;
 
             let Y = 0;
@@ -130,7 +165,7 @@
             if (timezone === "CUSTOM") {
                 const tz = getCurrentGroupZones().find((item) => item && item.id === timezoneId) || null;
                 if (!tz) return null;
-                const offsetMs = invokeDep("getCustomOffsetMinutes", tz) * 60000;
+                const offsetMs = dep.getCustomOffsetMinutes(tz) * 60000;
                 return new Date(tempUTC.getTime() - offsetMs);
             }
 
@@ -138,16 +173,16 @@
                 ? (getCurrentGroupZones().find((item) => item && item.id === timezoneId) || null)
                 : null;
             const anchorDate = isValidDate(offsetAnchor) ? offsetAnchor : tempUTC;
-            const fixedOffsetMinutes = invokeDep("getFixedOffsetForDisplayAtDate", zoneRef, anchorDate);
+            const fixedOffsetMinutes = dep.getFixedOffsetForDisplayAtDate(zoneRef, anchorDate);
             const offsetMinutes = Number.isFinite(fixedOffsetMinutes)
                 ? fixedOffsetMinutes
-                : invokeDep("getTimezoneOffset", timezone, tempUTC);
+                : dep.getTimezoneOffset(timezone, tempUTC);
             if (!Number.isFinite(offsetMinutes)) return null;
             return new Date(tempUTC.getTime() - (offsetMinutes * 60000));
         }
 
         function handleTimeChange(val, timezone, slotIdx, timezoneId = null, inputMode = "datetime") {
-            if (invokeDep("isRealtime")) return;
+            if (dep.isRealtime()) return;
             if (inputMode === "none") return;
 
             const tempUTC = parseLocalInputParts(val, timezone, slotIdx, timezoneId, inputMode);
@@ -160,20 +195,20 @@
                 tempUTC,
                 timezone,
                 timezoneId,
-                invokeDep("getGlobalTime", 0)
+                dep.getGlobalTime(0)
             );
             if (!isValidDate(utcDate)) return;
-            invokeDep("setGlobalTime", slotIdx, utcDate);
-            invokeDep("updateClocks");
+            dep.setGlobalTime(slotIdx, utcDate);
+            dep.updateClocks();
         }
 
         function handleMultiRangeTimeChange(rangeIdx, val, timezone, slotIdx, timezoneId = null, inputMode = "datetime") {
-            if (!invokeDep("isMultiTab")) return;
-            if (rangeIdx > 0 && slotIdx === 0 && !invokeDep("isMultiRangeStartEditEnabled", rangeIdx)) return;
-            if (slotIdx === 1 && !invokeDep("isMultiRangeEndEditEnabled", rangeIdx)) return;
+            if (!dep.isMultiTab()) return;
+            if (rangeIdx > 0 && slotIdx === 0 && !dep.isMultiRangeStartEditEnabled(rangeIdx)) return;
+            if (slotIdx === 1 && !dep.isMultiRangeEndEditEnabled(rangeIdx)) return;
 
-            invokeDep("ensureMultiRangeState");
-            const ranges = invokeDep("getMultiRanges");
+            dep.ensureMultiRangeState();
+            const ranges = dep.getMultiRanges();
             const safeRanges = Array.isArray(ranges) ? ranges : [];
             const range = safeRanges[rangeIdx];
             if (!range) return;
@@ -185,7 +220,7 @@
                 slotIdx,
                 timezoneId,
                 inputMode,
-                () => invokeDep("getMultiRangeSlotDate", rangeIdx, slotIdx)
+                () => dep.getMultiRangeSlotDate(rangeIdx, slotIdx)
             );
             if (!tempUTC) {
                 showInvalidDateFeedback(true);
@@ -199,16 +234,16 @@
                 new Date(range.startUtcMs)
             );
             if (!isValidDate(utcDate)) return;
-            invokeDep("setMultiRangeSlotDate", rangeIdx, slotIdx, utcDate);
+            dep.setMultiRangeSlotDate(rangeIdx, slotIdx, utcDate);
 
             if (slotIdx === 1) {
-                invokeDep("syncFollowingRangesByDuration", rangeIdx);
+                dep.syncFollowingRangesByDuration(rangeIdx);
             } else if (rangeIdx === 0) {
-                invokeDep("syncMultiRangeStartLinks", 1);
+                dep.syncMultiRangeStartLinks(1);
             }
 
-            invokeDep("renderMultiRanges");
-            invokeDep("savePersistence");
+            dep.renderMultiRanges();
+            dep.savePersistence();
         }
 
         return Object.freeze({

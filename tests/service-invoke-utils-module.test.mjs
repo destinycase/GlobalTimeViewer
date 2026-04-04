@@ -66,6 +66,17 @@ describe("GTV service invoke utils module", () => {
         expect(moduleApi.invokeGetterMethod(() => null, "add", [7, 8], -1)).toBe(-1);
     });
 
+    it("exposes createService and returns a frozen service api", () => {
+        const moduleApi = loadServiceInvokeUtilsModule();
+        const serviceApi = moduleApi.createService();
+        const service = {
+            add: (a, b) => a + b
+        };
+
+        expect(Object.isFrozen(serviceApi)).toBe(true);
+        expect(serviceApi.invokeGetterMethod(() => service, "add", [1, 2], -1)).toBe(3);
+    });
+
     it("creates an invoker bound to a getter", () => {
         const moduleApi = loadServiceInvokeUtilsModule();
         const service = {

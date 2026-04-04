@@ -1,31 +1,42 @@
 (function initGtvMultiState(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         let multiSubgroupIdSeed = 0;
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
         }
+
+        const dep = Object.freeze({
+            t: toSafeCallable(safeDeps.t),
+            getGroups: toSafeCallable(safeDeps.getGroups),
+            getDefaultMultiRangeBounds: toSafeCallable(safeDeps.getDefaultMultiRangeBounds),
+            sanitizeMultiRangeCount: toSafeCallable(safeDeps.sanitizeMultiRangeCount),
+            sanitizeUtcMs: toSafeCallable(safeDeps.sanitizeUtcMs),
+            sanitizeMultiRangeItem: toSafeCallable(safeDeps.sanitizeMultiRangeItem)
+        });
 
         function asArray(value) {
             return Array.isArray(value) ? value : [];
         }
 
         function translate(key) {
-            const translated = invokeDep("t", key);
+            const translated = dep.t(key);
             if (typeof translated === "string" && translated) return translated;
             return String(key || "");
         }
 
         function getGroupsSafe() {
-            return asArray(invokeDep("getGroups"));
+            return asArray(dep.getGroups());
         }
 
         function getMinMultiRangeCount() {
@@ -34,7 +45,7 @@
         }
 
         function getDefaultMultiRangeBoundsSafe() {
-            const defaults = invokeDep("getDefaultMultiRangeBounds");
+            const defaults = dep.getDefaultMultiRangeBounds();
             const nowMs = Date.now();
             const startMs = Number(defaults?.startMs);
             const endMs = Number(defaults?.endMs);
@@ -47,7 +58,7 @@
         }
 
         function sanitizeMultiRangeCountSafe(value) {
-            const sanitized = invokeDep("sanitizeMultiRangeCount", value);
+            const sanitized = dep.sanitizeMultiRangeCount(value);
             const minCount = getMinMultiRangeCount();
             if (Number.isFinite(Number(sanitized))) {
                 return Math.max(minCount, Math.trunc(Number(sanitized)));
@@ -60,7 +71,7 @@
         }
 
         function sanitizeUtcMsSafe(value, fallbackMs) {
-            const sanitized = invokeDep("sanitizeUtcMs", value, fallbackMs);
+            const sanitized = dep.sanitizeUtcMs(value, fallbackMs);
             if (Number.isFinite(Number(sanitized))) return Number(sanitized);
             const parsed = Number(value);
             if (Number.isFinite(parsed)) return parsed;
@@ -68,7 +79,7 @@
         }
 
         function sanitizeMultiRangeItemSafe(item, fallbackStartMs, fallbackEndMs) {
-            const sanitized = invokeDep("sanitizeMultiRangeItem", item, fallbackStartMs, fallbackEndMs);
+            const sanitized = dep.sanitizeMultiRangeItem(item, fallbackStartMs, fallbackEndMs);
             if (sanitized && typeof sanitized === "object") {
                 const startUtcMs = sanitizeUtcMsSafe(sanitized.startUtcMs, fallbackStartMs);
                 const endUtcMs = sanitizeUtcMsSafe(sanitized.endUtcMs, fallbackEndMs);

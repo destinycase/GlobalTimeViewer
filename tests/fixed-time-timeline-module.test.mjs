@@ -154,6 +154,29 @@ describe("GTV fixed time timeline module", () => {
         expect(Number.isNaN(capturedAnchor.getTime())).toBe(false);
     });
 
+    it("prefers injected logWarn when dependency access throws", () => {
+        const module = loadFixedTimeTimelineModule({
+            console: {
+                warn() {
+                    throw new Error("global warn should not be used");
+                }
+            }
+        });
+        const warnings = [];
+        const service = module.createService({
+            logWarn: (...args) => {
+                warnings.push(args);
+            },
+            getCurrentGroup: () => {
+                throw new Error("group failure");
+            }
+        });
+
+        expect(service.getFixedTimeTimelineSlots()).toEqual([]);
+        expect(warnings).toHaveLength(1);
+        expect(String(warnings[0][0])).toContain("Dependency \"getCurrentGroup\" threw.");
+    });
+
     it("returns timeline slot list/count from current group", () => {
         const module = loadFixedTimeTimelineModule();
         const group = {

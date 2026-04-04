@@ -121,6 +121,35 @@ describe("GTV time adjust UI module", () => {
         expect(service.sanitizeTimeAdjustDayStep(999999)).toBe(36500);
     });
 
+    it("createTimeAdjustActionButton uses deps.document when global document is insufficient", () => {
+        const fallbackDocument = {
+            createElement() {
+                return createElementStub();
+            }
+        };
+        const module = loadTimeAdjustUiModule({
+            document: {
+                getElementById() {
+                    return null;
+                }
+            }
+        });
+        const calls = [];
+        const service = module.createService({
+            document: fallbackDocument,
+            t: (key) => key,
+            applyTimeAdjustAction: (slotIdx, action) => {
+                calls.push({ slotIdx, action });
+            }
+        });
+
+        const button = service.createTimeAdjustActionButton("btn_plus_hour", 0, "plus_hour");
+        button.dispatch("click");
+
+        expect(button).toBeTruthy();
+        expect(calls).toEqual([{ slotIdx: 0, action: "plus_hour" }]);
+    });
+
     it("attachTimeAdjustToggleLabel exits safely for invalid elements", () => {
         const module = loadTimeAdjustUiModule();
         const service = module.createService({});
@@ -222,5 +251,33 @@ describe("GTV time adjust UI module", () => {
         button.dispatch("click");
 
         expect(calls).toEqual([{ slotIdx: 1, action: "plus_hour" }]);
+    });
+
+    it("createTimeAdjustActionButton prefers injected getDocumentRefOrNull over global document", () => {
+        const module = loadTimeAdjustUiModule({
+            document: {
+                createElement() {
+                    throw new Error("global document should not be used");
+                }
+            }
+        });
+        const calls = [];
+        const service = module.createService({
+            getDocumentRefOrNull: () => ({
+                createElement() {
+                    return createElementStub();
+                }
+            }),
+            t: (key) => key,
+            applyTimeAdjustAction: (slotIdx, action) => {
+                calls.push({ slotIdx, action });
+            }
+        });
+
+        const button = service.createTimeAdjustActionButton("btn_plus_hour", 2, "plus_hour");
+        button.dispatch("click");
+
+        expect(button).toBeTruthy();
+        expect(calls).toEqual([{ slotIdx: 2, action: "plus_hour" }]);
     });
 });

@@ -26,13 +26,44 @@
             safeDeps.sanitizeTimePartsEnabledForContext,
             (value) => (value && typeof value === "object") ? { ...value } : {}
         );
+        const logWarn = resolveFunction(
+            safeDeps.logWarn,
+            (...args) => {
+                if (typeof safeDeps.consoleWarn === "function") {
+                    safeDeps.consoleWarn(...args);
+                    return;
+                }
+                if (typeof globalObj?.console?.warn === "function") {
+                    globalObj.console.warn(...args);
+                    return;
+                }
+                if (typeof console === "object" && console && typeof console.warn === "function") {
+                    console.warn(...args);
+                }
+            }
+        );
         const getWindowRef = resolveFunction(
             safeDeps.getWindowRef,
-            () => ((typeof window === "object" && window) ? window : null)
+            () => {
+                if (safeDeps.windowRef && typeof safeDeps.windowRef === "object") return safeDeps.windowRef;
+                if (safeDeps.window && typeof safeDeps.window === "object") return safeDeps.window;
+                if (globalObj?.window && typeof globalObj.window === "object") return globalObj.window;
+                if (typeof window === "object" && window) return window;
+                if (globalObj && typeof globalObj === "object") return globalObj;
+                return null;
+            }
         );
         const getDocumentRef = resolveFunction(
             safeDeps.getDocumentRef,
-            () => ((typeof document === "object" && document) ? document : null)
+            () => {
+                if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
+                if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
+                const safeWindow = getWindowRef();
+                if (safeWindow?.document && typeof safeWindow.document === "object") return safeWindow.document;
+                if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
+                if (typeof document === "object" && document) return document;
+                return null;
+            }
         );
         const t = resolveFunction(safeDeps.t, (key) => String(key || ""));
 
@@ -241,7 +272,7 @@
             const safeDocument = getDocumentRef();
             const CustomDatePickerCtor = safeWindow?.CustomDatePicker;
             if (!CustomDatePickerCtor) {
-                console.warn("CustomDatePicker module is unavailable. Date picker binding is skipped.");
+                logWarn("CustomDatePicker module is unavailable. Date picker binding is skipped.");
                 return;
             }
 

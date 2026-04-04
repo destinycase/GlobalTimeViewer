@@ -256,6 +256,82 @@ describe("GTV fixed time table module", () => {
         expect(() => service.renderFixedTimeTable()).not.toThrow();
     });
 
+    it("renderFixedTimeTable prefers injected documentRef when global document is unavailable", () => {
+        const { doc, headRow, body } = createTableDocument();
+        const module = loadFixedTimeTableModule({
+            document: {
+                getElementById() {
+                    throw new Error("global document should not be used");
+                },
+                querySelector() {
+                    throw new Error("global document should not be used");
+                }
+            }
+        });
+        const service = module.createService({
+            documentRef: doc,
+            getCurrentGroup: () => ({
+                fixedTimes: [{ id: "ft-1", name: "Slot A", time: "09:00" }],
+                fixedTimeShowLiveNow: false
+            }),
+            ensureGroupFixedTimes: () => {},
+            getFixedTimeDisplayPartsEnabled: () => ({ dn: true, time: true, weekday: true }),
+            getDisplayFormatOrder: () => ["timezone"],
+            getDisplayFormatEnabled: () => ({ timezone: true }),
+            sanitizeCopyFormatOrderForContext: (order) => order,
+            sanitizeCopyFormatEnabledForContext: (enabled) => enabled,
+            getBaseTimezoneRef: () => ({ id: "utc", zone: "UTC" }),
+            getRenderableTimezoneRows: () => [],
+            getGlobalTime: () => new Date("2026-03-07T00:00:00.000Z"),
+            resolveFixedTimeSlotUtcDate: () => new Date("2026-03-07T09:00:00.000Z"),
+            getZoneAbbreviation: () => "UTC",
+            upgradeNativeTitleTooltips: () => {}
+        });
+
+        service.renderFixedTimeTable();
+
+        expect(headRow.children).toHaveLength(1);
+        expect(body.children).toHaveLength(1);
+    });
+
+    it("renderFixedTimeTable prefers injected getDocumentRefOrNull when global document is unavailable", () => {
+        const { doc, headRow, body } = createTableDocument();
+        const module = loadFixedTimeTableModule({
+            document: {
+                getElementById() {
+                    throw new Error("global document should not be used");
+                },
+                querySelector() {
+                    throw new Error("global document should not be used");
+                }
+            }
+        });
+        const service = module.createService({
+            getDocumentRefOrNull: () => doc,
+            getCurrentGroup: () => ({
+                fixedTimes: [{ id: "ft-1", name: "Slot A", time: "09:00" }],
+                fixedTimeShowLiveNow: false
+            }),
+            ensureGroupFixedTimes: () => {},
+            getFixedTimeDisplayPartsEnabled: () => ({ dn: true, time: true, weekday: true }),
+            getDisplayFormatOrder: () => ["timezone"],
+            getDisplayFormatEnabled: () => ({ timezone: true }),
+            sanitizeCopyFormatOrderForContext: (order) => order,
+            sanitizeCopyFormatEnabledForContext: (enabled) => enabled,
+            getBaseTimezoneRef: () => ({ id: "utc", zone: "UTC" }),
+            getRenderableTimezoneRows: () => [],
+            getGlobalTime: () => new Date("2026-03-07T00:00:00.000Z"),
+            resolveFixedTimeSlotUtcDate: () => new Date("2026-03-07T09:00:00.000Z"),
+            getZoneAbbreviation: () => "UTC",
+            upgradeNativeTitleTooltips: () => {}
+        });
+
+        service.renderFixedTimeTable();
+
+        expect(headRow.children).toHaveLength(1);
+        expect(body.children).toHaveLength(1);
+    });
+
     it("getFixedTimeOffsetTextAtDate supports custom/utc/fixed/fallback branches", () => {
         const module = loadFixedTimeTableModule();
         const service = module.createService({

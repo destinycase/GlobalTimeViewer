@@ -1,23 +1,63 @@
 (function initGtvImageForeignRender(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const TABLE_IMAGE_EXPORT_WIDTH = Number.isFinite(Number(safeDeps.TABLE_IMAGE_EXPORT_WIDTH))
             ? Number(safeDeps.TABLE_IMAGE_EXPORT_WIDTH)
             : 1600;
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (err) {
-                console.warn(`[GTVImageForeignRender] Dependency "${name}" threw.`, err);
-                return undefined;
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.warn === "function") {
+                globalObj.console.warn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
             }
         }
 
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logWarn(`[GTVImageForeignRender] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            getCanUseForeignObjectRenderer: toSafeCallable("getCanUseForeignObjectRenderer", safeDeps.getCanUseForeignObjectRenderer),
+            setCanUseForeignObjectRenderer: toSafeCallable("setCanUseForeignObjectRenderer", safeDeps.setCanUseForeignObjectRenderer)
+        });
+
+        function getCachedForeignObjectRendererSupport() {
+            return dep.getCanUseForeignObjectRenderer();
+        }
+
         function getDocumentRef() {
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") return injected;
+            }
+            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
+            if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
+            if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
             return (typeof document === "object" && document) ? document : null;
         }
 
@@ -33,12 +73,12 @@
         }
 
         function getCanUseForeignObjectRenderer() {
-            const value = invokeDep("getCanUseForeignObjectRenderer");
+            const value = getCachedForeignObjectRendererSupport();
             return typeof value === "boolean" ? value : null;
         }
 
         function setCanUseForeignObjectRenderer(value) {
-            invokeDep("setCanUseForeignObjectRenderer", !!value);
+            dep.setCanUseForeignObjectRenderer(!!value);
         }
 
         function collectDocumentCssText() {

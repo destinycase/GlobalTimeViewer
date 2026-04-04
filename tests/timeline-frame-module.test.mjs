@@ -245,6 +245,23 @@ describe("GTV timeline frame module", () => {
         expect(() => service.renderTimelineFrame()).not.toThrow();
     });
 
+    it("prefers injected logWarn when dependency access throws", () => {
+        const module = loadTimelineFrameModule();
+        const warnings = [];
+        const service = module.createService({
+            logWarn: (...args) => {
+                warnings.push(args);
+            },
+            getTimelineFrameElement: () => {
+                throw new Error("frame failure");
+            }
+        });
+
+        expect(() => service.renderTimelineFrame()).not.toThrow();
+        expect(warnings).toHaveLength(1);
+        expect(String(warnings[0][0])).toContain("Dependency \"getTimelineFrameElement\" threw.");
+    });
+
     it("applyTimelineRatioToSlot uses fixed-time path and respects render/persist options", () => {
         const module = loadTimelineFrameModule();
         let applyCount = 0;
@@ -1047,6 +1064,76 @@ describe("GTV timeline frame module", () => {
         expect(titles).toHaveLength(2);
         expect(titles[0].textContent).toBe("th_time_day_start");
         expect(titles[1].textContent).toBe("th_time_day_end");
+    });
+
+    it("renderTimelineFrame prefers injected getDocumentRefOrNull when direct document dep is unusable", () => {
+        const frame = createMockElement(null);
+        const injectedDoc = {
+            createElement() {
+                return createMockElement(injectedDoc);
+            },
+            getElementById() {
+                return null;
+            }
+        };
+        const module = loadTimelineFrameModule({
+            document: {
+                createElement() {
+                    throw new Error("global document should not be used");
+                },
+                getElementById() {
+                    throw new Error("global document should not be used");
+                }
+            }
+        });
+        const service = module.createService({
+            document: {
+                createElement() {
+                    throw new Error("direct document dep should not be used");
+                },
+                getElementById() {
+                    throw new Error("direct document dep should not be used");
+                }
+            },
+            getDocumentRefOrNull: () => injectedDoc,
+            getTimelineFrameElement: () => frame,
+            getShowTimeline: () => true,
+            getCurrentMainTab: () => "live",
+            isMultiTab: () => false,
+            isFixedTimeTab: () => false,
+            getIsRealtime: () => true,
+            getGlobalTime: () => new Date(Date.UTC(2026, 2, 26, 10, 0, 0)),
+            getBaseTimezoneRef: () => ({ id: "utc", zone: "UTC", type: "standard" }),
+            getCurrentGroupZones: () => [],
+            isCurrentGroupUtcRowVisible: () => false,
+            getCurrentGroupUtcRowOrder: () => 0,
+            getUTCRef: () => ({ id: "utc", zone: "UTC", type: "standard" }),
+            getZoneDisplayName: () => "UTC",
+            getFixedOffsetForDisplayAtDate: () => 0,
+            getLocalPartsByTimezone: (dateObj) => ({
+                year: dateObj.getUTCFullYear(),
+                month: dateObj.getUTCMonth() + 1,
+                day: dateObj.getUTCDate(),
+                hour: dateObj.getUTCHours(),
+                minute: dateObj.getUTCMinutes(),
+                second: dateObj.getUTCSeconds()
+            }),
+            getUTCDateFromLocalParts: (parts) => new Date(Date.UTC(
+                Number(parts?.year || 1970),
+                Number(parts?.month || 1) - 1,
+                Number(parts?.day || 1),
+                Number(parts?.hour || 0),
+                Number(parts?.minute || 0),
+                Number(parts?.second || 0)
+            )),
+            getDayNightMarkerByHour: () => "DAY",
+            t: (key) => key,
+            getCurrentLang: () => "en",
+            getCurrentTheme: () => "dark"
+        });
+
+        expect(() => service.renderTimelineFrame()).not.toThrow();
+        expect(frame.querySelectorAll(".timeline-panel")).toHaveLength(1);
     });
 
     it("applyTimelineRatioToSlot clamps out-of-range ratio values", () => {

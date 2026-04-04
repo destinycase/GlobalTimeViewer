@@ -84,14 +84,14 @@
         }
 
         function sanitizeTimezoneId(value) {
-            if (value == null) return "";
+            if (value === null || value === undefined) return "";
             const timeCore = getTimeCore();
             if (!timeCore || typeof timeCore.sanitizeTimezoneId !== "function") return String(value || "");
             return timeCore.sanitizeTimezoneId(value);
         }
 
         function sanitizeBaseTimezoneId(value) {
-            if (value == null) return "utc";
+            if (value === null || value === undefined) return "utc";
             const timeCore = getTimeCore();
             if (!timeCore || typeof timeCore.sanitizeBaseTimezoneId !== "function") return "utc";
             return timeCore.sanitizeBaseTimezoneId(value);

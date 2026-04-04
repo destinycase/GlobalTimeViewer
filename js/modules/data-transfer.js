@@ -1,7 +1,8 @@
 (function initGtvDataTransfer(globalObj) {
     "use strict";
 
-    function createService(deps) {
+    function createService(deps = {}) {
+        deps = (deps && typeof deps === "object") ? deps : {};
         let pendingGroupImportIndex = null;
         let pendingSubgroupImportTarget = null;
         const maxImportFileBytes = Number.isFinite(Number(deps.MAX_IMPORT_FILE_BYTES))
@@ -12,12 +13,53 @@
             : 50;
 
         function getWindowRef() {
+            if (typeof deps.getWindowRef === "function") {
+                const injected = deps.getWindowRef();
+                if (
+                    injected
+                    && typeof injected.addEventListener === "function"
+                    && typeof injected.removeEventListener === "function"
+                ) {
+                    return injected;
+                }
+            }
+            if (typeof deps.getWindowRefOrNull === "function") {
+                const injected = deps.getWindowRefOrNull();
+                if (
+                    injected
+                    && typeof injected.addEventListener === "function"
+                    && typeof injected.removeEventListener === "function"
+                ) {
+                    return injected;
+                }
+            }
+            if (
+                deps.windowRef
+                && typeof deps.windowRef.addEventListener === "function"
+                && typeof deps.windowRef.removeEventListener === "function"
+            ) {
+                return deps.windowRef;
+            }
             if (
                 deps.window
                 && typeof deps.window.addEventListener === "function"
                 && typeof deps.window.removeEventListener === "function"
             ) {
                 return deps.window;
+            }
+            if (
+                globalObj?.window
+                && typeof globalObj.window.addEventListener === "function"
+                && typeof globalObj.window.removeEventListener === "function"
+            ) {
+                return globalObj.window;
+            }
+            if (
+                globalObj
+                && typeof globalObj.addEventListener === "function"
+                && typeof globalObj.removeEventListener === "function"
+            ) {
+                return globalObj;
             }
             if (
                 typeof window === "object"
@@ -31,6 +73,21 @@
         }
 
         function getDocumentRef() {
+            if (typeof deps.getDocumentRef === "function") {
+                const injected = deps.getDocumentRef();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (typeof deps.getDocumentRefOrNull === "function") {
+                const injected = deps.getDocumentRefOrNull();
+                if (injected && typeof injected === "object") {
+                    return injected;
+                }
+            }
+            if (deps.documentRef && typeof deps.documentRef === "object") {
+                return deps.documentRef;
+            }
             if (deps.document && typeof deps.document === "object") {
                 return deps.document;
             }
@@ -38,10 +95,31 @@
             if (win?.document && typeof win.document === "object") {
                 return win.document;
             }
+            if (globalObj?.document && typeof globalObj.document === "object") {
+                return globalObj.document;
+            }
             if (typeof document === "object" && document) {
                 return document;
             }
             return null;
+        }
+
+        function logError(...args) {
+            if (typeof deps.logError === "function") {
+                deps.logError(...args);
+                return;
+            }
+            if (typeof deps.consoleError === "function") {
+                deps.consoleError(...args);
+                return;
+            }
+            if (typeof globalObj?.console?.error === "function") {
+                globalObj.console.error(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.error === "function") {
+                console.error(...args);
+            }
         }
 
         function triggerJsonDownload(fileName, payload) {
@@ -315,7 +393,7 @@
                 triggerJsonDownload(fileName, exportPayload);
                 deps.showToast(deps.tFormat("toast_group_export_success", { filename: fileName }));
             } catch (err) {
-                console.error("exportGroupToJSON failed:", err);
+                logError("exportGroupToJSON failed:", err);
                 deps.showToast(deps.t("toast_group_export_failed"));
             }
         }
@@ -362,7 +440,7 @@
                 await applyImportedGroupSettings(parsed, pendingGroupImportIndex ?? deps.getActiveGroupId());
                 deps.showToast(deps.tFormat("toast_group_import_success", { filename: file.name || getGroupExportFileName("group") }));
             } catch (err) {
-                console.error("handleGroupImportFile failed:", err);
+                logError("handleGroupImportFile failed:", err);
                 if (err.message === "Invalid group payload" || err.message === "Invalid group payload type") {
                     deps.showToast(deps.t("toast_invalid_format"));
                 } else if (err && typeof err === "object" && err.code === "PERSISTENCE_WRITE_FAILED") {
@@ -412,7 +490,7 @@
                 triggerJsonDownload(fileName, exportPayload);
                 deps.showToast(deps.tFormat("toast_subgroup_export_success", { filename: fileName }));
             } catch (err) {
-                console.error("exportSubgroupToJSON failed:", err);
+                logError("exportSubgroupToJSON failed:", err);
                 deps.showToast(deps.t("toast_subgroup_export_failed"));
             }
         }
@@ -467,7 +545,7 @@
                 await applyImportedSubgroupSettings(parsed, target.groupIdx, target.subgroupId);
                 deps.showToast(deps.tFormat("toast_subgroup_import_success", { filename: file.name || getSubgroupExportFileName("group", "subgroup") }));
             } catch (err) {
-                console.error("handleSubgroupImportFile failed:", err);
+                logError("handleSubgroupImportFile failed:", err);
                 if (err.message === "Invalid subgroup payload" || err.message === "Invalid subgroup payload type") {
                     deps.showToast(deps.t("toast_invalid_format"));
                 } else if (err && typeof err === "object" && err.code === "PERSISTENCE_WRITE_FAILED") {
@@ -542,7 +620,7 @@
                 triggerJsonDownload(fileName, exportPayload);
                 deps.showToast(deps.tFormat("toast_settings_export_success", { filename: fileName }));
             } catch (err) {
-                console.error("exportSettingsToJSON failed:", err);
+                logError("exportSettingsToJSON failed:", err);
                 deps.showToast(deps.t("toast_settings_export_failed"));
             }
         }
@@ -573,7 +651,7 @@
                 await deps.applyImportedSettings(parsed);
                 deps.showToast(deps.tFormat("toast_settings_import_success", { filename: file.name || getSettingsExportFileName() }));
             } catch (err) {
-                console.error("handleSettingsImportFile failed:", err);
+                logError("handleSettingsImportFile failed:", err);
                 if (err.message === "Invalid settings payload" || err.message === "Invalid settings payload: groups is required") {
                     deps.showToast(deps.t("toast_invalid_format"));
                 } else {

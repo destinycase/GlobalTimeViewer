@@ -67,8 +67,22 @@
         const renderBaseTimeSelect = deps.renderBaseTimeSelect;
         const updateOptionRowVisibility = deps.updateOptionRowVisibility;
         const upgradeNativeTitleTooltips = deps.upgradeNativeTitleTooltips;
+        const getDocumentRef = (typeof deps.getDocumentRef === "function")
+            ? deps.getDocumentRef
+            : ((typeof deps.getDocumentRefOrNull === "function")
+                ? deps.getDocumentRefOrNull
+                : (() => {
+                    if (deps.documentRef && typeof deps.documentRef === "object") return deps.documentRef;
+                    if (deps.document && typeof deps.document === "object") return deps.document;
+                    if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
+                    if (typeof document === "object" && document) return document;
+                    return null;
+                }));
 
         function initUI() {
+            const documentRef = getDocumentRef();
+            if (!documentRef) return;
+            const document = documentRef;
             // 메인 탭
             document.querySelectorAll(".nav-item").forEach((btn) => {
                 btn.addEventListener("click", () => switchMainTab(btn.dataset.tab));
@@ -374,14 +388,14 @@
 
             const addGroupBtn = document.getElementById("add-group-btn");
             if (addGroupBtn) {
-                addGroupBtn.addEventListener("click", () => {
-                    addGroup();
+                addGroupBtn.addEventListener("click", async () => {
+                    await addGroup();
                 });
             }
             const addMultiSubgroupBtn = document.getElementById("add-multi-subgroup-btn");
             if (addMultiSubgroupBtn) {
-                addMultiSubgroupBtn.addEventListener("click", () => {
-                    addMultiSubgroup();
+                addMultiSubgroupBtn.addEventListener("click", async () => {
+                    await addMultiSubgroup();
                 });
             }
 

@@ -200,4 +200,42 @@ describe("GTV image foreign render module", () => {
 
         await expect(service.renderElementWithForeignObjectToPngDataUrl({})).rejects.toThrow("DOM unavailable");
     });
+
+    it("collectDocumentCssText prefers injected getDocumentRefOrNull over global document", () => {
+        const injectedDoc = {
+            styleSheets: [
+                {
+                    cssRules: [
+                        { cssText: ".from-injected { color: red; }" }
+                    ]
+                }
+            ],
+            querySelectorAll() {
+                return [];
+            },
+            documentElement: {},
+            body: {}
+        };
+        const module = loadImageForeignRenderModule({
+            document: {
+                styleSheets: [],
+                querySelectorAll() {
+                    return [];
+                },
+                documentElement: {},
+                body: {}
+            },
+            getComputedStyle: () => ({
+                getPropertyValue: () => "",
+                backgroundColor: "#111111"
+            })
+        });
+        const service = module.createService({
+            getDocumentRefOrNull: () => injectedDoc
+        });
+
+        const cssText = service.collectDocumentCssText();
+
+        expect(cssText).toContain(".from-injected");
+    });
 });

@@ -81,9 +81,9 @@ td {
         radial-gradient(circle at 82% 72%, rgba(56, 189, 248, 0.08) 0%, transparent 44%);
 }
 
-/* ── 부트스트랩 로딩 오버레이 ──────────────────────────────────────────── */
-/* JS가 실행되기 전에도 CSS만으로 화면 전체를 덮어 빈 화면을 방지한다.      */
-/* 부트스트랩 성공 시 .hidden 클래스를 추가해 fade-out 후 제거한다.         */
+/* ?? 遺?몄뒪?몃옪 濡쒕뵫 ?ㅻ쾭?덉씠 ???????????????????????????????????????????? */
+/* JS媛 ?ㅽ뻾?섍린 ?꾩뿉??CSS留뚯쑝濡??붾㈃ ?꾩껜瑜???뼱 鍮??붾㈃??諛⑹??쒕떎.      */
+/* 遺?몄뒪?몃옪 ?깃났 ??.hidden ?대옒?ㅻ? 異붽???fade-out ???쒓굅?쒕떎.         */
 .app-loading-overlay {
     position: fixed;
     inset: 0;
@@ -109,7 +109,9 @@ td {
 }
 
 @keyframes gtv-spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .app-loading-spinner {
@@ -3092,6 +3094,22 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     align-items: center;
 }
 
+.overlay-search-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px 0;
+}
+
+.overlay-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.overlay-search-clear {
+    min-width: 74px;
+}
+
 .tz-grid {
     padding: 20px;
     overflow-y: auto;
@@ -3185,6 +3203,44 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
     color: var(--accent);
+}
+
+.tz-empty-state {
+    grid-column: 1 / -1;
+    padding: 18px 16px;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    background: rgba(148, 163, 184, 0.08);
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.prompt-overlay-content {
+    width: min(480px, calc(100vw - 32px));
+    max-width: 480px;
+    max-height: none;
+}
+
+.prompt-overlay-header {
+    padding-bottom: 16px;
+}
+
+.prompt-overlay-body {
+    padding: 20px;
+}
+
+.prompt-overlay-input {
+    width: 100%;
+    font-size: 16px;
+}
+
+.prompt-overlay-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 0 20px 20px;
 }
 
 /* Animations */

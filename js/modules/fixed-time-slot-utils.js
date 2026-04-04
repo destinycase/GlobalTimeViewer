@@ -4,13 +4,27 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function invokeDep(name, ...args) {
-            if (typeof safeDeps[name] !== "function") return undefined;
-            try {
-                return safeDeps[name](...args);
-            } catch (_err) {
-                return undefined;
-            }
+        function toSafeCallable(depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (_err) {
+                    return undefined;
+                }
+            };
+        }
+
+        const dep = Object.freeze({
+            t: toSafeCallable(safeDeps.t),
+            buildStrictUtcDateFromParts: toSafeCallable(safeDeps.buildStrictUtcDateFromParts),
+            getCurrentGroup: toSafeCallable(safeDeps.getCurrentGroup),
+            getNextFixedTimeSeed: toSafeCallable(safeDeps.getNextFixedTimeSeed)
+        });
+
+        function getCurrentGroupSafe() {
+            const group = dep.getCurrentGroup();
+            return (group && typeof group === "object") ? group : null;
         }
 
         function getNumberConstant(name, fallback) {
@@ -39,7 +53,7 @@
         }
 
         function getDefaultFixedTimeName() {
-            const translated = invokeDep("t", "label_fixed_time_default");
+            const translated = dep.t("label_fixed_time_default");
             return (typeof translated === "string" && translated.trim()) ? translated.trim() : "Fixed Time";
         }
 
@@ -99,7 +113,7 @@
             const day = parseInt(parsed[2], 10);
             if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return fallback;
 
-            const strictDate = invokeDep("buildStrictUtcDateFromParts", {
+            const strictDate = dep.buildStrictUtcDateFromParts({
                 year,
                 month,
                 day,
@@ -135,9 +149,10 @@
             };
         }
 
-        function getFixedDatePartsFromGroup(group = invokeDep("getCurrentGroup")) {
-            if (!group || typeof group !== "object") return null;
-            const fixedDate = sanitizeFixedDateValue(group.fixedDate, "");
+        function getFixedDatePartsFromGroup(group = undefined) {
+            const targetGroup = (group && typeof group === "object") ? group : getCurrentGroupSafe();
+            if (!targetGroup) return null;
+            const fixedDate = sanitizeFixedDateValue(targetGroup.fixedDate, "");
             if (!fixedDate) return null;
 
             const parseDateTimeParts = safeDeps.parseDateTimeParts;
@@ -201,16 +216,17 @@
             group.fixedTimeShowLiveNow = sanitizeFixedTimeShowLiveNow(group.fixedTimeShowLiveNow, false);
         }
 
-        function createUniqueFixedTimeId(group = invokeDep("getCurrentGroup")) {
+        function createUniqueFixedTimeId(group = undefined) {
+            const targetGroup = (group && typeof group === "object") ? group : getCurrentGroupSafe();
             const existingIds = new Set(
-                (Array.isArray(group && group.fixedTimes) ? group.fixedTimes : [])
+                (Array.isArray(targetGroup && targetGroup.fixedTimes) ? targetGroup.fixedTimes : [])
                     .map((item) => sanitizeFixedTimeId(item && item.id))
                     .filter(Boolean)
             );
 
             let candidate = "";
             do {
-                const nextSeed = invokeDep("getNextFixedTimeSeed");
+                const nextSeed = dep.getNextFixedTimeSeed();
                 const parsedSeed = Number(nextSeed);
                 const suffix = Number.isFinite(parsedSeed) ? Math.trunc(parsedSeed) : Date.now();
                 candidate = `ft-${suffix}`;

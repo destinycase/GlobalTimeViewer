@@ -170,6 +170,48 @@ describe("GTV multi bulk tools module", () => {
         expect(() => service.renderMultiBulkToolSets()).not.toThrow();
     });
 
+    it("renderMultiBulkToolSets prefers injected getDocumentRefOrNull over global document", () => {
+        const startTools = createElementStub("div");
+        const allTools = createElementStub("div");
+        const module = loadMultiBulkToolsModule({
+            requestAnimationFrame: (cb) => cb(),
+            document: {
+                getElementById() {
+                    throw new Error("global document should not be used");
+                },
+                createElement() {
+                    throw new Error("global document should not be used");
+                }
+            }
+        });
+        const service = module.createService({
+            getDocumentRefOrNull: () => ({
+                getElementById(id) {
+                    if (id === "multi-bulk-start-tools") return startTools;
+                    if (id === "multi-bulk-all-tools") return allTools;
+                    return null;
+                },
+                createElement(tagName) {
+                    return createElementStub(tagName);
+                },
+                querySelectorAll() {
+                    return [];
+                },
+                querySelector() {
+                    return null;
+                }
+            }),
+            t: (key) => key,
+            getMultiRangeCount: () => 2,
+            renderTimeAdjustSet: () => createElementStub("div"),
+            createTimeAdjustActionButton: () => createElementStub("button"),
+            createTimeAdjustDivider: () => createElementStub("span")
+        });
+
+        expect(() => service.renderMultiBulkToolSets()).not.toThrow();
+        expect(allTools.children.length).toBeGreaterThan(0);
+    });
+
     it("handles non-iterable bulkSet.children safely", () => {
         const startTools = createElementStub("div");
         const allTools = createElementStub("div");
@@ -260,5 +302,36 @@ describe("GTV multi bulk tools module", () => {
 
         expect(startEnableCount).toBe(1);
         expect(endEnableCount).toBe(1);
+    });
+
+    it("uses injected logWarn when dependency invocation throws", () => {
+        const startTools = createElementStub("div");
+        const allTools = createElementStub("div");
+        const warned = [];
+        const module = loadMultiBulkToolsModule({
+            document: {
+                getElementById(id) {
+                    if (id === "multi-bulk-start-tools") return startTools;
+                    if (id === "multi-bulk-all-tools") return allTools;
+                    return null;
+                },
+                createElement(tagName) {
+                    return createElementStub(tagName);
+                }
+            }
+        });
+        const service = module.createService({
+            logWarn: (...args) => {
+                warned.push(args);
+            },
+            getMultiRangeCount: () => {
+                throw new Error("count failure");
+            }
+        });
+
+        service.renderMultiBulkToolSets();
+
+        expect(warned).toHaveLength(1);
+        expect(String(warned[0][0])).toContain('Dependency "getMultiRangeCount" threw.');
     });
 });

@@ -1,4 +1,4 @@
-﻿(function initGtvMainRuntimeStateHelpers(globalObj) {
+(function initGtvMainRuntimeStateHelpers(globalObj) {
     "use strict";
 
     function createService(deps = {}) {
