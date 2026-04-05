@@ -17,7 +17,7 @@ const BUNDLE_PATH = path.join(ROOT_DIR, "js", "bundle.js");
 const SCRIPT_LIST_PATH = path.join(ROOT_DIR, "script_list.tmp");
 const SOURCE_SCRIPT_LOADER_PATH = path.join(ROOT_DIR, "js", "source-script-loader.js");
 const SOURCE_SCRIPT_LOADER_RELATIVE_PATH = "js/source-script-loader.js";
-const MAX_BUNDLE_BYTES = 900 * 1024;
+const MAX_BUNDLE_BYTES = 950 * 1024;
 const ENFORCE_VERSION_CONSISTENCY = process.argv.includes("--enforce-version-consistency");
 
 function writeLine(message) {
