@@ -151,6 +151,20 @@ test("sanitizeTimezoneZone rejects invalid standard zone names", () => {
     expect(sanitized).toBe(null);
 });
 
+test("sanitizeTimezoneZone ignores non-numeric fixed offsets instead of coercing them to zero", () => {
+    const service = createService(createDepsStub());
+    const sanitized = service.sanitizeTimezoneZone({
+        id: "x",
+        type: "standard",
+        zone: "Asia/Seoul",
+        fixedOffsetMinutes: false,
+        fixedAbbr: "KST"
+    });
+
+    expect(sanitized).toBeTruthy();
+    expect(sanitized.fixedOffsetMinutes).toBe(null);
+});
+
 test("isValidTimeZone evicts oldest cache entries when max size is reached", () => {
     const originalDateTimeFormat = Intl.DateTimeFormat;
     let validationCalls = 0;

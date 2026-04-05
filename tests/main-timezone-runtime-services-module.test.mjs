@@ -102,4 +102,29 @@ describe("GTV main timezone runtime services module", () => {
             name_ko: "\uD55C\uAD6D \uD45C\uC900\uC2DC"
         })).toBe("UTC+09:00 \uD45C\uC900\uC2DC");
     });
+
+    it("falls back to Intl offset resolution when time service is unavailable", () => {
+        const moduleApi = loadMainTimezoneRuntimeServicesModule();
+        const service = moduleApi.createService({
+            getTimeService: () => null
+        });
+
+        expect(service.getTimezoneOffset("UTC", new Date(Date.UTC(2026, 2, 17, 0, 0, 0)))).toBe(0);
+        expect(Number.isNaN(service.getTimezoneOffset("Invalid/Zone_Name", new Date(Date.UTC(2026, 2, 17, 0, 0, 0))))).toBe(true);
+    });
+
+    it("does not treat boolean fixedOffsetMinutes as a real fixed offset", () => {
+        const moduleApi = loadMainTimezoneRuntimeServicesModule();
+        const service = moduleApi.createService({
+            getCurrentLang: () => "en",
+            formatUtcOffsetLabel: (value) => `UTC${value}`,
+            t: (key) => key
+        });
+
+        expect(service.getFixedOffsetForDisplayAtDate({
+            type: "standard",
+            zone: "Asia/Seoul",
+            fixedOffsetMinutes: false
+        }, new Date())).toBe(null);
+    });
 });

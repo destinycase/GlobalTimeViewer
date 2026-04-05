@@ -60,7 +60,7 @@
         }
 
         function getTimezoneOffset(zone, date) {
-            return callRuntimeBridgeMethod("getTimezoneOffset", [zone, date], 0);
+            return callRuntimeBridgeMethod("getTimezoneOffset", [zone, date], Number.NaN);
         }
 
         function getFixedOffsetForDisplayAtDate(tz, anchorDate) {

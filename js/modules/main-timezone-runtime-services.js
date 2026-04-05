@@ -66,6 +66,59 @@
             cache.set(key, value);
         }
 
+        function parseFixedOffsetMinutes(rawValue) {
+            if (rawValue === null || rawValue === undefined) return null;
+            if (typeof rawValue === "string") {
+                if (!rawValue.trim()) return null;
+                const parsedString = Number(rawValue);
+                if (!Number.isFinite(parsedString)) return null;
+                return Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(parsedString)));
+            }
+            if (typeof rawValue === "number") {
+                if (!Number.isFinite(rawValue)) return null;
+                return Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(rawValue)));
+            }
+            return null;
+        }
+
+        function resolveTimezoneOffsetViaIntl(zone, date) {
+            const safeZone = (typeof zone === "string" && zone.trim()) ? zone : "UTC";
+            const safeDate = (date instanceof Date && Number.isFinite(date.getTime())) ? date : new Date();
+            try {
+                const formatter = new Intl.DateTimeFormat("en-US", {
+                    timeZone: safeZone,
+                    hour12: false,
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                });
+                if (typeof formatter.formatToParts !== "function") return Number.NaN;
+                const partMap = {};
+                formatter.formatToParts(safeDate).forEach((part) => {
+                    if (part && typeof part.type === "string") {
+                        partMap[part.type] = part.value;
+                    }
+                });
+                const year = Number(partMap.year);
+                const month = Number(partMap.month);
+                const day = Number(partMap.day);
+                let hour = Number(partMap.hour);
+                const minute = Number(partMap.minute);
+                const second = Number(partMap.second);
+                if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return Number.NaN;
+                if (!Number.isFinite(hour) || !Number.isFinite(minute) || !Number.isFinite(second)) return Number.NaN;
+                if (hour === 24) hour = 0;
+                const asUtcMs = Date.UTC(year, month - 1, day, hour, minute, second);
+                const diffMinutes = Math.round((asUtcMs - safeDate.getTime()) / 60000);
+                return Number.isFinite(diffMinutes) ? diffMinutes : Number.NaN;
+            } catch (_) {
+                return Number.NaN;
+            }
+        }
+
         function isTimeZoneInDST(zone, date) {
             const safeZone = (typeof zone === "string" && zone.trim()) ? zone : "UTC";
             const safeDate = (date instanceof Date && Number.isFinite(date.getTime())) ? date : new Date();
@@ -73,15 +126,16 @@
             if (timezoneDstCache.has(cacheKey)) return timezoneDstCache.get(cacheKey);
 
             let inDst = false;
-            const timeService = getTimeService();
             try {
-                if (!timeService || typeof timeService.toDateTime !== "function") throw new Error("Time service unavailable");
                 const year = safeDate.getUTCFullYear();
                 const jan = new Date(Date.UTC(year, 0, 1, 12, 0, 0));
                 const jul = new Date(Date.UTC(year, 6, 1, 12, 0, 0));
-                const janOffset = timeService.toDateTime(jan).setZone(safeZone).offset;
-                const julOffset = timeService.toDateTime(jul).setZone(safeZone).offset;
-                const currentOffset = timeService.toDateTime(safeDate).setZone(safeZone).offset;
+                const janOffset = Number(getTimezoneOffset(safeZone, jan));
+                const julOffset = Number(getTimezoneOffset(safeZone, jul));
+                const currentOffset = Number(getTimezoneOffset(safeZone, safeDate));
+                if (!Number.isFinite(janOffset) || !Number.isFinite(julOffset) || !Number.isFinite(currentOffset)) {
+                    throw new Error("Timezone offset unavailable");
+                }
                 const standardOffset = Math.min(janOffset, julOffset);
                 inDst = currentOffset !== standardOffset;
             } catch (_) {
@@ -127,16 +181,24 @@
             const cacheKey = `${safeZone}|${getUtcMinuteCacheKey(safeDate)}`;
             if (timezoneOffsetCache.has(cacheKey)) return timezoneOffsetCache.get(cacheKey);
 
-            let offset = 0;
+            let offset = Number.NaN;
             const timeService = getTimeService();
             try {
                 if (!timeService || typeof timeService.toDateTime !== "function") throw new Error("Time service unavailable");
-                offset = timeService.toDateTime(safeDate).setZone(safeZone).offset;
+                const candidate = Number(timeService.toDateTime(safeDate).setZone(safeZone).offset);
+                offset = Number.isFinite(candidate) ? Math.trunc(candidate) : Number.NaN;
             } catch (_) {
-                offset = 0;
+                offset = Number.NaN;
             }
-            setCappedRuntimeCache(timezoneOffsetCache, cacheKey, offset);
-            return offset;
+            if (!Number.isFinite(offset)) {
+                offset = resolveTimezoneOffsetViaIntl(safeZone, safeDate);
+            }
+            if (Number.isFinite(offset)) {
+                const normalized = Math.trunc(offset);
+                setCappedRuntimeCache(timezoneOffsetCache, cacheKey, normalized);
+                return normalized;
+            }
+            return Number.NaN;
         }
 
         function getZoneAbbreviation(tz, date = getBaseTime()) {
@@ -154,11 +216,7 @@
 
         function getFixedOffsetForDisplayAtDate(tz, _anchorDate) {
             if (!tz || tz.type !== "standard" || !tz.zone || tz.zone === "UTC") return null;
-            const raw = tz.fixedOffsetMinutes;
-            if (raw === null || raw === undefined || raw === "") return null;
-            const parsed = Number(raw);
-            if (!Number.isFinite(parsed)) return null;
-            return Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(parsed)));
+            return parseFixedOffsetMinutes(tz.fixedOffsetMinutes);
         }
 
         function getFixedOffsetForDisplay(tz) {
@@ -179,11 +237,12 @@
                 return tz.name_ko || tz.name || tz.name_en || tz.zone || "";
             }
 
-            if (tz.fixedOffsetMinutes !== undefined && tz.fixedOffsetMinutes !== null) {
+            const parsedFixedOffsetMinutes = parseFixedOffsetMinutes(tz.fixedOffsetMinutes);
+            if (parsedFixedOffsetMinutes !== null) {
                 const nameFallback = tz.name_ko || tz.name || tz.name_en || "";
                 const lowerName = String(nameFallback).toLowerCase();
                 if (lowerName.includes("standard time") || nameFallback.includes("\uD45C\uC900\uC2DC")) {
-                    const offsetLabel = formatUtcOffsetLabel(tz.fixedOffsetMinutes);
+                    const offsetLabel = formatUtcOffsetLabel(parsedFixedOffsetMinutes);
                     return lang === "en"
                         ? `${offsetLabel} Standard Time`
                         : `${offsetLabel} \uD45C\uC900\uC2DC`;
@@ -208,10 +267,7 @@
         }
 
         function hasFixedOffsetMinutes(tz) {
-            const raw = tz?.fixedOffsetMinutes;
-            if (raw === null || raw === undefined) return false;
-            if (typeof raw === "string" && !raw.trim()) return false;
-            return true;
+            return parseFixedOffsetMinutes(tz?.fixedOffsetMinutes) !== null;
         }
 
         function canDisplayDstBadge(tz) {

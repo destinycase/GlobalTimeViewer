@@ -20,6 +20,59 @@
             : 4096;
         const SERVICE_METHOD_MISSING = Symbol("GTV_SERVICE_METHOD_MISSING");
 
+        function parseFixedOffsetMinutes(rawValue) {
+            if (rawValue === null || rawValue === undefined) return null;
+            if (typeof rawValue === "string") {
+                if (!rawValue.trim()) return null;
+                const parsedString = Number(rawValue);
+                if (!Number.isFinite(parsedString)) return null;
+                return Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(parsedString)));
+            }
+            if (typeof rawValue === "number") {
+                if (!Number.isFinite(rawValue)) return null;
+                return Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(rawValue)));
+            }
+            return null;
+        }
+
+        function resolveTimezoneOffsetViaIntl(zone, date) {
+            const safeZone = (typeof zone === "string" && zone.trim()) ? zone : "UTC";
+            const safeDate = (date instanceof Date && Number.isFinite(date.getTime())) ? date : new Date();
+            try {
+                const formatter = new Intl.DateTimeFormat("en-US", {
+                    timeZone: safeZone,
+                    hour12: false,
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                });
+                if (typeof formatter.formatToParts !== "function") return Number.NaN;
+                const partMap = {};
+                formatter.formatToParts(safeDate).forEach((part) => {
+                    if (part && typeof part.type === "string") {
+                        partMap[part.type] = part.value;
+                    }
+                });
+                const year = Number(partMap.year);
+                const month = Number(partMap.month);
+                const day = Number(partMap.day);
+                let hour = Number(partMap.hour);
+                const minute = Number(partMap.minute);
+                const second = Number(partMap.second);
+                if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return Number.NaN;
+                if (!Number.isFinite(hour) || !Number.isFinite(minute) || !Number.isFinite(second)) return Number.NaN;
+                if (hour === 24) hour = 0;
+                const asUtcMs = Date.UTC(year, month - 1, day, hour, minute, second);
+                const diffMinutes = Math.round((asUtcMs - safeDate.getTime()) / 60000);
+                return Number.isFinite(diffMinutes) ? Math.trunc(diffMinutes) : Number.NaN;
+            } catch (_) {
+                return Number.NaN;
+            }
+        }
+
         function callMainTimezoneRuntimeMethodOrFallback(methodName, args = [], fallbackFactory = null) {
             const runtimeService = getMainTimezoneRuntimeService();
             const result = callServiceMethod(
@@ -86,7 +139,11 @@
         }
 
         function getTimezoneOffset(zone, date) {
-            return callMainTimezoneRuntimeMethodOrFallback("getTimezoneOffset", [zone, date], 0);
+            return callMainTimezoneRuntimeMethodOrFallback(
+                "getTimezoneOffset",
+                [zone, date],
+                () => resolveTimezoneOffsetViaIntl(zone, date)
+            );
         }
 
         function getFixedOffsetForDisplayAtDate(tz, anchorDate) {
@@ -95,11 +152,7 @@
                 [tz, anchorDate],
                 () => {
                     if (!tz || tz.type !== "standard" || !tz.zone || tz.zone === "UTC") return null;
-                    const raw = tz.fixedOffsetMinutes;
-                    if (raw === null || raw === undefined || raw === "") return null;
-                    const parsed = Number(raw);
-                    if (!Number.isFinite(parsed)) return null;
-                    return Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(parsed)));
+                    return parseFixedOffsetMinutes(tz.fixedOffsetMinutes);
                 }
             );
         }

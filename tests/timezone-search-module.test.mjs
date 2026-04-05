@@ -797,4 +797,26 @@ describe("GTV timezone search module", () => {
         expect(service.filterTimezoneEntries(entries, "utc+09:00")).toHaveLength(1);
         expect(service.filterTimezoneEntries(entries, "missing")).toHaveLength(0);
     });
+
+    it("filterTimezoneEntries treats boolean fixed offsets as non-fixed", () => {
+        const module = loadTimezoneSearchModule();
+        const service = module.createService({
+            getTimezoneOffset: (zone) => (zone === "Asia/Seoul" ? 540 : Number.NaN),
+            getBetterAbbr: () => "KST"
+        });
+
+        const entries = [{
+            kind: "country_region",
+            name: "Korea",
+            city: "Seoul",
+            name_en: "Korea",
+            city_en: "Seoul",
+            zone: "Asia/Seoul",
+            abbr: "KST",
+            fixedOffsetMinutes: false
+        }];
+
+        expect(service.filterTimezoneEntries(entries, "utc+09:00")).toHaveLength(1);
+        expect(service.filterTimezoneEntries(entries, "utc+00:00")).toHaveLength(0);
+    });
 });

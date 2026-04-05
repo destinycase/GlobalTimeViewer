@@ -124,7 +124,7 @@ describe("GTV main timezone facade module", () => {
             initialTimezoneIdSeed: 0
         });
 
-        expect(service.getTimezoneOffset("Asia/Seoul", new Date())).toBe(0);
+        expect(Number.isNaN(service.getTimezoneOffset("Asia/Seoul", new Date()))).toBe(true);
         expect(service.getZoneAbbreviation({ zone: "Asia/Seoul" }, new Date())).toBe("");
         expect(service.sanitizeTimezoneId(null)).toBe("");
         expect(service.sanitizeBaseTimezoneId(null)).toBe("utc");
@@ -142,7 +142,7 @@ describe("GTV main timezone facade module", () => {
             callServiceMethod: createCallServiceMethod()
         });
 
-        expect(service.getTimezoneOffset("Asia/Seoul", new Date())).toBe(0);
+        expect(Number.isNaN(service.getTimezoneOffset("Asia/Seoul", new Date()))).toBe(true);
         expect(service.getZoneDisplayName({ zone: "Asia/Seoul" })).toBe("");
         expect(service.sanitizeTimezoneId("  tz-1  ")).toBe("  tz-1  ");
         expect(service.sanitizeBaseTimezoneId("UTC")).toBe("utc");

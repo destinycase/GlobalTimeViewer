@@ -139,6 +139,21 @@
             return `UTC${sign}${hh}:${mm}`;
         }
 
+        function parseFixedOffsetMinutes(rawValue) {
+            if (rawValue === null || rawValue === undefined) return null;
+            if (typeof rawValue === "string") {
+                if (!rawValue.trim()) return null;
+                const parsedString = Number(rawValue);
+                if (!Number.isFinite(parsedString)) return null;
+                return Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(parsedString)));
+            }
+            if (typeof rawValue === "number") {
+                if (!Number.isFinite(rawValue)) return null;
+                return Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(rawValue)));
+            }
+            return null;
+        }
+
         function getZoneStandardDaylightOffsets(zone) {
             const safeZone = (typeof zone === "string") ? zone.trim() : "";
             if (!safeZone) return { standard: null, daylight: null };
@@ -321,7 +336,8 @@
 
         function getTimezoneEntryTitle(entry) {
             if (entry?.kind === "standard_list") {
-                const offsetLabel = formatUtcOffsetLabel(entry.fixedOffsetMinutes);
+                const parsedOffset = parseFixedOffsetMinutes(entry.fixedOffsetMinutes);
+                const offsetLabel = formatUtcOffsetLabel(parsedOffset === null ? 0 : parsedOffset);
                 return getCurrentLang() === "en"
                     ? `${offsetLabel} Standard Time`
                     : `${offsetLabel} \uD45C\uC900\uC2DC`;
@@ -330,16 +346,8 @@
         }
 
         function resolveTimezoneEntryOffsetMinutes(entry) {
-            const fixedOffsetRaw = entry?.fixedOffsetMinutes;
-            const hasFixedOffsetValue = (
-                fixedOffsetRaw !== null
-                && fixedOffsetRaw !== undefined
-                && !(typeof fixedOffsetRaw === "string" && !fixedOffsetRaw.trim())
-            );
-            if (hasFixedOffsetValue) {
-                const fixedOffset = Number(fixedOffsetRaw);
-                if (Number.isFinite(fixedOffset)) return Math.trunc(fixedOffset);
-            }
+            const fixedOffset = parseFixedOffsetMinutes(entry?.fixedOffsetMinutes);
+            if (fixedOffset !== null) return fixedOffset;
             if (entry?.zone) {
                 const liveOffset = getTimezoneOffsetSafe(entry.zone, new Date());
                 if (Number.isFinite(liveOffset)) return Math.trunc(liveOffset);
@@ -447,7 +455,7 @@
             const abbr = doc.createElement("div");
             abbr.className = "tz-item-abbr";
             const abbrText = tzEntry?.kind === "standard_list"
-                ? formatUtcOffsetLabel(tzEntry?.fixedOffsetMinutes)
+                ? formatUtcOffsetLabel(parseFixedOffsetMinutes(tzEntry?.fixedOffsetMinutes) ?? 0)
                 : (
                     normalizeZoneAbbreviation(tzEntry?.abbr)
                     || normalizeZoneAbbreviation(getBetterAbbrSafe(tzEntry?.zone, new Date()))

@@ -107,6 +107,11 @@ describe("GTV main timezone runtime bridge module", () => {
             zone: "Asia/Seoul",
             fixedOffsetMinutes: "not-a-number"
         }, new Date())).toBe(null);
+        expect(service.getFixedOffsetForDisplayAtDate({
+            type: "standard",
+            zone: "Asia/Seoul",
+            fixedOffsetMinutes: false
+        }, new Date())).toBe(null);
         expect(service.getFixedOffsetForDisplay({
             type: "standard",
             zone: "Asia/Seoul",
@@ -116,7 +121,9 @@ describe("GTV main timezone runtime bridge module", () => {
         expect(service.getZoneAbbreviation("Asia/Seoul", new Date())).toBe("");
         expect(service.getBetterAbbr("Asia/Seoul", new Date())).toBe("");
         expect(service.isTimeZoneInDST("Asia/Seoul", new Date())).toBe(false);
-        expect(service.getTimezoneOffset("Asia/Seoul", new Date())).toBe(0);
+        const fallbackOffset = service.getTimezoneOffset("Asia/Seoul", new Date(Date.UTC(2026, 2, 20, 0, 0, 0)));
+        expect(Number.isFinite(fallbackOffset)).toBe(true);
+        expect(fallbackOffset).toBe(540);
         expect(service.getZoneDisplayName("Asia/Seoul")).toBe("");
         expect(service.getZoneDisplayNameForUiAtDate("Asia/Seoul", new Date())).toBe("");
 
@@ -237,4 +244,3 @@ describe("GTV main timezone runtime bridge module", () => {
         expect(service.getUtcMinuteCacheKey("invalid-date")).toBe(undefined);
     });
 });
-

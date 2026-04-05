@@ -83,6 +83,21 @@
             return valid;
         }
 
+        function parseFixedOffsetMinutes(rawValue) {
+            if (rawValue === null || rawValue === undefined) return null;
+            if (typeof rawValue === "string") {
+                if (!rawValue.trim()) return null;
+                const parsedString = Number(rawValue);
+                if (!Number.isFinite(parsedString)) return null;
+                return Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(parsedString)));
+            }
+            if (typeof rawValue === "number") {
+                if (!Number.isFinite(rawValue)) return null;
+                return Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(rawValue)));
+            }
+            return null;
+        }
+
         function sanitizeTimezoneZone(zone) {
             if (!zone || typeof zone !== "object") return null;
             const zoneType = zone.type === "custom" ? "custom" : "standard";
@@ -108,16 +123,7 @@
             const timeZoneName = (typeof zone.zone === "string" && zone.zone.trim()) ? zone.zone : null;
             if (!timeZoneName || !isValidTimeZone(timeZoneName)) return null;
             const fallbackName = (typeof zone.name === "string" && zone.name.trim()) ? zone.name.trim() : timeZoneName;
-            const rawFixedOffset = zone.fixedOffsetMinutes;
-            const hasFixedOffsetValue = (
-                rawFixedOffset !== null
-                && rawFixedOffset !== undefined
-                && !(typeof rawFixedOffset === "string" && !rawFixedOffset.trim())
-            );
-            const parsedFixedOffset = hasFixedOffsetValue ? Number(rawFixedOffset) : NaN;
-            const fixedOffsetMinutes = Number.isFinite(parsedFixedOffset)
-                ? Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(parsedFixedOffset)))
-                : null;
+            const fixedOffsetMinutes = parseFixedOffsetMinutes(zone.fixedOffsetMinutes);
             const fixedAbbr = String(dep.normalizeZoneAbbreviation(zone.fixedAbbr) || "");
             return {
                 id,
