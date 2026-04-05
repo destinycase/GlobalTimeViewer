@@ -3,32 +3,34 @@
 
     const COUNTDOWN_SLOT_COUNT = 3;
     const COUNTDOWN_STORAGE_KEY = "GTV_CalcCountdown_v1";
-    // Use createService DI by default; resolve global fallbacks at call time only.
-    
+
+    function isStorageRef(value) {
+        return !!value
+            && typeof value.getItem === "function"
+            && typeof value.setItem === "function";
+    }
+
+    function isDocumentRef(value) {
+        return !!value && typeof value.getElementById === "function";
+    }
+
+    // Use createService DI by default; legacy wrapper injects global refs lazily.
+
     function getGlobalStorageRef() {
-        if (
-            globalObj?.localStorage
-            && typeof globalObj.localStorage.getItem === "function"
-            && typeof globalObj.localStorage.setItem === "function"
-        ) {
+        if (isStorageRef(globalObj?.localStorage)) {
             return globalObj.localStorage;
         }
-        if (
-            typeof localStorage !== "undefined"
-            && localStorage
-            && typeof localStorage.getItem === "function"
-            && typeof localStorage.setItem === "function"
-        ) {
+        if (typeof localStorage !== "undefined" && isStorageRef(localStorage)) {
             return localStorage;
         }
         return null;
     }
 
     function getGlobalDocumentRef() {
-        if (globalObj?.document && typeof globalObj.document.getElementById === "function") {
+        if (isDocumentRef(globalObj?.document)) {
             return globalObj.document;
         }
-        if (typeof document !== "undefined" && document && typeof document.getElementById === "function") {
+        if (typeof document !== "undefined" && isDocumentRef(document)) {
             return document;
         }
         return null;
@@ -45,66 +47,28 @@
     function resolveStorageRef(safeDeps) {
         if (typeof safeDeps.getStorageRef === "function") {
             const injected = safeDeps.getStorageRef();
-            if (
-                injected
-                && typeof injected.getItem === "function"
-                && typeof injected.setItem === "function"
-            ) {
-                return injected;
-            }
+            if (isStorageRef(injected)) return injected;
         }
         if (typeof safeDeps.getStorageRefOrNull === "function") {
             const injected = safeDeps.getStorageRefOrNull();
-            if (
-                injected
-                && typeof injected.getItem === "function"
-                && typeof injected.setItem === "function"
-            ) {
-                return injected;
-            }
+            if (isStorageRef(injected)) return injected;
         }
-        if (
-            safeDeps.storageRef
-            && typeof safeDeps.storageRef.getItem === "function"
-            && typeof safeDeps.storageRef.setItem === "function"
-        ) {
-            return safeDeps.storageRef;
-        }
-        if (
-            safeDeps.storage
-            && typeof safeDeps.storage.getItem === "function"
-            && typeof safeDeps.storage.setItem === "function"
-        ) {
-            return safeDeps.storage;
-        }
+        if (isStorageRef(safeDeps.storageRef)) return safeDeps.storageRef;
+        if (isStorageRef(safeDeps.storage)) return safeDeps.storage;
         return getGlobalStorageRef();
     }
 
     function resolveDocumentRef(safeDeps) {
         if (typeof safeDeps.getDocumentRef === "function") {
             const injected = safeDeps.getDocumentRef();
-            if (injected && typeof injected.getElementById === "function") {
-                return injected;
-            }
+            if (isDocumentRef(injected)) return injected;
         }
         if (typeof safeDeps.getDocumentRefOrNull === "function") {
             const injected = safeDeps.getDocumentRefOrNull();
-            if (injected && typeof injected.getElementById === "function") {
-                return injected;
-            }
+            if (isDocumentRef(injected)) return injected;
         }
-        if (
-            safeDeps.documentRef
-            && typeof safeDeps.documentRef.getElementById === "function"
-        ) {
-            return safeDeps.documentRef;
-        }
-        if (
-            safeDeps.document
-            && typeof safeDeps.document.getElementById === "function"
-        ) {
-            return safeDeps.document;
-        }
+        if (isDocumentRef(safeDeps.documentRef)) return safeDeps.documentRef;
+        if (isDocumentRef(safeDeps.document)) return safeDeps.document;
         return getGlobalDocumentRef();
     }
 
@@ -141,10 +105,21 @@
         return defaultPad2;
     }
 
+    function buildLegacyServiceDeps() {
+        return {
+            getStorageRef: () => getGlobalStorageRef(),
+            getDocumentRef: () => getGlobalDocumentRef(),
+            getLuxonDateTimeRef: () => getGlobalLuxonDateTimeRef(),
+            datePickerCtor: (typeof globalObj?.CustomDatePicker === "function") ? globalObj.CustomDatePicker : null,
+            timeCoreRef: globalObj?.GTVTimeCore || null,
+            refreshTargetRef: globalObj || null
+        };
+    }
+
     // Internal helpers (module scope)
 
     function makeDocHelpers(docRef) {
-        const _doc = docRef || getGlobalDocumentRef();
+        const _doc = docRef || null;
         return {
             getElementById(id) {
                 if (!_doc || typeof _doc.getElementById !== "function") return null;
@@ -346,7 +321,7 @@
         return parseRfc2822String(normalized);
     }
 
-    function toValidDate(value, luxonDT = getGlobalLuxonDateTimeRef()) {
+    function toValidDate(value, luxonDT) {
         if (!value) return null;
         if (isValidDateObject(value)) return new Date(value.getTime());
         if (typeof value === "number" && Number.isFinite(value)) {
@@ -486,7 +461,7 @@
     function renderCountdownSlot(slotIdx, refs, countdownState, t, helpers, runtime = {}, options) {
         const { syncMeta = false } = (options && typeof options === "object") ? options : {};
         const datePickerCtor = (typeof runtime.datePickerCtor === "function") ? runtime.datePickerCtor : null;
-        const luxonDT = runtime.luxonDT || getGlobalLuxonDateTimeRef();
+        const luxonDT = runtime.luxonDT || null;
         const padFn = (typeof runtime.pad2 === "function") ? runtime.pad2 : defaultPad2;
         const slot = countdownState[slotIdx];
         const nameBtn = refs.nameButtons[slotIdx];
@@ -571,7 +546,7 @@
      * @param {object} timerIds - { countdownTimerId } 李몄“ 媛앹껜 (?몃??먯꽌 ?뚯쑀)
      */
     function initCountdown(t, helpers, cdStorage, timerIds, runtime = {}) {
-        const luxonDT = runtime.luxonDT || getGlobalLuxonDateTimeRef();
+        const luxonDT = runtime.luxonDT || null;
         const nameButtons = helpers.querySelectorAll(".countdown-name-btn");
         const nameInputs = helpers.querySelectorAll(".countdown-name-input");
         const toggleButtons = helpers.querySelectorAll(".countdown-toggle-btn");
@@ -1240,7 +1215,7 @@
      */
     function initCalculators(options) {
         // 湲곕낯 ?쒕퉬???몄뒪?댁뒪瑜??앹꽦???꾩엫?쒕떎.
-        const svc = createService({});
+        const svc = createService(buildLegacyServiceDeps());
         svc.initCalculators(options);
     }
 

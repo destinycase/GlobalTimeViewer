@@ -468,6 +468,98 @@ describe("GTV table render module", () => {
         expect(tr.__zoneCode.classList.contains("zone-code-standard")).toBe(true);
     });
 
+    it("createInteractiveTimezoneRow skips picker and edit handlers in realtime mode", () => {
+        let pickerCreateCalls = 0;
+        let handleTimeChangeCalls = 0;
+        const createdRows = [];
+
+        function createRowStub() {
+            const tr = createElementStub();
+            const zoneName = { textContent: "" };
+            const zoneCode = { classList: createClassList() };
+            const copyBtn = createElementStub();
+            const removeBtn = createElementStub();
+            const dragHandle = createElementStub();
+            const trigger0 = createElementStub();
+            const slot0 = {
+                dataset: { slot: "0", inputMode: "datetime" },
+                classList: createClassList(),
+                value: "",
+                blur() { },
+                parentElement: { querySelector: () => trigger0 },
+                readOnly: false,
+                onchange: undefined,
+                onkeydown: undefined
+            };
+            const selectorMap = {
+                ".zone-name": zoneName,
+                ".zone-code": zoneCode,
+                ".copy-row-btn": copyBtn,
+                ".remove-row-btn": removeBtn,
+                ".drag-handle": dragHandle
+            };
+            const listMap = {
+                ".time-input": [slot0]
+            };
+            tr.querySelector = (selector) => selectorMap[selector] || null;
+            tr.querySelectorAll = (selector) => listMap[selector] || [];
+            tr.__slot0 = slot0;
+            createdRows.push(tr);
+            return tr;
+        }
+
+        const module = loadTableRenderModule({
+            window: {
+                CustomDatePicker: function CustomDatePicker() {
+                    pickerCreateCalls += 1;
+                    this.destroy = () => { };
+                }
+            },
+            document: {
+                documentElement: {
+                    lang: "en",
+                    getAttribute() {
+                        return "dark";
+                    }
+                },
+                getElementById() {
+                    return null;
+                },
+                querySelector() {
+                    return null;
+                },
+                createElement(tagName) {
+                    if (tagName === "tr") return createRowStub();
+                    return createElementStub();
+                }
+            }
+        });
+
+        const service = module.createService({
+            t: (key) => key,
+            getDisplayTimePartsEnabled: () => ({ date: true, time: true, dn: true, weekday: true }),
+            isRealtime: () => true,
+            getZoneDisplayName: () => "KST",
+            handleTimeChange: () => { handleTimeChangeCalls += 1; }
+        });
+
+        const row = service.createInteractiveTimezoneRow(
+            { id: "seoul", zone: "Asia/Seoul", type: "standard" },
+            1,
+            ["timezone", "region", "time_main"],
+            "seoul",
+            new Date(Date.UTC(2026, 2, 13, 0, 0, 0))
+        );
+
+        expect(row).toBeTruthy();
+        const tr = createdRows[0];
+        expect(pickerCreateCalls).toBe(0);
+        expect(tr.__slot0.readOnly).toBe(true);
+        expect(tr.__slot0.onchange).toBe(null);
+        expect(tr.__slot0.onkeydown).toBe(null);
+        expect(handleTimeChangeCalls).toBe(0);
+    });
+
     it("renderList delegates directly to multi-range render when multi tab is active", () => {
         const module = loadTableRenderModule({
             document: {

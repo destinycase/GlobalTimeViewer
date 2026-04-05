@@ -344,10 +344,13 @@
                 const slotIdx = parseInt(input.dataset.slot, 10);
                 const inputMode = input.dataset.inputMode || "datetime";
                 const timezoneId = safeRowId === "utc" ? null : safeTz.id;
+                const canEditInput = !isRealtimeMode()
+                    && !input.classList.contains("time-input-hidden")
+                    && inputMode !== "none";
 
                 const triggerBtn = input.parentElement?.querySelector?.(`.trigger-slot-${slotIdx}`);
                 const CustomDatePickerCtor = globalObj.CustomDatePicker;
-                if (CustomDatePickerCtor && !input.classList.contains("time-input-hidden") && inputMode !== "none") {
+                if (CustomDatePickerCtor && canEditInput) {
                     if (input._cdp && typeof input._cdp.destroy === "function") {
                         input._cdp.destroy();
                     }
@@ -359,13 +362,19 @@
                     });
                 }
 
-                input.onchange = (e) => dep.handleTimeChange(e.target.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
-                input.onkeydown = (e) => {
-                    if (e.key === "Enter") {
-                        dep.handleTimeChange(e.target.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
-                        input.blur();
-                    }
-                };
+                if (canEditInput) {
+                    input.onchange = (e) => dep.handleTimeChange(e.target.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
+                    input.onkeydown = (e) => {
+                        if (e.key === "Enter") {
+                            dep.handleTimeChange(e.target.value, safeTz.zone || "CUSTOM", slotIdx, timezoneId, inputMode);
+                            input.blur();
+                        }
+                    };
+                } else {
+                    input.onchange = null;
+                    input.onkeydown = null;
+                    input.readOnly = true;
+                }
             });
 
             const dragHandle = tr.querySelector(".drag-handle");
@@ -462,10 +471,13 @@
                 inputs.forEach((input) => {
                     const inputMode = input.dataset.inputMode || "datetime";
                     const slotIdx = parseInt(input.dataset.slot, 10);
+                    const canEditInput = !isRealtimeMode()
+                        && !input.classList.contains("time-input-hidden")
+                        && inputMode !== "none";
 
                     const triggerBtn = input.parentElement?.querySelector?.(`.trigger-slot-${slotIdx}`);
                     const CustomDatePickerCtor = globalObj.CustomDatePicker;
-                    if (CustomDatePickerCtor && !input.classList.contains("time-input-hidden") && inputMode !== "none") {
+                    if (CustomDatePickerCtor && canEditInput) {
                         if (input._cdp && typeof input._cdp.destroy === "function") {
                             input._cdp.destroy();
                         }
@@ -477,13 +489,18 @@
                         });
                     }
 
-                    input.onchange = (e) => dep.handleTimeChange(e.target.value, baseRef.zone || "CUSTOM", i, baseRef.id, inputMode);
-                    input.onkeydown = (e) => {
-                        if (e.key === "Enter") {
-                            dep.handleTimeChange(e.target.value, baseRef.zone || "CUSTOM", i, baseRef.id, inputMode);
-                            input.blur();
-                        }
-                    };
+                    if (canEditInput) {
+                        input.onchange = (e) => dep.handleTimeChange(e.target.value, baseRef.zone || "CUSTOM", i, baseRef.id, inputMode);
+                        input.onkeydown = (e) => {
+                            if (e.key === "Enter") {
+                                dep.handleTimeChange(e.target.value, baseRef.zone || "CUSTOM", i, baseRef.id, inputMode);
+                                input.blur();
+                            }
+                        };
+                    } else {
+                        input.onchange = null;
+                        input.onkeydown = null;
+                    }
                     if (isRealtimeMode()) input.readOnly = true;
                 });
             }

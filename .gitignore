@@ -125,3 +125,4 @@ dist_extension/
 *.zip
 js/bundle.js
 *.tmp
+!script_list.tmp
