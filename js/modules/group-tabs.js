@@ -20,47 +20,62 @@
                 return null;
             });
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVGroupTabs] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            t: toSafeCallable(safeDeps.t),
-            isMultiTab: toSafeCallable(safeDeps.isMultiTab),
-            isFixedTimeTab: toSafeCallable(safeDeps.isFixedTimeTab),
-            getCurrentGroup: toSafeCallable(safeDeps.getCurrentGroup),
-            getState: toSafeCallable(safeDeps.getState),
-            setState: toSafeCallable(safeDeps.setState),
-            renderBaseTimeSelect: toSafeCallable(safeDeps.renderBaseTimeSelect),
-            renderMultiRanges: toSafeCallable(safeDeps.renderMultiRanges),
-            renderFixedTimeTab: toSafeCallable(safeDeps.renderFixedTimeTab),
-            renderList: toSafeCallable(safeDeps.renderList),
-            renderTimelineFrame: toSafeCallable(safeDeps.renderTimelineFrame),
-            syncCurrentMultiStateToActiveSubgroup: toSafeCallable(safeDeps.syncCurrentMultiStateToActiveSubgroup),
-            normalizeGroupTabState: toSafeCallable(safeDeps.normalizeGroupTabState),
-            loadCurrentMultiStateFromActiveSubgroup: toSafeCallable(safeDeps.loadCurrentMultiStateFromActiveSubgroup),
-            savePersistence: toSafeCallable(safeDeps.savePersistence),
-            ensureGroupMultiSubgroups: toSafeCallable(safeDeps.ensureGroupMultiSubgroups),
-            showToast: toSafeCallable(safeDeps.showToast),
-            getDefaultMultiSubgroupName: toSafeCallable(safeDeps.getDefaultMultiSubgroupName),
-            createMultiSubgroupState: toSafeCallable(safeDeps.createMultiSubgroupState),
-            sanitizeMultiSubgroupName: toSafeCallable(safeDeps.sanitizeMultiSubgroupName),
-            sanitizeMultiRangeTitle: toSafeCallable(safeDeps.sanitizeMultiRangeTitle),
-            getMultiRangeTitle: toSafeCallable(safeDeps.getMultiRangeTitle),
-            hideFloatingTooltip: toSafeCallable(safeDeps.hideFloatingTooltip),
-            setCustomTooltip: toSafeCallable(safeDeps.setCustomTooltip),
-            exportGroupToJSON: toSafeCallable(safeDeps.exportGroupToJSON),
-            triggerGroupImportFor: toSafeCallable(safeDeps.triggerGroupImportFor),
-            upgradeNativeTitleTooltips: toSafeCallable(safeDeps.upgradeNativeTitleTooltips),
-            exportSubgroupToJSON: toSafeCallable(safeDeps.exportSubgroupToJSON),
-            triggerSubgroupImportFor: toSafeCallable(safeDeps.triggerSubgroupImportFor)
+            t: toSafeCallable("t", safeDeps.t),
+            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
+            isFixedTimeTab: toSafeCallable("isFixedTimeTab", safeDeps.isFixedTimeTab),
+            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
+            getState: toSafeCallable("getState", safeDeps.getState),
+            setState: toSafeCallable("setState", safeDeps.setState),
+            renderBaseTimeSelect: toSafeCallable("renderBaseTimeSelect", safeDeps.renderBaseTimeSelect),
+            renderMultiRanges: toSafeCallable("renderMultiRanges", safeDeps.renderMultiRanges),
+            renderFixedTimeTab: toSafeCallable("renderFixedTimeTab", safeDeps.renderFixedTimeTab),
+            renderList: toSafeCallable("renderList", safeDeps.renderList),
+            renderTimelineFrame: toSafeCallable("renderTimelineFrame", safeDeps.renderTimelineFrame),
+            syncCurrentMultiStateToActiveSubgroup: toSafeCallable("syncCurrentMultiStateToActiveSubgroup", safeDeps.syncCurrentMultiStateToActiveSubgroup),
+            normalizeGroupTabState: toSafeCallable("normalizeGroupTabState", safeDeps.normalizeGroupTabState),
+            loadCurrentMultiStateFromActiveSubgroup: toSafeCallable("loadCurrentMultiStateFromActiveSubgroup", safeDeps.loadCurrentMultiStateFromActiveSubgroup),
+            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
+            ensureGroupMultiSubgroups: toSafeCallable("ensureGroupMultiSubgroups", safeDeps.ensureGroupMultiSubgroups),
+            showToast: toSafeCallable("showToast", safeDeps.showToast),
+            getDefaultMultiSubgroupName: toSafeCallable("getDefaultMultiSubgroupName", safeDeps.getDefaultMultiSubgroupName),
+            createMultiSubgroupState: toSafeCallable("createMultiSubgroupState", safeDeps.createMultiSubgroupState),
+            sanitizeMultiSubgroupName: toSafeCallable("sanitizeMultiSubgroupName", safeDeps.sanitizeMultiSubgroupName),
+            sanitizeMultiRangeTitle: toSafeCallable("sanitizeMultiRangeTitle", safeDeps.sanitizeMultiRangeTitle),
+            getMultiRangeTitle: toSafeCallable("getMultiRangeTitle", safeDeps.getMultiRangeTitle),
+            hideFloatingTooltip: toSafeCallable("hideFloatingTooltip", safeDeps.hideFloatingTooltip),
+            setCustomTooltip: toSafeCallable("setCustomTooltip", safeDeps.setCustomTooltip),
+            exportGroupToJSON: toSafeCallable("exportGroupToJSON", safeDeps.exportGroupToJSON),
+            triggerGroupImportFor: toSafeCallable("triggerGroupImportFor", safeDeps.triggerGroupImportFor),
+            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips),
+            exportSubgroupToJSON: toSafeCallable("exportSubgroupToJSON", safeDeps.exportSubgroupToJSON),
+            triggerSubgroupImportFor: toSafeCallable("triggerSubgroupImportFor", safeDeps.triggerSubgroupImportFor)
         });
 
         function ensureGroupMultiSubgroupsSafe(group) {

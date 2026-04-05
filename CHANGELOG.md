@@ -1,5 +1,14 @@
 # 변경 이력
 
+## [3.12.4] - 2026-04-05
+### 변경됨
+- 버전 메타데이터를 `3.12.4`로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`, 테스트 기대값)
+- 통합 데이터 저장 키를 `GTV_v324_Data`로 상향하고, 이전 키(`GTV_v323_Data`)를 레거시 마이그레이션 키로 추가했습니다.
+- 아키텍처 문서를 `README.md`로 통합하고 현재 런타임 구조에 맞춰 내용을 최신화했습니다.
+
+### 삭제됨
+- `docs/ARCHITECTURE.md` (README로 통합 완료)
+
 ## [3.12.3] - 2026-04-05
 ### 변경됨
 - 버전 메타데이터를 `3.12.3`으로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`)

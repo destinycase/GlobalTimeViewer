@@ -18,3 +18,27 @@ test("all module files expose createService entrypoint", () => {
 
     expect(missing).toEqual([]);
 });
+
+test("module dependency invocation helpers follow unified style", () => {
+    const files = fs.readdirSync(MODULES_DIR)
+        .filter((name) => name.endsWith(".js"))
+        .sort();
+
+    const legacyToSafeCallable = [];
+    const legacyInvokeDep = [];
+
+    files.forEach((name) => {
+        const fullPath = path.join(MODULES_DIR, name);
+        const code = fs.readFileSync(fullPath, "utf8");
+
+        if (/function\s+toSafeCallable\s*\(\s*depFn\s*\)/.test(code)) {
+            legacyToSafeCallable.push(name);
+        }
+        if (/\binvokeDep\s*\(/.test(code)) {
+            legacyInvokeDep.push(name);
+        }
+    });
+
+    expect(legacyToSafeCallable).toEqual([]);
+    expect(legacyInvokeDep).toEqual([]);
+});

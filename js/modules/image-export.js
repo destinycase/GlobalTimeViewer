@@ -51,45 +51,48 @@
         }
     }
 
-    function toSafeCallable(depFn) {
-        if (typeof depFn !== "function") return () => undefined;
-        return (...args) => {
-            try {
-                return depFn(...args);
-            } catch (_err) {
-                return undefined;
-            }
-        };
-    }
-
-    function toSafeAsyncCallable(depFn) {
-        if (typeof depFn !== "function") return async () => undefined;
-        return async (...args) => {
-            try {
-                return await depFn(...args);
-            } catch (_err) {
-                return undefined;
-            }
-        };
-    }
-
     function createDepFacade(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    logError(safeDeps, `[GTVImageExport] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
+        function toSafeAsyncCallable(depName, depFn) {
+            if (typeof depFn !== "function") return async () => undefined;
+            return async (...args) => {
+                try {
+                    return await depFn(...args);
+                } catch (err) {
+                    logError(safeDeps, `[GTVImageExport] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        }
+
         return Object.freeze({
-            isMultiTab: toSafeCallable(safeDeps.isMultiTab),
-            showToast: toSafeCallable(safeDeps.showToast),
-            t: toSafeCallable(safeDeps.t),
-            ensureMultiRangeState: toSafeCallable(safeDeps.ensureMultiRangeState),
-            renderMultiRangeTitlesToPngDataUrl: toSafeAsyncCallable(safeDeps.renderMultiRangeTitlesToPngDataUrl),
-            getMultiRangeTitlesImageFilename: toSafeCallable(safeDeps.getMultiRangeTitlesImageFilename),
-            renderMultiRangesToPngDataUrl: toSafeAsyncCallable(safeDeps.renderMultiRangesToPngDataUrl),
-            renderMultiRangeSingleToPngDataUrl: toSafeAsyncCallable(safeDeps.renderMultiRangeSingleToPngDataUrl),
-            detectForeignObjectRendererSupport: toSafeAsyncCallable(safeDeps.detectForeignObjectRendererSupport),
-            renderTimezoneTableToPngDataUrl: toSafeAsyncCallable(safeDeps.renderTimezoneTableToPngDataUrl),
-            isDomExceptionLike: toSafeCallable(safeDeps.isDomExceptionLike),
-            setCanUseForeignObjectRenderer: toSafeCallable(safeDeps.setCanUseForeignObjectRenderer),
-            renderTimezoneTableFallbackDataUrl: toSafeAsyncCallable(safeDeps.renderTimezoneTableFallbackDataUrl),
-            getTimezoneTableImageFilename: toSafeCallable(safeDeps.getTimezoneTableImageFilename)
+            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
+            showToast: toSafeCallable("showToast", safeDeps.showToast),
+            t: toSafeCallable("t", safeDeps.t),
+            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
+            renderMultiRangeTitlesToPngDataUrl: toSafeAsyncCallable("renderMultiRangeTitlesToPngDataUrl", safeDeps.renderMultiRangeTitlesToPngDataUrl),
+            getMultiRangeTitlesImageFilename: toSafeCallable("getMultiRangeTitlesImageFilename", safeDeps.getMultiRangeTitlesImageFilename),
+            renderMultiRangesToPngDataUrl: toSafeAsyncCallable("renderMultiRangesToPngDataUrl", safeDeps.renderMultiRangesToPngDataUrl),
+            renderMultiRangeSingleToPngDataUrl: toSafeAsyncCallable("renderMultiRangeSingleToPngDataUrl", safeDeps.renderMultiRangeSingleToPngDataUrl),
+            detectForeignObjectRendererSupport: toSafeAsyncCallable("detectForeignObjectRendererSupport", safeDeps.detectForeignObjectRendererSupport),
+            renderTimezoneTableToPngDataUrl: toSafeAsyncCallable("renderTimezoneTableToPngDataUrl", safeDeps.renderTimezoneTableToPngDataUrl),
+            isDomExceptionLike: toSafeCallable("isDomExceptionLike", safeDeps.isDomExceptionLike),
+            setCanUseForeignObjectRenderer: toSafeCallable("setCanUseForeignObjectRenderer", safeDeps.setCanUseForeignObjectRenderer),
+            renderTimezoneTableFallbackDataUrl: toSafeAsyncCallable("renderTimezoneTableFallbackDataUrl", safeDeps.renderTimezoneTableFallbackDataUrl),
+            getTimezoneTableImageFilename: toSafeCallable("getTimezoneTableImageFilename", safeDeps.getTimezoneTableImageFilename)
         });
     }
 

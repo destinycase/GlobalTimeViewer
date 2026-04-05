@@ -7,42 +7,57 @@
             ? safeDeps.DEFAULT_COPY_TIME_PARTS_ENABLED
             : Object.freeze({ dn: true, date: true, time: true, weekday: true });
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVSnapshotFormat] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            pad: toSafeCallable(safeDeps.pad),
-            getCurrentLang: toSafeCallable(safeDeps.getCurrentLang),
-            getDayNightMarkerByHour: toSafeCallable(safeDeps.getDayNightMarkerByHour),
-            getUTCRef: toSafeCallable(safeDeps.getUTCRef),
-            getBaseTimezoneRef: toSafeCallable(safeDeps.getBaseTimezoneRef),
-            getCurrentGroupZones: toSafeCallable(safeDeps.getCurrentGroupZones),
-            getCustomOffsetMinutes: toSafeCallable(safeDeps.getCustomOffsetMinutes),
-            getFixedOffsetForDisplay: toSafeCallable(safeDeps.getFixedOffsetForDisplay),
-            normalizeCustomAbbr: toSafeCallable(safeDeps.normalizeCustomAbbr),
-            getZoneAbbreviation: toSafeCallable(safeDeps.getZoneAbbreviation),
-            getSignedInclusiveDaySpan: toSafeCallable(safeDeps.getSignedInclusiveDaySpan),
-            getSignedDurationDayHourMinute: toSafeCallable(safeDeps.getSignedDurationDayHourMinute),
-            t: toSafeCallable(safeDeps.t),
-            getZoneDisplayName: toSafeCallable(safeDeps.getZoneDisplayName),
-            getGlobalTimes: toSafeCallable(safeDeps.getGlobalTimes),
-            isRealtime: toSafeCallable(safeDeps.isRealtime),
-            getSlotCount: toSafeCallable(safeDeps.getSlotCount),
-            sanitizeTimePartsEnabled: toSafeCallable(safeDeps.sanitizeTimePartsEnabled),
-            sanitizeCopyFormatOrder: toSafeCallable(safeDeps.sanitizeCopyFormatOrder)
+            pad: toSafeCallable("pad", safeDeps.pad),
+            getCurrentLang: toSafeCallable("getCurrentLang", safeDeps.getCurrentLang),
+            getDayNightMarkerByHour: toSafeCallable("getDayNightMarkerByHour", safeDeps.getDayNightMarkerByHour),
+            getUTCRef: toSafeCallable("getUTCRef", safeDeps.getUTCRef),
+            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
+            getCurrentGroupZones: toSafeCallable("getCurrentGroupZones", safeDeps.getCurrentGroupZones),
+            getCustomOffsetMinutes: toSafeCallable("getCustomOffsetMinutes", safeDeps.getCustomOffsetMinutes),
+            getFixedOffsetForDisplay: toSafeCallable("getFixedOffsetForDisplay", safeDeps.getFixedOffsetForDisplay),
+            normalizeCustomAbbr: toSafeCallable("normalizeCustomAbbr", safeDeps.normalizeCustomAbbr),
+            getZoneAbbreviation: toSafeCallable("getZoneAbbreviation", safeDeps.getZoneAbbreviation),
+            getSignedInclusiveDaySpan: toSafeCallable("getSignedInclusiveDaySpan", safeDeps.getSignedInclusiveDaySpan),
+            getSignedDurationDayHourMinute: toSafeCallable("getSignedDurationDayHourMinute", safeDeps.getSignedDurationDayHourMinute),
+            t: toSafeCallable("t", safeDeps.t),
+            getZoneDisplayName: toSafeCallable("getZoneDisplayName", safeDeps.getZoneDisplayName),
+            getGlobalTimes: toSafeCallable("getGlobalTimes", safeDeps.getGlobalTimes),
+            isRealtime: toSafeCallable("isRealtime", safeDeps.isRealtime),
+            getSlotCount: toSafeCallable("getSlotCount", safeDeps.getSlotCount),
+            sanitizeTimePartsEnabled: toSafeCallable("sanitizeTimePartsEnabled", safeDeps.sanitizeTimePartsEnabled),
+            sanitizeCopyFormatOrder: toSafeCallable("sanitizeCopyFormatOrder", safeDeps.sanitizeCopyFormatOrder)
         });
 
         const timeDep = Object.freeze({
-            toDateTime: toSafeCallable(safeDeps?.timeService?.toDateTime),
-            resolveLocalDateParts: toSafeCallable(safeDeps?.timeService?.resolveLocalDateParts)
+            toDateTime: toSafeCallable("timeService.toDateTime", safeDeps?.timeService?.toDateTime),
+            resolveLocalDateParts: toSafeCallable("timeService.resolveLocalDateParts", safeDeps?.timeService?.resolveLocalDateParts)
         });
 
         function safePad(value) {

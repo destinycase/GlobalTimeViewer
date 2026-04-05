@@ -21,19 +21,20 @@
                 }
             });
 
-        function toSafeCallable(depFn) {
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logger(`[GTVAppFeedback] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            t: toSafeCallable(safeDeps.t)
+            t: toSafeCallable("t", safeDeps.t)
         });
 
         function getDocumentRef() {

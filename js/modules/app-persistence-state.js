@@ -33,26 +33,41 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVAppPersistenceState] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            getState: toSafeCallable(safeDeps.getState),
-            syncActiveFormatProfileFromState: toSafeCallable(safeDeps.syncActiveFormatProfileFromState),
-            setState: toSafeCallable(safeDeps.setState),
-            setIsRealtimeState: toSafeCallable(safeDeps.setIsRealtimeState),
-            ensureFormatProfiles: toSafeCallable(safeDeps.ensureFormatProfiles),
-            getCurrentFormatProfileState: toSafeCallable(safeDeps.getCurrentFormatProfileState),
-            resolveFormatProfileContext: toSafeCallable(safeDeps.resolveFormatProfileContext),
-            applyFormatProfileState: toSafeCallable(safeDeps.applyFormatProfileState)
+            getState: toSafeCallable("getState", safeDeps.getState),
+            syncActiveFormatProfileFromState: toSafeCallable("syncActiveFormatProfileFromState", safeDeps.syncActiveFormatProfileFromState),
+            setState: toSafeCallable("setState", safeDeps.setState),
+            setIsRealtimeState: toSafeCallable("setIsRealtimeState", safeDeps.setIsRealtimeState),
+            ensureFormatProfiles: toSafeCallable("ensureFormatProfiles", safeDeps.ensureFormatProfiles),
+            getCurrentFormatProfileState: toSafeCallable("getCurrentFormatProfileState", safeDeps.getCurrentFormatProfileState),
+            resolveFormatProfileContext: toSafeCallable("resolveFormatProfileContext", safeDeps.resolveFormatProfileContext),
+            applyFormatProfileState: toSafeCallable("applyFormatProfileState", safeDeps.applyFormatProfileState)
         });
 
         function getCurrentState() {

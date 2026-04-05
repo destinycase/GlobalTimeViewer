@@ -2,6 +2,7 @@
     "use strict";
 
     const LEGACY_STORAGE_KEYS = Object.freeze([
+        "GTV_v323_Data",
         "GTV_v322_Data",
         "GTV_v321_Data",
         "GTV_v320_Data",
@@ -17,8 +18,8 @@
     const LEGACY_STORAGE_FALLBACK_KEYS = Object.freeze(LEGACY_STORAGE_KEYS.slice(0, 3));
 
     const APP_CONFIG = Object.freeze({
-        VERSION: "3.12.3",
-        STORAGE_KEY: "GTV_v323_Data",
+        VERSION: "3.12.4",
+        STORAGE_KEY: "GTV_v324_Data",
         THEME_STORAGE_KEY: "GTV_Theme",
         LANG_STORAGE_KEY: "GTV_Lang",
         UI_SCALE_STORAGE_KEY: "GTV_UIScale",

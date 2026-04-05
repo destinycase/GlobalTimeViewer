@@ -4,24 +4,39 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVImageExportBridge] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            getDefaultTableExportContext: toSafeCallable(safeDeps.getDefaultTableExportContext),
-            getImageCloneService: toSafeCallable(safeDeps.getImageCloneService),
-            getImageForeignRenderService: toSafeCallable(safeDeps.getImageForeignRenderService),
-            getTableImageRenderService: toSafeCallable(safeDeps.getTableImageRenderService),
-            getMultiRangeImageRenderService: toSafeCallable(safeDeps.getMultiRangeImageRenderService),
-            getImageExportActionsService: toSafeCallable(safeDeps.getImageExportActionsService)
+            getDefaultTableExportContext: toSafeCallable("getDefaultTableExportContext", safeDeps.getDefaultTableExportContext),
+            getImageCloneService: toSafeCallable("getImageCloneService", safeDeps.getImageCloneService),
+            getImageForeignRenderService: toSafeCallable("getImageForeignRenderService", safeDeps.getImageForeignRenderService),
+            getTableImageRenderService: toSafeCallable("getTableImageRenderService", safeDeps.getTableImageRenderService),
+            getMultiRangeImageRenderService: toSafeCallable("getMultiRangeImageRenderService", safeDeps.getMultiRangeImageRenderService),
+            getImageExportActionsService: toSafeCallable("getImageExportActionsService", safeDeps.getImageExportActionsService)
         });
 
         function getServiceFromDep(getter) {

@@ -4,20 +4,21 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function toSafeCallable(depFn) {
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logError(`[GTVCalculatorActions] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            t: toSafeCallable(safeDeps.t),
-            showToast: toSafeCallable(safeDeps.showToast)
+            t: toSafeCallable("t", safeDeps.t),
+            showToast: toSafeCallable("showToast", safeDeps.showToast)
         });
 
         function logError(...args) {

@@ -40,7 +40,17 @@
                 if (typeof setTimeout === "function") {
                     return setTimeout(fn, ms);
                 }
-                if (typeof fn === "function") fn();
+                if (typeof queueMicrotask === "function" && typeof fn === "function") {
+                    queueMicrotask(fn);
+                    return 0;
+                }
+                if (typeof Promise === "function" && typeof fn === "function") {
+                    Promise.resolve().then(fn);
+                    return 0;
+                }
+                if (typeof fn === "function") {
+                    fn();
+                }
                 return 0;
             });
         const clearTimeoutFn = (typeof safeDeps.clearTimeoutFn === "function")

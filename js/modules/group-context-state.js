@@ -4,23 +4,38 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVGroupContextState] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            getGroups: toSafeCallable(safeDeps.getGroups),
-            getState: toSafeCallable(safeDeps.getState),
-            setState: toSafeCallable(safeDeps.setState),
-            getUTCRef: toSafeCallable(safeDeps.getUTCRef),
-            sanitizeUtcRowOrder: toSafeCallable(safeDeps.sanitizeUtcRowOrder)
+            getGroups: toSafeCallable("getGroups", safeDeps.getGroups),
+            getState: toSafeCallable("getState", safeDeps.getState),
+            setState: toSafeCallable("setState", safeDeps.setState),
+            getUTCRef: toSafeCallable("getUTCRef", safeDeps.getUTCRef),
+            sanitizeUtcRowOrder: toSafeCallable("sanitizeUtcRowOrder", safeDeps.sanitizeUtcRowOrder)
         });
 
         function getMainTabs() {

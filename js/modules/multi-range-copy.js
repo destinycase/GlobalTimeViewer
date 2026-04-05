@@ -4,32 +4,33 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function toSafeCallable(depFn) {
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logError(`[GTVMultiRangeCopy] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            t: toSafeCallable(safeDeps.t),
-            ensureMultiRangeState: toSafeCallable(safeDeps.ensureMultiRangeState),
-            getMultiRanges: toSafeCallable(safeDeps.getMultiRanges),
-            getTimezoneRefById: toSafeCallable(safeDeps.getTimezoneRefById),
-            buildTimezoneComputedSnapshotForRange: toSafeCallable(safeDeps.buildTimezoneComputedSnapshotForRange),
-            formatSnapshotText: toSafeCallable(safeDeps.formatSnapshotText),
-            getCopyFormatOrder: toSafeCallable(safeDeps.getCopyFormatOrder),
-            getCopyFormatEnabled: toSafeCallable(safeDeps.getCopyFormatEnabled),
-            getCopyTimePartsEnabled: toSafeCallable(safeDeps.getCopyTimePartsEnabled),
-            writeClipboard: toSafeCallable(safeDeps.writeClipboard),
-            showToast: toSafeCallable(safeDeps.showToast),
-            getBaseTimezoneRef: toSafeCallable(safeDeps.getBaseTimezoneRef),
-            getRenderableTimezoneRows: toSafeCallable(safeDeps.getRenderableTimezoneRows),
-            getMultiRangeTitleText: toSafeCallable(safeDeps.getMultiRangeTitleText)
+            t: toSafeCallable("t", safeDeps.t),
+            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
+            getMultiRanges: toSafeCallable("getMultiRanges", safeDeps.getMultiRanges),
+            getTimezoneRefById: toSafeCallable("getTimezoneRefById", safeDeps.getTimezoneRefById),
+            buildTimezoneComputedSnapshotForRange: toSafeCallable("buildTimezoneComputedSnapshotForRange", safeDeps.buildTimezoneComputedSnapshotForRange),
+            formatSnapshotText: toSafeCallable("formatSnapshotText", safeDeps.formatSnapshotText),
+            getCopyFormatOrder: toSafeCallable("getCopyFormatOrder", safeDeps.getCopyFormatOrder),
+            getCopyFormatEnabled: toSafeCallable("getCopyFormatEnabled", safeDeps.getCopyFormatEnabled),
+            getCopyTimePartsEnabled: toSafeCallable("getCopyTimePartsEnabled", safeDeps.getCopyTimePartsEnabled),
+            writeClipboard: toSafeCallable("writeClipboard", safeDeps.writeClipboard),
+            showToast: toSafeCallable("showToast", safeDeps.showToast),
+            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
+            getRenderableTimezoneRows: toSafeCallable("getRenderableTimezoneRows", safeDeps.getRenderableTimezoneRows),
+            getMultiRangeTitleText: toSafeCallable("getMultiRangeTitleText", safeDeps.getMultiRangeTitleText)
         });
 
         function translate(key) {

@@ -4,25 +4,40 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVTabOrchestrator] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            sanitizeMainTab: toSafeCallable(safeDeps.sanitizeMainTab),
-            getSlotCount: toSafeCallable(safeDeps.getSlotCount),
-            syncActiveFormatProfileFromState: toSafeCallable(safeDeps.syncActiveFormatProfileFromState),
-            resolveFormatProfileContext: toSafeCallable(safeDeps.resolveFormatProfileContext),
-            activateFormatProfileContext: toSafeCallable(safeDeps.activateFormatProfileContext),
-            switchMainTabUi: toSafeCallable(safeDeps.switchMainTabUi),
-            refreshOptionToggleDividersUi: toSafeCallable(safeDeps.refreshOptionToggleDividersUi)
+            sanitizeMainTab: toSafeCallable("sanitizeMainTab", safeDeps.sanitizeMainTab),
+            getSlotCount: toSafeCallable("getSlotCount", safeDeps.getSlotCount),
+            syncActiveFormatProfileFromState: toSafeCallable("syncActiveFormatProfileFromState", safeDeps.syncActiveFormatProfileFromState),
+            resolveFormatProfileContext: toSafeCallable("resolveFormatProfileContext", safeDeps.resolveFormatProfileContext),
+            activateFormatProfileContext: toSafeCallable("activateFormatProfileContext", safeDeps.activateFormatProfileContext),
+            switchMainTabUi: toSafeCallable("switchMainTabUi", safeDeps.switchMainTabUi),
+            refreshOptionToggleDividersUi: toSafeCallable("refreshOptionToggleDividersUi", safeDeps.refreshOptionToggleDividersUi)
         });
 
         function switchMainTab(tab) {

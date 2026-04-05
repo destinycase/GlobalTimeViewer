@@ -15,15 +15,15 @@
         function getDocumentRef() {
             if (typeof safeDeps.getDocumentRef === "function") {
                 const injected = safeDeps.getDocumentRef();
-                if (injected && typeof injected === "object") return injected;
+                if (injected && typeof injected.getElementById === "function") return injected;
             }
             if (typeof safeDeps.getDocumentRefOrNull === "function") {
                 const injected = safeDeps.getDocumentRefOrNull();
-                if (injected && typeof injected === "object") return injected;
+                if (injected && typeof injected.getElementById === "function") return injected;
             }
-            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") return safeDeps.documentRef;
-            if (safeDeps.document && typeof safeDeps.document === "object") return safeDeps.document;
-            if (globalObj?.document && typeof globalObj.document === "object") return globalObj.document;
+            if (safeDeps.documentRef && typeof safeDeps.documentRef.getElementById === "function") return safeDeps.documentRef;
+            if (safeDeps.document && typeof safeDeps.document.getElementById === "function") return safeDeps.document;
+            if (globalObj?.document && typeof globalObj.document.getElementById === "function") return globalObj.document;
             return (typeof document === "object" && document) ? document : null;
         }
 
@@ -45,30 +45,31 @@
             }
         }
 
-        function toSafeCallable(depFn) {
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVTimezoneSearch] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            getZoneMap: toSafeCallable(safeDeps.getZoneMap),
-            getCurrentLang: toSafeCallable(safeDeps.getCurrentLang),
-            getLocalizedTZLabel: toSafeCallable(safeDeps.getLocalizedTZLabel),
-            getTimezoneOffset: toSafeCallable(safeDeps.getTimezoneOffset),
-            getBetterAbbr: toSafeCallable(safeDeps.getBetterAbbr),
-            t: toSafeCallable(safeDeps.t),
-            createUniqueTimezoneId: toSafeCallable(safeDeps.createUniqueTimezoneId),
-            addTimezone: toSafeCallable(safeDeps.addTimezone),
-            adjustSelectWidthForContent: toSafeCallable(safeDeps.adjustSelectWidthForContent),
-            getCurrentGroup: toSafeCallable(safeDeps.getCurrentGroup),
-            savePersistence: toSafeCallable(safeDeps.savePersistence),
-            renderList: toSafeCallable(safeDeps.renderList)
+            getZoneMap: toSafeCallable("getZoneMap", safeDeps.getZoneMap),
+            getCurrentLang: toSafeCallable("getCurrentLang", safeDeps.getCurrentLang),
+            getLocalizedTZLabel: toSafeCallable("getLocalizedTZLabel", safeDeps.getLocalizedTZLabel),
+            getTimezoneOffset: toSafeCallable("getTimezoneOffset", safeDeps.getTimezoneOffset),
+            getBetterAbbr: toSafeCallable("getBetterAbbr", safeDeps.getBetterAbbr),
+            t: toSafeCallable("t", safeDeps.t),
+            createUniqueTimezoneId: toSafeCallable("createUniqueTimezoneId", safeDeps.createUniqueTimezoneId),
+            addTimezone: toSafeCallable("addTimezone", safeDeps.addTimezone),
+            adjustSelectWidthForContent: toSafeCallable("adjustSelectWidthForContent", safeDeps.adjustSelectWidthForContent),
+            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
+            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
+            renderList: toSafeCallable("renderList", safeDeps.renderList)
         });
 
         function addTimezoneSafe(nextZone) {

@@ -197,19 +197,6 @@
 ]);
     const documentRef = globalObj?.document || null;
 
-    function renderDeferredScriptTags(paths) {
-        return paths
-            .map((src) => `<script src="${src}" defer></script>`)
-            .join("\n");
-    }
-
-    function injectScriptsWithDomWrite(paths) {
-        if (!documentRef || typeof documentRef.write !== "function") return false;
-        if (documentRef.readyState !== "loading") return false;
-        documentRef.write(`${renderDeferredScriptTags(paths)}\n`);
-        return true;
-    }
-
     function injectScriptsDynamically(paths) {
         if (!documentRef || typeof documentRef.createElement !== "function") {
             throw new Error("Document API unavailable for source script loader.");
@@ -230,9 +217,7 @@
     }
 
     try {
-        if (!injectScriptsWithDomWrite(SOURCE_SCRIPTS)) {
-            injectScriptsDynamically(SOURCE_SCRIPTS);
-        }
+        injectScriptsDynamically(SOURCE_SCRIPTS);
     } catch (error) {
         console.error("[GTV] Failed to inject source scripts.", error);
         throw error;

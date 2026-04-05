@@ -4,31 +4,46 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVFixedTimeState] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            getCurrentGroup: toSafeCallable(safeDeps.getCurrentGroup),
-            ensureGroupFixedTimes: toSafeCallable(safeDeps.ensureGroupFixedTimes),
-            sanitizeFixedTimeSlotCount: toSafeCallable(safeDeps.sanitizeFixedTimeSlotCount),
-            sanitizeFixedDateValue: toSafeCallable(safeDeps.sanitizeFixedDateValue),
-            isFixedTimeTab: toSafeCallable(safeDeps.isFixedTimeTab),
-            renderFixedTimeTab: toSafeCallable(safeDeps.renderFixedTimeTab),
-            renderTimelineFrame: toSafeCallable(safeDeps.renderTimelineFrame),
-            savePersistence: toSafeCallable(safeDeps.savePersistence),
-            sanitizeFixedTimeShowLiveNow: toSafeCallable(safeDeps.sanitizeFixedTimeShowLiveNow),
-            showToast: toSafeCallable(safeDeps.showToast),
-            t: toSafeCallable(safeDeps.t),
-            createUniqueFixedTimeId: toSafeCallable(safeDeps.createUniqueFixedTimeId),
-            createDefaultFixedTimeSlot: toSafeCallable(safeDeps.createDefaultFixedTimeSlot)
+            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
+            ensureGroupFixedTimes: toSafeCallable("ensureGroupFixedTimes", safeDeps.ensureGroupFixedTimes),
+            sanitizeFixedTimeSlotCount: toSafeCallable("sanitizeFixedTimeSlotCount", safeDeps.sanitizeFixedTimeSlotCount),
+            sanitizeFixedDateValue: toSafeCallable("sanitizeFixedDateValue", safeDeps.sanitizeFixedDateValue),
+            isFixedTimeTab: toSafeCallable("isFixedTimeTab", safeDeps.isFixedTimeTab),
+            renderFixedTimeTab: toSafeCallable("renderFixedTimeTab", safeDeps.renderFixedTimeTab),
+            renderTimelineFrame: toSafeCallable("renderTimelineFrame", safeDeps.renderTimelineFrame),
+            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
+            sanitizeFixedTimeShowLiveNow: toSafeCallable("sanitizeFixedTimeShowLiveNow", safeDeps.sanitizeFixedTimeShowLiveNow),
+            showToast: toSafeCallable("showToast", safeDeps.showToast),
+            t: toSafeCallable("t", safeDeps.t),
+            createUniqueFixedTimeId: toSafeCallable("createUniqueFixedTimeId", safeDeps.createUniqueFixedTimeId),
+            createDefaultFixedTimeSlot: toSafeCallable("createDefaultFixedTimeSlot", safeDeps.createDefaultFixedTimeSlot)
         });
 
         function getDocumentRef() {

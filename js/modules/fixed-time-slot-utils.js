@@ -4,22 +4,37 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVFixedTimeSlotUtils] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            t: toSafeCallable(safeDeps.t),
-            buildStrictUtcDateFromParts: toSafeCallable(safeDeps.buildStrictUtcDateFromParts),
-            getCurrentGroup: toSafeCallable(safeDeps.getCurrentGroup),
-            getNextFixedTimeSeed: toSafeCallable(safeDeps.getNextFixedTimeSeed)
+            t: toSafeCallable("t", safeDeps.t),
+            buildStrictUtcDateFromParts: toSafeCallable("buildStrictUtcDateFromParts", safeDeps.buildStrictUtcDateFromParts),
+            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
+            getNextFixedTimeSeed: toSafeCallable("getNextFixedTimeSeed", safeDeps.getNextFixedTimeSeed)
         });
 
         function getCurrentGroupSafe() {

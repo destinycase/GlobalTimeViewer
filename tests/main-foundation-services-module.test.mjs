@@ -540,4 +540,60 @@ describe("GTV main foundation services module", () => {
         await expect(pending).resolves.toBe("Updated");
         expect(overlay.style.display).toBe("none");
     });
+
+    it("cancels previous prompt request when promptFn is called concurrently", async () => {
+        const moduleApi = loadMainFoundationServicesModule();
+        const overlay = createEventNode();
+        const title = createEventNode();
+        const input = createEventNode();
+        const confirmBtn = createEventNode();
+        const cancelBtn = createEventNode();
+        const closeBtn = createEventNode();
+        const elementsById = {
+            "app-prompt-overlay": overlay,
+            "app-prompt-title": title,
+            "app-prompt-input": input,
+            "app-prompt-confirm": confirmBtn,
+            "app-prompt-cancel": cancelBtn,
+            "app-prompt-close": closeBtn
+        };
+
+        const service = moduleApi.createService({
+            GTV_SERVICE_BOOTSTRAP: { createService: () => ({}) },
+            GTV_PERSISTENCE_SERVICE_BUNDLE: { createService: () => ({}) },
+            GTV_MAIN_UI_UTILS: {
+                createService: () => ({
+                    setCustomTooltip: () => {},
+                    upgradeNativeTitleTooltips: () => {},
+                    hideFloatingTooltip: () => {},
+                    bindFloatingTooltipEvents: () => {},
+                    clearDragGhost: () => {},
+                    createDragGhostFromRow: () => {}
+                })
+            },
+            GTV_APP_FEEDBACK: {
+                createService: () => ({})
+            },
+            GTV_CALCULATOR_ACTIONS: {
+                createService: () => ({})
+            },
+            t: (key) => key,
+            documentRef: {
+                getElementById: (id) => elementsById[id] || null
+            }
+        });
+
+        const firstPrompt = service.promptFn("First prompt", "A");
+        const secondPrompt = service.promptFn("Second prompt", "B");
+
+        await expect(firstPrompt).resolves.toBe(null);
+        expect(title.textContent).toBe("Second prompt");
+        expect(input.value).toBe("B");
+
+        input.value = "Second-Updated";
+        confirmBtn.dispatch("click");
+
+        await expect(secondPrompt).resolves.toBe("Second-Updated");
+        expect(overlay.style.display).toBe("none");
+    });
 });

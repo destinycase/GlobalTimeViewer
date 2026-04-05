@@ -4,27 +4,42 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVMultiRangeState] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            getState: toSafeCallable(safeDeps.getState),
-            setState: toSafeCallable(safeDeps.setState),
-            t: toSafeCallable(safeDeps.t),
-            sanitizeUtcMs: toSafeCallable(safeDeps.sanitizeUtcMs),
-            getGlobalTimes: toSafeCallable(safeDeps.getGlobalTimes),
-            isMultiTab: toSafeCallable(safeDeps.isMultiTab),
-            renderMultiRanges: toSafeCallable(safeDeps.renderMultiRanges),
-            savePersistence: toSafeCallable(safeDeps.savePersistence),
-            showToast: toSafeCallable(safeDeps.showToast)
+            getState: toSafeCallable("getState", safeDeps.getState),
+            setState: toSafeCallable("setState", safeDeps.setState),
+            t: toSafeCallable("t", safeDeps.t),
+            sanitizeUtcMs: toSafeCallable("sanitizeUtcMs", safeDeps.sanitizeUtcMs),
+            getGlobalTimes: toSafeCallable("getGlobalTimes", safeDeps.getGlobalTimes),
+            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
+            renderMultiRanges: toSafeCallable("renderMultiRanges", safeDeps.renderMultiRanges),
+            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
+            showToast: toSafeCallable("showToast", safeDeps.showToast)
         });
 
         function savePersistenceSafe() {

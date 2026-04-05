@@ -40,39 +40,54 @@
             return (typeof document === "object" && document) ? document : null;
         }
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVFormatControls] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            t: toSafeCallable(safeDeps.t),
-            getActiveCopyFormatKeys: toSafeCallable(safeDeps.getActiveCopyFormatKeys),
-            getActiveTimePartKeys: toSafeCallable(safeDeps.getActiveTimePartKeys),
-            isShowCopyFormat: toSafeCallable(safeDeps.isShowCopyFormat),
-            updateCopyFormatPreview: toSafeCallable(safeDeps.updateCopyFormatPreview),
-            getDisplayFormatOrder: toSafeCallable(safeDeps.getDisplayFormatOrder),
-            getDisplayFormatEnabled: toSafeCallable(safeDeps.getDisplayFormatEnabled),
-            setDisplayFormatEnabled: toSafeCallable(safeDeps.setDisplayFormatEnabled),
-            renderList: toSafeCallable(safeDeps.renderList),
-            savePersistence: toSafeCallable(safeDeps.savePersistence),
-            setDisplayFormatOrder: toSafeCallable(safeDeps.setDisplayFormatOrder),
-            sanitizeCopyFormatOrder: toSafeCallable(safeDeps.sanitizeCopyFormatOrder),
-            getDisplayTimePartsEnabled: toSafeCallable(safeDeps.getDisplayTimePartsEnabled),
-            setDisplayTimePartsEnabled: toSafeCallable(safeDeps.setDisplayTimePartsEnabled),
-            getCopyFormatOrder: toSafeCallable(safeDeps.getCopyFormatOrder),
-            getCopyFormatEnabled: toSafeCallable(safeDeps.getCopyFormatEnabled),
-            setCopyFormatEnabled: toSafeCallable(safeDeps.setCopyFormatEnabled),
-            setCopyFormatOrder: toSafeCallable(safeDeps.setCopyFormatOrder),
-            getCopyTimePartsEnabled: toSafeCallable(safeDeps.getCopyTimePartsEnabled),
-            setCopyTimePartsEnabled: toSafeCallable(safeDeps.setCopyTimePartsEnabled),
-            upgradeNativeTitleTooltips: toSafeCallable(safeDeps.upgradeNativeTitleTooltips)
+            t: toSafeCallable("t", safeDeps.t),
+            getActiveCopyFormatKeys: toSafeCallable("getActiveCopyFormatKeys", safeDeps.getActiveCopyFormatKeys),
+            getActiveTimePartKeys: toSafeCallable("getActiveTimePartKeys", safeDeps.getActiveTimePartKeys),
+            isShowCopyFormat: toSafeCallable("isShowCopyFormat", safeDeps.isShowCopyFormat),
+            updateCopyFormatPreview: toSafeCallable("updateCopyFormatPreview", safeDeps.updateCopyFormatPreview),
+            getDisplayFormatOrder: toSafeCallable("getDisplayFormatOrder", safeDeps.getDisplayFormatOrder),
+            getDisplayFormatEnabled: toSafeCallable("getDisplayFormatEnabled", safeDeps.getDisplayFormatEnabled),
+            setDisplayFormatEnabled: toSafeCallable("setDisplayFormatEnabled", safeDeps.setDisplayFormatEnabled),
+            renderList: toSafeCallable("renderList", safeDeps.renderList),
+            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
+            setDisplayFormatOrder: toSafeCallable("setDisplayFormatOrder", safeDeps.setDisplayFormatOrder),
+            sanitizeCopyFormatOrder: toSafeCallable("sanitizeCopyFormatOrder", safeDeps.sanitizeCopyFormatOrder),
+            getDisplayTimePartsEnabled: toSafeCallable("getDisplayTimePartsEnabled", safeDeps.getDisplayTimePartsEnabled),
+            setDisplayTimePartsEnabled: toSafeCallable("setDisplayTimePartsEnabled", safeDeps.setDisplayTimePartsEnabled),
+            getCopyFormatOrder: toSafeCallable("getCopyFormatOrder", safeDeps.getCopyFormatOrder),
+            getCopyFormatEnabled: toSafeCallable("getCopyFormatEnabled", safeDeps.getCopyFormatEnabled),
+            setCopyFormatEnabled: toSafeCallable("setCopyFormatEnabled", safeDeps.setCopyFormatEnabled),
+            setCopyFormatOrder: toSafeCallable("setCopyFormatOrder", safeDeps.setCopyFormatOrder),
+            getCopyTimePartsEnabled: toSafeCallable("getCopyTimePartsEnabled", safeDeps.getCopyTimePartsEnabled),
+            setCopyTimePartsEnabled: toSafeCallable("setCopyTimePartsEnabled", safeDeps.setCopyTimePartsEnabled),
+            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
         });
 
         function savePersistenceSafe() {

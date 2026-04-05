@@ -3,28 +3,71 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+        const globalSetInterval = (typeof globalObj?.setInterval === "function")
+            ? globalObj.setInterval.bind(globalObj)
+            : null;
+        const globalClearInterval = (typeof globalObj?.clearInterval === "function")
+            ? globalObj.clearInterval.bind(globalObj)
+            : null;
+        const nativeSetInterval = (typeof setInterval === "function")
+            ? setInterval
+            : null;
+        const nativeClearInterval = (typeof clearInterval === "function")
+            ? clearInterval
+            : null;
         const setIntervalFn = (typeof safeDeps.setIntervalFn === "function")
             ? safeDeps.setIntervalFn
-            : ((fn, ms) => setInterval(fn, ms));
+            : ((fn, ms) => {
+                if (typeof globalSetInterval === "function") {
+                    return globalSetInterval(fn, ms);
+                }
+                if (typeof nativeSetInterval === "function") {
+                    return nativeSetInterval(fn, ms);
+                }
+                return null;
+            });
         const clearIntervalFn = (typeof safeDeps.clearIntervalFn === "function")
             ? safeDeps.clearIntervalFn
-            : ((id) => clearInterval(id));
+            : ((id) => {
+                if (typeof globalClearInterval === "function") {
+                    globalClearInterval(id);
+                    return;
+                }
+                if (typeof nativeClearInterval === "function") {
+                    nativeClearInterval(id);
+                }
+            });
         let realtimeIntervalId = null;
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVTimerEngine] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            shouldTick: toSafeCallable(safeDeps.shouldTick),
-            onTick: toSafeCallable(safeDeps.onTick)
+            shouldTick: toSafeCallable("shouldTick", safeDeps.shouldTick),
+            onTick: toSafeCallable("onTick", safeDeps.onTick)
         });
 
         function getTickIntervalMs(overrideMs = null) {

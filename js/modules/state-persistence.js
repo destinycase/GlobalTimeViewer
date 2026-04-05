@@ -83,40 +83,41 @@
             ? safeDeps.I18N_DATA
             : {};
 
-        function toSafeCallable(depFn) {
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logger.warn(`[GTVStatePersistence] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            t: toSafeCallable(safeDeps.t),
-            getState: toSafeCallable(safeDeps.getState),
-            setState: toSafeCallable(safeDeps.setState),
-            getDefaultFixedDate: toSafeCallable(safeDeps.getDefaultFixedDate),
-            getDefaultFixedTimes: toSafeCallable(safeDeps.getDefaultFixedTimes),
-            loadThemePreference: toSafeCallable(safeDeps.loadThemePreference),
-            loadUiScalePreference: toSafeCallable(safeDeps.loadUiScalePreference),
-            getCurrentUiScalePercent: toSafeCallable(safeDeps.getCurrentUiScalePercent),
-            showToast: toSafeCallable(safeDeps.showToast),
-            ensureGroupMultiSubgroups: toSafeCallable(safeDeps.ensureGroupMultiSubgroups),
-            loadCurrentMultiStateFromActiveSubgroup: toSafeCallable(safeDeps.loadCurrentMultiStateFromActiveSubgroup),
-            applyTheme: toSafeCallable(safeDeps.applyTheme),
-            applyUiScale: toSafeCallable(safeDeps.applyUiScale),
-            applyTranslations: toSafeCallable(safeDeps.applyTranslations),
-            applyVersionBranding: toSafeCallable(safeDeps.applyVersionBranding),
-            populateUiScaleSelect: toSafeCallable(safeDeps.populateUiScaleSelect),
-            refreshMultiRangeControls: toSafeCallable(safeDeps.refreshMultiRangeControls),
-            updateTZDropdown: toSafeCallable(safeDeps.updateTZDropdown),
-            refreshSelectWidths: toSafeCallable(safeDeps.refreshSelectWidths),
-            switchMainTab: toSafeCallable(safeDeps.switchMainTab),
-            ensureBaseTimezoneSelection: toSafeCallable(safeDeps.ensureBaseTimezoneSelection),
-            syncCurrentMultiStateToActiveSubgroup: toSafeCallable(safeDeps.syncCurrentMultiStateToActiveSubgroup)
+            t: toSafeCallable("t", safeDeps.t),
+            getState: toSafeCallable("getState", safeDeps.getState),
+            setState: toSafeCallable("setState", safeDeps.setState),
+            getDefaultFixedDate: toSafeCallable("getDefaultFixedDate", safeDeps.getDefaultFixedDate),
+            getDefaultFixedTimes: toSafeCallable("getDefaultFixedTimes", safeDeps.getDefaultFixedTimes),
+            loadThemePreference: toSafeCallable("loadThemePreference", safeDeps.loadThemePreference),
+            loadUiScalePreference: toSafeCallable("loadUiScalePreference", safeDeps.loadUiScalePreference),
+            getCurrentUiScalePercent: toSafeCallable("getCurrentUiScalePercent", safeDeps.getCurrentUiScalePercent),
+            showToast: toSafeCallable("showToast", safeDeps.showToast),
+            ensureGroupMultiSubgroups: toSafeCallable("ensureGroupMultiSubgroups", safeDeps.ensureGroupMultiSubgroups),
+            loadCurrentMultiStateFromActiveSubgroup: toSafeCallable("loadCurrentMultiStateFromActiveSubgroup", safeDeps.loadCurrentMultiStateFromActiveSubgroup),
+            applyTheme: toSafeCallable("applyTheme", safeDeps.applyTheme),
+            applyUiScale: toSafeCallable("applyUiScale", safeDeps.applyUiScale),
+            applyTranslations: toSafeCallable("applyTranslations", safeDeps.applyTranslations),
+            applyVersionBranding: toSafeCallable("applyVersionBranding", safeDeps.applyVersionBranding),
+            populateUiScaleSelect: toSafeCallable("populateUiScaleSelect", safeDeps.populateUiScaleSelect),
+            refreshMultiRangeControls: toSafeCallable("refreshMultiRangeControls", safeDeps.refreshMultiRangeControls),
+            updateTZDropdown: toSafeCallable("updateTZDropdown", safeDeps.updateTZDropdown),
+            refreshSelectWidths: toSafeCallable("refreshSelectWidths", safeDeps.refreshSelectWidths),
+            switchMainTab: toSafeCallable("switchMainTab", safeDeps.switchMainTab),
+            ensureBaseTimezoneSelection: toSafeCallable("ensureBaseTimezoneSelection", safeDeps.ensureBaseTimezoneSelection),
+            syncCurrentMultiStateToActiveSubgroup: toSafeCallable("syncCurrentMultiStateToActiveSubgroup", safeDeps.syncCurrentMultiStateToActiveSubgroup)
         });
 
         function ensureGroupMultiSubgroupsSafe(group) {
@@ -200,7 +201,15 @@
         }
 
         function isChromeStorageLocalRef(value) {
-            return !!(value && typeof value === "object");
+            return !!(
+                value
+                && typeof value === "object"
+                && (
+                    typeof value.get === "function"
+                    || typeof value.set === "function"
+                    || typeof value.remove === "function"
+                )
+            );
         }
 
         function getChromeStorageLocal() {

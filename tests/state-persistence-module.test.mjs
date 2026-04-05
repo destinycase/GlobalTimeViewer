@@ -272,6 +272,25 @@ describe("GTV state persistence module", () => {
         expect(loaded.logs.error).toHaveLength(0);
     });
 
+    it("ignores invalid chrome.storage.local references without storage methods", async () => {
+        const localStorage = createLocalStorageStub();
+        const loaded = loadStatePersistenceModule({
+            localStorage,
+            chrome: {
+                storage: {
+                    local: {}
+                }
+            }
+        });
+        const service = loaded.module.createService(createBaseDeps());
+
+        const result = await service.setStorageValue("KEY_INVALID_CHROME", "VALUE_OK");
+
+        expect(result.ok).toBe(true);
+        expect(localStorage.getItem("KEY_INVALID_CHROME")).toBe("VALUE_OK");
+        expect(loaded.logs.warn).toHaveLength(0);
+    });
+
     it("setStorageValue returns failure when both chrome and localStorage writes fail", async () => {
         const loaded = loadStatePersistenceModule({
             localStorage: createFailingLocalStorageStub(),

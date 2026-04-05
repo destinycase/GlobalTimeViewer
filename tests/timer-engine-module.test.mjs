@@ -89,4 +89,39 @@ describe("GTV timer engine module", () => {
         expect(cleared).toBe(7);
         expect(service.isRealtimeTickerRunning()).toBe(false);
     });
+
+    it("does not throw when global timer APIs are unavailable", () => {
+        const originalSetInterval = globalThis.setInterval;
+        const originalClearInterval = globalThis.clearInterval;
+        Object.defineProperty(globalThis, "setInterval", {
+            configurable: true,
+            writable: true,
+            value: undefined
+        });
+        Object.defineProperty(globalThis, "clearInterval", {
+            configurable: true,
+            writable: true,
+            value: undefined
+        });
+
+        try {
+            const module = loadTimerEngineModule();
+            const service = module.createService();
+
+            expect(service.startRealtimeTicker()).toBe(null);
+            expect(service.isRealtimeTickerRunning()).toBe(false);
+            expect(service.stopRealtimeTicker()).toBe(false);
+        } finally {
+            Object.defineProperty(globalThis, "setInterval", {
+                configurable: true,
+                writable: true,
+                value: originalSetInterval
+            });
+            Object.defineProperty(globalThis, "clearInterval", {
+                configurable: true,
+                writable: true,
+                value: originalClearInterval
+            });
+        }
+    });
 });

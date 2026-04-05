@@ -4,43 +4,58 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVTimeInputMutations] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            getCurrentGroupZones: toSafeCallable(safeDeps.getCurrentGroupZones),
-            getCustomOffsetMinutes: toSafeCallable(safeDeps.getCustomOffsetMinutes),
-            getFixedOffsetForDisplayAtDate: toSafeCallable(safeDeps.getFixedOffsetForDisplayAtDate),
-            resolveLocalDateParts: toSafeCallable(safeDeps.resolveLocalDateParts),
-            getGlobalTime: toSafeCallable(safeDeps.getGlobalTime),
-            buildStrictUtcDateFromParts: toSafeCallable(safeDeps.buildStrictUtcDateFromParts),
-            showToast: toSafeCallable(safeDeps.showToast),
-            t: toSafeCallable(safeDeps.t),
-            renderMultiRanges: toSafeCallable(safeDeps.renderMultiRanges),
-            renderList: toSafeCallable(safeDeps.renderList),
-            parseDateTimeParts: toSafeCallable(safeDeps.parseDateTimeParts),
-            getTimezoneOffset: toSafeCallable(safeDeps.getTimezoneOffset),
-            isRealtime: toSafeCallable(safeDeps.isRealtime),
-            setGlobalTime: toSafeCallable(safeDeps.setGlobalTime),
-            updateClocks: toSafeCallable(safeDeps.updateClocks),
-            isMultiTab: toSafeCallable(safeDeps.isMultiTab),
-            isMultiRangeStartEditEnabled: toSafeCallable(safeDeps.isMultiRangeStartEditEnabled),
-            isMultiRangeEndEditEnabled: toSafeCallable(safeDeps.isMultiRangeEndEditEnabled),
-            ensureMultiRangeState: toSafeCallable(safeDeps.ensureMultiRangeState),
-            getMultiRanges: toSafeCallable(safeDeps.getMultiRanges),
-            getMultiRangeSlotDate: toSafeCallable(safeDeps.getMultiRangeSlotDate),
-            setMultiRangeSlotDate: toSafeCallable(safeDeps.setMultiRangeSlotDate),
-            syncFollowingRangesByDuration: toSafeCallable(safeDeps.syncFollowingRangesByDuration),
-            syncMultiRangeStartLinks: toSafeCallable(safeDeps.syncMultiRangeStartLinks),
-            savePersistence: toSafeCallable(safeDeps.savePersistence)
+            getCurrentGroupZones: toSafeCallable("getCurrentGroupZones", safeDeps.getCurrentGroupZones),
+            getCustomOffsetMinutes: toSafeCallable("getCustomOffsetMinutes", safeDeps.getCustomOffsetMinutes),
+            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
+            resolveLocalDateParts: toSafeCallable("resolveLocalDateParts", safeDeps.resolveLocalDateParts),
+            getGlobalTime: toSafeCallable("getGlobalTime", safeDeps.getGlobalTime),
+            buildStrictUtcDateFromParts: toSafeCallable("buildStrictUtcDateFromParts", safeDeps.buildStrictUtcDateFromParts),
+            showToast: toSafeCallable("showToast", safeDeps.showToast),
+            t: toSafeCallable("t", safeDeps.t),
+            renderMultiRanges: toSafeCallable("renderMultiRanges", safeDeps.renderMultiRanges),
+            renderList: toSafeCallable("renderList", safeDeps.renderList),
+            parseDateTimeParts: toSafeCallable("parseDateTimeParts", safeDeps.parseDateTimeParts),
+            getTimezoneOffset: toSafeCallable("getTimezoneOffset", safeDeps.getTimezoneOffset),
+            isRealtime: toSafeCallable("isRealtime", safeDeps.isRealtime),
+            setGlobalTime: toSafeCallable("setGlobalTime", safeDeps.setGlobalTime),
+            updateClocks: toSafeCallable("updateClocks", safeDeps.updateClocks),
+            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
+            isMultiRangeStartEditEnabled: toSafeCallable("isMultiRangeStartEditEnabled", safeDeps.isMultiRangeStartEditEnabled),
+            isMultiRangeEndEditEnabled: toSafeCallable("isMultiRangeEndEditEnabled", safeDeps.isMultiRangeEndEditEnabled),
+            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
+            getMultiRanges: toSafeCallable("getMultiRanges", safeDeps.getMultiRanges),
+            getMultiRangeSlotDate: toSafeCallable("getMultiRangeSlotDate", safeDeps.getMultiRangeSlotDate),
+            setMultiRangeSlotDate: toSafeCallable("setMultiRangeSlotDate", safeDeps.setMultiRangeSlotDate),
+            syncFollowingRangesByDuration: toSafeCallable("syncFollowingRangesByDuration", safeDeps.syncFollowingRangesByDuration),
+            syncMultiRangeStartLinks: toSafeCallable("syncMultiRangeStartLinks", safeDeps.syncMultiRangeStartLinks),
+            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence)
         });
 
         function translate(key) {

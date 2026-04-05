@@ -5,24 +5,39 @@
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         let multiSubgroupIdSeed = 0;
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVMultiState] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            t: toSafeCallable(safeDeps.t),
-            getGroups: toSafeCallable(safeDeps.getGroups),
-            getDefaultMultiRangeBounds: toSafeCallable(safeDeps.getDefaultMultiRangeBounds),
-            sanitizeMultiRangeCount: toSafeCallable(safeDeps.sanitizeMultiRangeCount),
-            sanitizeUtcMs: toSafeCallable(safeDeps.sanitizeUtcMs),
-            sanitizeMultiRangeItem: toSafeCallable(safeDeps.sanitizeMultiRangeItem)
+            t: toSafeCallable("t", safeDeps.t),
+            getGroups: toSafeCallable("getGroups", safeDeps.getGroups),
+            getDefaultMultiRangeBounds: toSafeCallable("getDefaultMultiRangeBounds", safeDeps.getDefaultMultiRangeBounds),
+            sanitizeMultiRangeCount: toSafeCallable("sanitizeMultiRangeCount", safeDeps.sanitizeMultiRangeCount),
+            sanitizeUtcMs: toSafeCallable("sanitizeUtcMs", safeDeps.sanitizeUtcMs),
+            sanitizeMultiRangeItem: toSafeCallable("sanitizeMultiRangeItem", safeDeps.sanitizeMultiRangeItem)
         });
 
         function asArray(value) {

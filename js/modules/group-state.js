@@ -11,30 +11,45 @@
         })();
         let generatedIdCounter = 0;
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVGroupState] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            createUniqueTimezoneId: toSafeCallable(safeDeps.createUniqueTimezoneId),
-            sanitizeTimezoneId: toSafeCallable(safeDeps.sanitizeTimezoneId),
-            normalizeCustomAbbr: toSafeCallable(safeDeps.normalizeCustomAbbr),
-            t: toSafeCallable(safeDeps.t),
-            normalizeZoneAbbreviation: toSafeCallable(safeDeps.normalizeZoneAbbreviation),
-            sanitizeBaseTimezoneId: toSafeCallable(safeDeps.sanitizeBaseTimezoneId),
-            sanitizeUtcRowOrder: toSafeCallable(safeDeps.sanitizeUtcRowOrder),
-            sanitizeMultiSubgroupId: toSafeCallable(safeDeps.sanitizeMultiSubgroupId),
-            sanitizeFixedTimes: toSafeCallable(safeDeps.sanitizeFixedTimes),
-            sanitizeFixedDateValue: toSafeCallable(safeDeps.sanitizeFixedDateValue),
-            sanitizeFixedTimeShowLiveNow: toSafeCallable(safeDeps.sanitizeFixedTimeShowLiveNow),
-            ensureGroupMultiSubgroups: toSafeCallable(safeDeps.ensureGroupMultiSubgroups)
+            createUniqueTimezoneId: toSafeCallable("createUniqueTimezoneId", safeDeps.createUniqueTimezoneId),
+            sanitizeTimezoneId: toSafeCallable("sanitizeTimezoneId", safeDeps.sanitizeTimezoneId),
+            normalizeCustomAbbr: toSafeCallable("normalizeCustomAbbr", safeDeps.normalizeCustomAbbr),
+            t: toSafeCallable("t", safeDeps.t),
+            normalizeZoneAbbreviation: toSafeCallable("normalizeZoneAbbreviation", safeDeps.normalizeZoneAbbreviation),
+            sanitizeBaseTimezoneId: toSafeCallable("sanitizeBaseTimezoneId", safeDeps.sanitizeBaseTimezoneId),
+            sanitizeUtcRowOrder: toSafeCallable("sanitizeUtcRowOrder", safeDeps.sanitizeUtcRowOrder),
+            sanitizeMultiSubgroupId: toSafeCallable("sanitizeMultiSubgroupId", safeDeps.sanitizeMultiSubgroupId),
+            sanitizeFixedTimes: toSafeCallable("sanitizeFixedTimes", safeDeps.sanitizeFixedTimes),
+            sanitizeFixedDateValue: toSafeCallable("sanitizeFixedDateValue", safeDeps.sanitizeFixedDateValue),
+            sanitizeFixedTimeShowLiveNow: toSafeCallable("sanitizeFixedTimeShowLiveNow", safeDeps.sanitizeFixedTimeShowLiveNow),
+            ensureGroupMultiSubgroups: toSafeCallable("ensureGroupMultiSubgroups", safeDeps.ensureGroupMultiSubgroups)
         });
 
         function createTimezoneId(prefix = "tz") {

@@ -222,13 +222,15 @@
                 return await fallbackPromptFn(message, defaultValue);
             }
 
-            if (typeof activePromptCleanup === "function") {
-                activePromptCleanup();
-                activePromptCleanup = null;
+            const pendingPromptCleanup = activePromptCleanup;
+            const pendingPromptResolver = activePromptResolver;
+            activePromptCleanup = null;
+            activePromptResolver = null;
+            if (typeof pendingPromptCleanup === "function") {
+                pendingPromptCleanup();
             }
-            if (typeof activePromptResolver === "function") {
-                activePromptResolver(null);
-                activePromptResolver = null;
+            if (typeof pendingPromptResolver === "function") {
+                pendingPromptResolver(null);
             }
 
             return await new Promise((resolve) => {

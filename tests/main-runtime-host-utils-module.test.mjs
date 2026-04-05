@@ -64,7 +64,7 @@ describe("GTV main runtime host utils module", () => {
         const globalRef = { luxon: { DateTime: {} } };
         const service = moduleApi.createService({
             appDisplayName: "Global Time Viewer",
-            version: "3.12.3",
+            version: "3.12.4",
             getDocumentRef: () => documentRef,
             getWindowRef: () => ({ id: "window" }),
             getLocationRef: () => ({ href: "about:blank" }),
@@ -74,8 +74,8 @@ describe("GTV main runtime host utils module", () => {
 
         service.applyVersionBranding();
 
-        expect(documentRef.title).toBe("Global Time Viewer v3.12.3");
-        expect(badge.textContent).toBe("ver 3.12.3");
+        expect(documentRef.title).toBe("Global Time Viewer v3.12.4");
+        expect(badge.textContent).toBe("ver 3.12.4");
         expect(title.textContent).toBe("Global Time Viewer");
         expect(service.getDocumentRefOrNull()).toBe(documentRef);
         expect(service.getWindowRefOrNull()).toEqual({ id: "window" });

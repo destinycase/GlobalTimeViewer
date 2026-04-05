@@ -7,19 +7,19 @@
         function getDocumentRef() {
             if (typeof safeDeps.getDocumentRef === "function") {
                 const injected = safeDeps.getDocumentRef();
-                if (injected && typeof injected === "object") return injected;
+                if (injected && typeof injected.getElementById === "function") return injected;
             }
             if (typeof safeDeps.getDocumentRefOrNull === "function") {
                 const injected = safeDeps.getDocumentRefOrNull();
-                if (injected && typeof injected === "object") return injected;
+                if (injected && typeof injected.getElementById === "function") return injected;
             }
-            if (safeDeps.documentRef && typeof safeDeps.documentRef === "object") {
+            if (safeDeps.documentRef && typeof safeDeps.documentRef.getElementById === "function") {
                 return safeDeps.documentRef;
             }
-            if (safeDeps.document && typeof safeDeps.document === "object") {
+            if (safeDeps.document && typeof safeDeps.document.getElementById === "function") {
                 return safeDeps.document;
             }
-            if (globalObj?.document && typeof globalObj.document === "object") {
+            if (globalObj?.document && typeof globalObj.document.getElementById === "function") {
                 return globalObj.document;
             }
             return (typeof document === "object" && document) ? document : null;
@@ -43,37 +43,38 @@
             }
         }
 
-        function toSafeCallable(depFn) {
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logError(`[GTVCopyActions] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            t: toSafeCallable(safeDeps.t),
-            isShowCopyFormat: toSafeCallable(safeDeps.isShowCopyFormat),
-            isMultiTab: toSafeCallable(safeDeps.isMultiTab),
-            ensureMultiRangeState: toSafeCallable(safeDeps.ensureMultiRangeState),
-            getMultiRanges: toSafeCallable(safeDeps.getMultiRanges),
-            getBaseTimezoneRef: toSafeCallable(safeDeps.getBaseTimezoneRef),
-            buildTimezoneComputedSnapshotForRange: toSafeCallable(safeDeps.buildTimezoneComputedSnapshotForRange),
-            formatSnapshotText: toSafeCallable(safeDeps.formatSnapshotText),
-            getCopyFormatOrder: toSafeCallable(safeDeps.getCopyFormatOrder),
-            getCopyFormatEnabled: toSafeCallable(safeDeps.getCopyFormatEnabled),
-            getCopyTimePartsEnabled: toSafeCallable(safeDeps.getCopyTimePartsEnabled),
-            isFixedTimeTab: toSafeCallable(safeDeps.isFixedTimeTab),
-            getFixedTimePreviewCopyText: toSafeCallable(safeDeps.getFixedTimePreviewCopyText),
-            getRowFormattedText: toSafeCallable(safeDeps.getRowFormattedText),
-            getRowCopyText: toSafeCallable(safeDeps.getRowCopyText),
-            writeClipboard: toSafeCallable(safeDeps.writeClipboard),
-            showToast: toSafeCallable(safeDeps.showToast),
-            copyAllMultiRangeTimezones: toSafeCallable(safeDeps.copyAllMultiRangeTimezones),
-            getAllFixedTimeRowsCopyText: toSafeCallable(safeDeps.getAllFixedTimeRowsCopyText)
+            t: toSafeCallable("t", safeDeps.t),
+            isShowCopyFormat: toSafeCallable("isShowCopyFormat", safeDeps.isShowCopyFormat),
+            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
+            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
+            getMultiRanges: toSafeCallable("getMultiRanges", safeDeps.getMultiRanges),
+            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
+            buildTimezoneComputedSnapshotForRange: toSafeCallable("buildTimezoneComputedSnapshotForRange", safeDeps.buildTimezoneComputedSnapshotForRange),
+            formatSnapshotText: toSafeCallable("formatSnapshotText", safeDeps.formatSnapshotText),
+            getCopyFormatOrder: toSafeCallable("getCopyFormatOrder", safeDeps.getCopyFormatOrder),
+            getCopyFormatEnabled: toSafeCallable("getCopyFormatEnabled", safeDeps.getCopyFormatEnabled),
+            getCopyTimePartsEnabled: toSafeCallable("getCopyTimePartsEnabled", safeDeps.getCopyTimePartsEnabled),
+            isFixedTimeTab: toSafeCallable("isFixedTimeTab", safeDeps.isFixedTimeTab),
+            getFixedTimePreviewCopyText: toSafeCallable("getFixedTimePreviewCopyText", safeDeps.getFixedTimePreviewCopyText),
+            getRowFormattedText: toSafeCallable("getRowFormattedText", safeDeps.getRowFormattedText),
+            getRowCopyText: toSafeCallable("getRowCopyText", safeDeps.getRowCopyText),
+            writeClipboard: toSafeCallable("writeClipboard", safeDeps.writeClipboard),
+            showToast: toSafeCallable("showToast", safeDeps.showToast),
+            copyAllMultiRangeTimezones: toSafeCallable("copyAllMultiRangeTimezones", safeDeps.copyAllMultiRangeTimezones),
+            getAllFixedTimeRowsCopyText: toSafeCallable("getAllFixedTimeRowsCopyText", safeDeps.getAllFixedTimeRowsCopyText)
         });
 
         function getBooleanValue(getter, fallback = false) {

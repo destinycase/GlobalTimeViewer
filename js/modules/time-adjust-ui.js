@@ -29,27 +29,42 @@
             return (typeof document === "object" && document) ? document : null;
         }
 
-        function toSafeCallable(depFn) {
+        function logWarn(...args) {
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
+                return;
+            }
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
+                return;
+            }
+            if (typeof console === "object" && console && typeof console.warn === "function") {
+                console.warn(...args);
+            }
+        }
+
+        function toSafeCallable(depName, depFn) {
             if (typeof depFn !== "function") return () => undefined;
             return (...args) => {
                 try {
                     return depFn(...args);
-                } catch (_err) {
+                } catch (err) {
+                    logWarn(`[GTVTimeAdjustUI] Dependency "${depName}" threw.`, err);
                     return undefined;
                 }
             };
         }
 
         const dep = Object.freeze({
-            t: toSafeCallable(safeDeps.t),
-            applyTimeAdjustAction: toSafeCallable(safeDeps.applyTimeAdjustAction),
-            getTimeAdjustDayStepValue: toSafeCallable(safeDeps.getTimeAdjustDayStepValue),
-            setTimeAdjustDayStepValue: toSafeCallable(safeDeps.setTimeAdjustDayStepValue),
-            savePersistence: toSafeCallable(safeDeps.savePersistence),
-            getCurrentMainTab: toSafeCallable(safeDeps.getCurrentMainTab),
-            isRealtime: toSafeCallable(safeDeps.isRealtime),
-            getSlotCount: toSafeCallable(safeDeps.getSlotCount),
-            upgradeNativeTitleTooltips: toSafeCallable(safeDeps.upgradeNativeTitleTooltips)
+            t: toSafeCallable("t", safeDeps.t),
+            applyTimeAdjustAction: toSafeCallable("applyTimeAdjustAction", safeDeps.applyTimeAdjustAction),
+            getTimeAdjustDayStepValue: toSafeCallable("getTimeAdjustDayStepValue", safeDeps.getTimeAdjustDayStepValue),
+            setTimeAdjustDayStepValue: toSafeCallable("setTimeAdjustDayStepValue", safeDeps.setTimeAdjustDayStepValue),
+            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
+            getCurrentMainTab: toSafeCallable("getCurrentMainTab", safeDeps.getCurrentMainTab),
+            isRealtime: toSafeCallable("isRealtime", safeDeps.isRealtime),
+            getSlotCount: toSafeCallable("getSlotCount", safeDeps.getSlotCount),
+            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
         });
 
         function callAction(slotIdx, action) {

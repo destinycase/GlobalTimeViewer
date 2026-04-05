@@ -2,26 +2,26 @@
     "use strict";
 
     function createService(deps = {}) {
-        deps = (deps && typeof deps === "object") ? deps : {};
+        const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
         function getDocumentRef() {
-            if (typeof deps.getDocumentRef === "function") {
-                const injected = deps.getDocumentRef();
+            if (typeof safeDeps.getDocumentRef === "function") {
+                const injected = safeDeps.getDocumentRef();
                 if (injected && typeof injected.getElementById === "function") {
                     return injected;
                 }
             }
-            if (typeof deps.getDocumentRefOrNull === "function") {
-                const injected = deps.getDocumentRefOrNull();
+            if (typeof safeDeps.getDocumentRefOrNull === "function") {
+                const injected = safeDeps.getDocumentRefOrNull();
                 if (injected && typeof injected.getElementById === "function") {
                     return injected;
                 }
             }
-            if (deps.documentRef && typeof deps.documentRef.getElementById === "function") {
-                return deps.documentRef;
+            if (safeDeps.documentRef && typeof safeDeps.documentRef.getElementById === "function") {
+                return safeDeps.documentRef;
             }
-            if (deps.document && typeof deps.document.getElementById === "function") {
-                return deps.document;
+            if (safeDeps.document && typeof safeDeps.document.getElementById === "function") {
+                return safeDeps.document;
             }
             if (globalObj?.document && typeof globalObj.document.getElementById === "function") {
                 return globalObj.document;
@@ -33,12 +33,12 @@
         }
 
         function logWarn(...args) {
-            if (typeof deps.logWarn === "function") {
-                deps.logWarn(...args);
+            if (typeof safeDeps.logWarn === "function") {
+                safeDeps.logWarn(...args);
                 return;
             }
-            if (typeof deps.consoleWarn === "function") {
-                deps.consoleWarn(...args);
+            if (typeof safeDeps.consoleWarn === "function") {
+                safeDeps.consoleWarn(...args);
                 return;
             }
             if (typeof globalObj?.console?.warn === "function") {
@@ -58,14 +58,14 @@
         }
 
         async function persistPreferenceValue(storageKey, value) {
-            const writeResult = await deps.setStorageValue(storageKey, value, { suppressToast: true });
+            const writeResult = await safeDeps.setStorageValue(storageKey, value, { suppressToast: true });
             if (!writeResult || writeResult.ok !== true) {
                 throw createPersistenceWriteError(`Failed to persist preference key: ${storageKey}`, writeResult?.error || null);
             }
         }
 
         async function ensurePersistenceSaved() {
-            const ok = await deps.savePersistence();
+            const ok = await safeDeps.savePersistence();
             if (!ok) {
                 throw createPersistenceWriteError("Failed to persist normalized imported settings");
             }
@@ -73,13 +73,13 @@
 
         function ensureImportedGroupsFallbackToStandardTime() {
             let changed = false;
-            const groups = Array.isArray(deps.getGroups()) ? deps.getGroups() : [];
+            const groups = Array.isArray(safeDeps.getGroups()) ? safeDeps.getGroups() : [];
             groups.forEach((group) => {
                 if (!group || typeof group !== "object") return;
                 const zoneCount = Array.isArray(group.zones) ? group.zones.length : 0;
                 if (zoneCount > 0) return;
 
-                if (deps.sanitizeBaseTimezoneId(group.baseTimezoneId) !== "utc") {
+                if (safeDeps.sanitizeBaseTimezoneId(group.baseTimezoneId) !== "utc") {
                     group.baseTimezoneId = "utc";
                     changed = true;
                 }
@@ -87,7 +87,7 @@
                     group.showUtcRow = true;
                     changed = true;
                 }
-                if (deps.sanitizeUtcRowOrder(group.utcRowOrder) !== 0) {
+                if (safeDeps.sanitizeUtcRowOrder(group.utcRowOrder) !== 0) {
                     group.utcRowOrder = 0;
                     changed = true;
                 }
@@ -104,8 +104,8 @@
         }
 
         function buildLegacyGlobalMultiState(payload) {
-            if (typeof deps.sanitizeMultiStatePayload !== "function") return null;
-            const normalized = deps.sanitizeMultiStatePayload({
+            if (typeof safeDeps.sanitizeMultiStatePayload !== "function") return null;
+            const normalized = safeDeps.sanitizeMultiStatePayload({
                 multiRangeCount: payload?.multiRangeCount,
                 multiRanges: payload?.multiRanges,
                 multiRangeCollapsed: payload?.multiRangeCollapsed,
@@ -113,14 +113,14 @@
                 multiRangeEndEditEnabled: payload?.multiRangeEndEditEnabled
             }, null);
             if (!normalized || typeof normalized !== "object") return null;
-            if (typeof deps.sanitizeMultiRangeTitle === "function") {
-                normalized.multiRangeTitle = deps.sanitizeMultiRangeTitle(payload?.multiRangeTitle);
+            if (typeof safeDeps.sanitizeMultiRangeTitle === "function") {
+                normalized.multiRangeTitle = safeDeps.sanitizeMultiRangeTitle(payload?.multiRangeTitle);
             }
             return normalized;
         }
 
         function createFallbackImportedGroup(legacyGlobalMultiState = null) {
-            const translatedDefaultName = (typeof deps.t === "function") ? deps.t("default_group_name") : "Group";
+            const translatedDefaultName = (typeof safeDeps.t === "function") ? safeDeps.t("default_group_name") : "Group";
             const safeDefaultName = (typeof translatedDefaultName === "string" && translatedDefaultName.trim())
                 ? translatedDefaultName.trim()
                 : "Group";
@@ -130,16 +130,16 @@
                 baseTimezoneId: "utc",
                 showUtcRow: true,
                 utcRowOrder: 0,
-                fixedDate: (typeof deps.getDefaultFixedDate === "function")
-                    ? deps.getDefaultFixedDate()
+                fixedDate: (typeof safeDeps.getDefaultFixedDate === "function")
+                    ? safeDeps.getDefaultFixedDate()
                     : "",
                 fixedTimeShowLiveNow: false,
-                fixedTimes: (typeof deps.getDefaultFixedTimes === "function")
-                    ? deps.getDefaultFixedTimes()
+                fixedTimes: (typeof safeDeps.getDefaultFixedTimes === "function")
+                    ? safeDeps.getDefaultFixedTimes()
                     : []
             };
-            if (typeof deps.sanitizeGroup === "function") {
-                const sanitized = deps.sanitizeGroup(rawFallback, 0, legacyGlobalMultiState);
+            if (typeof safeDeps.sanitizeGroup === "function") {
+                const sanitized = safeDeps.sanitizeGroup(rawFallback, 0, legacyGlobalMultiState);
                 if (sanitized && typeof sanitized === "object") return sanitized;
             }
             return rawFallback;
@@ -148,7 +148,7 @@
         function sanitizeImportedGroups(payload) {
             const sourceGroups = Array.isArray(payload?.groups) ? payload.groups : [];
             const legacyGlobalMultiState = buildLegacyGlobalMultiState(payload);
-            if (typeof deps.sanitizeGroup !== "function") {
+            if (typeof safeDeps.sanitizeGroup !== "function") {
                 const fallbackGroups = sourceGroups
                     .filter((group) => !!group && typeof group === "object")
                     .map((group) => ({ ...group }));
@@ -157,7 +157,7 @@
             }
 
             const sanitized = sourceGroups
-                .map((group, idx) => deps.sanitizeGroup(group, idx, legacyGlobalMultiState))
+                .map((group, idx) => safeDeps.sanitizeGroup(group, idx, legacyGlobalMultiState))
                 .filter((group) => !!group && typeof group === "object");
 
             if (sanitized.length) return sanitized;
@@ -165,8 +165,8 @@
         }
 
         function sanitizeImportedMainTab(tabValue) {
-            if (typeof deps.sanitizeMainTab === "function") {
-                return deps.sanitizeMainTab(tabValue);
+            if (typeof safeDeps.sanitizeMainTab === "function") {
+                return safeDeps.sanitizeMainTab(tabValue);
             }
             const normalized = (typeof tabValue === "string") ? tabValue.trim() : "";
             if (normalized === "live" || normalized === "fixed" || normalized === "multi" || normalized === "fixed-time" || normalized === "calc") {
@@ -181,8 +181,8 @@
             const currentMainTab = sanitizeImportedMainTab(payload?.currentMainTab);
             const parsedDayStartHour = Number.parseInt(payload?.dayStartHour, 10);
             const parsedNightStartHour = Number.parseInt(payload?.nightStartHour, 10);
-            const defaultDayStartHour = Number.parseInt(deps.DEFAULT_DAY_START_HOUR, 10);
-            const defaultNightStartHour = Number.parseInt(deps.DEFAULT_NIGHT_START_HOUR, 10);
+            const defaultDayStartHour = Number.parseInt(safeDeps.DEFAULT_DAY_START_HOUR, 10);
+            const defaultNightStartHour = Number.parseInt(safeDeps.DEFAULT_NIGHT_START_HOUR, 10);
             const safeDayStartHour = Math.min(
                 23,
                 Math.max(
@@ -220,8 +220,8 @@
             const slotCount = Number.isFinite(parsedSlotCount) ? Math.min(2, Math.max(1, parsedSlotCount)) : 1;
 
             let baseTimezoneId = "utc";
-            if (typeof deps.sanitizeBaseTimezoneId === "function") {
-                baseTimezoneId = deps.sanitizeBaseTimezoneId(payload?.baseTimezoneId);
+            if (typeof safeDeps.sanitizeBaseTimezoneId === "function") {
+                baseTimezoneId = safeDeps.sanitizeBaseTimezoneId(payload?.baseTimezoneId);
                 if (baseTimezoneId !== "utc") {
                     const activeGroup = groups[activeGroupId];
                     const zones = Array.isArray(activeGroup?.zones) ? activeGroup.zones : [];
@@ -260,9 +260,9 @@
         }
 
         function normalizeImportPayload(payload) {
-            if (typeof deps.normalizeImportedPayload === "function") {
+            if (typeof safeDeps.normalizeImportedPayload === "function") {
                 try {
-                    const normalized = deps.normalizeImportedPayload(payload);
+                    const normalized = safeDeps.normalizeImportedPayload(payload);
                     if (normalized && typeof normalized === "object") return normalized;
                 } catch (err) {
                     logWarn("normalizeImportedPayload failed. Falling back to local import sanitization.", err);
@@ -294,71 +294,71 @@
             }
 
             const sanitizedPayload = normalizeImportPayload(payload);
-            const writeResult = await deps.persistStorageSnapshot(sanitizedPayload, { suppressToast: true });
+            const writeResult = await safeDeps.persistStorageSnapshot(sanitizedPayload, { suppressToast: true });
             if (!writeResult.ok) {
                 throw createPersistenceWriteError("Failed to persist imported settings payload", writeResult.error);
             }
 
             if (pref && typeof pref === "object") {
                 if (typeof pref.theme === "string") {
-                    await persistPreferenceValue(deps.THEME_STORAGE_KEY, deps.sanitizeTheme(pref.theme));
+                    await persistPreferenceValue(safeDeps.THEME_STORAGE_KEY, safeDeps.sanitizeTheme(pref.theme));
                 }
-                if (typeof pref.language === "string" && deps.I18N_DATA[pref.language]) {
-                    await persistPreferenceValue(deps.LANG_STORAGE_KEY, pref.language);
+                if (typeof pref.language === "string" && safeDeps.I18N_DATA[pref.language]) {
+                    await persistPreferenceValue(safeDeps.LANG_STORAGE_KEY, pref.language);
                 }
                 if (pref.uiScale !== undefined) {
-                    await persistPreferenceValue(deps.UI_SCALE_STORAGE_KEY, String(deps.sanitizeUiScalePercent(pref.uiScale)));
+                    await persistPreferenceValue(safeDeps.UI_SCALE_STORAGE_KEY, String(safeDeps.sanitizeUiScalePercent(pref.uiScale)));
                 }
             }
 
-            const nextLang = await deps.getStorageValue(deps.LANG_STORAGE_KEY, "ko");
-            deps.setCurrentLang(deps.I18N_DATA[nextLang] ? nextLang : "ko");
-            await deps.loadPersistence();
-            if (deps.localizeAutoGeneratedNamesForCurrentLanguage()) {
+            const nextLang = await safeDeps.getStorageValue(safeDeps.LANG_STORAGE_KEY, "ko");
+            safeDeps.setCurrentLang(safeDeps.I18N_DATA[nextLang] ? nextLang : "ko");
+            await safeDeps.loadPersistence();
+            if (safeDeps.localizeAutoGeneratedNamesForCurrentLanguage()) {
                 await ensurePersistenceSaved();
             }
             if (ensureImportedGroupsFallbackToStandardTime()) {
                 await ensurePersistenceSaved();
             }
-            await deps.applyTheme(await deps.loadThemePreference(), false);
-            await deps.applyUiScale(await deps.loadUiScalePreference(), false);
-            deps.applyTranslations();
-            deps.applyVersionBranding();
+            await safeDeps.applyTheme(await safeDeps.loadThemePreference(), false);
+            await safeDeps.applyUiScale(await safeDeps.loadUiScalePreference(), false);
+            safeDeps.applyTranslations();
+            safeDeps.applyVersionBranding();
 
             const doc = getDocumentRef();
             const langSelect = doc?.getElementById?.("lang-select");
-            if (langSelect) langSelect.value = deps.getCurrentLang();
+            if (langSelect) langSelect.value = safeDeps.getCurrentLang();
 
             const themeSelect = doc?.getElementById?.("theme-select");
-            if (themeSelect) themeSelect.value = deps.getCurrentTheme();
+            if (themeSelect) themeSelect.value = safeDeps.getCurrentTheme();
             const uiScaleSelect = doc?.getElementById?.("ui-scale-select");
             if (uiScaleSelect) {
-                deps.populateUiScaleSelect(uiScaleSelect);
-                uiScaleSelect.value = String(deps.getCurrentUiScalePercent());
+                safeDeps.populateUiScaleSelect(uiScaleSelect);
+                uiScaleSelect.value = String(safeDeps.getCurrentUiScalePercent());
             }
             const dayStartSelect = doc?.getElementById?.("day-start-select");
             if (dayStartSelect) {
-                if (typeof deps.populateDayNightHourSelect === "function") {
-                    deps.populateDayNightHourSelect(dayStartSelect);
+                if (typeof safeDeps.populateDayNightHourSelect === "function") {
+                    safeDeps.populateDayNightHourSelect(dayStartSelect);
                 }
-                if (typeof deps.getDayStartHour === "function") {
-                    dayStartSelect.value = String(deps.getDayStartHour());
+                if (typeof safeDeps.getDayStartHour === "function") {
+                    dayStartSelect.value = String(safeDeps.getDayStartHour());
                 }
             }
             const nightStartSelect = doc?.getElementById?.("night-start-select");
             if (nightStartSelect) {
-                if (typeof deps.populateDayNightHourSelect === "function") {
-                    deps.populateDayNightHourSelect(nightStartSelect);
+                if (typeof safeDeps.populateDayNightHourSelect === "function") {
+                    safeDeps.populateDayNightHourSelect(nightStartSelect);
                 }
-                if (typeof deps.getNightStartHour === "function") {
-                    nightStartSelect.value = String(deps.getNightStartHour());
+                if (typeof safeDeps.getNightStartHour === "function") {
+                    nightStartSelect.value = String(safeDeps.getNightStartHour());
                 }
             }
-            deps.refreshMultiRangeControls();
+            safeDeps.refreshMultiRangeControls();
 
-            deps.updateTZDropdown();
-            deps.refreshSelectWidths();
-            deps.switchMainTab(deps.getCurrentMainTab());
+            safeDeps.updateTZDropdown();
+            safeDeps.refreshSelectWidths();
+            safeDeps.switchMainTab(safeDeps.getCurrentMainTab());
         }
 
         return Object.freeze({
