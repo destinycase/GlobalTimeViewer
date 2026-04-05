@@ -527,7 +527,7 @@ test("timezone runtime helpers keep fallback behavior when runtime service is mi
             new Date(Date.UTC(2026, 2, 7, 0, 0, 0))
         )
     ).toBe(540);
-    expect(sandbox.getTimezoneOffset("Asia/Seoul", new Date(Date.UTC(2026, 2, 7, 0, 0, 0)))).toBe(0);
+    expect(sandbox.getTimezoneOffset("Asia/Seoul", new Date(Date.UTC(2026, 2, 7, 0, 0, 0)))).toBe(540);
     expect(sandbox.isTimeZoneInDST("Asia/Seoul", new Date(Date.UTC(2026, 2, 7, 0, 0, 0)))).toBe(false);
     expect(
         sandbox.getLocalizedTZLabel({
@@ -1409,7 +1409,7 @@ test("loadPersistence accepts recent legacy fallback key payloads", () => {
         showCopyFormat: false,
         showTimeline: false
     };
-    run(`localStorage.setItem("GTV_v320_Data", ${JSON.stringify(JSON.stringify(payload))});`);
+    run(`localStorage.setItem("GTV_v323_Data", ${JSON.stringify(JSON.stringify(payload))});`);
     run("loadPersistence();");
     expect(run("groups[0].name")).toBe("Legacy Recent");
 });
