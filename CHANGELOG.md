@@ -5,6 +5,8 @@
 - 버전 메타데이터를 `3.12.4`로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`, 테스트 기대값)
 - 통합 데이터 저장 키를 `GTV_v324_Data`로 상향하고, 이전 키(`GTV_v323_Data`)를 레거시 마이그레이션 키로 추가했습니다.
 - 아키텍처 문서를 `README.md`로 통합하고 현재 런타임 구조에 맞춰 내용을 최신화했습니다.
+- 모듈 의존성 호출 스타일을 `toSafeCallable(depName, depFn)` 패턴으로 통일하고 의존성 예외 로깅 형식을 정리했습니다.
+- 코드 스타일 회귀 방지를 위해 모듈 규약 테스트에 `legacy toSafeCallable/invokeDep` 금지 검증을 추가했습니다. (`tests/module-create-service-convention.test.mjs`)
 
 ### 삭제됨
 - `docs/ARCHITECTURE.md` (README로 통합 완료)
