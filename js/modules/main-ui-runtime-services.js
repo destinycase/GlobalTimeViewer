@@ -38,6 +38,7 @@
             getFixedTimeTimelineSlots: safeDeps.getFixedTimeTimelineSlots,
             getFixedTimeTimelineSlotCount: safeDeps.getFixedTimeTimelineSlotCount,
             getFixedTimeTimelineIndicatorToken: safeDeps.getFixedTimeTimelineIndicatorToken,
+            getCurrentGroupFixedTimeShowLiveNow: safeDeps.getCurrentGroupFixedTimeShowLiveNow,
             getFixedTimeSlotTimelineLabel: safeDeps.getFixedTimeSlotTimelineLabel,
             getZoneDisplayName: safeDeps.getZoneDisplayName,
             getFixedOffsetForDisplayAtDate: safeDeps.getFixedOffsetForDisplayAtDate,

@@ -1,4 +1,4 @@
-# Global Time Viewer v3.12.2
+# Global Time Viewer v3.12.3
 
 ## 아키텍처
 - 런타임 부트스트랩과 서비스 계층 개요: `docs/ARCHITECTURE.md`

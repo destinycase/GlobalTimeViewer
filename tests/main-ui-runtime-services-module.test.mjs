@@ -101,6 +101,7 @@ describe("GTV main ui runtime services module", () => {
             getFixedTimeTimelineSlots: () => [],
             getFixedTimeTimelineSlotCount: () => 1,
             getFixedTimeTimelineIndicatorToken: () => "tok",
+            getCurrentGroupFixedTimeShowLiveNow: () => true,
             getFixedTimeSlotTimelineLabel: () => "label",
             getZoneDisplayName: () => "UTC",
             getFixedOffsetForDisplayAtDate: () => "+00:00",
@@ -196,6 +197,8 @@ describe("GTV main ui runtime services module", () => {
         expect(services.fixedTimeTableService.id).toBe("fixed-table");
         expect(services.mainUiInitService.id).toBe("ui-init");
         expect(typeof timelineConfig.getTimelineFrameElement).toBe("function");
+        expect(typeof timelineConfig.getCurrentGroupFixedTimeShowLiveNow).toBe("function");
+        expect(timelineConfig.getCurrentGroupFixedTimeShowLiveNow()).toBe(true);
         expect(typeof fixedTableConfig.getRenderableTimezoneRows).toBe("function");
 
         uiInitConfig.bindTransferControls();

@@ -894,7 +894,7 @@ input[type=number] {
 .fixed-time-table .fixed-time-clock {
     font-family: 'JetBrains Mono', monospace;
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--accent);
 }
 
@@ -1837,6 +1837,16 @@ input[type=number] {
 .timeline-indicator::after {
     content: "\25B2";
     bottom: -17px;
+}
+
+.timeline-indicator.live-now::before,
+.timeline-indicator.live-now::after {
+    display: none;
+}
+
+.timeline-indicator.live-now,
+.timeline-indicator.live-now .timeline-indicator-label {
+    cursor: default;
 }
 
 .timeline-indicator.start {

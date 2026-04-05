@@ -585,6 +585,73 @@ describe("GTV timeline frame module", () => {
         expect(indicators[1]?.querySelector(".timeline-indicator-label")?.textContent).toBe("S2");
     });
 
+    it("renderTimelineFrame reflects fixed-time live-now indicator toggle changes", () => {
+        const documentStub = {
+            createElement() {
+                return createMockElement(documentStub);
+            },
+            getElementById() {
+                return null;
+            }
+        };
+        const frame = createMockElement(documentStub);
+        let showLiveNow = false;
+        const module = loadTimelineFrameModule();
+        const service = module.createService({
+            getTimelineFrameElement: () => frame,
+            getShowTimeline: () => true,
+            getCurrentMainTab: () => "fixed-time",
+            isMultiTab: () => false,
+            isFixedTimeTab: () => true,
+            getIsRealtime: () => false,
+            getGlobalTime: () => new Date(Date.UTC(2026, 2, 26, 0, 0, 0)),
+            getFixedTimeTimelineSlots: () => [{ id: "s1" }],
+            getFixedTimeTimelineSlotCount: () => 1,
+            getFixedTimeSlotTimelineLabel: () => "S1",
+            getFixedTimeTimelineIndicatorToken: () => "token",
+            getCurrentGroupFixedTimeShowLiveNow: () => showLiveNow,
+            getBaseTimezoneRef: () => ({ id: "utc", zone: "UTC", type: "standard" }),
+            getCurrentGroupZones: () => [],
+            isCurrentGroupUtcRowVisible: () => false,
+            getCurrentGroupUtcRowOrder: () => 0,
+            getUTCRef: () => ({ id: "utc", zone: "UTC", type: "standard" }),
+            getZoneDisplayName: () => "UTC",
+            getFixedOffsetForDisplayAtDate: () => 0,
+            getLocalPartsByTimezone: (dateObj) => ({
+                year: dateObj.getUTCFullYear(),
+                month: dateObj.getUTCMonth() + 1,
+                day: dateObj.getUTCDate(),
+                hour: dateObj.getUTCHours(),
+                minute: dateObj.getUTCMinutes(),
+                second: dateObj.getUTCSeconds()
+            }),
+            getUTCDateFromLocalParts: (parts) => new Date(Date.UTC(
+                Number(parts?.year || 1970),
+                Number(parts?.month || 1) - 1,
+                Number(parts?.day || 1),
+                Number(parts?.hour || 0),
+                Number(parts?.minute || 0),
+                Number(parts?.second || 0)
+            )),
+            getDayNightMarkerByHour: (hour) => (Number(hour) >= 6 && Number(hour) < 18 ? "DAY" : "NIGHT"),
+            t: (key) => key,
+            getCurrentLang: () => "en",
+            getCurrentTheme: () => "light",
+            updateClocks: () => { },
+            savePersistence: () => { }
+        });
+
+        service.renderTimelineFrame();
+        expect(frame.querySelectorAll(".live-now")).toHaveLength(0);
+
+        showLiveNow = true;
+        service.renderTimelineFrame();
+        const liveIndicators = frame.querySelectorAll(".live-now");
+        expect(liveIndicators).toHaveLength(1);
+        expect(liveIndicators[0]?.style?.background).toBe("#00E676");
+        expect(liveIndicators[0]?.style?.color).toBe("#00E676");
+    });
+
     it("renderTimelineFrame schedules indicator refresh when widths are not measurable", () => {
         let frameRequestCalls = 0;
         const documentStub = {

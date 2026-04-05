@@ -573,6 +573,8 @@
                 const liveIndicator = doc.createElement("div");
                 liveIndicator.className = "timeline-indicator live-now";
                 liveIndicator.dataset.slot = "live";
+                liveIndicator.style.background = "#00E676";
+                liveIndicator.style.color = "#00E676";
                 const liveLabel = doc.createElement("span");
                 liveLabel.className = "timeline-indicator-label";
                 liveLabel.textContent = translate("th_fixed_time_live_now");
@@ -657,6 +659,9 @@
             }
 
             const fixedIndicatorToken = fixedTimeMode ? String(dep.getFixedTimeTimelineIndicatorToken() || "") : "";
+            const fixedLiveNowToken = fixedTimeMode
+                ? (dep.getCurrentGroupFixedTimeShowLiveNow() ? "live:1" : "live:0")
+                : "";
 
             const rowKeys = rows.map((tz) => {
                 const sourceDate = getGlobalTime(0) || new Date();
@@ -680,7 +685,8 @@
                 rowKeys.join(","),
                 slotDayKeys.join("|"),
                 dayNightToken,
-                fixedIndicatorToken
+                fixedIndicatorToken,
+                fixedLiveNowToken
             ].join("::");
         }
 

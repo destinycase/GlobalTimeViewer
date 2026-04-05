@@ -359,7 +359,29 @@
                     const liveNowHead = documentRef.createElement("th");
                     liveNowHead.className = "dynamic-col";
                     liveNowHead.style.width = "170px";
-                    liveNowHead.textContent = translate("th_fixed_time_live_now");
+
+                    const liveNowHeadWrap = documentRef.createElement("div");
+                    liveNowHeadWrap.className = "fixed-time-slot-head fixed-time-live-now-head";
+
+                    const markerWrap = documentRef.createElement("span");
+                    markerWrap.className = "fixed-time-slot-marker";
+                    const colorDot = documentRef.createElement("span");
+                    colorDot.className = "fixed-time-slot-dot fixed-time-live-now-dot";
+                    colorDot.style.background = "#00E676";
+                    colorDot.setAttribute("aria-hidden", "true");
+                    markerWrap.appendChild(colorDot);
+
+                    const liveNowTitle = documentRef.createElement("span");
+                    liveNowTitle.className = "fixed-time-slot-title";
+                    liveNowTitle.textContent = translate("th_fixed_time_live_now");
+
+                    const titleWrap = documentRef.createElement("span");
+                    titleWrap.className = "fixed-time-slot-title-wrap";
+                    titleWrap.appendChild(markerWrap);
+                    titleWrap.appendChild(liveNowTitle);
+
+                    liveNowHeadWrap.appendChild(titleWrap);
+                    liveNowHead.appendChild(liveNowHeadWrap);
                     headRow.appendChild(liveNowHead);
                 }
 

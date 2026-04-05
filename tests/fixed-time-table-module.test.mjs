@@ -479,7 +479,12 @@ describe("GTV fixed time table module", () => {
 
         service.renderFixedTimeTable();
 
-        expect(headRow.children[1].textContent).toBe("th_fixed_time_live_now");
+        const liveNowTitles = findByClass(headRow.children[1], "fixed-time-slot-title");
+        expect(liveNowTitles.length).toBe(1);
+        expect(liveNowTitles[0].textContent).toBe("th_fixed_time_live_now");
+        const liveNowDots = findByClass(headRow.children[1], "fixed-time-live-now-dot");
+        expect(liveNowDots.length).toBe(1);
+        expect(liveNowDots[0].style.background).toBe("#00E676");
         const liveNowCells = findByClass(body, "fixed-time-live-now");
         expect(liveNowCells.length).toBe(2);
         const clocks = findByClass(body, "fixed-time-clock");
