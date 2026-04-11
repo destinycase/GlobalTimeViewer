@@ -12,5 +12,3 @@
 
 # Legacy CRLF entrypoints kept stable to avoid one-shot massive churn
 main.js text eol=crlf
-js/modules/format-controls.js text eol=crlf
-js/modules/time-adjust-ui.js text eol=crlf
