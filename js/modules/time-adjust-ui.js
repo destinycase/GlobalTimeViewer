@@ -55,16 +55,25 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            applyTimeAdjustAction: toSafeCallable("applyTimeAdjustAction", safeDeps.applyTimeAdjustAction),
-            getTimeAdjustDayStepValue: toSafeCallable("getTimeAdjustDayStepValue", safeDeps.getTimeAdjustDayStepValue),
-            setTimeAdjustDayStepValue: toSafeCallable("setTimeAdjustDayStepValue", safeDeps.setTimeAdjustDayStepValue),
-            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
-            getCurrentMainTab: toSafeCallable("getCurrentMainTab", safeDeps.getCurrentMainTab),
-            isRealtime: toSafeCallable("isRealtime", safeDeps.isRealtime),
-            getSlotCount: toSafeCallable("getSlotCount", safeDeps.getSlotCount),
-            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
+            ...pickSafeCallables([
+                "t",
+                "applyTimeAdjustAction",
+                "getTimeAdjustDayStepValue",
+                "setTimeAdjustDayStepValue",
+                "savePersistence",
+                "getCurrentMainTab",
+                "isRealtime",
+                "getSlotCount",
+                "upgradeNativeTitleTooltips"
+            ])
         });
 
         function callAction(slotIdx, action) {

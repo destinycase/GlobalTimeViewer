@@ -10,6 +10,15 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         const groupTabsApi = requireCreateServiceModule(safeDeps.GTV_GROUP_TABS, "GTVGroupTabs");
         const serviceInvokeUtils = (
             safeDeps.GTV_SERVICE_INVOKE_UTILS
@@ -53,38 +62,44 @@
 
         let groupTabsService = null;
         groupTabsService = groupTabsApi.createService({
-            t: safeDeps.t,
-            showToast: safeDeps.showToast,
-            confirmFn: safeDeps.confirmFn,
-            promptFn: safeDeps.promptFn,
-            getState: safeDeps.getState,
-            setState: safeDeps.setState,
-            isMultiTab: safeDeps.isMultiTab,
-            getCurrentGroup: safeDeps.getCurrentGroup,
-            isFixedTimeTab: safeDeps.isFixedTimeTab,
+            ...pickDeps([
+                "t",
+                "showToast",
+                "confirmFn",
+                "promptFn",
+                "getState",
+                "setState",
+                "isMultiTab",
+                "getCurrentGroup",
+                "isFixedTimeTab"
+            ]),
             ensureGroupMultiSubgroups: (group, options = {}) =>
                 safeDeps.ensureGroupMultiSubgroups(group, options),
-            normalizeGroupTabState: safeDeps.normalizeGroupTabState,
-            syncCurrentMultiStateToActiveSubgroup: safeDeps.syncCurrentMultiStateToActiveSubgroup,
-            loadCurrentMultiStateFromActiveSubgroup: safeDeps.loadCurrentMultiStateFromActiveSubgroup,
+            ...pickDeps([
+                "normalizeGroupTabState",
+                "syncCurrentMultiStateToActiveSubgroup",
+                "loadCurrentMultiStateFromActiveSubgroup"
+            ]),
             savePersistence: (options = {}) =>
                 invokeExternalService(getPersistenceService, "savePersistence", [options]),
             renderGroups: () => groupTabsService.renderGroups(),
             renderMultiSubgroups: () => groupTabsService.renderMultiSubgroups(),
-            renderBaseTimeSelect: safeDeps.renderBaseTimeSelect,
-            renderMultiRanges: safeDeps.renderMultiRanges,
-            renderFixedTimeTab: safeDeps.renderFixedTimeTab,
-            renderList: safeDeps.renderList,
-            renderTimelineFrame: safeDeps.renderTimelineFrame,
-            setCustomTooltip: safeDeps.setCustomTooltip,
-            hideFloatingTooltip: safeDeps.hideFloatingTooltip,
-            upgradeNativeTitleTooltips: safeDeps.upgradeNativeTitleTooltips,
-            getDefaultMultiSubgroupName: safeDeps.getDefaultMultiSubgroupName,
-            getDefaultFixedTimes: safeDeps.getDefaultFixedTimes,
-            getDefaultFixedDate: safeDeps.getDefaultFixedDate,
-            createMultiSubgroupState: safeDeps.createMultiSubgroupState,
-            sanitizeMultiSubgroupName: safeDeps.sanitizeMultiSubgroupName,
-            sanitizeMultiRangeTitle: safeDeps.sanitizeMultiRangeTitle,
+            ...pickDeps([
+                "renderBaseTimeSelect",
+                "renderMultiRanges",
+                "renderFixedTimeTab",
+                "renderList",
+                "renderTimelineFrame",
+                "setCustomTooltip",
+                "hideFloatingTooltip",
+                "upgradeNativeTitleTooltips",
+                "getDefaultMultiSubgroupName",
+                "getDefaultFixedTimes",
+                "getDefaultFixedDate",
+                "createMultiSubgroupState",
+                "sanitizeMultiSubgroupName",
+                "sanitizeMultiRangeTitle"
+            ]),
             exportGroupToJSON: (groupIdx = getActiveGroupId()) =>
                 invokeExternalService(getDataTransferService, "exportGroupToJSON", [groupIdx]),
             triggerGroupImportFor: (groupIdx = getActiveGroupId()) =>

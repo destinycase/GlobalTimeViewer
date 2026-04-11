@@ -10,41 +10,54 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         const imageExportNamingApi = requireCreateServiceModule(safeDeps.GTV_IMAGE_EXPORT_NAMING, "GTVImageExportNaming");
         const imageExportActionsApi = requireCreateServiceModule(safeDeps.GTV_IMAGE_EXPORT_ACTIONS, "GTVImageExportActions");
 
         const imageExportNamingService = imageExportNamingApi.createService({
-            t: safeDeps.t,
-            pad: safeDeps.pad,
-            timeService: safeDeps.timeService,
-            getCustomOffsetMinutes: safeDeps.getCustomOffsetMinutes,
-            getBaseTimezoneRef: safeDeps.getBaseTimezoneRef,
-            getBaseTime: safeDeps.getBaseTime,
-            getActiveGroupName: safeDeps.getActiveGroupName,
-            getZoneAbbreviation: safeDeps.getZoneAbbreviation,
-            sanitizeMultiSubgroupName: safeDeps.sanitizeMultiSubgroupName,
-            getCurrentMultiSubgroupName: safeDeps.getCurrentMultiSubgroupName
+            ...pickDeps([
+                "t",
+                "pad",
+                "timeService",
+                "getCustomOffsetMinutes",
+                "getBaseTimezoneRef",
+                "getBaseTime",
+                "getActiveGroupName",
+                "getZoneAbbreviation",
+                "sanitizeMultiSubgroupName",
+                "getCurrentMultiSubgroupName"
+            ])
         });
 
         const imageExportActionsService = imageExportActionsApi.createService({
-            imageExportApi: safeDeps.imageExportApi,
-            t: safeDeps.t,
-            showToast: safeDeps.showToast,
-            isMultiTab: safeDeps.isMultiTab,
-            ensureMultiRangeState: safeDeps.ensureMultiRangeState,
-            detectForeignObjectRendererSupport: safeDeps.detectForeignObjectRendererSupport,
-            renderTimezoneTableToPngDataUrl: safeDeps.renderTimezoneTableToPngDataUrl,
-            renderTimezoneTableFallbackDataUrl: safeDeps.renderTimezoneTableFallbackDataUrl,
-            renderMultiRangesToPngDataUrl: safeDeps.renderMultiRangesToPngDataUrl,
-            renderMultiRangeSingleToPngDataUrl: safeDeps.renderMultiRangeSingleToPngDataUrl,
-            renderMultiRangesFallbackDataUrl: safeDeps.renderMultiRangesFallbackDataUrl,
-            renderMultiRangeTitlesToPngDataUrl: safeDeps.renderMultiRangeTitlesToPngDataUrl,
-            getTimezoneTableImageFilename: safeDeps.getTimezoneTableImageFilename,
-            getMultiRangeTableImageFilename: safeDeps.getMultiRangeTableImageFilename,
-            getMultiRangeTitlesImageFilename: safeDeps.getMultiRangeTitlesImageFilename,
-            getMultiRanges: safeDeps.getMultiRanges,
-            isDomExceptionLike: safeDeps.isDomExceptionLike,
-            setCanUseForeignObjectRenderer: safeDeps.setCanUseForeignObjectRenderer
+            ...pickDeps([
+                "imageExportApi",
+                "t",
+                "showToast",
+                "isMultiTab",
+                "ensureMultiRangeState",
+                "detectForeignObjectRendererSupport",
+                "renderTimezoneTableToPngDataUrl",
+                "renderTimezoneTableFallbackDataUrl",
+                "renderMultiRangesToPngDataUrl",
+                "renderMultiRangeSingleToPngDataUrl",
+                "renderMultiRangesFallbackDataUrl",
+                "renderMultiRangeTitlesToPngDataUrl",
+                "getTimezoneTableImageFilename",
+                "getMultiRangeTableImageFilename",
+                "getMultiRangeTitlesImageFilename",
+                "getMultiRanges",
+                "isDomExceptionLike",
+                "setCanUseForeignObjectRenderer"
+            ])
         });
 
         return Object.freeze({

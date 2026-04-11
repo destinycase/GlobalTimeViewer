@@ -257,6 +257,38 @@ describe("GTV timezone search module", () => {
         expect(second.some((entry) => entry.zone === "UTC" && entry.fixedOffsetMinutes === 0)).toBe(true);
     });
 
+    it("getStandardTimezoneEntries dedupes standard list by UTC offset", () => {
+        const module = loadTimezoneSearchModule({
+            Intl: {
+                supportedValuesOf() {
+                    return ["UTC", "Pacific/Honolulu", "Pacific/Tahiti", "Pacific/Rarotonga"];
+                }
+            }
+        });
+        const service = module.createService({
+            getTimezoneOffset: (zone) => {
+                if (zone === "UTC") return 0;
+                if (zone === "Pacific/Honolulu") return -600;
+                if (zone === "Pacific/Tahiti") return -600;
+                if (zone === "Pacific/Rarotonga") return -600;
+                return Number.NaN;
+            },
+            getBetterAbbr: (zone) => {
+                if (zone === "UTC") return "UTC";
+                if (zone === "Pacific/Honolulu") return "HST";
+                if (zone === "Pacific/Tahiti") return "TAHT";
+                if (zone === "Pacific/Rarotonga") return "CKT";
+                return "";
+            }
+        });
+
+        const entries = service.getStandardTimezoneEntries();
+        const minusTenEntries = entries.filter((entry) => entry.fixedOffsetMinutes === -600);
+
+        expect(minusTenEntries).toHaveLength(1);
+        expect(minusTenEntries[0].abbr).toBe("UTC-10:00");
+    });
+
     it("queueStandardTimezoneWarmup schedules only once via requestIdleCallback", () => {
         let scheduled = 0;
         let callback = null;

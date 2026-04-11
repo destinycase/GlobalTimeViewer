@@ -49,36 +49,45 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            getGlobalTime: toSafeCallable("getGlobalTime", safeDeps.getGlobalTime),
-            getZoneDisplayNameForUiAtDate: toSafeCallable("getZoneDisplayNameForUiAtDate", safeDeps.getZoneDisplayNameForUiAtDate),
-            getZoneDisplayName: toSafeCallable("getZoneDisplayName", safeDeps.getZoneDisplayName),
-            getDisplayFormatEnabled: toSafeCallable("getDisplayFormatEnabled", safeDeps.getDisplayFormatEnabled),
-            getDisplayTimePartsEnabled: toSafeCallable("getDisplayTimePartsEnabled", safeDeps.getDisplayTimePartsEnabled),
-            getDisplayFormatOrder: toSafeCallable("getDisplayFormatOrder", safeDeps.getDisplayFormatOrder),
-            sanitizeCopyFormatOrder: toSafeCallable("sanitizeCopyFormatOrder", safeDeps.sanitizeCopyFormatOrder),
-            getSlotCount: toSafeCallable("getSlotCount", safeDeps.getSlotCount),
-            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
-            isRealtime: toSafeCallable("isRealtime", safeDeps.isRealtime),
-            copyRow: toSafeCallable("copyRow", safeDeps.copyRow),
-            removeTimezone: toSafeCallable("removeTimezone", safeDeps.removeTimezone),
-            handleTimeChange: toSafeCallable("handleTimeChange", safeDeps.handleTimeChange),
-            createDragGhostFromRow: toSafeCallable("createDragGhostFromRow", safeDeps.createDragGhostFromRow),
-            clearDragGhost: toSafeCallable("clearDragGhost", safeDeps.clearDragGhost),
-            saveOrder: toSafeCallable("saveOrder", safeDeps.saveOrder),
-            updateClocks: toSafeCallable("updateClocks", safeDeps.updateClocks),
-            getCurrentGroupZones: toSafeCallable("getCurrentGroupZones", safeDeps.getCurrentGroupZones),
-            isCurrentGroupUtcRowVisible: toSafeCallable("isCurrentGroupUtcRowVisible", safeDeps.isCurrentGroupUtcRowVisible),
-            getUTCRef: toSafeCallable("getUTCRef", safeDeps.getUTCRef),
-            getCurrentGroupUtcRowOrder: toSafeCallable("getCurrentGroupUtcRowOrder", safeDeps.getCurrentGroupUtcRowOrder),
-            hideFloatingTooltip: toSafeCallable("hideFloatingTooltip", safeDeps.hideFloatingTooltip),
-            renderMultiRanges: toSafeCallable("renderMultiRanges", safeDeps.renderMultiRanges),
-            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
-            escapeHtml: toSafeCallable("escapeHtml", safeDeps.escapeHtml),
-            renderBaseTimeSelect: toSafeCallable("renderBaseTimeSelect", safeDeps.renderBaseTimeSelect),
-            updateTimeAdjustPanel: toSafeCallable("updateTimeAdjustPanel", safeDeps.updateTimeAdjustPanel),
-            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
+            ...pickSafeCallables([
+                "t",
+                "getGlobalTime",
+                "getZoneDisplayNameForUiAtDate",
+                "getZoneDisplayName",
+                "getDisplayFormatEnabled",
+                "getDisplayTimePartsEnabled",
+                "getDisplayFormatOrder",
+                "sanitizeCopyFormatOrder",
+                "getSlotCount",
+                "isMultiTab",
+                "isRealtime",
+                "copyRow",
+                "removeTimezone",
+                "handleTimeChange",
+                "createDragGhostFromRow",
+                "clearDragGhost",
+                "saveOrder",
+                "updateClocks",
+                "getCurrentGroupZones",
+                "isCurrentGroupUtcRowVisible",
+                "getUTCRef",
+                "getCurrentGroupUtcRowOrder",
+                "hideFloatingTooltip",
+                "renderMultiRanges",
+                "getBaseTimezoneRef",
+                "escapeHtml",
+                "renderBaseTimeSelect",
+                "updateTimeAdjustPanel",
+                "upgradeNativeTitleTooltips"
+            ])
         });
 
         function isRealtimeMode() {

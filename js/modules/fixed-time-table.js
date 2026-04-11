@@ -63,36 +63,45 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            sanitizeCopyFormatOrderForContext: toSafeCallable("sanitizeCopyFormatOrderForContext", safeDeps.sanitizeCopyFormatOrderForContext),
-            getDisplayFormatOrder: toSafeCallable("getDisplayFormatOrder", safeDeps.getDisplayFormatOrder),
-            sanitizeCopyFormatEnabledForContext: toSafeCallable("sanitizeCopyFormatEnabledForContext", safeDeps.sanitizeCopyFormatEnabledForContext),
-            getDisplayFormatEnabled: toSafeCallable("getDisplayFormatEnabled", safeDeps.getDisplayFormatEnabled),
-            formatUtcOffsetLabel: toSafeCallable("formatUtcOffsetLabel", safeDeps.formatUtcOffsetLabel),
-            getCustomOffsetMinutes: toSafeCallable("getCustomOffsetMinutes", safeDeps.getCustomOffsetMinutes),
-            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
-            getTimezoneOffset: toSafeCallable("getTimezoneOffset", safeDeps.getTimezoneOffset),
-            getZoneDisplayNameForUiAtDate: toSafeCallable("getZoneDisplayNameForUiAtDate", safeDeps.getZoneDisplayNameForUiAtDate),
-            getZoneDisplayName: toSafeCallable("getZoneDisplayName", safeDeps.getZoneDisplayName),
-            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
-            getRenderableTimezoneRows: toSafeCallable("getRenderableTimezoneRows", safeDeps.getRenderableTimezoneRows),
-            getFixedTimeDisplayPartsEnabled: toSafeCallable("getFixedTimeDisplayPartsEnabled", safeDeps.getFixedTimeDisplayPartsEnabled),
-            buildFixedTimeDisplayPayloadAtUtc: toSafeCallable("buildFixedTimeDisplayPayloadAtUtc", safeDeps.buildFixedTimeDisplayPayloadAtUtc),
-            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
-            ensureGroupFixedTimes: toSafeCallable("ensureGroupFixedTimes", safeDeps.ensureGroupFixedTimes),
-            getFixedTimeTimelineIndicatorColor: toSafeCallable("getFixedTimeTimelineIndicatorColor", safeDeps.getFixedTimeTimelineIndicatorColor),
-            getFixedTimeSlotHeaderLabel: toSafeCallable("getFixedTimeSlotHeaderLabel", safeDeps.getFixedTimeSlotHeaderLabel),
-            renameFixedTimeSlot: toSafeCallable("renameFixedTimeSlot", safeDeps.renameFixedTimeSlot),
-            copyFixedTimeSlotColumn: toSafeCallable("copyFixedTimeSlotColumn", safeDeps.copyFixedTimeSlotColumn),
-            getGlobalTime: toSafeCallable("getGlobalTime", safeDeps.getGlobalTime),
-            resolveFixedTimeSlotUtcDate: toSafeCallable("resolveFixedTimeSlotUtcDate", safeDeps.resolveFixedTimeSlotUtcDate),
-            getZoneAbbreviation: toSafeCallable("getZoneAbbreviation", safeDeps.getZoneAbbreviation),
-            buildFixedTimeCellInputValue: toSafeCallable("buildFixedTimeCellInputValue", safeDeps.buildFixedTimeCellInputValue),
-            bindCustomDatePickerForInput: toSafeCallable("bindCustomDatePickerForInput", safeDeps.bindCustomDatePickerForInput),
-            applyFixedTimeSlotByTimezoneInput: toSafeCallable("applyFixedTimeSlotByTimezoneInput", safeDeps.applyFixedTimeSlotByTimezoneInput),
-            copyFixedTimeCellByTimezone: toSafeCallable("copyFixedTimeCellByTimezone", safeDeps.copyFixedTimeCellByTimezone),
-            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
+            ...pickSafeCallables([
+                "t",
+                "sanitizeCopyFormatOrderForContext",
+                "getDisplayFormatOrder",
+                "sanitizeCopyFormatEnabledForContext",
+                "getDisplayFormatEnabled",
+                "formatUtcOffsetLabel",
+                "getCustomOffsetMinutes",
+                "getFixedOffsetForDisplayAtDate",
+                "getTimezoneOffset",
+                "getZoneDisplayNameForUiAtDate",
+                "getZoneDisplayName",
+                "getBaseTimezoneRef",
+                "getRenderableTimezoneRows",
+                "getFixedTimeDisplayPartsEnabled",
+                "buildFixedTimeDisplayPayloadAtUtc",
+                "getCurrentGroup",
+                "ensureGroupFixedTimes",
+                "getFixedTimeTimelineIndicatorColor",
+                "getFixedTimeSlotHeaderLabel",
+                "renameFixedTimeSlot",
+                "copyFixedTimeSlotColumn",
+                "getGlobalTime",
+                "resolveFixedTimeSlotUtcDate",
+                "getZoneAbbreviation",
+                "buildFixedTimeCellInputValue",
+                "bindCustomDatePickerForInput",
+                "applyFixedTimeSlotByTimezoneInput",
+                "copyFixedTimeCellByTimezone",
+                "upgradeNativeTitleTooltips"
+            ])
         });
 
         function getRenderableTimezoneRowsSafe(baseRef) {

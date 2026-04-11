@@ -1,5 +1,11 @@
 # 변경 이력
 
+## [3.12.5] - 2026-04-11
+### 변경됨
+- 버전 메타데이터를 `3.12.5`로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`)
+- 배포본(`dist_extension`)에서 일부 시간대 오프셋이 `UTC+00:00`으로 계산되던 문제를 수정했습니다.
+- 패키징 빌드에서 전역 `luxon` 해석 안정화를 위해 `js/vendor/luxon-global-bridge.js`를 추가하고 로더 순서를 갱신했습니다.
+
 ## [3.12.4] - 2026-04-05
 ### 변경됨
 - 버전 메타데이터를 `3.12.4`로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`, 테스트 기대값)

@@ -4,6 +4,7 @@
     const SOURCE_SCRIPTS = Object.freeze([
     "i18n.js",
     "js/vendor/luxon.min.js",
+    "js/vendor/luxon-global-bridge.js",
     "js/modules/app-config.js",
     "js/modules/main-constants.js",
     "js/modules/main-constants-bindings.js",

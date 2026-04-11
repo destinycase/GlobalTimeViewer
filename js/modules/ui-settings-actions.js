@@ -34,15 +34,24 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            exportSettingsToJSON: toSafeCallable("exportSettingsToJSON", safeDeps.exportSettingsToJSON),
-            handleSettingsImportFile: toSafeCallable("handleSettingsImportFile", safeDeps.handleSettingsImportFile),
-            handleGroupImportFile: toSafeCallable("handleGroupImportFile", safeDeps.handleGroupImportFile),
-            clearPendingGroupImport: toSafeCallable("clearPendingGroupImport", safeDeps.clearPendingGroupImport),
-            handleSubgroupImportFile: toSafeCallable("handleSubgroupImportFile", safeDeps.handleSubgroupImportFile),
-            clearPendingSubgroupImport: toSafeCallable("clearPendingSubgroupImport", safeDeps.clearPendingSubgroupImport),
-            resetExceptGroupsAndTimezones: toSafeCallable("resetExceptGroupsAndTimezones", safeDeps.resetExceptGroupsAndTimezones),
-            resetAllSettings: toSafeCallable("resetAllSettings", safeDeps.resetAllSettings)
+            ...pickSafeCallables([
+                "exportSettingsToJSON",
+                "handleSettingsImportFile",
+                "handleGroupImportFile",
+                "clearPendingGroupImport",
+                "handleSubgroupImportFile",
+                "clearPendingSubgroupImport",
+                "resetExceptGroupsAndTimezones",
+                "resetAllSettings"
+            ])
         });
 
         function getDocumentRef() {

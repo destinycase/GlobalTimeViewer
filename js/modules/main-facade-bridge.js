@@ -3,6 +3,15 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         const facadeBindingsModule = safeDeps.facadeBindingsModule;
         if (!facadeBindingsModule || typeof facadeBindingsModule.createService !== "function") {
             throw new Error("Missing required module API: GTVMainFacadeBindings.createService");
@@ -27,13 +36,15 @@
 
         const facadeBindings = facadeBindingsModule.createService({
             bindFacadeMethod,
-            getMainTimezoneFacadeServiceRef: safeDeps.getMainTimezoneFacadeServiceRef,
-            getMainTimeAdjustFacadeServiceRef: safeDeps.getMainTimeAdjustFacadeServiceRef,
-            getMainTimezoneTableFacadeServiceRef: safeDeps.getMainTimezoneTableFacadeServiceRef,
-            getMainTimelineFacadeServiceRef: safeDeps.getMainTimelineFacadeServiceRef,
-            getMainFixedTimeFacadeServiceRef: safeDeps.getMainFixedTimeFacadeServiceRef,
-            getMainFixedTimeTabFacadeServiceRef: safeDeps.getMainFixedTimeTabFacadeServiceRef,
-            getMainMultiRangeTabFacadeServiceRef: safeDeps.getMainMultiRangeTabFacadeServiceRef
+            ...pickDeps([
+                "getMainTimezoneFacadeServiceRef",
+                "getMainTimeAdjustFacadeServiceRef",
+                "getMainTimezoneTableFacadeServiceRef",
+                "getMainTimelineFacadeServiceRef",
+                "getMainFixedTimeFacadeServiceRef",
+                "getMainFixedTimeTabFacadeServiceRef",
+                "getMainMultiRangeTabFacadeServiceRef"
+            ])
         });
 
         if (!facadeBindings || typeof facadeBindings !== "object") {

@@ -34,15 +34,24 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getCustomOffsetMinutes: toSafeCallable("getCustomOffsetMinutes", safeDeps.getCustomOffsetMinutes),
-            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
-            getActiveGroupName: toSafeCallable("getActiveGroupName", safeDeps.getActiveGroupName),
-            t: toSafeCallable("t", safeDeps.t),
-            getZoneAbbreviation: toSafeCallable("getZoneAbbreviation", safeDeps.getZoneAbbreviation),
-            getBaseTime: toSafeCallable("getBaseTime", safeDeps.getBaseTime),
-            sanitizeMultiSubgroupName: toSafeCallable("sanitizeMultiSubgroupName", safeDeps.sanitizeMultiSubgroupName),
-            getCurrentMultiSubgroupName: toSafeCallable("getCurrentMultiSubgroupName", safeDeps.getCurrentMultiSubgroupName)
+            ...pickSafeCallables([
+                "getCustomOffsetMinutes",
+                "getBaseTimezoneRef",
+                "getActiveGroupName",
+                "t",
+                "getZoneAbbreviation",
+                "getBaseTime",
+                "sanitizeMultiSubgroupName",
+                "getCurrentMultiSubgroupName"
+            ])
         });
 
         function pad2(value) {

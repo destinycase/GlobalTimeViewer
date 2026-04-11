@@ -17,6 +17,23 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
+        function pickAliasedDeps(aliasMap = {}) {
+            const resolved = {};
+            Object.keys(aliasMap).forEach((targetKey) => {
+                resolved[targetKey] = safeDeps[aliasMap[targetKey]];
+            });
+            return resolved;
+        }
+
         const mainCoreAssemblyConfigBuilderService = requireObject(
             safeDeps.mainCoreAssemblyConfigBuilderService,
             "mainCoreAssemblyConfigBuilderService"
@@ -68,40 +85,46 @@
         );
 
         const { mainCoreServices } = createCoreServiceAssembly({
-            coreServiceAssemblyModule: safeDeps.coreServiceAssemblyModule,
-            mainCoreAssemblyConfig: safeDeps.mainCoreAssemblyConfig
+            ...pickDeps([
+                "coreServiceAssemblyModule",
+                "mainCoreAssemblyConfig"
+            ])
         });
         const mainCoreServiceBindings = createCoreServiceBindings({
             mainCoreServices
         });
 
         const mainFoundationConfig = buildMainFoundationConfig({
-            GTV_SERVICE_BOOTSTRAP: safeDeps.GTV_SERVICE_BOOTSTRAP,
-            GTV_PERSISTENCE_SERVICE_BUNDLE: safeDeps.GTV_PERSISTENCE_SERVICE_BUNDLE,
-            GTV_MAIN_UI_UTILS: safeDeps.GTV_MAIN_UI_UTILS,
-            GTV_APP_FEEDBACK: safeDeps.GTV_APP_FEEDBACK,
-            GTV_CALCULATOR_ACTIONS: safeDeps.GTV_CALCULATOR_ACTIONS,
-            GTV_TAB_UI: safeDeps.GTV_TAB_UI,
-            GTV_TAB_ORCHESTRATOR: safeDeps.GTV_TAB_ORCHESTRATOR,
-            GTV_GROUP_STATE: safeDeps.GTV_GROUP_STATE,
-            GTV_STATE_PERSISTENCE: safeDeps.GTV_STATE_PERSISTENCE,
-            GTV_SETTINGS_IO: safeDeps.GTV_SETTINGS_IO,
-            GTV_DATA_TRANSFER: safeDeps.GTV_DATA_TRANSFER,
-            GTV_UI_SETTINGS_ACTIONS: safeDeps.GTV_UI_SETTINGS_ACTIONS,
-            GTV_CALCULATOR: safeDeps.GTV_CALCULATOR,
-            PERIOD_RESULT_IDS: safeDeps.PERIOD_RESULT_IDS,
-            gtvT: safeDeps.gtvT,
-            getShowToastRef: safeDeps.getShowToastRef,
-            deferDynamicCall: safeDeps.deferDynamicCall,
-            getPersistenceServiceRef: safeDeps.getPersistenceServiceRef,
-            confirmRuntime: safeDeps.confirmRuntime,
-            getLocationRefOrNull: safeDeps.getLocationRefOrNull,
-            getDocumentRefOrNull: safeDeps.getDocumentRefOrNull,
-            consoleError: safeDeps.consoleError
+            ...pickDeps([
+                "GTV_SERVICE_BOOTSTRAP",
+                "GTV_PERSISTENCE_SERVICE_BUNDLE",
+                "GTV_MAIN_UI_UTILS",
+                "GTV_APP_FEEDBACK",
+                "GTV_CALCULATOR_ACTIONS",
+                "GTV_TAB_UI",
+                "GTV_TAB_ORCHESTRATOR",
+                "GTV_GROUP_STATE",
+                "GTV_STATE_PERSISTENCE",
+                "GTV_SETTINGS_IO",
+                "GTV_DATA_TRANSFER",
+                "GTV_UI_SETTINGS_ACTIONS",
+                "GTV_CALCULATOR",
+                "PERIOD_RESULT_IDS",
+                "gtvT",
+                "getShowToastRef",
+                "deferDynamicCall",
+                "getPersistenceServiceRef",
+                "confirmRuntime",
+                "getLocationRefOrNull",
+                "getDocumentRefOrNull",
+                "consoleError"
+            ])
         });
 
         const { mainFoundationServices } = createFoundationServices({
-            foundationServicesModule: safeDeps.foundationServicesModule,
+            ...pickDeps([
+                "foundationServicesModule"
+            ]),
             mainFoundationConfig
         });
         const mainFoundationServiceBindings = createFoundationServiceBindings({
@@ -110,16 +133,20 @@
         });
 
         const { mainStateDomainProxiesService } = createStateDomainProxyBindings({
-            stateDomainProxiesModule: safeDeps.mainStateDomainProxiesModule,
+            ...pickAliasedDeps({
+                "stateDomainProxiesModule": "mainStateDomainProxiesModule"
+            }),
             fixedTimeSlotUtilsService: mainFoundationServiceBindings.fixedTimeSlotUtilsService,
             multiRangeStateService: mainFoundationServiceBindings.multiRangeStateService,
             fixedTimeStateService: mainFoundationServiceBindings.fixedTimeStateService,
             uiPreferencesStateService: mainFoundationServiceBindings.uiPreferencesStateService,
             groupContextStateService: mainFoundationServiceBindings.groupContextStateService,
             mainAppStateBridgeService: mainCoreServiceBindings.mainAppStateBridgeService,
-            getPatchedMainTabState: safeDeps.getPatchedMainTabState,
-            getCurrentGroup: safeDeps.getCurrentGroup,
-            defaultFixedTimeValue: safeDeps.defaultFixedTimeValue
+            ...pickDeps([
+                "getPatchedMainTabState",
+                "getCurrentGroup",
+                "defaultFixedTimeValue"
+            ])
         });
 
         return Object.freeze({

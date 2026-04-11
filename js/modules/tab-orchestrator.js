@@ -30,14 +30,23 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            sanitizeMainTab: toSafeCallable("sanitizeMainTab", safeDeps.sanitizeMainTab),
-            getSlotCount: toSafeCallable("getSlotCount", safeDeps.getSlotCount),
-            syncActiveFormatProfileFromState: toSafeCallable("syncActiveFormatProfileFromState", safeDeps.syncActiveFormatProfileFromState),
-            resolveFormatProfileContext: toSafeCallable("resolveFormatProfileContext", safeDeps.resolveFormatProfileContext),
-            activateFormatProfileContext: toSafeCallable("activateFormatProfileContext", safeDeps.activateFormatProfileContext),
-            switchMainTabUi: toSafeCallable("switchMainTabUi", safeDeps.switchMainTabUi),
-            refreshOptionToggleDividersUi: toSafeCallable("refreshOptionToggleDividersUi", safeDeps.refreshOptionToggleDividersUi)
+            ...pickSafeCallables([
+                "sanitizeMainTab",
+                "getSlotCount",
+                "syncActiveFormatProfileFromState",
+                "resolveFormatProfileContext",
+                "activateFormatProfileContext",
+                "switchMainTabUi",
+                "refreshOptionToggleDividersUi"
+            ])
         });
 
         function switchMainTab(tab) {

@@ -3,6 +3,15 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         const runtimeTimezoneHelpersModule = safeDeps.runtimeTimezoneHelpersModule;
         if (
             !runtimeTimezoneHelpersModule
@@ -12,16 +21,18 @@
         }
 
         const runtimeTimezoneHelpersService = runtimeTimezoneHelpersModule.createService({
-            getMainSharedUtilsService: safeDeps.getMainSharedUtilsService,
-            getTimeService: safeDeps.getTimeService,
-            getRuntimeCurrentLangValue: safeDeps.getRuntimeCurrentLangValue,
-            getGlobalTimeState: safeDeps.getGlobalTimeState,
-            callServiceMethod: safeDeps.callServiceMethod,
-            getMainTimezoneFacadeService: safeDeps.getMainTimezoneFacadeService,
-            getTimeCore: safeDeps.getTimeCore,
-            getConsoleWarn: safeDeps.getConsoleWarn,
-            getNavigatorRef: safeDeps.getNavigatorRef,
-            getGroupContextStateService: safeDeps.getGroupContextStateService
+            ...pickDeps([
+                "getMainSharedUtilsService",
+                "getTimeService",
+                "getRuntimeCurrentLangValue",
+                "getGlobalTimeState",
+                "callServiceMethod",
+                "getMainTimezoneFacadeService",
+                "getTimeCore",
+                "getConsoleWarn",
+                "getNavigatorRef",
+                "getGroupContextStateService"
+            ])
         });
 
         if (!runtimeTimezoneHelpersService || typeof runtimeTimezoneHelpersService !== "object") {

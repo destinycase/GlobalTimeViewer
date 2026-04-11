@@ -80,6 +80,15 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         const serviceBootstrapApi = requireCreateServiceModule(safeDeps.GTV_SERVICE_BOOTSTRAP, "GTVServiceBootstrap");
         const persistenceBundleApi = requireCreateServiceModule(safeDeps.GTV_PERSISTENCE_SERVICE_BUNDLE, "GTVPersistenceServiceBundle");
         const mainUiUtilsApi = requireCreateServiceModule(safeDeps.GTV_MAIN_UI_UTILS, "GTVMainUiUtils");
@@ -87,15 +96,19 @@
         const calculatorActionsApi = requireCreateServiceModule(safeDeps.GTV_CALCULATOR_ACTIONS, "GTVCalculatorActions");
 
         const serviceBootstrap = serviceBootstrapApi.createService({
-            GTV_TAB_UI: safeDeps.GTV_TAB_UI,
-            GTV_TAB_ORCHESTRATOR: safeDeps.GTV_TAB_ORCHESTRATOR,
-            GTV_GROUP_STATE: safeDeps.GTV_GROUP_STATE
+            ...pickDeps([
+                "GTV_TAB_UI",
+                "GTV_TAB_ORCHESTRATOR",
+                "GTV_GROUP_STATE"
+            ])
         });
         const persistenceServiceBundleFactory = persistenceBundleApi.createService({
-            GTV_STATE_PERSISTENCE: safeDeps.GTV_STATE_PERSISTENCE,
-            GTV_SETTINGS_IO: safeDeps.GTV_SETTINGS_IO,
-            GTV_DATA_TRANSFER: safeDeps.GTV_DATA_TRANSFER,
-            GTV_UI_SETTINGS_ACTIONS: safeDeps.GTV_UI_SETTINGS_ACTIONS
+            ...pickDeps([
+                "GTV_STATE_PERSISTENCE",
+                "GTV_SETTINGS_IO",
+                "GTV_DATA_TRANSFER",
+                "GTV_UI_SETTINGS_ACTIONS"
+            ])
         });
 
         const mainUiUtilsService = mainUiUtilsApi.createService();
@@ -185,6 +198,7 @@
         const periodResultIds = safeDeps.PERIOD_RESULT_IDS instanceof Set
             ? safeDeps.PERIOD_RESULT_IDS
             : new Set();
+        const calculatorModule = safeDeps.GTV_CALCULATOR || null;
         let activePromptResolver = null;
         let activePromptCleanup = null;
 
@@ -321,7 +335,7 @@
         });
 
         const calculatorActionsService = calculatorActionsApi.createService({
-            GTV_CALCULATOR: safeDeps.GTV_CALCULATOR || null,
+            GTV_CALCULATOR: calculatorModule,
             PERIOD_RESULT_IDS: periodResultIds,
             t: (...args) => t(...args),
             showToast: (...args) => showToast(...args),

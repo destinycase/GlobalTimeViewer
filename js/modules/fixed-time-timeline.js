@@ -37,16 +37,25 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
-            ensureGroupFixedTimes: toSafeCallable("ensureGroupFixedTimes", safeDeps.ensureGroupFixedTimes),
-            getGlobalTime: toSafeCallable("getGlobalTime", safeDeps.getGlobalTime),
-            resolveFixedTimeSlotUtcDate: toSafeCallable("resolveFixedTimeSlotUtcDate", safeDeps.resolveFixedTimeSlotUtcDate),
-            getFixedTimeSlotCount: toSafeCallable("getFixedTimeSlotCount", safeDeps.getFixedTimeSlotCount),
-            getDefaultFixedTimeName: toSafeCallable("getDefaultFixedTimeName", safeDeps.getDefaultFixedTimeName),
-            sanitizeFixedTimeId: toSafeCallable("sanitizeFixedTimeId", safeDeps.sanitizeFixedTimeId),
-            sanitizeFixedTimeName: toSafeCallable("sanitizeFixedTimeName", safeDeps.sanitizeFixedTimeName),
-            getFixedTimeSlotHeaderLabel: toSafeCallable("getFixedTimeSlotHeaderLabel", safeDeps.getFixedTimeSlotHeaderLabel)
+            ...pickSafeCallables([
+                "getCurrentGroup",
+                "ensureGroupFixedTimes",
+                "getGlobalTime",
+                "resolveFixedTimeSlotUtcDate",
+                "getFixedTimeSlotCount",
+                "getDefaultFixedTimeName",
+                "sanitizeFixedTimeId",
+                "sanitizeFixedTimeName",
+                "getFixedTimeSlotHeaderLabel"
+            ])
         });
 
         function isValidDate(value) {

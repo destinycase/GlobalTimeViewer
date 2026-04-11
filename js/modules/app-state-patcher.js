@@ -59,9 +59,18 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getStateSource: toSafeCallable("getStateSource", safeDeps.getStateSource),
-            setIsRealtimeState: toSafeCallable("setIsRealtimeState", safeDeps.setIsRealtimeState)
+            ...pickSafeCallables([
+                "getStateSource",
+                "setIsRealtimeState"
+            ])
         });
 
         function getStateSnapshot() {

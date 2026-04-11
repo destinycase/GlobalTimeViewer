@@ -55,26 +55,35 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            isShowCopyFormat: toSafeCallable("isShowCopyFormat", safeDeps.isShowCopyFormat),
-            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
-            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
-            getMultiRanges: toSafeCallable("getMultiRanges", safeDeps.getMultiRanges),
-            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
-            buildTimezoneComputedSnapshotForRange: toSafeCallable("buildTimezoneComputedSnapshotForRange", safeDeps.buildTimezoneComputedSnapshotForRange),
-            formatSnapshotText: toSafeCallable("formatSnapshotText", safeDeps.formatSnapshotText),
-            getCopyFormatOrder: toSafeCallable("getCopyFormatOrder", safeDeps.getCopyFormatOrder),
-            getCopyFormatEnabled: toSafeCallable("getCopyFormatEnabled", safeDeps.getCopyFormatEnabled),
-            getCopyTimePartsEnabled: toSafeCallable("getCopyTimePartsEnabled", safeDeps.getCopyTimePartsEnabled),
-            isFixedTimeTab: toSafeCallable("isFixedTimeTab", safeDeps.isFixedTimeTab),
-            getFixedTimePreviewCopyText: toSafeCallable("getFixedTimePreviewCopyText", safeDeps.getFixedTimePreviewCopyText),
-            getRowFormattedText: toSafeCallable("getRowFormattedText", safeDeps.getRowFormattedText),
-            getRowCopyText: toSafeCallable("getRowCopyText", safeDeps.getRowCopyText),
-            writeClipboard: toSafeCallable("writeClipboard", safeDeps.writeClipboard),
-            showToast: toSafeCallable("showToast", safeDeps.showToast),
-            copyAllMultiRangeTimezones: toSafeCallable("copyAllMultiRangeTimezones", safeDeps.copyAllMultiRangeTimezones),
-            getAllFixedTimeRowsCopyText: toSafeCallable("getAllFixedTimeRowsCopyText", safeDeps.getAllFixedTimeRowsCopyText)
+            ...pickSafeCallables([
+                "t",
+                "isShowCopyFormat",
+                "isMultiTab",
+                "ensureMultiRangeState",
+                "getMultiRanges",
+                "getBaseTimezoneRef",
+                "buildTimezoneComputedSnapshotForRange",
+                "formatSnapshotText",
+                "getCopyFormatOrder",
+                "getCopyFormatEnabled",
+                "getCopyTimePartsEnabled",
+                "isFixedTimeTab",
+                "getFixedTimePreviewCopyText",
+                "getRowFormattedText",
+                "getRowCopyText",
+                "writeClipboard",
+                "showToast",
+                "copyAllMultiRangeTimezones",
+                "getAllFixedTimeRowsCopyText"
+            ])
         });
 
         function getBooleanValue(getter, fallback = false) {

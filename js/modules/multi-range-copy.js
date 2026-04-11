@@ -16,21 +16,30 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
-            getMultiRanges: toSafeCallable("getMultiRanges", safeDeps.getMultiRanges),
-            getTimezoneRefById: toSafeCallable("getTimezoneRefById", safeDeps.getTimezoneRefById),
-            buildTimezoneComputedSnapshotForRange: toSafeCallable("buildTimezoneComputedSnapshotForRange", safeDeps.buildTimezoneComputedSnapshotForRange),
-            formatSnapshotText: toSafeCallable("formatSnapshotText", safeDeps.formatSnapshotText),
-            getCopyFormatOrder: toSafeCallable("getCopyFormatOrder", safeDeps.getCopyFormatOrder),
-            getCopyFormatEnabled: toSafeCallable("getCopyFormatEnabled", safeDeps.getCopyFormatEnabled),
-            getCopyTimePartsEnabled: toSafeCallable("getCopyTimePartsEnabled", safeDeps.getCopyTimePartsEnabled),
-            writeClipboard: toSafeCallable("writeClipboard", safeDeps.writeClipboard),
-            showToast: toSafeCallable("showToast", safeDeps.showToast),
-            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
-            getRenderableTimezoneRows: toSafeCallable("getRenderableTimezoneRows", safeDeps.getRenderableTimezoneRows),
-            getMultiRangeTitleText: toSafeCallable("getMultiRangeTitleText", safeDeps.getMultiRangeTitleText)
+            ...pickSafeCallables([
+                "t",
+                "ensureMultiRangeState",
+                "getMultiRanges",
+                "getTimezoneRefById",
+                "buildTimezoneComputedSnapshotForRange",
+                "formatSnapshotText",
+                "getCopyFormatOrder",
+                "getCopyFormatEnabled",
+                "getCopyTimePartsEnabled",
+                "writeClipboard",
+                "showToast",
+                "getBaseTimezoneRef",
+                "getRenderableTimezoneRows",
+                "getMultiRangeTitleText"
+            ])
         });
 
         function translate(key) {

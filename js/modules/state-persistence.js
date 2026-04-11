@@ -95,29 +95,38 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            getState: toSafeCallable("getState", safeDeps.getState),
-            setState: toSafeCallable("setState", safeDeps.setState),
-            getDefaultFixedDate: toSafeCallable("getDefaultFixedDate", safeDeps.getDefaultFixedDate),
-            getDefaultFixedTimes: toSafeCallable("getDefaultFixedTimes", safeDeps.getDefaultFixedTimes),
-            loadThemePreference: toSafeCallable("loadThemePreference", safeDeps.loadThemePreference),
-            loadUiScalePreference: toSafeCallable("loadUiScalePreference", safeDeps.loadUiScalePreference),
-            getCurrentUiScalePercent: toSafeCallable("getCurrentUiScalePercent", safeDeps.getCurrentUiScalePercent),
-            showToast: toSafeCallable("showToast", safeDeps.showToast),
-            ensureGroupMultiSubgroups: toSafeCallable("ensureGroupMultiSubgroups", safeDeps.ensureGroupMultiSubgroups),
-            loadCurrentMultiStateFromActiveSubgroup: toSafeCallable("loadCurrentMultiStateFromActiveSubgroup", safeDeps.loadCurrentMultiStateFromActiveSubgroup),
-            applyTheme: toSafeCallable("applyTheme", safeDeps.applyTheme),
-            applyUiScale: toSafeCallable("applyUiScale", safeDeps.applyUiScale),
-            applyTranslations: toSafeCallable("applyTranslations", safeDeps.applyTranslations),
-            applyVersionBranding: toSafeCallable("applyVersionBranding", safeDeps.applyVersionBranding),
-            populateUiScaleSelect: toSafeCallable("populateUiScaleSelect", safeDeps.populateUiScaleSelect),
-            refreshMultiRangeControls: toSafeCallable("refreshMultiRangeControls", safeDeps.refreshMultiRangeControls),
-            updateTZDropdown: toSafeCallable("updateTZDropdown", safeDeps.updateTZDropdown),
-            refreshSelectWidths: toSafeCallable("refreshSelectWidths", safeDeps.refreshSelectWidths),
-            switchMainTab: toSafeCallable("switchMainTab", safeDeps.switchMainTab),
-            ensureBaseTimezoneSelection: toSafeCallable("ensureBaseTimezoneSelection", safeDeps.ensureBaseTimezoneSelection),
-            syncCurrentMultiStateToActiveSubgroup: toSafeCallable("syncCurrentMultiStateToActiveSubgroup", safeDeps.syncCurrentMultiStateToActiveSubgroup)
+            ...pickSafeCallables([
+                "t",
+                "getState",
+                "setState",
+                "getDefaultFixedDate",
+                "getDefaultFixedTimes",
+                "loadThemePreference",
+                "loadUiScalePreference",
+                "getCurrentUiScalePercent",
+                "showToast",
+                "ensureGroupMultiSubgroups",
+                "loadCurrentMultiStateFromActiveSubgroup",
+                "applyTheme",
+                "applyUiScale",
+                "applyTranslations",
+                "applyVersionBranding",
+                "populateUiScaleSelect",
+                "refreshMultiRangeControls",
+                "updateTZDropdown",
+                "refreshSelectWidths",
+                "switchMainTab",
+                "ensureBaseTimezoneSelection",
+                "syncCurrentMultiStateToActiveSubgroup"
+            ])
         });
 
         function ensureGroupMultiSubgroupsSafe(group) {

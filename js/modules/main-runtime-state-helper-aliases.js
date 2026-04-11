@@ -3,30 +3,41 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         const runtimeStateHelpersModule = safeDeps.runtimeStateHelpersModule;
         if (!runtimeStateHelpersModule || typeof runtimeStateHelpersModule.createService !== "function") {
             throw new Error("Missing required module API: GTVMainRuntimeStateHelpers.createService");
         }
 
         const runtimeStateHelpersService = runtimeStateHelpersModule.createService({
-            getMainSharedUtilsService: safeDeps.getMainSharedUtilsService,
-            getPatchedTimeAdjustDayStepBySlotState: safeDeps.getPatchedTimeAdjustDayStepBySlotState,
-            getPatchAppState: safeDeps.getPatchAppState,
-            getUpdateTimeAdjustPanel: safeDeps.getUpdateTimeAdjustPanel,
-            getTranslator: safeDeps.getTranslator,
-            getGroupContextStateService: safeDeps.getGroupContextStateService,
-            getTimezoneSearchService: safeDeps.getTimezoneSearchService,
-            getPatchedMultiRangeCountState: safeDeps.getPatchedMultiRangeCountState,
-            getPatchedMultiRangesState: safeDeps.getPatchedMultiRangesState,
-            getPatchedMultiRangeCollapsedState: safeDeps.getPatchedMultiRangeCollapsedState,
-            getPatchedArrayStateValue: safeDeps.getPatchedArrayStateValue,
-            getMultiRangeStartEditEnabledState: safeDeps.getMultiRangeStartEditEnabledState,
-            getMultiRangeEndEditEnabledState: safeDeps.getMultiRangeEndEditEnabledState,
-            getPatchedMultiRangeTitleState: safeDeps.getPatchedMultiRangeTitleState,
-            getPersistenceState: safeDeps.getPersistenceState,
-            getGroupsState: safeDeps.getGroupsState,
-            getActiveGroupIdByMainTabState: safeDeps.getActiveGroupIdByMainTabState,
-            getPatchedActiveGroupIdState: safeDeps.getPatchedActiveGroupIdState
+            ...pickDeps([
+                "getMainSharedUtilsService",
+                "getPatchedTimeAdjustDayStepBySlotState",
+                "getPatchAppState",
+                "getUpdateTimeAdjustPanel",
+                "getTranslator",
+                "getGroupContextStateService",
+                "getTimezoneSearchService",
+                "getPatchedMultiRangeCountState",
+                "getPatchedMultiRangesState",
+                "getPatchedMultiRangeCollapsedState",
+                "getPatchedArrayStateValue",
+                "getMultiRangeStartEditEnabledState",
+                "getMultiRangeEndEditEnabledState",
+                "getPatchedMultiRangeTitleState",
+                "getPersistenceState",
+                "getGroupsState",
+                "getActiveGroupIdByMainTabState",
+                "getPatchedActiveGroupIdState"
+            ])
         });
 
         if (!runtimeStateHelpersService || typeof runtimeStateHelpersService !== "object") {

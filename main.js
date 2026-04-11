@@ -4,10 +4,7 @@ let mainRuntimeLangStateService = null;
 let mainDayNightRangeUtilsService = null;
 let mainRuntimeCoreAccessorService = null;
 function syncRealtimeFlagToGlobal(value) {
-    if (typeof mainRuntimeCoreAccessorService?.syncRealtimeFlagToGlobal === "function") {
-        return mainRuntimeCoreAccessorService.syncRealtimeFlagToGlobal(value);
-    }
-    return mainRuntimeLangStateService.syncRealtimeFlagToGlobal(value);
+    return callRuntimeCoreAccessorWithFallback("syncRealtimeFlagToGlobal", mainRuntimeLangStateService, value);
 }
 let globalTimes = [new Date(), new Date()];
 let slotCount = 1;
@@ -67,18 +64,19 @@ function assertBindingCreateService(bindingsModule, moduleApiName) {
         throw new Error(`Missing required module API: ${moduleApiName}.createService`);
     }
 }
-function getRuntimeCurrentLangValue() {
-    if (typeof mainRuntimeCoreAccessorService?.getRuntimeCurrentLangValue === "function") {
-        return mainRuntimeCoreAccessorService.getRuntimeCurrentLangValue();
+function callRuntimeCoreAccessorWithFallback(methodName, fallbackService, ...args) {
+    const runtimeAccessorMethod = mainRuntimeCoreAccessorService?.[methodName];
+    if (typeof runtimeAccessorMethod === "function") {
+        return runtimeAccessorMethod(...args);
     }
-    return mainRuntimeLangStateService.getRuntimeCurrentLangValue();
+    return fallbackService[methodName](...args);
+}
+function getRuntimeCurrentLangValue() {
+    return callRuntimeCoreAccessorWithFallback("getRuntimeCurrentLangValue", mainRuntimeLangStateService);
 }
 
 function syncCurrentLang(next) {
-    if (typeof mainRuntimeCoreAccessorService?.syncCurrentLang === "function") {
-        return mainRuntimeCoreAccessorService.syncCurrentLang(next);
-    }
-    return mainRuntimeLangStateService.syncCurrentLang(next);
+    return callRuntimeCoreAccessorWithFallback("syncCurrentLang", mainRuntimeLangStateService, next);
 }
 const GTV_MAIN_CONSTANTS = GTV_GLOBAL.GTVMainConstants;
 const GTV_MAIN_CONSTANTS_BINDINGS = GTV_GLOBAL.GTVMainConstantsBindings;
@@ -168,17 +166,21 @@ const initialMainState = (mainAppStateVarsService && typeof mainAppStateVarsServ
     ? (mainAppStateVarsService.initialState || {})
     : {};
 function sanitizeDayNightHourValue(value, fallbackHour = DEFAULT_DAY_START_HOUR) {
-    if (typeof mainRuntimeCoreAccessorService?.sanitizeDayNightHourValue === "function") {
-        return mainRuntimeCoreAccessorService.sanitizeDayNightHourValue(value, fallbackHour);
-    }
-    return mainDayNightRangeUtilsService.sanitizeDayNightHourValue(value, fallbackHour);
+    return callRuntimeCoreAccessorWithFallback(
+        "sanitizeDayNightHourValue",
+        mainDayNightRangeUtilsService,
+        value,
+        fallbackHour
+    );
 }
 
 function normalizeDayNightRangeValues(dayStartHourInput, nightStartHourInput) {
-    if (typeof mainRuntimeCoreAccessorService?.normalizeDayNightRangeValues === "function") {
-        return mainRuntimeCoreAccessorService.normalizeDayNightRangeValues(dayStartHourInput, nightStartHourInput);
-    }
-    return mainDayNightRangeUtilsService.normalizeDayNightRangeValues(dayStartHourInput, nightStartHourInput);
+    return callRuntimeCoreAccessorWithFallback(
+        "normalizeDayNightRangeValues",
+        mainDayNightRangeUtilsService,
+        dayStartHourInput,
+        nightStartHourInput
+    );
 }
 
 const initializedMainState = mainStateInitializerService.deriveInitialState({
@@ -436,10 +438,7 @@ mainRuntimeCoreAccessorService = GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS.createS
 });
 
 function assertRequiredServices() {
-    if (typeof mainRuntimeCoreAccessorService?.assertRequiredServices === "function") {
-        return mainRuntimeCoreAccessorService.assertRequiredServices();
-    }
-    return mainBootstrapGuardService.assertRequiredServices();
+    return callRuntimeCoreAccessorWithFallback("assertRequiredServices", mainBootstrapGuardService);
 }
 
 var applyVersionBranding;
@@ -2278,62 +2277,130 @@ mainRuntimePublicApiService = mainRuntimeBootstrapWiringServices.mainRuntimePubl
 mainAppBootstrapService = mainRuntimeBootstrapWiringServices.mainAppBootstrapService;
 mainRuntimeBootstrapAccessorService = mainRuntimeBootstrapWiringServices.mainRuntimeBootstrapAccessorService;
 
-function showFatalError(err) { return mainRuntimePublicApiService.showFatalError(err); }
-async function initApp() { return await mainRuntimePublicApiService.initApp(); }
-function startBootstrapOnDomReady(initFn) { return mainRuntimePublicApiService.startBootstrapOnDomReady(initFn); }
-function showToast(message, options = {}) { return mainRuntimePublicApiService.showToast(message, options); }
-function switchMainTab(tab) { return mainRuntimePublicApiService.switchMainTab(tab); }
-function refreshOptionToggleDividers() { return mainRuntimePublicApiService.refreshOptionToggleDividers(); }
-function getCopyFieldLabel(key) { return mainRuntimePublicApiService.getCopyFieldLabel(key); }
-function getTimePartLabel(partKey) { return mainRuntimePublicApiService.getTimePartLabel(partKey); }
-function getDisplayColumns(effectiveSlotCount) { return mainRuntimePublicApiService.getDisplayColumns(effectiveSlotCount); }
-function getDisplayTimeInputMode() { return mainRuntimePublicApiService.getDisplayTimeInputMode(); }
-function buildRowActionCells(copyButtonTitle, removeButtonText, removeButtonTitle = "") {
-    return mainRuntimePublicApiService.buildRowActionCells(copyButtonTitle, removeButtonText, removeButtonTitle);
+function callMainRuntimePublicApi(methodName, ...args) {
+    return mainRuntimePublicApiService[methodName](...args);
 }
-function renderList() { return mainRuntimePublicApiService.renderList(); }
-function renderTimelineFrame() { return mainRuntimePublicApiService.renderTimelineFrame(); }
-function resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate = getGlobalTimeState(0)) {
-    return mainRuntimePublicApiService.resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate);
+async function callMainRuntimePublicApiAsync(methodName, ...args) {
+    return await callMainRuntimePublicApi(methodName, ...args);
 }
-function getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount = 1) {
-    return mainRuntimePublicApiService.getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount);
+function resolveMainRuntimePublicApiArgs(args, defaultArgsByIndex = null) {
+    if (!defaultArgsByIndex || typeof defaultArgsByIndex !== "object") {
+        return args;
+    }
+    const resolvedArgs = [...args];
+    Object.keys(defaultArgsByIndex).forEach((indexKey) => {
+        const index = Number(indexKey);
+        if (Number.isNaN(index) || typeof resolvedArgs[index] !== "undefined") return;
+        const defaultValue = defaultArgsByIndex[index];
+        resolvedArgs[index] = (typeof defaultValue === "function")
+            ? defaultValue()
+            : defaultValue;
+    });
+    return resolvedArgs;
 }
-function renderFixedTimeTab(isTick = false) { return mainRuntimePublicApiService.renderFixedTimeTab(isTick); }
-function updateClocks() { return mainRuntimePublicApiService.updateClocks(); }
-function resolveLocalDatePartsByTimezoneAtDate(timezone, utcDate, timezoneId = null) {
-    return mainRuntimePublicApiService.resolveLocalDatePartsByTimezoneAtDate(timezone, utcDate, timezoneId);
+function callMainRuntimePublicApiWithDefaults(methodName, args, defaultArgsByIndex = null) {
+    return callMainRuntimePublicApi(
+        methodName,
+        ...resolveMainRuntimePublicApiArgs(args, defaultArgsByIndex)
+    );
 }
-function resolveLocalDatePartsByTimezone(timezone, slotIdx, timezoneId = null) {
-    return mainRuntimePublicApiService.resolveLocalDatePartsByTimezone(timezone, slotIdx, timezoneId);
+async function callMainRuntimePublicApiAsyncWithDefaults(methodName, args, defaultArgsByIndex = null) {
+    return await callMainRuntimePublicApiAsync(
+        methodName,
+        ...resolveMainRuntimePublicApiArgs(args, defaultArgsByIndex)
+    );
 }
-function buildStrictUtcDateFromParts(parts) { return mainRuntimePublicApiService.buildStrictUtcDateFromParts(parts); }
-function handleTimeChange(val, timezone, slotIdx, timezoneId = null, inputMode = "datetime") {
-    return mainRuntimePublicApiService.handleTimeChange(val, timezone, slotIdx, timezoneId, inputMode);
+function showFatalError(err) { return callMainRuntimePublicApiWithDefaults("showFatalError", [err]); }
+async function initApp() { return await callMainRuntimePublicApiAsyncWithDefaults("initApp", []); }
+function startBootstrapOnDomReady(initFn) { return callMainRuntimePublicApiWithDefaults("startBootstrapOnDomReady", [initFn]); }
+function showToast(message, options) {
+    return callMainRuntimePublicApiWithDefaults("showToast", [message, options], { 1: () => ({}) });
 }
-function handleMultiRangeTimeChange(rangeIdx, val, timezone, slotIdx, timezoneId = null, inputMode = "datetime") {
-    return mainRuntimePublicApiService.handleMultiRangeTimeChange(
-        rangeIdx,
-        val,
-        timezone,
-        slotIdx,
-        timezoneId,
-        inputMode
+function switchMainTab(tab) { return callMainRuntimePublicApiWithDefaults("switchMainTab", [tab]); }
+function refreshOptionToggleDividers() { return callMainRuntimePublicApiWithDefaults("refreshOptionToggleDividers", []); }
+function getCopyFieldLabel(key) { return callMainRuntimePublicApiWithDefaults("getCopyFieldLabel", [key]); }
+function getTimePartLabel(partKey) { return callMainRuntimePublicApiWithDefaults("getTimePartLabel", [partKey]); }
+function getDisplayColumns(effectiveSlotCount) {
+    return callMainRuntimePublicApiWithDefaults("getDisplayColumns", [effectiveSlotCount]);
+}
+function getDisplayTimeInputMode() { return callMainRuntimePublicApiWithDefaults("getDisplayTimeInputMode", []); }
+function buildRowActionCells(copyButtonTitle, removeButtonText, removeButtonTitle) {
+    return callMainRuntimePublicApiWithDefaults(
+        "buildRowActionCells",
+        [copyButtonTitle, removeButtonText, removeButtonTitle],
+        { 2: "" }
+    );
+}
+function renderList() { return callMainRuntimePublicApiWithDefaults("renderList", []); }
+function renderTimelineFrame() { return callMainRuntimePublicApiWithDefaults("renderTimelineFrame", []); }
+function resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate) {
+    return callMainRuntimePublicApiWithDefaults(
+        "resolveFixedTimeSlotUtcDate",
+        [slot, baseRef, anchorDate],
+        { 2: () => getGlobalTimeState(0) }
+    );
+}
+function getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount) {
+    return callMainRuntimePublicApiWithDefaults(
+        "getFixedTimeSlotHeaderLabel",
+        [slot, slotIdx, slotCount],
+        { 2: 1 }
+    );
+}
+function renderFixedTimeTab(isTick) {
+    return callMainRuntimePublicApiWithDefaults("renderFixedTimeTab", [isTick], { 0: false });
+}
+function updateClocks() { return callMainRuntimePublicApiWithDefaults("updateClocks", []); }
+function resolveLocalDatePartsByTimezoneAtDate(timezone, utcDate, timezoneId) {
+    return callMainRuntimePublicApiWithDefaults(
+        "resolveLocalDatePartsByTimezoneAtDate",
+        [timezone, utcDate, timezoneId],
+        { 2: null }
+    );
+}
+function resolveLocalDatePartsByTimezone(timezone, slotIdx, timezoneId) {
+    return callMainRuntimePublicApiWithDefaults(
+        "resolveLocalDatePartsByTimezone",
+        [timezone, slotIdx, timezoneId],
+        { 2: null }
+    );
+}
+function buildStrictUtcDateFromParts(parts) {
+    return callMainRuntimePublicApiWithDefaults("buildStrictUtcDateFromParts", [parts]);
+}
+function handleTimeChange(val, timezone, slotIdx, timezoneId, inputMode) {
+    return callMainRuntimePublicApiWithDefaults(
+        "handleTimeChange",
+        [val, timezone, slotIdx, timezoneId, inputMode],
+        { 3: null, 4: "datetime" }
+    );
+}
+function handleMultiRangeTimeChange(rangeIdx, val, timezone, slotIdx, timezoneId, inputMode) {
+    return callMainRuntimePublicApiWithDefaults(
+        "handleMultiRangeTimeChange",
+        [rangeIdx, val, timezone, slotIdx, timezoneId, inputMode],
+        { 4: null, 5: "datetime" }
     );
 }
 function formatTimeTextByParts(snapshot, timePartsEnabled) {
-    return mainRuntimePublicApiService.formatTimeTextByParts(snapshot, timePartsEnabled);
+    return callMainRuntimePublicApiWithDefaults("formatTimeTextByParts", [snapshot, timePartsEnabled]);
 }
-function formatSnapshotText(snapshot, order, enabled, timePartsEnabled = DEFAULT_COPY_TIME_PARTS_ENABLED) {
-    return mainRuntimePublicApiService.formatSnapshotText(snapshot, order, enabled, timePartsEnabled);
+function formatSnapshotText(snapshot, order, enabled, timePartsEnabled) {
+    return callMainRuntimePublicApiWithDefaults(
+        "formatSnapshotText",
+        [snapshot, order, enabled, timePartsEnabled],
+        { 3: () => DEFAULT_COPY_TIME_PARTS_ENABLED }
+    );
 }
-function initCalculators() { return mainRuntimePublicApiService.initCalculators(); }
-async function copyText(elementId, isInput = false) { return await mainRuntimePublicApiService.copyText(elementId, isInput); }
-function getPersistenceSnapshot() { return mainRuntimePublicApiService.getPersistenceSnapshot(); }
-function sanitizeGroup(group, idx, legacyMultiState = null) {
-    return mainRuntimePublicApiService.sanitizeGroup(group, idx, legacyMultiState);
+function initCalculators() { return callMainRuntimePublicApiWithDefaults("initCalculators", []); }
+async function copyText(elementId, isInput) {
+    return await callMainRuntimePublicApiAsyncWithDefaults("copyText", [elementId, isInput], { 1: false });
 }
-async function loadPersistence() { return await mainRuntimePublicApiService.loadPersistence(); }
+function getPersistenceSnapshot() { return callMainRuntimePublicApiWithDefaults("getPersistenceSnapshot", []); }
+function sanitizeGroup(group, idx, legacyMultiState) {
+    return callMainRuntimePublicApiWithDefaults("sanitizeGroup", [group, idx, legacyMultiState], { 2: null });
+}
+async function loadPersistence() { return await callMainRuntimePublicApiAsyncWithDefaults("loadPersistence", []); }
 
 startBootstrapOnDomReady(initApp);
 

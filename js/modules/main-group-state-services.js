@@ -17,31 +17,46 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         const multiStateApi = requireCreateServiceModule(safeDeps.GTV_MULTI_STATE, "GTVMultiState");
         const groupStateFactory = requireGroupStateFactory(safeDeps.serviceBootstrap);
 
         const multiStateService = multiStateApi.createService({
-            MIN_MULTI_RANGE_COUNT: safeDeps.MIN_MULTI_RANGE_COUNT,
-            t: safeDeps.t,
-            getGroups: safeDeps.getGroups,
-            getDefaultMultiRangeBounds: safeDeps.getDefaultMultiRangeBounds,
-            sanitizeMultiRangeCount: safeDeps.sanitizeMultiRangeCount,
-            sanitizeMultiRangeItem: safeDeps.sanitizeMultiRangeItem,
-            sanitizeUtcMs: safeDeps.sanitizeUtcMs
+            ...pickDeps([
+                "MIN_MULTI_RANGE_COUNT",
+                "t",
+                "getGroups",
+                "getDefaultMultiRangeBounds",
+                "sanitizeMultiRangeCount",
+                "sanitizeMultiRangeItem",
+                "sanitizeUtcMs"
+            ])
         });
 
         const groupStateService = groupStateFactory.createGroupStateService({
-            t: safeDeps.t,
-            sanitizeTimezoneId: safeDeps.sanitizeTimezoneId,
-            createUniqueTimezoneId: safeDeps.createUniqueTimezoneId,
-            normalizeCustomAbbr: safeDeps.normalizeCustomAbbr,
-            normalizeZoneAbbreviation: safeDeps.normalizeZoneAbbreviation,
-            sanitizeBaseTimezoneId: safeDeps.sanitizeBaseTimezoneId,
-            sanitizeUtcRowOrder: safeDeps.sanitizeUtcRowOrder,
+            ...pickDeps([
+                "t",
+                "sanitizeTimezoneId",
+                "createUniqueTimezoneId",
+                "normalizeCustomAbbr",
+                "normalizeZoneAbbreviation",
+                "sanitizeBaseTimezoneId",
+                "sanitizeUtcRowOrder"
+            ]),
             sanitizeMultiSubgroupId: (value) => multiStateService.sanitizeMultiSubgroupId(value),
-            sanitizeFixedTimes: safeDeps.sanitizeFixedTimes,
-            sanitizeFixedDateValue: safeDeps.sanitizeFixedDateValue,
-            sanitizeFixedTimeShowLiveNow: safeDeps.sanitizeFixedTimeShowLiveNow,
+            ...pickDeps([
+                "sanitizeFixedTimes",
+                "sanitizeFixedDateValue",
+                "sanitizeFixedTimeShowLiveNow"
+            ]),
             ensureGroupMultiSubgroups: (group, options = {}) =>
                 multiStateService.ensureGroupMultiSubgroups(group, options)
         });

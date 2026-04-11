@@ -30,20 +30,29 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
-            ensureGroupFixedTimes: toSafeCallable("ensureGroupFixedTimes", safeDeps.ensureGroupFixedTimes),
-            sanitizeFixedTimeSlotCount: toSafeCallable("sanitizeFixedTimeSlotCount", safeDeps.sanitizeFixedTimeSlotCount),
-            sanitizeFixedDateValue: toSafeCallable("sanitizeFixedDateValue", safeDeps.sanitizeFixedDateValue),
-            isFixedTimeTab: toSafeCallable("isFixedTimeTab", safeDeps.isFixedTimeTab),
-            renderFixedTimeTab: toSafeCallable("renderFixedTimeTab", safeDeps.renderFixedTimeTab),
-            renderTimelineFrame: toSafeCallable("renderTimelineFrame", safeDeps.renderTimelineFrame),
-            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
-            sanitizeFixedTimeShowLiveNow: toSafeCallable("sanitizeFixedTimeShowLiveNow", safeDeps.sanitizeFixedTimeShowLiveNow),
-            showToast: toSafeCallable("showToast", safeDeps.showToast),
-            t: toSafeCallable("t", safeDeps.t),
-            createUniqueFixedTimeId: toSafeCallable("createUniqueFixedTimeId", safeDeps.createUniqueFixedTimeId),
-            createDefaultFixedTimeSlot: toSafeCallable("createDefaultFixedTimeSlot", safeDeps.createDefaultFixedTimeSlot)
+            ...pickSafeCallables([
+                "getCurrentGroup",
+                "ensureGroupFixedTimes",
+                "sanitizeFixedTimeSlotCount",
+                "sanitizeFixedDateValue",
+                "isFixedTimeTab",
+                "renderFixedTimeTab",
+                "renderTimelineFrame",
+                "savePersistence",
+                "sanitizeFixedTimeShowLiveNow",
+                "showToast",
+                "t",
+                "createUniqueFixedTimeId",
+                "createDefaultFixedTimeSlot"
+            ])
         });
 
         function getDocumentRef() {

@@ -31,13 +31,22 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            getGroups: toSafeCallable("getGroups", safeDeps.getGroups),
-            getDefaultMultiRangeBounds: toSafeCallable("getDefaultMultiRangeBounds", safeDeps.getDefaultMultiRangeBounds),
-            sanitizeMultiRangeCount: toSafeCallable("sanitizeMultiRangeCount", safeDeps.sanitizeMultiRangeCount),
-            sanitizeUtcMs: toSafeCallable("sanitizeUtcMs", safeDeps.sanitizeUtcMs),
-            sanitizeMultiRangeItem: toSafeCallable("sanitizeMultiRangeItem", safeDeps.sanitizeMultiRangeItem)
+            ...pickSafeCallables([
+                "t",
+                "getGroups",
+                "getDefaultMultiRangeBounds",
+                "sanitizeMultiRangeCount",
+                "sanitizeUtcMs",
+                "sanitizeMultiRangeItem"
+            ])
         });
 
         function asArray(value) {

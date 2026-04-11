@@ -34,19 +34,28 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getCurrentLang: toSafeCallable("getCurrentLang", safeDeps.getCurrentLang),
-            getDayNightMarkerByHour: toSafeCallable("getDayNightMarkerByHour", safeDeps.getDayNightMarkerByHour),
-            sanitizeFixedTimeValue: toSafeCallable("sanitizeFixedTimeValue", safeDeps.sanitizeFixedTimeValue),
-            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
-            getLocalPartsByTimezone: toSafeCallable("getLocalPartsByTimezone", safeDeps.getLocalPartsByTimezone),
-            getFixedDateParts: toSafeCallable("getFixedDateParts", safeDeps.getFixedDateParts),
-            getUTCDateFromLocalParts: toSafeCallable("getUTCDateFromLocalParts", safeDeps.getUTCDateFromLocalParts),
-            sanitizeTimePartsEnabledForContext: toSafeCallable("sanitizeTimePartsEnabledForContext", safeDeps.sanitizeTimePartsEnabledForContext),
-            getDisplayTimePartsEnabled: toSafeCallable("getDisplayTimePartsEnabled", safeDeps.getDisplayTimePartsEnabled),
-            getDefaultFixedTimeName: toSafeCallable("getDefaultFixedTimeName", safeDeps.getDefaultFixedTimeName),
-            sanitizeFixedTimeName: toSafeCallable("sanitizeFixedTimeName", safeDeps.sanitizeFixedTimeName),
-            t: toSafeCallable("t", safeDeps.t)
+            ...pickSafeCallables([
+                "getCurrentLang",
+                "getDayNightMarkerByHour",
+                "sanitizeFixedTimeValue",
+                "getFixedOffsetForDisplayAtDate",
+                "getLocalPartsByTimezone",
+                "getFixedDateParts",
+                "getUTCDateFromLocalParts",
+                "sanitizeTimePartsEnabledForContext",
+                "getDisplayTimePartsEnabled",
+                "getDefaultFixedTimeName",
+                "sanitizeFixedTimeName",
+                "t"
+            ])
         });
 
         function isValidDate(value) {

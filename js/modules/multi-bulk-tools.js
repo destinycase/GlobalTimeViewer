@@ -49,17 +49,26 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            getMultiRangeCount: toSafeCallable("getMultiRangeCount", safeDeps.getMultiRangeCount),
-            renderTimeAdjustSet: toSafeCallable("renderTimeAdjustSet", safeDeps.renderTimeAdjustSet),
-            applyBulkRangeAllAction: toSafeCallable("applyBulkRangeAllAction", safeDeps.applyBulkRangeAllAction),
-            createTimeAdjustActionButton: toSafeCallable("createTimeAdjustActionButton", safeDeps.createTimeAdjustActionButton),
-            createTimeAdjustDivider: toSafeCallable("createTimeAdjustDivider", safeDeps.createTimeAdjustDivider),
-            applyFirstRangeStartAdjustAction: toSafeCallable("applyFirstRangeStartAdjustAction", safeDeps.applyFirstRangeStartAdjustAction),
-            setAllMultiRangeStartEditEnabled: toSafeCallable("setAllMultiRangeStartEditEnabled", safeDeps.setAllMultiRangeStartEditEnabled),
-            setAllMultiRangeEndEditEnabled: toSafeCallable("setAllMultiRangeEndEditEnabled", safeDeps.setAllMultiRangeEndEditEnabled),
-            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
+            ...pickSafeCallables([
+                "t",
+                "getMultiRangeCount",
+                "renderTimeAdjustSet",
+                "applyBulkRangeAllAction",
+                "createTimeAdjustActionButton",
+                "createTimeAdjustDivider",
+                "applyFirstRangeStartAdjustAction",
+                "setAllMultiRangeStartEditEnabled",
+                "setAllMultiRangeEndEditEnabled",
+                "upgradeNativeTitleTooltips"
+            ])
         });
 
         function callBulkAllAction(slotIdx, action) {

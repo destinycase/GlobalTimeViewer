@@ -49,48 +49,57 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            getCurrentLang: toSafeCallable("getCurrentLang", safeDeps.getCurrentLang),
-            getZoneDisplayNameForUiAtDate: toSafeCallable("getZoneDisplayNameForUiAtDate", safeDeps.getZoneDisplayNameForUiAtDate),
-            getZoneDisplayName: toSafeCallable("getZoneDisplayName", safeDeps.getZoneDisplayName),
-            getDayNightMarkerByHour: toSafeCallable("getDayNightMarkerByHour", safeDeps.getDayNightMarkerByHour),
-            buildTimezoneComputedSnapshotForDates: toSafeCallable("buildTimezoneComputedSnapshotForDates", safeDeps.buildTimezoneComputedSnapshotForDates),
-            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
-            sanitizeMultiSubgroupName: toSafeCallable("sanitizeMultiSubgroupName", safeDeps.sanitizeMultiSubgroupName),
-            getCurrentMultiSubgroupName: toSafeCallable("getCurrentMultiSubgroupName", safeDeps.getCurrentMultiSubgroupName),
-            sanitizeMultiRangeTitle: toSafeCallable("sanitizeMultiRangeTitle", safeDeps.sanitizeMultiRangeTitle),
-            getMultiRangeTitle: toSafeCallable("getMultiRangeTitle", safeDeps.getMultiRangeTitle),
-            buildStaticRowCell: toSafeCallable("buildStaticRowCell", safeDeps.buildStaticRowCell),
-            buildDynamicRowCell: toSafeCallable("buildDynamicRowCell", safeDeps.buildDynamicRowCell),
-            copyMultiRangeRow: toSafeCallable("copyMultiRangeRow", safeDeps.copyMultiRangeRow),
-            isMultiRangeStartEditEnabled: toSafeCallable("isMultiRangeStartEditEnabled", safeDeps.isMultiRangeStartEditEnabled),
-            isMultiRangeEndEditEnabled: toSafeCallable("isMultiRangeEndEditEnabled", safeDeps.isMultiRangeEndEditEnabled),
-            handleMultiRangeTimeChange: toSafeCallable("handleMultiRangeTimeChange", safeDeps.handleMultiRangeTimeChange),
-            hideFloatingTooltip: toSafeCallable("hideFloatingTooltip", safeDeps.hideFloatingTooltip),
-            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
-            refreshMultiRangeControls: toSafeCallable("refreshMultiRangeControls", safeDeps.refreshMultiRangeControls),
-            renderMultiBulkToolSets: toSafeCallable("renderMultiBulkToolSets", safeDeps.renderMultiBulkToolSets),
-            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
-            getDisplayColumns: toSafeCallable("getDisplayColumns", safeDeps.getDisplayColumns),
-            getRenderableTimezoneRows: toSafeCallable("getRenderableTimezoneRows", safeDeps.getRenderableTimezoneRows),
-            getMultiRanges: toSafeCallable("getMultiRanges", safeDeps.getMultiRanges),
-            getMultiRangeCollapsed: toSafeCallable("getMultiRangeCollapsed", safeDeps.getMultiRangeCollapsed),
-            getMultiRangeCount: toSafeCallable("getMultiRangeCount", safeDeps.getMultiRangeCount),
-            escapeHtml: toSafeCallable("escapeHtml", safeDeps.escapeHtml),
-            saveMultiRangeSingleImage: toSafeCallable("saveMultiRangeSingleImage", safeDeps.saveMultiRangeSingleImage),
-            copyWholeMultiRange: toSafeCallable("copyWholeMultiRange", safeDeps.copyWholeMultiRange),
-            setMultiRangesCollapsedBelow: toSafeCallable("setMultiRangesCollapsedBelow", safeDeps.setMultiRangesCollapsedBelow),
-            toggleMultiRangeCollapsed: toSafeCallable("toggleMultiRangeCollapsed", safeDeps.toggleMultiRangeCollapsed),
-            renderTimeAdjustSet: toSafeCallable("renderTimeAdjustSet", safeDeps.renderTimeAdjustSet),
-            applyMultiRangeTimeAdjustAction: toSafeCallable("applyMultiRangeTimeAdjustAction", safeDeps.applyMultiRangeTimeAdjustAction),
-            attachTimeAdjustToggleLabel: toSafeCallable("attachTimeAdjustToggleLabel", safeDeps.attachTimeAdjustToggleLabel),
-            setMultiRangeStartEditEnabled: toSafeCallable("setMultiRangeStartEditEnabled", safeDeps.setMultiRangeStartEditEnabled),
-            setMultiRangeEndEditEnabled: toSafeCallable("setMultiRangeEndEditEnabled", safeDeps.setMultiRangeEndEditEnabled),
-            getMultiDisplayColumnHeader: toSafeCallable("getMultiDisplayColumnHeader", safeDeps.getMultiDisplayColumnHeader),
-            updateTimeAdjustPanel: toSafeCallable("updateTimeAdjustPanel", safeDeps.updateTimeAdjustPanel),
-            updateCopyFormatPreview: toSafeCallable("updateCopyFormatPreview", safeDeps.updateCopyFormatPreview),
-            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
+            ...pickSafeCallables([
+                "t",
+                "getCurrentLang",
+                "getZoneDisplayNameForUiAtDate",
+                "getZoneDisplayName",
+                "getDayNightMarkerByHour",
+                "buildTimezoneComputedSnapshotForDates",
+                "getFixedOffsetForDisplayAtDate",
+                "sanitizeMultiSubgroupName",
+                "getCurrentMultiSubgroupName",
+                "sanitizeMultiRangeTitle",
+                "getMultiRangeTitle",
+                "buildStaticRowCell",
+                "buildDynamicRowCell",
+                "copyMultiRangeRow",
+                "isMultiRangeStartEditEnabled",
+                "isMultiRangeEndEditEnabled",
+                "handleMultiRangeTimeChange",
+                "hideFloatingTooltip",
+                "ensureMultiRangeState",
+                "refreshMultiRangeControls",
+                "renderMultiBulkToolSets",
+                "getBaseTimezoneRef",
+                "getDisplayColumns",
+                "getRenderableTimezoneRows",
+                "getMultiRanges",
+                "getMultiRangeCollapsed",
+                "getMultiRangeCount",
+                "escapeHtml",
+                "saveMultiRangeSingleImage",
+                "copyWholeMultiRange",
+                "setMultiRangesCollapsedBelow",
+                "toggleMultiRangeCollapsed",
+                "renderTimeAdjustSet",
+                "applyMultiRangeTimeAdjustAction",
+                "attachTimeAdjustToggleLabel",
+                "setMultiRangeStartEditEnabled",
+                "setMultiRangeEndEditEnabled",
+                "getMultiDisplayColumnHeader",
+                "updateTimeAdjustPanel",
+                "updateCopyFormatPreview",
+                "upgradeNativeTitleTooltips"
+            ])
         });
 
         function applyMultiRangeAction(rangeIdx, slotIdx, action) {

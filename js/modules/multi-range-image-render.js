@@ -46,17 +46,35 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
+        function pickSafeAsyncCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeAsyncCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getMultiRanges: toSafeCallable("getMultiRanges", safeDeps.getMultiRanges),
-            getMultiRangeTitleText: toSafeCallable("getMultiRangeTitleText", safeDeps.getMultiRangeTitleText),
-            waitForDocumentFontsReady: toSafeAsyncCallable("waitForDocumentFontsReady", safeDeps.waitForDocumentFontsReady),
-            cloneMultiRangeBlockForImageExport: toSafeCallable("cloneMultiRangeBlockForImageExport", safeDeps.cloneMultiRangeBlockForImageExport),
-            prepareExportCanvas: toSafeCallable("prepareExportCanvas", safeDeps.prepareExportCanvas),
-            drawExportCellText: toSafeCallable("drawExportCellText", safeDeps.drawExportCellText),
-            t: toSafeCallable("t", safeDeps.t),
-            extractTableCellText: toSafeCallable("extractTableCellText", safeDeps.extractTableCellText),
-            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
-            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef)
+            ...pickSafeCallables([
+                "getMultiRanges",
+                "getMultiRangeTitleText",
+                "cloneMultiRangeBlockForImageExport",
+                "prepareExportCanvas",
+                "drawExportCellText",
+                "t",
+                "extractTableCellText",
+                "ensureMultiRangeState",
+                "getBaseTimezoneRef"
+            ]),
+            ...pickSafeAsyncCallables([
+                "waitForDocumentFontsReady"
+            ])
         });
 
         function translate(key) {

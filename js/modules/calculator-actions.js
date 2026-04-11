@@ -16,9 +16,18 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            showToast: toSafeCallable("showToast", safeDeps.showToast)
+            ...pickSafeCallables([
+                "t",
+                "showToast"
+            ])
         });
 
         function logError(...args) {

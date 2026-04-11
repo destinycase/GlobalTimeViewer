@@ -30,15 +30,24 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getState: toSafeCallable("getState", safeDeps.getState),
-            setState: toSafeCallable("setState", safeDeps.setState),
-            t: toSafeCallable("t", safeDeps.t),
-            showToast: toSafeCallable("showToast", safeDeps.showToast),
-            updateClocks: toSafeCallable("updateClocks", safeDeps.updateClocks),
-            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
-            setStorageValue: toSafeCallable("setStorageValue", safeDeps.setStorageValue),
-            getStorageValue: toSafeCallable("getStorageValue", safeDeps.getStorageValue)
+            ...pickSafeCallables([
+                "getState",
+                "setState",
+                "t",
+                "showToast",
+                "updateClocks",
+                "savePersistence",
+                "setStorageValue",
+                "getStorageValue"
+            ])
         });
 
         function awaitIfPromiseLike(value) {

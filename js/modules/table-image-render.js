@@ -46,12 +46,30 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
+        function pickSafeAsyncCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeAsyncCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            isFixedTimeTab: toSafeCallable("isFixedTimeTab", safeDeps.isFixedTimeTab),
-            waitForDocumentFontsReady: toSafeAsyncCallable("waitForDocumentFontsReady", safeDeps.waitForDocumentFontsReady),
-            prepareExportCanvas: toSafeCallable("prepareExportCanvas", safeDeps.prepareExportCanvas),
-            drawExportCellText: toSafeCallable("drawExportCellText", safeDeps.drawExportCellText),
-            cloneTableForImageExport: toSafeCallable("cloneTableForImageExport", safeDeps.cloneTableForImageExport)
+            ...pickSafeCallables([
+                "isFixedTimeTab",
+                "prepareExportCanvas",
+                "drawExportCellText",
+                "cloneTableForImageExport"
+            ]),
+            ...pickSafeAsyncCallables([
+                "waitForDocumentFontsReady"
+            ])
         });
 
         function getDocumentRef() {

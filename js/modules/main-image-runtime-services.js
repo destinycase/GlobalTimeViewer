@@ -18,6 +18,15 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         const imageCloneApi = requireCreateServiceModule(safeDeps.GTV_IMAGE_CLONE, "GTVImageClone");
         const imageForeignRenderApi = requireCreateServiceModule(safeDeps.GTV_IMAGE_FOREIGN_RENDER, "GTVImageForeignRender");
         const imageExportBridgeApi = requireCreateServiceModule(safeDeps.GTV_IMAGE_EXPORT_BRIDGE, "GTVImageExportBridge");
@@ -30,9 +39,11 @@
         });
 
         const imageForeignRenderService = imageForeignRenderApi.createService({
-            TABLE_IMAGE_EXPORT_WIDTH: safeDeps.TABLE_IMAGE_EXPORT_WIDTH,
-            getCanUseForeignObjectRenderer: safeDeps.getCanUseForeignObjectRenderer,
-            setCanUseForeignObjectRenderer: safeDeps.setCanUseForeignObjectRenderer
+            ...pickDeps([
+                "TABLE_IMAGE_EXPORT_WIDTH",
+                "getCanUseForeignObjectRenderer",
+                "setCanUseForeignObjectRenderer"
+            ])
         });
 
         let tableImageRenderService = null;
@@ -43,31 +54,37 @@
             getImageForeignRenderService: () => imageForeignRenderService,
             getTableImageRenderService: () => tableImageRenderService,
             getMultiRangeImageRenderService: () => multiRangeImageRenderService,
-            getImageExportActionsService: safeDeps.getImageExportActionsService,
-            getDefaultTableExportContext: safeDeps.getDefaultTableExportContext
+            ...pickDeps([
+                "getImageExportActionsService",
+                "getDefaultTableExportContext"
+            ])
         });
 
         tableImageRenderService = tableImageRenderApi.createService({
-            EXPORT_MONO_FONT_FAMILY: safeDeps.EXPORT_MONO_FONT_FAMILY,
-            isFixedTimeTab: safeDeps.isFixedTimeTab,
-            waitForDocumentFontsReady: safeDeps.waitForDocumentFontsReady,
-            prepareExportCanvas: safeDeps.prepareExportCanvas,
-            drawExportCellText: safeDeps.drawExportCellText,
-            cloneTableForImageExport: safeDeps.cloneTableForImageExport,
-            renderElementWithForeignObjectToPngDataUrl: safeDeps.renderElementWithForeignObjectToPngDataUrl
+            ...pickDeps([
+                "EXPORT_MONO_FONT_FAMILY",
+                "isFixedTimeTab",
+                "waitForDocumentFontsReady",
+                "prepareExportCanvas",
+                "drawExportCellText",
+                "cloneTableForImageExport",
+                "renderElementWithForeignObjectToPngDataUrl"
+            ])
         });
 
         multiRangeImageRenderService = multiRangeImageRenderApi.createService({
-            EXPORT_MONO_FONT_FAMILY: safeDeps.EXPORT_MONO_FONT_FAMILY,
-            t: safeDeps.t,
-            waitForDocumentFontsReady: safeDeps.waitForDocumentFontsReady,
-            ensureMultiRangeState: safeDeps.ensureMultiRangeState,
-            getBaseTimezoneRef: safeDeps.getBaseTimezoneRef,
-            getMultiRanges: safeDeps.getMultiRanges,
-            getMultiRangeTitleText: safeDeps.getMultiRangeTitleText,
-            cloneMultiRangeBlockForImageExport: safeDeps.cloneMultiRangeBlockForImageExport,
-            prepareExportCanvas: safeDeps.prepareExportCanvas,
-            drawExportCellText: safeDeps.drawExportCellText,
+            ...pickDeps([
+                "EXPORT_MONO_FONT_FAMILY",
+                "t",
+                "waitForDocumentFontsReady",
+                "ensureMultiRangeState",
+                "getBaseTimezoneRef",
+                "getMultiRanges",
+                "getMultiRangeTitleText",
+                "cloneMultiRangeBlockForImageExport",
+                "prepareExportCanvas",
+                "drawExportCellText"
+            ]),
             extractTableCellText: (cell) =>
                 tableImageRenderService && typeof tableImageRenderService.extractTableCellText === "function"
                     ? tableImageRenderService.extractTableCellText(cell)

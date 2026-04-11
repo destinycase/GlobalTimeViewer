@@ -30,11 +30,20 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            buildStrictUtcDateFromParts: toSafeCallable("buildStrictUtcDateFromParts", safeDeps.buildStrictUtcDateFromParts),
-            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
-            getNextFixedTimeSeed: toSafeCallable("getNextFixedTimeSeed", safeDeps.getNextFixedTimeSeed)
+            ...pickSafeCallables([
+                "t",
+                "buildStrictUtcDateFromParts",
+                "getCurrentGroup",
+                "getNextFixedTimeSeed"
+            ])
         });
 
         function getCurrentGroupSafe() {

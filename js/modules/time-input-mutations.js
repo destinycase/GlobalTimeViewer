@@ -30,32 +30,41 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getCurrentGroupZones: toSafeCallable("getCurrentGroupZones", safeDeps.getCurrentGroupZones),
-            getCustomOffsetMinutes: toSafeCallable("getCustomOffsetMinutes", safeDeps.getCustomOffsetMinutes),
-            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
-            resolveLocalDateParts: toSafeCallable("resolveLocalDateParts", safeDeps.resolveLocalDateParts),
-            getGlobalTime: toSafeCallable("getGlobalTime", safeDeps.getGlobalTime),
-            buildStrictUtcDateFromParts: toSafeCallable("buildStrictUtcDateFromParts", safeDeps.buildStrictUtcDateFromParts),
-            showToast: toSafeCallable("showToast", safeDeps.showToast),
-            t: toSafeCallable("t", safeDeps.t),
-            renderMultiRanges: toSafeCallable("renderMultiRanges", safeDeps.renderMultiRanges),
-            renderList: toSafeCallable("renderList", safeDeps.renderList),
-            parseDateTimeParts: toSafeCallable("parseDateTimeParts", safeDeps.parseDateTimeParts),
-            getTimezoneOffset: toSafeCallable("getTimezoneOffset", safeDeps.getTimezoneOffset),
-            isRealtime: toSafeCallable("isRealtime", safeDeps.isRealtime),
-            setGlobalTime: toSafeCallable("setGlobalTime", safeDeps.setGlobalTime),
-            updateClocks: toSafeCallable("updateClocks", safeDeps.updateClocks),
-            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
-            isMultiRangeStartEditEnabled: toSafeCallable("isMultiRangeStartEditEnabled", safeDeps.isMultiRangeStartEditEnabled),
-            isMultiRangeEndEditEnabled: toSafeCallable("isMultiRangeEndEditEnabled", safeDeps.isMultiRangeEndEditEnabled),
-            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
-            getMultiRanges: toSafeCallable("getMultiRanges", safeDeps.getMultiRanges),
-            getMultiRangeSlotDate: toSafeCallable("getMultiRangeSlotDate", safeDeps.getMultiRangeSlotDate),
-            setMultiRangeSlotDate: toSafeCallable("setMultiRangeSlotDate", safeDeps.setMultiRangeSlotDate),
-            syncFollowingRangesByDuration: toSafeCallable("syncFollowingRangesByDuration", safeDeps.syncFollowingRangesByDuration),
-            syncMultiRangeStartLinks: toSafeCallable("syncMultiRangeStartLinks", safeDeps.syncMultiRangeStartLinks),
-            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence)
+            ...pickSafeCallables([
+                "getCurrentGroupZones",
+                "getCustomOffsetMinutes",
+                "getFixedOffsetForDisplayAtDate",
+                "resolveLocalDateParts",
+                "getGlobalTime",
+                "buildStrictUtcDateFromParts",
+                "showToast",
+                "t",
+                "renderMultiRanges",
+                "renderList",
+                "parseDateTimeParts",
+                "getTimezoneOffset",
+                "isRealtime",
+                "setGlobalTime",
+                "updateClocks",
+                "isMultiTab",
+                "isMultiRangeStartEditEnabled",
+                "isMultiRangeEndEditEnabled",
+                "ensureMultiRangeState",
+                "getMultiRanges",
+                "getMultiRangeSlotDate",
+                "setMultiRangeSlotDate",
+                "syncFollowingRangesByDuration",
+                "syncMultiRangeStartLinks",
+                "savePersistence"
+            ])
         });
 
         function translate(key) {

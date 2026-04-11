@@ -37,19 +37,28 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            createUniqueTimezoneId: toSafeCallable("createUniqueTimezoneId", safeDeps.createUniqueTimezoneId),
-            sanitizeTimezoneId: toSafeCallable("sanitizeTimezoneId", safeDeps.sanitizeTimezoneId),
-            normalizeCustomAbbr: toSafeCallable("normalizeCustomAbbr", safeDeps.normalizeCustomAbbr),
-            t: toSafeCallable("t", safeDeps.t),
-            normalizeZoneAbbreviation: toSafeCallable("normalizeZoneAbbreviation", safeDeps.normalizeZoneAbbreviation),
-            sanitizeBaseTimezoneId: toSafeCallable("sanitizeBaseTimezoneId", safeDeps.sanitizeBaseTimezoneId),
-            sanitizeUtcRowOrder: toSafeCallable("sanitizeUtcRowOrder", safeDeps.sanitizeUtcRowOrder),
-            sanitizeMultiSubgroupId: toSafeCallable("sanitizeMultiSubgroupId", safeDeps.sanitizeMultiSubgroupId),
-            sanitizeFixedTimes: toSafeCallable("sanitizeFixedTimes", safeDeps.sanitizeFixedTimes),
-            sanitizeFixedDateValue: toSafeCallable("sanitizeFixedDateValue", safeDeps.sanitizeFixedDateValue),
-            sanitizeFixedTimeShowLiveNow: toSafeCallable("sanitizeFixedTimeShowLiveNow", safeDeps.sanitizeFixedTimeShowLiveNow),
-            ensureGroupMultiSubgroups: toSafeCallable("ensureGroupMultiSubgroups", safeDeps.ensureGroupMultiSubgroups)
+            ...pickSafeCallables([
+                "createUniqueTimezoneId",
+                "sanitizeTimezoneId",
+                "normalizeCustomAbbr",
+                "t",
+                "normalizeZoneAbbreviation",
+                "sanitizeBaseTimezoneId",
+                "sanitizeUtcRowOrder",
+                "sanitizeMultiSubgroupId",
+                "sanitizeFixedTimes",
+                "sanitizeFixedDateValue",
+                "sanitizeFixedTimeShowLiveNow",
+                "ensureGroupMultiSubgroups"
+            ])
         });
 
         function createTimezoneId(prefix = "tz") {

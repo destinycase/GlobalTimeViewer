@@ -5,6 +5,14 @@
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         let boundImageExportService = null;
 
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         function logWarn(...args) {
             if (typeof safeDeps.logWarn === "function") {
                 safeDeps.logWarn(...args);
@@ -66,23 +74,25 @@
 
         function getImageExportDeps() {
             return {
-                t: safeDeps.t,
-                showToast: safeDeps.showToast,
-                isMultiTab: safeDeps.isMultiTab,
-                ensureMultiRangeState: safeDeps.ensureMultiRangeState,
-                detectForeignObjectRendererSupport: safeDeps.detectForeignObjectRendererSupport,
-                renderTimezoneTableToPngDataUrl: safeDeps.renderTimezoneTableToPngDataUrl,
-                renderTimezoneTableFallbackDataUrl: safeDeps.renderTimezoneTableFallbackDataUrl,
-                renderMultiRangesToPngDataUrl: safeDeps.renderMultiRangesToPngDataUrl,
-                renderMultiRangeSingleToPngDataUrl: safeDeps.renderMultiRangeSingleToPngDataUrl,
-                renderMultiRangesFallbackDataUrl: safeDeps.renderMultiRangesFallbackDataUrl,
-                renderMultiRangeTitlesToPngDataUrl: safeDeps.renderMultiRangeTitlesToPngDataUrl,
-                getTimezoneTableImageFilename: safeDeps.getTimezoneTableImageFilename,
-                getMultiRangeTableImageFilename: safeDeps.getMultiRangeTableImageFilename,
-                getMultiRangeTitlesImageFilename: safeDeps.getMultiRangeTitlesImageFilename,
-                getMultiRanges: safeDeps.getMultiRanges,
-                isDomExceptionLike: safeDeps.isDomExceptionLike,
-                setCanUseForeignObjectRenderer: safeDeps.setCanUseForeignObjectRenderer
+                ...pickDeps([
+                    "t",
+                    "showToast",
+                    "isMultiTab",
+                    "ensureMultiRangeState",
+                    "detectForeignObjectRendererSupport",
+                    "renderTimezoneTableToPngDataUrl",
+                    "renderTimezoneTableFallbackDataUrl",
+                    "renderMultiRangesToPngDataUrl",
+                    "renderMultiRangeSingleToPngDataUrl",
+                    "renderMultiRangesFallbackDataUrl",
+                    "renderMultiRangeTitlesToPngDataUrl",
+                    "getTimezoneTableImageFilename",
+                    "getMultiRangeTableImageFilename",
+                    "getMultiRangeTitlesImageFilename",
+                    "getMultiRanges",
+                    "isDomExceptionLike",
+                    "setCanUseForeignObjectRenderer"
+                ])
             };
         }
 

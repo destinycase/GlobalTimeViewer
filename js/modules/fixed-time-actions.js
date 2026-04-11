@@ -52,40 +52,49 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            sanitizeCopyFormatOrderForContext: toSafeCallable("sanitizeCopyFormatOrderForContext", safeDeps.sanitizeCopyFormatOrderForContext),
-            getCopyFormatOrder: toSafeCallable("getCopyFormatOrder", safeDeps.getCopyFormatOrder),
-            sanitizeCopyFormatEnabledForContext: toSafeCallable("sanitizeCopyFormatEnabledForContext", safeDeps.sanitizeCopyFormatEnabledForContext),
-            getCopyFormatEnabled: toSafeCallable("getCopyFormatEnabled", safeDeps.getCopyFormatEnabled),
-            sanitizeTimePartsEnabledForContext: toSafeCallable("sanitizeTimePartsEnabledForContext", safeDeps.sanitizeTimePartsEnabledForContext),
-            getCopyTimePartsEnabled: toSafeCallable("getCopyTimePartsEnabled", safeDeps.getCopyTimePartsEnabled),
-            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
-            buildTimezoneComputedSnapshotForDates: toSafeCallable("buildTimezoneComputedSnapshotForDates", safeDeps.buildTimezoneComputedSnapshotForDates),
-            formatSnapshotText: toSafeCallable("formatSnapshotText", safeDeps.formatSnapshotText),
-            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
-            ensureGroupFixedTimes: toSafeCallable("ensureGroupFixedTimes", safeDeps.ensureGroupFixedTimes),
-            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
-            getGlobalTime: toSafeCallable("getGlobalTime", safeDeps.getGlobalTime),
-            resolveFixedTimeSlotUtcDate: toSafeCallable("resolveFixedTimeSlotUtcDate", safeDeps.resolveFixedTimeSlotUtcDate),
-            getRenderableTimezoneRows: toSafeCallable("getRenderableTimezoneRows", safeDeps.getRenderableTimezoneRows),
-            getFixedTimeSlotHeaderLabel: toSafeCallable("getFixedTimeSlotHeaderLabel", safeDeps.getFixedTimeSlotHeaderLabel),
-            writeClipboard: toSafeCallable("writeClipboard", safeDeps.writeClipboard),
-            showToast: toSafeCallable("showToast", safeDeps.showToast),
-            buildFixedTimeDisplayPayloadAtUtc: toSafeCallable("buildFixedTimeDisplayPayloadAtUtc", safeDeps.buildFixedTimeDisplayPayloadAtUtc),
-            parseDateTimeParts: toSafeCallable("parseDateTimeParts", safeDeps.parseDateTimeParts),
-            getLocalPartsByTimezone: toSafeCallable("getLocalPartsByTimezone", safeDeps.getLocalPartsByTimezone),
-            getUTCDateFromLocalParts: toSafeCallable("getUTCDateFromLocalParts", safeDeps.getUTCDateFromLocalParts),
-            pad: toSafeCallable("pad", safeDeps.pad),
-            getDefaultFixedTimeName: toSafeCallable("getDefaultFixedTimeName", safeDeps.getDefaultFixedTimeName),
-            sanitizeFixedTimeName: toSafeCallable("sanitizeFixedTimeName", safeDeps.sanitizeFixedTimeName),
-            renderFixedTimeTab: toSafeCallable("renderFixedTimeTab", safeDeps.renderFixedTimeTab),
-            renderTimelineFrame: toSafeCallable("renderTimelineFrame", safeDeps.renderTimelineFrame),
-            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
-            sanitizeFixedTimeValue: toSafeCallable("sanitizeFixedTimeValue", safeDeps.sanitizeFixedTimeValue),
-            getFixedTimeSlotCount: toSafeCallable("getFixedTimeSlotCount", safeDeps.getFixedTimeSlotCount),
-            setFixedTimeSlotCount: toSafeCallable("setFixedTimeSlotCount", safeDeps.setFixedTimeSlotCount),
-            refreshFixedTimeSlotCountControls: toSafeCallable("refreshFixedTimeSlotCountControls", safeDeps.refreshFixedTimeSlotCountControls)
+            ...pickSafeCallables([
+                "t",
+                "sanitizeCopyFormatOrderForContext",
+                "getCopyFormatOrder",
+                "sanitizeCopyFormatEnabledForContext",
+                "getCopyFormatEnabled",
+                "sanitizeTimePartsEnabledForContext",
+                "getCopyTimePartsEnabled",
+                "getFixedOffsetForDisplayAtDate",
+                "buildTimezoneComputedSnapshotForDates",
+                "formatSnapshotText",
+                "getCurrentGroup",
+                "ensureGroupFixedTimes",
+                "getBaseTimezoneRef",
+                "getGlobalTime",
+                "resolveFixedTimeSlotUtcDate",
+                "getRenderableTimezoneRows",
+                "getFixedTimeSlotHeaderLabel",
+                "writeClipboard",
+                "showToast",
+                "buildFixedTimeDisplayPayloadAtUtc",
+                "parseDateTimeParts",
+                "getLocalPartsByTimezone",
+                "getUTCDateFromLocalParts",
+                "pad",
+                "getDefaultFixedTimeName",
+                "sanitizeFixedTimeName",
+                "renderFixedTimeTab",
+                "renderTimelineFrame",
+                "savePersistence",
+                "sanitizeFixedTimeValue",
+                "getFixedTimeSlotCount",
+                "setFixedTimeSlotCount",
+                "refreshFixedTimeSlotCountControls"
+            ])
         });
 
         function getRenderableTimezoneRowsSafe(baseRef) {

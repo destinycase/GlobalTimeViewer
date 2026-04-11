@@ -66,28 +66,37 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            t: toSafeCallable("t", safeDeps.t),
-            getActiveCopyFormatKeys: toSafeCallable("getActiveCopyFormatKeys", safeDeps.getActiveCopyFormatKeys),
-            getActiveTimePartKeys: toSafeCallable("getActiveTimePartKeys", safeDeps.getActiveTimePartKeys),
-            isShowCopyFormat: toSafeCallable("isShowCopyFormat", safeDeps.isShowCopyFormat),
-            updateCopyFormatPreview: toSafeCallable("updateCopyFormatPreview", safeDeps.updateCopyFormatPreview),
-            getDisplayFormatOrder: toSafeCallable("getDisplayFormatOrder", safeDeps.getDisplayFormatOrder),
-            getDisplayFormatEnabled: toSafeCallable("getDisplayFormatEnabled", safeDeps.getDisplayFormatEnabled),
-            setDisplayFormatEnabled: toSafeCallable("setDisplayFormatEnabled", safeDeps.setDisplayFormatEnabled),
-            renderList: toSafeCallable("renderList", safeDeps.renderList),
-            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
-            setDisplayFormatOrder: toSafeCallable("setDisplayFormatOrder", safeDeps.setDisplayFormatOrder),
-            sanitizeCopyFormatOrder: toSafeCallable("sanitizeCopyFormatOrder", safeDeps.sanitizeCopyFormatOrder),
-            getDisplayTimePartsEnabled: toSafeCallable("getDisplayTimePartsEnabled", safeDeps.getDisplayTimePartsEnabled),
-            setDisplayTimePartsEnabled: toSafeCallable("setDisplayTimePartsEnabled", safeDeps.setDisplayTimePartsEnabled),
-            getCopyFormatOrder: toSafeCallable("getCopyFormatOrder", safeDeps.getCopyFormatOrder),
-            getCopyFormatEnabled: toSafeCallable("getCopyFormatEnabled", safeDeps.getCopyFormatEnabled),
-            setCopyFormatEnabled: toSafeCallable("setCopyFormatEnabled", safeDeps.setCopyFormatEnabled),
-            setCopyFormatOrder: toSafeCallable("setCopyFormatOrder", safeDeps.setCopyFormatOrder),
-            getCopyTimePartsEnabled: toSafeCallable("getCopyTimePartsEnabled", safeDeps.getCopyTimePartsEnabled),
-            setCopyTimePartsEnabled: toSafeCallable("setCopyTimePartsEnabled", safeDeps.setCopyTimePartsEnabled),
-            upgradeNativeTitleTooltips: toSafeCallable("upgradeNativeTitleTooltips", safeDeps.upgradeNativeTitleTooltips)
+            ...pickSafeCallables([
+                "t",
+                "getActiveCopyFormatKeys",
+                "getActiveTimePartKeys",
+                "isShowCopyFormat",
+                "updateCopyFormatPreview",
+                "getDisplayFormatOrder",
+                "getDisplayFormatEnabled",
+                "setDisplayFormatEnabled",
+                "renderList",
+                "savePersistence",
+                "setDisplayFormatOrder",
+                "sanitizeCopyFormatOrder",
+                "getDisplayTimePartsEnabled",
+                "setDisplayTimePartsEnabled",
+                "getCopyFormatOrder",
+                "getCopyFormatEnabled",
+                "setCopyFormatEnabled",
+                "setCopyFormatOrder",
+                "getCopyTimePartsEnabled",
+                "setCopyTimePartsEnabled",
+                "upgradeNativeTitleTooltips"
+            ])
         });
 
         function savePersistenceSafe() {

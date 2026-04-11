@@ -3,122 +3,110 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
-        const getUiBridgeAccessorService = (typeof safeDeps.getUiBridgeAccessorService === "function")
-            ? safeDeps.getUiBridgeAccessorService
-            : (() => safeDeps.uiBridgeAccessorService);
-        const getOperationAccessorService = (typeof safeDeps.getOperationAccessorService === "function")
-            ? safeDeps.getOperationAccessorService
-            : (() => safeDeps.operationAccessorService);
-        const getBootstrapAccessorService = (typeof safeDeps.getBootstrapAccessorService === "function")
-            ? safeDeps.getBootstrapAccessorService
-            : (() => safeDeps.bootstrapAccessorService);
+        const resolveGetter = (getterName, fallbackServiceName) => (
+            (typeof safeDeps[getterName] === "function")
+                ? safeDeps[getterName]
+                : (() => safeDeps[fallbackServiceName])
+        );
+        const createMethodCaller = (accessorGetter) => (methodName, ...args) => (
+            accessorGetter()[methodName](...args)
+        );
+        const createSyncMethod = (callMethod, methodName) => (...args) => (
+            callMethod(methodName, ...args)
+        );
+        const createAsyncMethod = (callMethod, methodName) => async (...args) => (
+            await callMethod(methodName, ...args)
+        );
+        const applyDefaultArgs = (args, defaultArgsByIndex) => {
+            if (!defaultArgsByIndex || typeof defaultArgsByIndex !== "object") {
+                return args;
+            }
+            const resolvedArgs = [...args];
+            Object.keys(defaultArgsByIndex).forEach((indexKey) => {
+                const index = Number(indexKey);
+                if (Number.isNaN(index) || typeof resolvedArgs[index] !== "undefined") {
+                    return;
+                }
+                const defaultValue = defaultArgsByIndex[index];
+                resolvedArgs[index] = (typeof defaultValue === "function")
+                    ? defaultValue()
+                    : defaultValue;
+            });
+            return resolvedArgs;
+        };
+        const createMethodWrapper = (callMethod, methodName, defaultArgsByIndex = null) => (...args) => (
+            callMethod(methodName, ...applyDefaultArgs(args, defaultArgsByIndex))
+        );
+
+        const getUiBridgeAccessorService = resolveGetter("getUiBridgeAccessorService", "uiBridgeAccessorService");
+        const getOperationAccessorService = resolveGetter("getOperationAccessorService", "operationAccessorService");
+        const getBootstrapAccessorService = resolveGetter("getBootstrapAccessorService", "bootstrapAccessorService");
         const getGlobalTimeState = (typeof safeDeps.getGlobalTimeState === "function")
             ? safeDeps.getGlobalTimeState
             : (() => undefined);
         const defaultCopyTimePartsEnabled = safeDeps.defaultCopyTimePartsEnabled;
 
-        const callUiMethod = (methodName, ...args) => (
-            getUiBridgeAccessorService()[methodName](...args)
+        const callUiMethod = createMethodCaller(getUiBridgeAccessorService);
+        const callOperationMethod = createMethodCaller(getOperationAccessorService);
+        const callBootstrapMethod = createMethodCaller(getBootstrapAccessorService);
+        const callUi = (methodName) => createSyncMethod(callUiMethod, methodName);
+        const callUiWithDefaults = (methodName, defaultArgsByIndex) => (
+            createMethodWrapper(callUiMethod, methodName, defaultArgsByIndex)
         );
-        const callOperationMethod = (methodName, ...args) => (
-            getOperationAccessorService()[methodName](...args)
+        const callOperation = (methodName) => createSyncMethod(callOperationMethod, methodName);
+        const callOperationWithDefaults = (methodName, defaultArgsByIndex) => (
+            createMethodWrapper(callOperationMethod, methodName, defaultArgsByIndex)
         );
-        const callBootstrapMethod = (methodName, ...args) => (
-            getBootstrapAccessorService()[methodName](...args)
-        );
+        const callOperationAsync = (methodName) => createAsyncMethod(callOperationMethod, methodName);
+        const callBootstrap = (methodName) => createSyncMethod(callBootstrapMethod, methodName);
+        const callBootstrapAsync = (methodName) => createAsyncMethod(callBootstrapMethod, methodName);
 
         return Object.freeze({
-            showFatalError: (err) => callUiMethod("showFatalError", err),
-            initApp: async () => await callBootstrapMethod("initApp"),
-            startBootstrapOnDomReady: (initFn) => callBootstrapMethod("startBootstrapOnDomReady", initFn),
-            showToast: (message, options = {}) => callUiMethod("showToast", message, options),
-            switchMainTab: (tab) => callUiMethod("switchMainTab", tab),
-            refreshOptionToggleDividers: () => callUiMethod("refreshOptionToggleDividers"),
-            getCopyFieldLabel: (key) => callUiMethod("getCopyFieldLabel", key),
-            getTimePartLabel: (partKey) => callUiMethod("getTimePartLabel", partKey),
-            getDisplayColumns: (effectiveSlotCount) => callUiMethod("getDisplayColumns", effectiveSlotCount),
-            getDisplayTimeInputMode: () => callUiMethod("getDisplayTimeInputMode"),
-            buildRowActionCells: (copyButtonTitle, removeButtonText, removeButtonTitle = "") => callUiMethod(
-                "buildRowActionCells",
-                copyButtonTitle,
-                removeButtonText,
-                removeButtonTitle
-            ),
-            renderList: () => callUiMethod("renderList"),
-            renderTimelineFrame: () => callUiMethod("renderTimelineFrame"),
-            resolveFixedTimeSlotUtcDate: (slot, baseRef, anchorDate = getGlobalTimeState(0)) => callUiMethod(
-                "resolveFixedTimeSlotUtcDate",
-                slot,
-                baseRef,
-                anchorDate
-            ),
-            getFixedTimeSlotHeaderLabel: (slot, slotIdx, slotCount = 1) => callUiMethod(
-                "getFixedTimeSlotHeaderLabel",
-                slot,
-                slotIdx,
-                slotCount
-            ),
-            renderFixedTimeTab: (isTick = false) => callUiMethod("renderFixedTimeTab", isTick),
-            updateClocks: () => callOperationMethod("updateClocks"),
-            resolveLocalDatePartsByTimezoneAtDate: (timezone, utcDate, timezoneId = null) => callOperationMethod(
+            showFatalError: callUi("showFatalError"),
+            initApp: callBootstrapAsync("initApp"),
+            startBootstrapOnDomReady: callBootstrap("startBootstrapOnDomReady"),
+            showToast: callUiWithDefaults("showToast", { 1: () => ({}) }),
+            switchMainTab: callUi("switchMainTab"),
+            refreshOptionToggleDividers: callUi("refreshOptionToggleDividers"),
+            getCopyFieldLabel: callUi("getCopyFieldLabel"),
+            getTimePartLabel: callUi("getTimePartLabel"),
+            getDisplayColumns: callUi("getDisplayColumns"),
+            getDisplayTimeInputMode: callUi("getDisplayTimeInputMode"),
+            buildRowActionCells: callUiWithDefaults("buildRowActionCells", { 2: "" }),
+            renderList: callUi("renderList"),
+            renderTimelineFrame: callUi("renderTimelineFrame"),
+            resolveFixedTimeSlotUtcDate: callUiWithDefaults("resolveFixedTimeSlotUtcDate", {
+                2: () => getGlobalTimeState(0)
+            }),
+            getFixedTimeSlotHeaderLabel: callUiWithDefaults("getFixedTimeSlotHeaderLabel", { 2: 1 }),
+            renderFixedTimeTab: callUiWithDefaults("renderFixedTimeTab", { 0: false }),
+            updateClocks: callOperation("updateClocks"),
+            resolveLocalDatePartsByTimezoneAtDate: callOperationWithDefaults(
                 "resolveLocalDatePartsByTimezoneAtDate",
-                timezone,
-                utcDate,
-                timezoneId
+                { 2: null }
             ),
-            resolveLocalDatePartsByTimezone: (timezone, slotIdx, timezoneId = null) => callOperationMethod(
+            resolveLocalDatePartsByTimezone: callOperationWithDefaults(
                 "resolveLocalDatePartsByTimezone",
-                timezone,
-                slotIdx,
-                timezoneId
+                { 2: null }
             ),
-            buildStrictUtcDateFromParts: (parts) => callOperationMethod("buildStrictUtcDateFromParts", parts),
-            handleTimeChange: (val, timezone, slotIdx, timezoneId = null, inputMode = "datetime") => (
-                callOperationMethod("handleTimeChange", val, timezone, slotIdx, timezoneId, inputMode)
-            ),
-            handleMultiRangeTimeChange: (
-                rangeIdx,
-                val,
-                timezone,
-                slotIdx,
-                timezoneId = null,
-                inputMode = "datetime"
-            ) => callOperationMethod(
-                "handleMultiRangeTimeChange",
-                rangeIdx,
-                val,
-                timezone,
-                slotIdx,
-                timezoneId,
-                inputMode
-            ),
-            formatTimeTextByParts: (snapshot, timePartsEnabled) => callOperationMethod(
-                "formatTimeTextByParts",
-                snapshot,
-                timePartsEnabled
-            ),
-            formatSnapshotText: (
-                snapshot,
-                order,
-                enabled,
-                timePartsEnabled = defaultCopyTimePartsEnabled
-            ) => callOperationMethod(
-                "formatSnapshotText",
-                snapshot,
-                order,
-                enabled,
-                timePartsEnabled
-            ),
-            initCalculators: () => callOperationMethod("initCalculators"),
-            copyText: async (elementId, isInput = false) => await callOperationMethod("copyText", elementId, isInput),
-            getPersistenceSnapshot: () => callOperationMethod("getPersistenceSnapshot"),
-            sanitizeGroup: (group, idx, legacyMultiState = null) => callOperationMethod(
-                "sanitizeGroup",
-                group,
-                idx,
-                legacyMultiState
-            ),
-            loadPersistence: async () => await callOperationMethod("loadPersistence")
+            buildStrictUtcDateFromParts: callOperation("buildStrictUtcDateFromParts"),
+            handleTimeChange: callOperationWithDefaults("handleTimeChange", {
+                3: null,
+                4: "datetime"
+            }),
+            handleMultiRangeTimeChange: callOperationWithDefaults("handleMultiRangeTimeChange", {
+                4: null,
+                5: "datetime"
+            }),
+            formatTimeTextByParts: callOperation("formatTimeTextByParts"),
+            formatSnapshotText: callOperationWithDefaults("formatSnapshotText", {
+                3: () => defaultCopyTimePartsEnabled
+            }),
+            initCalculators: callOperation("initCalculators"),
+            copyText: callOperationAsync("copyText"),
+            getPersistenceSnapshot: callOperation("getPersistenceSnapshot"),
+            sanitizeGroup: callOperationWithDefaults("sanitizeGroup", { 2: null }),
+            loadPersistence: callOperationAsync("loadPersistence")
         });
     }
 

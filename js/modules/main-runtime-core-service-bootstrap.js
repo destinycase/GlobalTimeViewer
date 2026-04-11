@@ -17,6 +17,15 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         const mainRuntimeServiceConfigBuilderService = requireObject(
             safeDeps.mainRuntimeServiceConfigBuilderService,
             "mainRuntimeServiceConfigBuilderService"
@@ -49,17 +58,19 @@
         );
 
         const mainSelectServicesConfig = buildMainSelectServicesConfig({
-            getDocumentRefOrNull: safeDeps.getDocumentRefOrNull,
-            getComputedStyleSafely: safeDeps.getComputedStyleSafely,
-            ensureBaseTimezoneSelection: safeDeps.ensureBaseTimezoneSelection,
-            getCurrentGroupBaseTimezoneId: safeDeps.getCurrentGroupBaseTimezoneId,
-            isCurrentGroupUtcRowVisible: safeDeps.isCurrentGroupUtcRowVisible,
-            getCurrentGroupZones: safeDeps.getCurrentGroupZones,
-            getZoneAbbreviation: safeDeps.getZoneAbbreviation,
-            getZoneDisplayName: safeDeps.getZoneDisplayName,
-            setCurrentGroupBaseTimezoneId: safeDeps.setCurrentGroupBaseTimezoneId,
-            savePersistenceSafely: safeDeps.savePersistenceSafely,
-            gtvT: safeDeps.gtvT
+            ...pickDeps([
+                "getDocumentRefOrNull",
+                "getComputedStyleSafely",
+                "ensureBaseTimezoneSelection",
+                "getCurrentGroupBaseTimezoneId",
+                "isCurrentGroupUtcRowVisible",
+                "getCurrentGroupZones",
+                "getZoneAbbreviation",
+                "getZoneDisplayName",
+                "setCurrentGroupBaseTimezoneId",
+                "savePersistenceSafely",
+                "gtvT"
+            ])
         });
         const mainSelectServices = createMainSelectServices(mainSelectServicesConfig);
         const adjustSelectWidthForContent = mainSelectServices.adjustSelectWidthForContent;
@@ -67,46 +78,52 @@
         const renderBaseTimeSelect = mainSelectServices.renderBaseTimeSelect;
 
         const timezoneSearchConfig = buildTimezoneSearchConfig({
-            TZ_DATABASE: safeDeps.TZ_DATABASE,
-            getZoneMapRef: safeDeps.getZoneMapRef,
-            gtvT: safeDeps.gtvT,
-            getPatchedCurrentLangState: safeDeps.getPatchedCurrentLangState,
-            getBetterAbbr: safeDeps.getBetterAbbr,
-            getTimezoneOffset: safeDeps.getTimezoneOffset,
-            getLocalizedTZLabel: safeDeps.getLocalizedTZLabel,
+            ...pickDeps([
+                "TZ_DATABASE",
+                "getZoneMapRef",
+                "gtvT",
+                "getPatchedCurrentLangState",
+                "getBetterAbbr",
+                "getTimezoneOffset",
+                "getLocalizedTZLabel"
+            ]),
             adjustSelectWidthForContent,
-            getCurrentGroup: safeDeps.getCurrentGroup,
-            savePersistenceSafely: safeDeps.savePersistenceSafely,
-            deferDynamicCall: safeDeps.deferDynamicCall,
-            getRenderListRef: safeDeps.getRenderListRef,
-            addTimezone: safeDeps.addTimezone,
-            createUniqueTimezoneId: safeDeps.createUniqueTimezoneId
+            ...pickDeps([
+                "getCurrentGroup",
+                "savePersistenceSafely",
+                "deferDynamicCall",
+                "getRenderListRef",
+                "addTimezone",
+                "createUniqueTimezoneId"
+            ])
         });
         const timezoneSearchService = createTimezoneSearchService(timezoneSearchConfig);
 
         const snapshotFormatConfig = buildSnapshotFormatConfig({
-            DEFAULT_COPY_TIME_PARTS_ENABLED: safeDeps.DEFAULT_COPY_TIME_PARTS_ENABLED,
-            MAIN_I18N_DATA: safeDeps.MAIN_I18N_DATA,
-            gtvT: safeDeps.gtvT,
-            getPatchedCurrentLangState: safeDeps.getPatchedCurrentLangState,
-            getUTCRef: safeDeps.getUTCRef,
-            getBaseTimezoneRef: safeDeps.getBaseTimezoneRef,
-            getCurrentGroupZones: safeDeps.getCurrentGroupZones,
-            getGlobalTimesState: safeDeps.getGlobalTimesState,
-            getPatchedSlotCountState: safeDeps.getPatchedSlotCountState,
-            getIsRealtimeState: safeDeps.getIsRealtimeState,
-            getDayNightMarkerByHour: safeDeps.getDayNightMarkerByHour,
-            getFixedOffsetForDisplay: safeDeps.getFixedOffsetForDisplay,
-            normalizeCustomAbbr: safeDeps.normalizeCustomAbbr,
-            getCustomOffsetMinutes: safeDeps.getCustomOffsetMinutes,
-            pad: safeDeps.pad,
-            getZoneAbbreviation: safeDeps.getZoneAbbreviation,
-            getZoneDisplayName: safeDeps.getZoneDisplayName,
-            getSignedInclusiveDaySpan: safeDeps.getSignedInclusiveDaySpan,
-            getSignedDurationDayHourMinute: safeDeps.getSignedDurationDayHourMinute,
-            sanitizeTimePartsEnabled: safeDeps.sanitizeTimePartsEnabled,
-            sanitizeCopyFormatOrder: safeDeps.sanitizeCopyFormatOrder,
-            timeService: safeDeps.timeService
+            ...pickDeps([
+                "DEFAULT_COPY_TIME_PARTS_ENABLED",
+                "MAIN_I18N_DATA",
+                "gtvT",
+                "getPatchedCurrentLangState",
+                "getUTCRef",
+                "getBaseTimezoneRef",
+                "getCurrentGroupZones",
+                "getGlobalTimesState",
+                "getPatchedSlotCountState",
+                "getIsRealtimeState",
+                "getDayNightMarkerByHour",
+                "getFixedOffsetForDisplay",
+                "normalizeCustomAbbr",
+                "getCustomOffsetMinutes",
+                "pad",
+                "getZoneAbbreviation",
+                "getZoneDisplayName",
+                "getSignedInclusiveDaySpan",
+                "getSignedDurationDayHourMinute",
+                "sanitizeTimePartsEnabled",
+                "sanitizeCopyFormatOrder",
+                "timeService"
+            ])
         });
         const snapshotFormatService = createSnapshotFormatService(snapshotFormatConfig);
 

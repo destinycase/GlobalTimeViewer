@@ -30,16 +30,25 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getState: toSafeCallable("getState", safeDeps.getState),
-            setState: toSafeCallable("setState", safeDeps.setState),
-            t: toSafeCallable("t", safeDeps.t),
-            sanitizeUtcMs: toSafeCallable("sanitizeUtcMs", safeDeps.sanitizeUtcMs),
-            getGlobalTimes: toSafeCallable("getGlobalTimes", safeDeps.getGlobalTimes),
-            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
-            renderMultiRanges: toSafeCallable("renderMultiRanges", safeDeps.renderMultiRanges),
-            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
-            showToast: toSafeCallable("showToast", safeDeps.showToast)
+            ...pickSafeCallables([
+                "getState",
+                "setState",
+                "t",
+                "sanitizeUtcMs",
+                "getGlobalTimes",
+                "isMultiTab",
+                "renderMultiRanges",
+                "savePersistence",
+                "showToast"
+            ])
         });
 
         function savePersistenceSafe() {

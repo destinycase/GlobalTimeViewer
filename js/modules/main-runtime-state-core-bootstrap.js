@@ -1,4 +1,4 @@
-(function initGtvMainRuntimeStateCoreBootstrap(globalObj) {
+﻿(function initGtvMainRuntimeStateCoreBootstrap(globalObj) {
     "use strict";
 
     function requireObject(value, label) {
@@ -17,6 +17,24 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
+
+        function pickAliasedDeps(aliasMap = {}) {
+            const resolved = {};
+            Object.keys(aliasMap).forEach((targetKey) => {
+                resolved[targetKey] = safeDeps[aliasMap[targetKey]];
+            });
+            return resolved;
+        }
+
         const runtimeHostUtilsBindings = requireObject(
             safeDeps.runtimeHostUtilsBindings,
             "runtimeHostUtilsBindings"
@@ -86,157 +104,195 @@
         const {
             mainRuntimeHostUtilsService
         } = createRuntimeHostUtilsService({
-            runtimeHostUtilsModule: safeDeps.runtimeHostUtilsModule,
-            appDisplayName: safeDeps.appDisplayName,
-            version: safeDeps.version,
-            getGlobalRef: safeDeps.getGlobalRef
+            ...pickDeps([
+                "runtimeHostUtilsModule",
+                "appDisplayName",
+                "version",
+                "getGlobalRef",
+            ]),
         });
         const hostAccessors = createRuntimeHostAccessorService({
-            runtimeHostAccessorProxiesModule: safeDeps.runtimeHostAccessorProxiesModule,
+            ...pickDeps([
+                "runtimeHostAccessorProxiesModule",
+            ]),
             getMainRuntimeHostUtilsService: () => mainRuntimeHostUtilsService
         });
 
         const {
             mainRuntimePrimaryStateService
         } = createRuntimePrimaryStateService({
-            runtimePrimaryStateModule: safeDeps.runtimePrimaryStateModule,
-            getIsRealtime: safeDeps.getIsRealtime,
-            setIsRealtime: safeDeps.setIsRealtime,
-            syncRealtimeFlagToGlobal: safeDeps.syncRealtimeFlagToGlobal,
-            getGlobalTimes: safeDeps.getGlobalTimes,
-            setGlobalTimes: safeDeps.setGlobalTimes,
-            getUiScale: safeDeps.getUiScale
+            ...pickDeps([
+                "runtimePrimaryStateModule",
+                "getIsRealtime",
+                "setIsRealtime",
+                "syncRealtimeFlagToGlobal",
+                "getGlobalTimes",
+                "setGlobalTimes",
+                "getUiScale",
+            ]),
         });
         const primaryStateAccessors = createRuntimePrimaryStateAccessorService({
-            runtimePrimaryStateAccessorProxiesModule: safeDeps.runtimePrimaryStateAccessorProxiesModule,
+            ...pickDeps([
+                "runtimePrimaryStateAccessorProxiesModule",
+            ]),
             getMainRuntimePrimaryStateService: () => mainRuntimePrimaryStateService,
-            getIsRealtime: safeDeps.getIsRealtime,
-            setIsRealtime: safeDeps.setIsRealtime,
-            syncRealtimeFlagToGlobal: safeDeps.syncRealtimeFlagToGlobal,
-            getGlobalTimes: safeDeps.getGlobalTimes,
-            setGlobalTimes: safeDeps.setGlobalTimes,
-            getUiScale: safeDeps.getUiScale
+            ...pickDeps([
+                "getIsRealtime",
+                "setIsRealtime",
+                "syncRealtimeFlagToGlobal",
+                "getGlobalTimes",
+                "setGlobalTimes",
+                "getUiScale",
+            ]),
         });
 
         const {
             mainRuntimePatchedStateFallbackService
         } = createRuntimePatchedStateFallbackService({
-            runtimePatchedStateFallbackModule: safeDeps.runtimePatchedStateFallbackModule,
-            getNormalizeDayNightRangeValues: safeDeps.normalizeDayNightRangeValues,
-            getRuntimeCurrentLangValue: safeDeps.getRuntimeCurrentLangValue,
-            getCurrentMainTab: safeDeps.getCurrentMainTab,
-            getSlotCount: safeDeps.getSlotCount,
-            getShowCopyFormat: safeDeps.getShowCopyFormat,
-            getShowTimeline: safeDeps.getShowTimeline,
-            getCurrentTheme: safeDeps.getCurrentTheme,
-            getDayStartHour: safeDeps.getDayStartHour,
-            getNightStartHour: safeDeps.getNightStartHour,
-            getDisplayFormatOrder: safeDeps.getDisplayFormatOrder,
-            getDisplayFormatEnabled: safeDeps.getDisplayFormatEnabled,
-            getDisplayTimePartsEnabled: safeDeps.getDisplayTimePartsEnabled,
-            getCopyFormatOrder: safeDeps.getCopyFormatOrder,
-            getCopyFormatEnabled: safeDeps.getCopyFormatEnabled,
-            getCopyTimePartsEnabled: safeDeps.getCopyTimePartsEnabled,
-            getActiveFormatProfileContext: safeDeps.getActiveFormatProfileContext,
-            getActiveGroupId: safeDeps.getActiveGroupId,
-            getMultiRangeCount: safeDeps.getMultiRangeCount,
-            getMultiRanges: safeDeps.getMultiRanges,
-            getMultiRangeCollapsed: safeDeps.getMultiRangeCollapsed,
-            getTimeAdjustDayStepBySlot: safeDeps.getTimeAdjustDayStepBySlot,
-            getMultiRangeTitle: safeDeps.getMultiRangeTitle
+            ...pickDeps([
+                "runtimePatchedStateFallbackModule",
+            ]),
+            ...pickAliasedDeps({
+                "getNormalizeDayNightRangeValues": "normalizeDayNightRangeValues"
+            }),
+            ...pickDeps([
+                "getRuntimeCurrentLangValue",
+                "getCurrentMainTab",
+                "getSlotCount",
+                "getShowCopyFormat",
+                "getShowTimeline",
+                "getCurrentTheme",
+                "getDayStartHour",
+                "getNightStartHour",
+                "getDisplayFormatOrder",
+                "getDisplayFormatEnabled",
+                "getDisplayTimePartsEnabled",
+                "getCopyFormatOrder",
+                "getCopyFormatEnabled",
+                "getCopyTimePartsEnabled",
+                "getActiveFormatProfileContext",
+                "getActiveGroupId",
+                "getMultiRangeCount",
+                "getMultiRanges",
+                "getMultiRangeCollapsed",
+                "getTimeAdjustDayStepBySlot",
+                "getMultiRangeTitle",
+            ]),
         });
         const mainRuntimeStatePatchAccessorService = createRuntimeStatePatchAccessorService({
-            runtimeStatePatchAccessorProxiesModule: safeDeps.runtimeStatePatchAccessorProxiesModule,
-            getMainDirectStatePatchService: safeDeps.getMainDirectStatePatchService,
-            getDirectStateSetters: safeDeps.getDirectStateSetters,
-            getNormalizeDayNightRangeValues: safeDeps.getNormalizeDayNightRangeValues,
-            getDayStartHour: safeDeps.getDayStartHour,
-            setDayStartHour: safeDeps.setDayStartHour,
-            getNightStartHour: safeDeps.getNightStartHour,
-            setNightStartHour: safeDeps.setNightStartHour,
+            ...pickDeps([
+                "runtimeStatePatchAccessorProxiesModule",
+                "getMainDirectStatePatchService",
+                "getDirectStateSetters",
+                "getNormalizeDayNightRangeValues",
+                "getDayStartHour",
+                "setDayStartHour",
+                "getNightStartHour",
+                "setNightStartHour",
+            ]),
             getSetIsRealtimeState: () => primaryStateAccessors.setIsRealtimeState,
             getMainRuntimePatchedStateFallbackService: () => mainRuntimePatchedStateFallbackService,
-            getRuntimeCurrentLangValue: safeDeps.getRuntimeCurrentLangValue,
-            getCurrentMainTab: safeDeps.getCurrentMainTab,
-            getSlotCount: safeDeps.getSlotCount,
-            getShowCopyFormat: safeDeps.getShowCopyFormat,
-            getShowTimeline: safeDeps.getShowTimeline,
-            getCurrentTheme: safeDeps.getCurrentTheme,
-            getDisplayFormatOrder: safeDeps.getDisplayFormatOrder,
-            getDisplayFormatEnabled: safeDeps.getDisplayFormatEnabled,
-            getDisplayTimePartsEnabled: safeDeps.getDisplayTimePartsEnabled,
-            getCopyFormatOrder: safeDeps.getCopyFormatOrder,
-            getCopyFormatEnabled: safeDeps.getCopyFormatEnabled,
-            getCopyTimePartsEnabled: safeDeps.getCopyTimePartsEnabled,
-            getActiveFormatProfileContext: safeDeps.getActiveFormatProfileContext,
-            getActiveGroupId: safeDeps.getActiveGroupId,
-            getMultiRangeCount: safeDeps.getMultiRangeCount,
-            getMultiRanges: safeDeps.getMultiRanges,
-            getMultiRangeCollapsed: safeDeps.getMultiRangeCollapsed,
-            getTimeAdjustDayStepBySlot: safeDeps.getTimeAdjustDayStepBySlot,
-            getMultiRangeTitle: safeDeps.getMultiRangeTitle
+            ...pickDeps([
+                "getRuntimeCurrentLangValue",
+                "getCurrentMainTab",
+                "getSlotCount",
+                "getShowCopyFormat",
+                "getShowTimeline",
+                "getCurrentTheme",
+                "getDisplayFormatOrder",
+                "getDisplayFormatEnabled",
+                "getDisplayTimePartsEnabled",
+                "getCopyFormatOrder",
+                "getCopyFormatEnabled",
+                "getCopyTimePartsEnabled",
+                "getActiveFormatProfileContext",
+                "getActiveGroupId",
+                "getMultiRangeCount",
+                "getMultiRanges",
+                "getMultiRangeCollapsed",
+                "getTimeAdjustDayStepBySlot",
+                "getMultiRangeTitle",
+            ]),
         });
 
         const {
             mainRuntimeLocalStateHelpersService
         } = createRuntimeLocalStateHelpersService({
-            runtimeLocalStateHelpersModule: safeDeps.runtimeLocalStateHelpersModule,
-            getPatchAppState: safeDeps.getPatchAppState,
-            getFixedTimeIdSeed: safeDeps.getFixedTimeIdSeed,
-            setFixedTimeIdSeed: safeDeps.setFixedTimeIdSeed,
-            getUiScale: safeDeps.getUiScale,
-            setUiScale: safeDeps.setUiScale,
-            getCurrentTheme: safeDeps.getCurrentTheme,
-            setCurrentTheme: safeDeps.setCurrentTheme,
-            getDayStartHour: safeDeps.getDayStartHour,
-            setDayStartHour: safeDeps.setDayStartHour,
-            getNightStartHour: safeDeps.getNightStartHour,
-            setNightStartHour: safeDeps.setNightStartHour,
-            sanitizeDayNightHourValue: safeDeps.sanitizeDayNightHourValue,
-            normalizeDayNightRangeValues: safeDeps.normalizeDayNightRangeValues,
-            syncCurrentLang: safeDeps.syncCurrentLang,
+            ...pickDeps([
+                "runtimeLocalStateHelpersModule",
+                "getPatchAppState",
+                "getFixedTimeIdSeed",
+                "setFixedTimeIdSeed",
+                "getUiScale",
+                "setUiScale",
+                "getCurrentTheme",
+                "setCurrentTheme",
+                "getDayStartHour",
+                "setDayStartHour",
+                "getNightStartHour",
+                "setNightStartHour",
+                "sanitizeDayNightHourValue",
+                "normalizeDayNightRangeValues",
+                "syncCurrentLang",
+            ]),
             getGlobalTimeState: primaryStateAccessors.getGlobalTimeState,
-            getFixedTimeSlotCount: safeDeps.getFixedTimeSlotCount,
-            getConfirm: safeDeps.getConfirm,
-            getFormatProfileAllowedKeys: safeDeps.getFormatProfileAllowedKeys,
-            getFormatProfileAllowedTimePartKeys: safeDeps.getFormatProfileAllowedTimePartKeys,
-            getPatchedActiveFormatProfileContextState: safeDeps.getPatchedActiveFormatProfileContextState,
+            ...pickDeps([
+                "getFixedTimeSlotCount",
+                "getConfirm",
+                "getFormatProfileAllowedKeys",
+                "getFormatProfileAllowedTimePartKeys",
+                "getPatchedActiveFormatProfileContextState",
+            ]),
             getUiScaleState: primaryStateAccessors.getUiScaleState,
-            getCurrentGroup: safeDeps.getCurrentGroup,
-            getFixedTimeStateService: safeDeps.getFixedTimeStateService,
+            ...pickDeps([
+                "getCurrentGroup",
+                "getFixedTimeStateService",
+            ]),
             getIsRealtimeState: primaryStateAccessors.getIsRealtimeState,
-            isFixedTimeTab: safeDeps.isFixedTimeTab,
-            getTimeAdjustDayStepBySlotSnapshot: safeDeps.getTimeAdjustDayStepBySlotSnapshot
+            ...pickDeps([
+                "isFixedTimeTab",
+                "getTimeAdjustDayStepBySlotSnapshot",
+            ]),
         });
         const localStateAccessors = createRuntimeLocalStateAccessorService({
-            runtimeLocalStateAccessorProxiesModule: safeDeps.runtimeLocalStateAccessorProxiesModule,
+            ...pickDeps([
+                "runtimeLocalStateAccessorProxiesModule",
+            ]),
             getMainRuntimeLocalStateHelpersService: () => mainRuntimeLocalStateHelpersService,
-            getPatchAppState: safeDeps.getPatchAppState,
-            getFixedTimeIdSeed: safeDeps.getFixedTimeIdSeed,
-            setFixedTimeIdSeed: safeDeps.setFixedTimeIdSeed,
-            getUiScale: safeDeps.getUiScale,
-            setUiScale: safeDeps.setUiScale,
-            getCurrentTheme: safeDeps.getCurrentTheme,
-            setCurrentTheme: safeDeps.setCurrentTheme,
-            getDayStartHour: safeDeps.getDayStartHour,
-            setDayStartHour: safeDeps.setDayStartHour,
-            getNightStartHour: safeDeps.getNightStartHour,
-            setNightStartHour: safeDeps.setNightStartHour,
-            sanitizeDayNightHourValue: safeDeps.sanitizeDayNightHourValue,
-            normalizeDayNightRangeValues: safeDeps.normalizeDayNightRangeValues,
-            syncCurrentLang: safeDeps.syncCurrentLang,
+            ...pickDeps([
+                "getPatchAppState",
+                "getFixedTimeIdSeed",
+                "setFixedTimeIdSeed",
+                "getUiScale",
+                "setUiScale",
+                "getCurrentTheme",
+                "setCurrentTheme",
+                "getDayStartHour",
+                "setDayStartHour",
+                "getNightStartHour",
+                "setNightStartHour",
+                "sanitizeDayNightHourValue",
+                "normalizeDayNightRangeValues",
+                "syncCurrentLang",
+            ]),
             getGlobalTimeState: primaryStateAccessors.getGlobalTimeState,
-            getFixedTimeSlotCount: safeDeps.getFixedTimeSlotCount,
-            getConfirm: safeDeps.getConfirm,
-            getFormatProfileAllowedKeys: safeDeps.getFormatProfileAllowedKeys,
-            getFormatProfileAllowedTimePartKeys: safeDeps.getFormatProfileAllowedTimePartKeys,
-            getPatchedActiveFormatProfileContextState: safeDeps.getPatchedActiveFormatProfileContextState,
+            ...pickDeps([
+                "getFixedTimeSlotCount",
+                "getConfirm",
+                "getFormatProfileAllowedKeys",
+                "getFormatProfileAllowedTimePartKeys",
+                "getPatchedActiveFormatProfileContextState",
+            ]),
             getUiScaleState: primaryStateAccessors.getUiScaleState,
-            getCurrentGroup: safeDeps.getCurrentGroup,
-            getFixedTimeStateService: safeDeps.getFixedTimeStateService,
+            ...pickDeps([
+                "getCurrentGroup",
+                "getFixedTimeStateService",
+            ]),
             getIsRealtimeState: primaryStateAccessors.getIsRealtimeState,
-            isFixedTimeTab: safeDeps.isFixedTimeTab,
-            getTimeAdjustDayStepBySlotSnapshot: safeDeps.getTimeAdjustDayStepBySlotSnapshot
+            ...pickDeps([
+                "isFixedTimeTab",
+                "getTimeAdjustDayStepBySlotSnapshot",
+            ]),
         });
 
         return Object.freeze({

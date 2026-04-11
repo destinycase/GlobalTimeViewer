@@ -65,9 +65,18 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            shouldTick: toSafeCallable("shouldTick", safeDeps.shouldTick),
-            onTick: toSafeCallable("onTick", safeDeps.onTick)
+            ...pickSafeCallables([
+                "shouldTick",
+                "onTick"
+            ])
         });
 
         function getTickIntervalMs(overrideMs = null) {

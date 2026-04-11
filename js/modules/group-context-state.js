@@ -30,12 +30,21 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getGroups: toSafeCallable("getGroups", safeDeps.getGroups),
-            getState: toSafeCallable("getState", safeDeps.getState),
-            setState: toSafeCallable("setState", safeDeps.setState),
-            getUTCRef: toSafeCallable("getUTCRef", safeDeps.getUTCRef),
-            sanitizeUtcRowOrder: toSafeCallable("sanitizeUtcRowOrder", safeDeps.sanitizeUtcRowOrder)
+            ...pickSafeCallables([
+                "getGroups",
+                "getState",
+                "setState",
+                "getUTCRef",
+                "sanitizeUtcRowOrder"
+            ])
         });
 
         function getMainTabs() {

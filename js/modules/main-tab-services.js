@@ -23,76 +23,93 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         const formatControlsApi = requireCreateServiceModule(safeDeps.GTV_FORMAT_CONTROLS, "GTVFormatControls");
         const serviceBootstrap = requireServiceBootstrap(safeDeps.serviceBootstrap);
 
         const formatControlsService = formatControlsApi.createService({
-            COPY_FORMAT_KEYS: safeDeps.COPY_FORMAT_KEYS,
-            TIME_PART_KEYS: safeDeps.TIME_PART_KEYS,
-            t: safeDeps.t,
-            sanitizeCopyFormatOrder: safeDeps.sanitizeCopyFormatOrder,
-            renderList: safeDeps.renderList,
-            updateCopyFormatPreview: safeDeps.updateCopyFormatPreview,
-            savePersistence: safeDeps.savePersistence,
-            upgradeNativeTitleTooltips: safeDeps.upgradeNativeTitleTooltips,
-            isShowCopyFormat: safeDeps.isShowCopyFormat,
-            getDisplayFormatOrder: safeDeps.getDisplayFormatOrder,
-            setDisplayFormatOrder: safeDeps.setDisplayFormatOrder,
-            getDisplayFormatEnabled: safeDeps.getDisplayFormatEnabled,
-            setDisplayFormatEnabled: safeDeps.setDisplayFormatEnabled,
-            getDisplayTimePartsEnabled: safeDeps.getDisplayTimePartsEnabled,
-            setDisplayTimePartsEnabled: safeDeps.setDisplayTimePartsEnabled,
-            getCopyFormatOrder: safeDeps.getCopyFormatOrder,
-            setCopyFormatOrder: safeDeps.setCopyFormatOrder,
-            getCopyFormatEnabled: safeDeps.getCopyFormatEnabled,
-            setCopyFormatEnabled: safeDeps.setCopyFormatEnabled,
-            getCopyTimePartsEnabled: safeDeps.getCopyTimePartsEnabled,
-            setCopyTimePartsEnabled: safeDeps.setCopyTimePartsEnabled,
-            getActiveCopyFormatKeys: safeDeps.getActiveCopyFormatKeys,
-            getActiveTimePartKeys: safeDeps.getActiveTimePartKeys
+            ...pickDeps([
+                "COPY_FORMAT_KEYS",
+                "TIME_PART_KEYS",
+                "t",
+                "sanitizeCopyFormatOrder",
+                "renderList",
+                "updateCopyFormatPreview",
+                "savePersistence",
+                "upgradeNativeTitleTooltips",
+                "isShowCopyFormat",
+                "getDisplayFormatOrder",
+                "setDisplayFormatOrder",
+                "getDisplayFormatEnabled",
+                "setDisplayFormatEnabled",
+                "getDisplayTimePartsEnabled",
+                "setDisplayTimePartsEnabled",
+                "getCopyFormatOrder",
+                "setCopyFormatOrder",
+                "getCopyFormatEnabled",
+                "setCopyFormatEnabled",
+                "getCopyTimePartsEnabled",
+                "setCopyTimePartsEnabled",
+                "getActiveCopyFormatKeys",
+                "getActiveTimePartKeys"
+            ])
         });
 
         const tabUiService = serviceBootstrap.createTabUiService({
-            t: safeDeps.t,
-            sanitizeMainTab: safeDeps.sanitizeMainTab,
-            clampGroupIndex: safeDeps.clampGroupIndex,
-            normalizeGroupTabState: safeDeps.normalizeGroupTabState,
-            isMultiTab: safeDeps.isMultiTab,
-            isFixedTimeTab: safeDeps.isFixedTimeTab,
-            getSlotCount: safeDeps.getSlotCount,
-            getShowCopyFormat: safeDeps.getShowCopyFormat,
-            getShowTimeline: safeDeps.getShowTimeline,
-            getIsRealtime: safeDeps.getIsRealtime,
-            setIsRealtime: safeDeps.setIsRealtime,
-            syncRealtimeNow: safeDeps.syncRealtimeNow,
-            getCurrentMainTab: safeDeps.getCurrentMainTab,
-            setCurrentMainTab: safeDeps.setCurrentMainTab,
-            getActiveGroupId: safeDeps.getActiveGroupId,
-            setActiveGroupId: safeDeps.setActiveGroupId,
-            getActiveGroupIdByMainTab: safeDeps.getActiveGroupIdByMainTab,
-            setActiveGroupIdByMainTab: safeDeps.setActiveGroupIdByMainTab,
-            hideFloatingTooltip: safeDeps.hideFloatingTooltip,
-            syncCurrentMultiStateToActiveSubgroup: safeDeps.syncCurrentMultiStateToActiveSubgroup,
-            refreshMultiRangeControls: safeDeps.refreshMultiRangeControls,
-            renderBaseTimeSelect: safeDeps.renderBaseTimeSelect,
-            loadCurrentMultiStateFromActiveSubgroup: safeDeps.loadCurrentMultiStateFromActiveSubgroup,
-            renderGroups: safeDeps.renderGroups,
-            renderMultiSubgroups: safeDeps.renderMultiSubgroups,
-            renderMultiRanges: safeDeps.renderMultiRanges,
-            renderFixedTimeTab: safeDeps.renderFixedTimeTab,
-            renderList: safeDeps.renderList,
-            renderTimelineFrame: safeDeps.renderTimelineFrame,
-            updateTimeAdjustPanel: safeDeps.updateTimeAdjustPanel,
+            ...pickDeps([
+                "t",
+                "sanitizeMainTab",
+                "clampGroupIndex",
+                "normalizeGroupTabState",
+                "isMultiTab",
+                "isFixedTimeTab",
+                "getSlotCount",
+                "getShowCopyFormat",
+                "getShowTimeline",
+                "getIsRealtime",
+                "setIsRealtime",
+                "syncRealtimeNow",
+                "getCurrentMainTab",
+                "setCurrentMainTab",
+                "getActiveGroupId",
+                "setActiveGroupId",
+                "getActiveGroupIdByMainTab",
+                "setActiveGroupIdByMainTab",
+                "hideFloatingTooltip",
+                "syncCurrentMultiStateToActiveSubgroup",
+                "refreshMultiRangeControls",
+                "renderBaseTimeSelect",
+                "loadCurrentMultiStateFromActiveSubgroup",
+                "renderGroups",
+                "renderMultiSubgroups",
+                "renderMultiRanges",
+                "renderFixedTimeTab",
+                "renderList",
+                "renderTimelineFrame",
+                "updateTimeAdjustPanel"
+            ]),
             renderCopyFormatControls: () => formatControlsService.renderCopyFormatControls(),
-            savePersistence: safeDeps.savePersistence
+            ...pickDeps([
+                "savePersistence"
+            ])
         });
 
         const tabOrchestratorService = serviceBootstrap.createTabOrchestratorService({
-            sanitizeMainTab: safeDeps.sanitizeMainTab,
-            syncActiveFormatProfileFromState: safeDeps.syncActiveFormatProfileFromState,
-            resolveFormatProfileContext: safeDeps.resolveFormatProfileContext,
-            activateFormatProfileContext: safeDeps.activateFormatProfileContext,
-            getSlotCount: safeDeps.getSlotCount,
+            ...pickDeps([
+                "sanitizeMainTab",
+                "syncActiveFormatProfileFromState",
+                "resolveFormatProfileContext",
+                "activateFormatProfileContext",
+                "getSlotCount"
+            ]),
             switchMainTabUi: (tab) => tabUiService.switchMainTab(tab),
             refreshOptionToggleDividersUi: () => tabUiService.refreshOptionToggleDividers()
         });

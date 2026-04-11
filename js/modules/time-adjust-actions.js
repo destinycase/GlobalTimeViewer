@@ -30,29 +30,38 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getGlobalTimes: toSafeCallable("getGlobalTimes", safeDeps.getGlobalTimes),
-            sanitizeUtcMs: toSafeCallable("sanitizeUtcMs", safeDeps.sanitizeUtcMs),
-            getTimeAdjustDayStep: toSafeCallable("getTimeAdjustDayStep", safeDeps.getTimeAdjustDayStep),
-            getCustomOffsetMinutes: toSafeCallable("getCustomOffsetMinutes", safeDeps.getCustomOffsetMinutes),
-            isRealtime: toSafeCallable("isRealtime", safeDeps.isRealtime),
-            updateClocks: toSafeCallable("updateClocks", safeDeps.updateClocks),
-            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef),
-            getFixedOffsetForDisplay: toSafeCallable("getFixedOffsetForDisplay", safeDeps.getFixedOffsetForDisplay),
-            ensureMultiRangeState: toSafeCallable("ensureMultiRangeState", safeDeps.ensureMultiRangeState),
-            getMultiRanges: toSafeCallable("getMultiRanges", safeDeps.getMultiRanges),
-            isMultiRangeStartLinked: toSafeCallable("isMultiRangeStartLinked", safeDeps.isMultiRangeStartLinked),
-            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
-            renderMultiRanges: toSafeCallable("renderMultiRanges", safeDeps.renderMultiRanges),
-            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
-            isMultiRangeStartEditEnabled: toSafeCallable("isMultiRangeStartEditEnabled", safeDeps.isMultiRangeStartEditEnabled),
-            isMultiRangeEndEditEnabled: toSafeCallable("isMultiRangeEndEditEnabled", safeDeps.isMultiRangeEndEditEnabled),
-            syncLinkedRangesFrom: toSafeCallable("syncLinkedRangesFrom", safeDeps.syncLinkedRangesFrom),
-            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
-            getMultiRangeSlotDate: toSafeCallable("getMultiRangeSlotDate", safeDeps.getMultiRangeSlotDate),
-            setMultiRangeSlotDate: toSafeCallable("setMultiRangeSlotDate", safeDeps.setMultiRangeSlotDate),
-            syncFollowingRangesByDuration: toSafeCallable("syncFollowingRangesByDuration", safeDeps.syncFollowingRangesByDuration),
-            syncMultiRangeStartLinks: toSafeCallable("syncMultiRangeStartLinks", safeDeps.syncMultiRangeStartLinks)
+            ...pickSafeCallables([
+                "getGlobalTimes",
+                "sanitizeUtcMs",
+                "getTimeAdjustDayStep",
+                "getCustomOffsetMinutes",
+                "isRealtime",
+                "updateClocks",
+                "getBaseTimezoneRef",
+                "getFixedOffsetForDisplay",
+                "ensureMultiRangeState",
+                "getMultiRanges",
+                "isMultiRangeStartLinked",
+                "isMultiTab",
+                "renderMultiRanges",
+                "savePersistence",
+                "isMultiRangeStartEditEnabled",
+                "isMultiRangeEndEditEnabled",
+                "syncLinkedRangesFrom",
+                "getFixedOffsetForDisplayAtDate",
+                "getMultiRangeSlotDate",
+                "setMultiRangeSlotDate",
+                "syncFollowingRangesByDuration",
+                "syncMultiRangeStartLinks"
+            ])
         });
 
         function shouldRenderMultiRanges() {

@@ -57,19 +57,28 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getZoneMap: toSafeCallable("getZoneMap", safeDeps.getZoneMap),
-            getCurrentLang: toSafeCallable("getCurrentLang", safeDeps.getCurrentLang),
-            getLocalizedTZLabel: toSafeCallable("getLocalizedTZLabel", safeDeps.getLocalizedTZLabel),
-            getTimezoneOffset: toSafeCallable("getTimezoneOffset", safeDeps.getTimezoneOffset),
-            getBetterAbbr: toSafeCallable("getBetterAbbr", safeDeps.getBetterAbbr),
-            t: toSafeCallable("t", safeDeps.t),
-            createUniqueTimezoneId: toSafeCallable("createUniqueTimezoneId", safeDeps.createUniqueTimezoneId),
-            addTimezone: toSafeCallable("addTimezone", safeDeps.addTimezone),
-            adjustSelectWidthForContent: toSafeCallable("adjustSelectWidthForContent", safeDeps.adjustSelectWidthForContent),
-            getCurrentGroup: toSafeCallable("getCurrentGroup", safeDeps.getCurrentGroup),
-            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
-            renderList: toSafeCallable("renderList", safeDeps.renderList)
+            ...pickSafeCallables([
+                "getZoneMap",
+                "getCurrentLang",
+                "getLocalizedTZLabel",
+                "getTimezoneOffset",
+                "getBetterAbbr",
+                "t",
+                "createUniqueTimezoneId",
+                "addTimezone",
+                "adjustSelectWidthForContent",
+                "getCurrentGroup",
+                "savePersistence",
+                "renderList"
+            ])
         });
 
         function addTimezoneSafe(nextZone) {
@@ -256,17 +265,17 @@
             const entries = [];
             const seen = new Set();
 
-            const pushEntry = (abbrValue, offsetMinutes, zone = "UTC") => {
+            const pushEntry = (_abbrValue, offsetMinutes, _zone = "UTC") => {
                 if (!Number.isFinite(offsetMinutes)) return;
                 const safeOffset = Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(offsetMinutes)));
-                const abbr = normalizeZoneAbbreviation(abbrValue) || formatUtcOffsetLabel(safeOffset);
-                const dedupeKey = `${abbr}|${safeOffset}`;
+                const abbr = safeOffset === 0 ? "UTC" : formatUtcOffsetLabel(safeOffset);
+                const dedupeKey = String(safeOffset);
                 if (seen.has(dedupeKey)) return;
                 seen.add(dedupeKey);
                 entries.push({
                     kind: "standard_list",
                     key: `std:${abbr}:${safeOffset}`,
-                    zone,
+                    zone: "UTC",
                     abbr,
                     fixedOffsetMinutes: safeOffset
                 });

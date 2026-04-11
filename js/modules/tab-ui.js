@@ -49,38 +49,47 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            sanitizeMainTab: toSafeCallable("sanitizeMainTab", safeDeps.sanitizeMainTab),
-            clampGroupIndex: toSafeCallable("clampGroupIndex", safeDeps.clampGroupIndex),
-            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
-            isFixedTimeTab: toSafeCallable("isFixedTimeTab", safeDeps.isFixedTimeTab),
-            getIsRealtime: toSafeCallable("getIsRealtime", safeDeps.getIsRealtime),
-            getShowCopyFormat: toSafeCallable("getShowCopyFormat", safeDeps.getShowCopyFormat),
-            getShowTimeline: toSafeCallable("getShowTimeline", safeDeps.getShowTimeline),
-            refreshMultiRangeControls: toSafeCallable("refreshMultiRangeControls", safeDeps.refreshMultiRangeControls),
-            hideFloatingTooltip: toSafeCallable("hideFloatingTooltip", safeDeps.hideFloatingTooltip),
-            syncCurrentMultiStateToActiveSubgroup: toSafeCallable("syncCurrentMultiStateToActiveSubgroup", safeDeps.syncCurrentMultiStateToActiveSubgroup),
-            getCurrentMainTab: toSafeCallable("getCurrentMainTab", safeDeps.getCurrentMainTab),
-            getActiveGroupId: toSafeCallable("getActiveGroupId", safeDeps.getActiveGroupId),
-            getActiveGroupIdByMainTab: toSafeCallable("getActiveGroupIdByMainTab", safeDeps.getActiveGroupIdByMainTab),
-            setCurrentMainTab: toSafeCallable("setCurrentMainTab", safeDeps.setCurrentMainTab),
-            setActiveGroupId: toSafeCallable("setActiveGroupId", safeDeps.setActiveGroupId),
-            setActiveGroupIdByMainTab: toSafeCallable("setActiveGroupIdByMainTab", safeDeps.setActiveGroupIdByMainTab),
-            normalizeGroupTabState: toSafeCallable("normalizeGroupTabState", safeDeps.normalizeGroupTabState),
-            setIsRealtime: toSafeCallable("setIsRealtime", safeDeps.setIsRealtime),
-            syncRealtimeNow: toSafeCallable("syncRealtimeNow", safeDeps.syncRealtimeNow),
-            getSlotCount: toSafeCallable("getSlotCount", safeDeps.getSlotCount),
-            renderTimelineFrame: toSafeCallable("renderTimelineFrame", safeDeps.renderTimelineFrame),
-            renderBaseTimeSelect: toSafeCallable("renderBaseTimeSelect", safeDeps.renderBaseTimeSelect),
-            loadCurrentMultiStateFromActiveSubgroup: toSafeCallable("loadCurrentMultiStateFromActiveSubgroup", safeDeps.loadCurrentMultiStateFromActiveSubgroup),
-            renderGroups: toSafeCallable("renderGroups", safeDeps.renderGroups),
-            renderMultiSubgroups: toSafeCallable("renderMultiSubgroups", safeDeps.renderMultiSubgroups),
-            renderMultiRanges: toSafeCallable("renderMultiRanges", safeDeps.renderMultiRanges),
-            renderFixedTimeTab: toSafeCallable("renderFixedTimeTab", safeDeps.renderFixedTimeTab),
-            updateTimeAdjustPanel: toSafeCallable("updateTimeAdjustPanel", safeDeps.updateTimeAdjustPanel),
-            renderList: toSafeCallable("renderList", safeDeps.renderList),
-            renderCopyFormatControls: toSafeCallable("renderCopyFormatControls", safeDeps.renderCopyFormatControls),
-            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence)
+            ...pickSafeCallables([
+                "sanitizeMainTab",
+                "clampGroupIndex",
+                "isMultiTab",
+                "isFixedTimeTab",
+                "getIsRealtime",
+                "getShowCopyFormat",
+                "getShowTimeline",
+                "refreshMultiRangeControls",
+                "hideFloatingTooltip",
+                "syncCurrentMultiStateToActiveSubgroup",
+                "getCurrentMainTab",
+                "getActiveGroupId",
+                "getActiveGroupIdByMainTab",
+                "setCurrentMainTab",
+                "setActiveGroupId",
+                "setActiveGroupIdByMainTab",
+                "normalizeGroupTabState",
+                "setIsRealtime",
+                "syncRealtimeNow",
+                "getSlotCount",
+                "renderTimelineFrame",
+                "renderBaseTimeSelect",
+                "loadCurrentMultiStateFromActiveSubgroup",
+                "renderGroups",
+                "renderMultiSubgroups",
+                "renderMultiRanges",
+                "renderFixedTimeTab",
+                "updateTimeAdjustPanel",
+                "renderList",
+                "renderCopyFormatControls",
+                "savePersistence"
+            ])
         });
 
         function getBooleanDep(resolver, fallback = false) {

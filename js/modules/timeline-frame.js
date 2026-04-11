@@ -89,39 +89,48 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getGlobalTime: toSafeCallable("getGlobalTime", safeDeps.getGlobalTime),
-            setGlobalTime: toSafeCallable("setGlobalTime", safeDeps.setGlobalTime),
-            t: toSafeCallable("t", safeDeps.t),
-            getCurrentMainTab: toSafeCallable("getCurrentMainTab", safeDeps.getCurrentMainTab),
-            getIsRealtime: toSafeCallable("getIsRealtime", safeDeps.getIsRealtime),
-            getSlotCount: toSafeCallable("getSlotCount", safeDeps.getSlotCount),
-            isFixedTimeTab: toSafeCallable("isFixedTimeTab", safeDeps.isFixedTimeTab),
-            getShowTimeline: toSafeCallable("getShowTimeline", safeDeps.getShowTimeline),
-            isMultiTab: toSafeCallable("isMultiTab", safeDeps.isMultiTab),
-            getCurrentGroupZones: toSafeCallable("getCurrentGroupZones", safeDeps.getCurrentGroupZones),
-            isCurrentGroupUtcRowVisible: toSafeCallable("isCurrentGroupUtcRowVisible", safeDeps.isCurrentGroupUtcRowVisible),
-            getCurrentGroupUtcRowOrder: toSafeCallable("getCurrentGroupUtcRowOrder", safeDeps.getCurrentGroupUtcRowOrder),
-            getUTCRef: toSafeCallable("getUTCRef", safeDeps.getUTCRef),
-            resolveFixedTimeTimelineSourceDate: toSafeCallable("resolveFixedTimeTimelineSourceDate", safeDeps.resolveFixedTimeTimelineSourceDate),
-            getFixedOffsetForDisplayAtDate: toSafeCallable("getFixedOffsetForDisplayAtDate", safeDeps.getFixedOffsetForDisplayAtDate),
-            getLocalPartsByTimezone: toSafeCallable("getLocalPartsByTimezone", safeDeps.getLocalPartsByTimezone),
-            getUTCDateFromLocalParts: toSafeCallable("getUTCDateFromLocalParts", safeDeps.getUTCDateFromLocalParts),
-            applyFixedTimeSlotTimelineRatio: toSafeCallable("applyFixedTimeSlotTimelineRatio", safeDeps.applyFixedTimeSlotTimelineRatio),
-            updateClocks: toSafeCallable("updateClocks", safeDeps.updateClocks),
-            savePersistence: toSafeCallable("savePersistence", safeDeps.savePersistence),
-            getDayNightMarkerByHour: toSafeCallable("getDayNightMarkerByHour", safeDeps.getDayNightMarkerByHour),
-            getZoneDisplayName: toSafeCallable("getZoneDisplayName", safeDeps.getZoneDisplayName),
-            getFixedTimeSlotTimelineLabel: toSafeCallable("getFixedTimeSlotTimelineLabel", safeDeps.getFixedTimeSlotTimelineLabel),
-            getFixedTimeTimelineSlots: toSafeCallable("getFixedTimeTimelineSlots", safeDeps.getFixedTimeTimelineSlots),
-            getCurrentGroupFixedTimeShowLiveNow: toSafeCallable("getCurrentGroupFixedTimeShowLiveNow", safeDeps.getCurrentGroupFixedTimeShowLiveNow),
-            getFixedTimeTimelineSlotCount: toSafeCallable("getFixedTimeTimelineSlotCount", safeDeps.getFixedTimeTimelineSlotCount),
-            pad: toSafeCallable("pad", safeDeps.pad),
-            getFixedTimeTimelineIndicatorToken: toSafeCallable("getFixedTimeTimelineIndicatorToken", safeDeps.getFixedTimeTimelineIndicatorToken),
-            getCurrentLang: toSafeCallable("getCurrentLang", safeDeps.getCurrentLang),
-            getCurrentTheme: toSafeCallable("getCurrentTheme", safeDeps.getCurrentTheme),
-            getTimelineFrameElement: toSafeCallable("getTimelineFrameElement", safeDeps.getTimelineFrameElement),
-            getBaseTimezoneRef: toSafeCallable("getBaseTimezoneRef", safeDeps.getBaseTimezoneRef)
+            ...pickSafeCallables([
+                "getGlobalTime",
+                "setGlobalTime",
+                "t",
+                "getCurrentMainTab",
+                "getIsRealtime",
+                "getSlotCount",
+                "isFixedTimeTab",
+                "getShowTimeline",
+                "isMultiTab",
+                "getCurrentGroupZones",
+                "isCurrentGroupUtcRowVisible",
+                "getCurrentGroupUtcRowOrder",
+                "getUTCRef",
+                "resolveFixedTimeTimelineSourceDate",
+                "getFixedOffsetForDisplayAtDate",
+                "getLocalPartsByTimezone",
+                "getUTCDateFromLocalParts",
+                "applyFixedTimeSlotTimelineRatio",
+                "updateClocks",
+                "savePersistence",
+                "getDayNightMarkerByHour",
+                "getZoneDisplayName",
+                "getFixedTimeSlotTimelineLabel",
+                "getFixedTimeTimelineSlots",
+                "getCurrentGroupFixedTimeShowLiveNow",
+                "getFixedTimeTimelineSlotCount",
+                "pad",
+                "getFixedTimeTimelineIndicatorToken",
+                "getCurrentLang",
+                "getCurrentTheme",
+                "getTimelineFrameElement",
+                "getBaseTimezoneRef"
+            ])
         });
 
         function isFixedTimeTab() {

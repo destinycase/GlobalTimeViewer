@@ -1,8 +1,8 @@
-# Global Time Viewer v3.12.4
+# Global Time Viewer v3.12.5
 
-## 최근 업데이트 (3.12.4)
-- 아키텍처 문서를 `README.md`로 통합하고 런타임 구조 설명을 최신화했습니다.
-- 모듈 의존성 호출 스타일을 `toSafeCallable(depName, depFn)`으로 통일하고 규약 회귀 테스트를 추가했습니다.
+## 최근 업데이트 (3.12.5)
+- 배포본(`dist_extension`)에서 일부 시간대가 `UTC+00:00`으로 계산되던 문제를 수정했습니다.
+- dev/배포 환경의 시간대 계산 일관성을 위해 전역 Luxon 브릿지(`js/vendor/luxon-global-bridge.js`)를 추가했습니다.
 
 ## 확장 프로그램
 - https://chromewebstore.google.com/detail/ojmkgfaeececindhbegihnonpndkbnho?utm_source=item-share-cb

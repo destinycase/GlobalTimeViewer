@@ -1,4 +1,4 @@
-(function initGtvMainRuntimeTableImageBootstrap(globalObj) {
+﻿(function initGtvMainRuntimeTableImageBootstrap(globalObj) {
     "use strict";
 
     function requireFunction(value, label) {
@@ -17,6 +17,15 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
+
+        function pickDeps(depNames = []) {
+            const resolved = {};
+            depNames.forEach((depName) => {
+                resolved[depName] = safeDeps[depName];
+            });
+            return resolved;
+        }
+
         const mainRuntimeServiceConfigBuilderService = requireObject(
             safeDeps.mainRuntimeServiceConfigBuilderService,
             "mainRuntimeServiceConfigBuilderService"
@@ -73,44 +82,48 @@
         );
 
         const timeInputMutationsConfig = buildTimeInputMutationsConfig({
-            deferDynamicCall: safeDeps.deferDynamicCall,
-            getTranslatorRef: safeDeps.getTranslatorRef,
-            getShowToastRef: safeDeps.getShowToastRef,
-            getIsRealtimeState: safeDeps.getIsRealtimeState,
-            isMultiTab: safeDeps.isMultiTab,
-            isMultiRangeStartEditEnabled: safeDeps.isMultiRangeStartEditEnabled,
-            isMultiRangeEndEditEnabled: safeDeps.isMultiRangeEndEditEnabled,
-            ensureMultiRangeState: safeDeps.ensureMultiRangeState,
-            getPatchedMultiRangesState: safeDeps.getPatchedMultiRangesState,
-            getMultiRangeSlotDate: safeDeps.getMultiRangeSlotDate,
-            setMultiRangeSlotDate: safeDeps.setMultiRangeSlotDate,
-            syncFollowingRangesByDuration: safeDeps.syncFollowingRangesByDuration,
-            syncMultiRangeStartLinks: safeDeps.syncMultiRangeStartLinks,
-            parseDateTimeParts: safeDeps.parseDateTimeParts,
-            getCurrentGroupZones: safeDeps.getCurrentGroupZones,
-            getCustomOffsetMinutes: safeDeps.getCustomOffsetMinutes,
-            getFixedOffsetForDisplayAtDate: safeDeps.getFixedOffsetForDisplayAtDate,
-            getTimezoneOffset: safeDeps.getTimezoneOffset,
-            resolveLocalDatePartsViaTimeService: safeDeps.resolveLocalDatePartsViaTimeService,
-            buildStrictUtcDateFromPartsViaCore: safeDeps.buildStrictUtcDateFromPartsViaCore,
-            getGlobalTimeState: safeDeps.getGlobalTimeState,
-            setGlobalTimeValue: safeDeps.setGlobalTimeValue,
-            getUpdateClocksRef: safeDeps.getUpdateClocksRef,
-            getRenderListRef: safeDeps.getRenderListRef,
-            renderMultiRangesSafely: safeDeps.renderMultiRangesSafely,
-            getSavePersistenceSafelyRef: safeDeps.getSavePersistenceSafelyRef
+            ...pickDeps([
+                "deferDynamicCall",
+                "getTranslatorRef",
+                "getShowToastRef",
+                "getIsRealtimeState",
+                "isMultiTab",
+                "isMultiRangeStartEditEnabled",
+                "isMultiRangeEndEditEnabled",
+                "ensureMultiRangeState",
+                "getPatchedMultiRangesState",
+                "getMultiRangeSlotDate",
+                "setMultiRangeSlotDate",
+                "syncFollowingRangesByDuration",
+                "syncMultiRangeStartLinks",
+                "parseDateTimeParts",
+                "getCurrentGroupZones",
+                "getCustomOffsetMinutes",
+                "getFixedOffsetForDisplayAtDate",
+                "getTimezoneOffset",
+                "resolveLocalDatePartsViaTimeService",
+                "buildStrictUtcDateFromPartsViaCore",
+                "getGlobalTimeState",
+                "setGlobalTimeValue",
+                "getUpdateClocksRef",
+                "getRenderListRef",
+                "renderMultiRangesSafely",
+                "getSavePersistenceSafelyRef",
+            ]),
         });
         const timeInputMutationsService = createTimeInputMutationsService(timeInputMutationsConfig);
 
         const mainRowOrderConfig = buildMainRowOrderConfig({
-            requestUiFrame: safeDeps.requestUiFrame,
-            cancelUiFrame: safeDeps.cancelUiFrame,
-            getGroupsStateSnapshot: safeDeps.getGroupsStateSnapshot,
-            getPatchedActiveGroupIdState: safeDeps.getPatchedActiveGroupIdState,
-            getCurrentGroupBaseTimezoneId: safeDeps.getCurrentGroupBaseTimezoneId,
-            getPersistenceServiceRef: safeDeps.getPersistenceServiceRef,
-            getDocumentRefOrNull: safeDeps.getDocumentRefOrNull,
-            NodeCtor: safeDeps.NodeCtor
+            ...pickDeps([
+                "requestUiFrame",
+                "cancelUiFrame",
+                "getGroupsStateSnapshot",
+                "getPatchedActiveGroupIdState",
+                "getCurrentGroupBaseTimezoneId",
+                "getPersistenceServiceRef",
+                "getDocumentRefOrNull",
+                "NodeCtor",
+            ]),
         });
         const mainRowOrderServices = createMainRowOrderServices(mainRowOrderConfig);
         const {
@@ -124,62 +137,70 @@
         } = mainRowOrderServices;
 
         const mainRowViewConfig = buildMainRowViewConfig({
-            rowViewCache: safeDeps.rowViewCache,
-            MAX_RUNTIME_CACHE_SIZE: safeDeps.MAX_RUNTIME_CACHE_SIZE,
-            getDocumentRefOrNull: safeDeps.getDocumentRefOrNull,
-            getSnapshotFormatServiceRef: safeDeps.getSnapshotFormatServiceRef,
-            getGlobalTimeState: safeDeps.getGlobalTimeState,
-            getZoneDisplayName: safeDeps.getZoneDisplayName,
-            getZoneDisplayNameForUiAtDate: safeDeps.getZoneDisplayNameForUiAtDate,
-            getPatchedCurrentLangState: safeDeps.getPatchedCurrentLangState,
-            getI18nDataRef: safeDeps.getI18nDataRef,
-            getIsRealtimeState: safeDeps.getIsRealtimeState,
-            getPatchedSlotCountState: safeDeps.getPatchedSlotCountState,
-            normalizeDayNightMarker: safeDeps.normalizeDayNightMarker,
-            getDayNightGlyph: safeDeps.getDayNightGlyph,
-            gtvT: safeDeps.gtvT
+            ...pickDeps([
+                "rowViewCache",
+                "MAX_RUNTIME_CACHE_SIZE",
+                "getDocumentRefOrNull",
+                "getSnapshotFormatServiceRef",
+                "getGlobalTimeState",
+                "getZoneDisplayName",
+                "getZoneDisplayNameForUiAtDate",
+                "getPatchedCurrentLangState",
+                "getI18nDataRef",
+                "getIsRealtimeState",
+                "getPatchedSlotCountState",
+                "normalizeDayNightMarker",
+                "getDayNightGlyph",
+                "gtvT",
+            ]),
         });
         const mainRowViewServices = createMainRowViewServices(mainRowViewConfig);
         const { updateRow } = mainRowViewServices;
 
         const tableRenderConfig = buildTableRenderConfig({
-            gtvT: safeDeps.gtvT,
-            sanitizeCopyFormatOrder: safeDeps.sanitizeCopyFormatOrder,
-            getPatchedDisplayFormatOrderState: safeDeps.getPatchedDisplayFormatOrderState,
-            getPatchedDisplayFormatEnabledState: safeDeps.getPatchedDisplayFormatEnabledState,
-            getPatchedDisplayTimePartsEnabledState: safeDeps.getPatchedDisplayTimePartsEnabledState,
-            getIsRealtimeState: safeDeps.getIsRealtimeState,
-            getPatchedSlotCountState: safeDeps.getPatchedSlotCountState,
-            isMultiTab: safeDeps.isMultiTab,
-            renderMultiRangesSafely: safeDeps.renderMultiRangesSafely,
-            getBaseTimezoneRef: safeDeps.getBaseTimezoneRef,
-            getGlobalTimeState: safeDeps.getGlobalTimeState,
-            escapeHtmlViaSharedUtils: safeDeps.escapeHtmlViaSharedUtils,
-            getZoneDisplayName: safeDeps.getZoneDisplayName,
-            getZoneDisplayNameForUiAtDate: safeDeps.getZoneDisplayNameForUiAtDate,
-            removeTimezone: safeDeps.removeTimezone,
-            handleTimeChange: safeDeps.handleTimeChange,
+            ...pickDeps([
+                "gtvT",
+                "sanitizeCopyFormatOrder",
+                "getPatchedDisplayFormatOrderState",
+                "getPatchedDisplayFormatEnabledState",
+                "getPatchedDisplayTimePartsEnabledState",
+                "getIsRealtimeState",
+                "getPatchedSlotCountState",
+                "isMultiTab",
+                "renderMultiRangesSafely",
+                "getBaseTimezoneRef",
+                "getGlobalTimeState",
+                "escapeHtmlViaSharedUtils",
+                "getZoneDisplayName",
+                "getZoneDisplayNameForUiAtDate",
+                "removeTimezone",
+                "handleTimeChange",
+            ]),
             saveOrder,
-            getCurrentGroupZones: safeDeps.getCurrentGroupZones,
-            isCurrentGroupUtcRowVisible: safeDeps.isCurrentGroupUtcRowVisible,
-            getCurrentGroupUtcRowOrder: safeDeps.getCurrentGroupUtcRowOrder,
-            getUTCRef: safeDeps.getUTCRef,
-            renderBaseTimeSelect: safeDeps.renderBaseTimeSelect,
-            updateTimeAdjustPanelSafely: safeDeps.updateTimeAdjustPanelSafely,
-            deferDynamicCall: safeDeps.deferDynamicCall,
-            getUpdateClocksRef: safeDeps.getUpdateClocksRef,
-            hideFloatingTooltip: safeDeps.hideFloatingTooltip,
-            upgradeNativeTitleTooltips: safeDeps.upgradeNativeTitleTooltips,
-            createDragGhostFromRow: safeDeps.createDragGhostFromRow,
-            clearDragGhost: safeDeps.clearDragGhost,
-            bindFacadeMethod: safeDeps.bindFacadeMethod,
-            getCopyActionsServiceRef: safeDeps.getCopyActionsServiceRef
+            ...pickDeps([
+                "getCurrentGroupZones",
+                "isCurrentGroupUtcRowVisible",
+                "getCurrentGroupUtcRowOrder",
+                "getUTCRef",
+                "renderBaseTimeSelect",
+                "updateTimeAdjustPanelSafely",
+                "deferDynamicCall",
+                "getUpdateClocksRef",
+                "hideFloatingTooltip",
+                "upgradeNativeTitleTooltips",
+                "createDragGhostFromRow",
+                "clearDragGhost",
+                "bindFacadeMethod",
+                "getCopyActionsServiceRef",
+            ]),
         });
         const tableRenderService = createTableRenderService(tableRenderConfig);
 
         const mainImageExportBridgeProxyConfig = buildMainImageExportBridgeProxyConfig({
-            getImageExportBridgeServiceRef: safeDeps.getImageExportBridgeServiceRef,
-            createDefaultTableExportContext: safeDeps.createDefaultTableExportContext
+            ...pickDeps([
+                "getImageExportBridgeServiceRef",
+                "createDefaultTableExportContext",
+            ]),
         });
         const mainImageExportBridgeProxy = createMainImageExportBridgeProxy(mainImageExportBridgeProxyConfig);
         const {
@@ -207,29 +228,35 @@
         } = mainImageExportBridgeProxy;
 
         const mainImageRuntimeServicesConfig = buildMainImageRuntimeServicesConfig({
-            GTV_IMAGE_CLONE: safeDeps.GTV_IMAGE_CLONE,
-            GTV_IMAGE_FOREIGN_RENDER: safeDeps.GTV_IMAGE_FOREIGN_RENDER,
-            GTV_IMAGE_EXPORT_BRIDGE: safeDeps.GTV_IMAGE_EXPORT_BRIDGE,
-            GTV_TABLE_IMAGE_RENDER: safeDeps.GTV_TABLE_IMAGE_RENDER,
-            GTV_MULTI_RANGE_IMAGE_RENDER: safeDeps.GTV_MULTI_RANGE_IMAGE_RENDER,
-            TABLE_IMAGE_EXPORT_WIDTH: safeDeps.TABLE_IMAGE_EXPORT_WIDTH,
-            EXPORT_MONO_FONT_FAMILY: safeDeps.EXPORT_MONO_FONT_FAMILY,
-            getDocumentRefOrNull: safeDeps.getDocumentRefOrNull,
-            getCanUseForeignObjectRendererRef: safeDeps.getCanUseForeignObjectRendererRef,
-            setCanUseForeignObjectRenderer: safeDeps.setCanUseForeignObjectRenderer,
-            getImageExportActionsServiceRef: safeDeps.getImageExportActionsServiceRef,
-            createDefaultTableExportContext: safeDeps.createDefaultTableExportContext,
-            isFixedTimeTab: safeDeps.isFixedTimeTab,
+            ...pickDeps([
+                "GTV_IMAGE_CLONE",
+                "GTV_IMAGE_FOREIGN_RENDER",
+                "GTV_IMAGE_EXPORT_BRIDGE",
+                "GTV_TABLE_IMAGE_RENDER",
+                "GTV_MULTI_RANGE_IMAGE_RENDER",
+                "TABLE_IMAGE_EXPORT_WIDTH",
+                "EXPORT_MONO_FONT_FAMILY",
+                "getDocumentRefOrNull",
+                "getCanUseForeignObjectRendererRef",
+                "setCanUseForeignObjectRenderer",
+                "getImageExportActionsServiceRef",
+                "createDefaultTableExportContext",
+                "isFixedTimeTab",
+            ]),
             waitForDocumentFontsReady,
-            prepareExportCanvas: safeDeps.prepareExportCanvas,
-            drawExportCellText: safeDeps.drawExportCellText,
+            ...pickDeps([
+                "prepareExportCanvas",
+                "drawExportCellText",
+            ]),
             cloneTableForImageExport,
             renderElementWithForeignObjectToPngDataUrl,
-            gtvT: safeDeps.gtvT,
-            ensureMultiRangeState: safeDeps.ensureMultiRangeState,
-            getBaseTimezoneRef: safeDeps.getBaseTimezoneRef,
-            getPatchedMultiRangesState: safeDeps.getPatchedMultiRangesState,
-            getMultiRangeTitleTextFromRenderService: safeDeps.getMultiRangeTitleTextFromRenderService,
+            ...pickDeps([
+                "gtvT",
+                "ensureMultiRangeState",
+                "getBaseTimezoneRef",
+                "getPatchedMultiRangesState",
+                "getMultiRangeTitleTextFromRenderService",
+            ]),
             cloneMultiRangeBlockForImageExport,
             extractTableCellText
         });

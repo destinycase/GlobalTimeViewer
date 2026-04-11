@@ -30,13 +30,22 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getDefaultTableExportContext: toSafeCallable("getDefaultTableExportContext", safeDeps.getDefaultTableExportContext),
-            getImageCloneService: toSafeCallable("getImageCloneService", safeDeps.getImageCloneService),
-            getImageForeignRenderService: toSafeCallable("getImageForeignRenderService", safeDeps.getImageForeignRenderService),
-            getTableImageRenderService: toSafeCallable("getTableImageRenderService", safeDeps.getTableImageRenderService),
-            getMultiRangeImageRenderService: toSafeCallable("getMultiRangeImageRenderService", safeDeps.getMultiRangeImageRenderService),
-            getImageExportActionsService: toSafeCallable("getImageExportActionsService", safeDeps.getImageExportActionsService)
+            ...pickSafeCallables([
+                "getDefaultTableExportContext",
+                "getImageCloneService",
+                "getImageForeignRenderService",
+                "getTableImageRenderService",
+                "getMultiRangeImageRenderService",
+                "getImageExportActionsService"
+            ])
         });
 
         function getServiceFromDep(getter) {

@@ -18,7 +18,7 @@
     const LEGACY_STORAGE_FALLBACK_KEYS = Object.freeze(LEGACY_STORAGE_KEYS.slice(0, 3));
 
     const APP_CONFIG = Object.freeze({
-        VERSION: "3.12.4",
+        VERSION: "3.12.5",
         STORAGE_KEY: "GTV_v324_Data",
         THEME_STORAGE_KEY: "GTV_Theme",
         LANG_STORAGE_KEY: "GTV_Lang",

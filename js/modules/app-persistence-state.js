@@ -59,15 +59,24 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getState: toSafeCallable("getState", safeDeps.getState),
-            syncActiveFormatProfileFromState: toSafeCallable("syncActiveFormatProfileFromState", safeDeps.syncActiveFormatProfileFromState),
-            setState: toSafeCallable("setState", safeDeps.setState),
-            setIsRealtimeState: toSafeCallable("setIsRealtimeState", safeDeps.setIsRealtimeState),
-            ensureFormatProfiles: toSafeCallable("ensureFormatProfiles", safeDeps.ensureFormatProfiles),
-            getCurrentFormatProfileState: toSafeCallable("getCurrentFormatProfileState", safeDeps.getCurrentFormatProfileState),
-            resolveFormatProfileContext: toSafeCallable("resolveFormatProfileContext", safeDeps.resolveFormatProfileContext),
-            applyFormatProfileState: toSafeCallable("applyFormatProfileState", safeDeps.applyFormatProfileState)
+            ...pickSafeCallables([
+                "getState",
+                "syncActiveFormatProfileFromState",
+                "setState",
+                "setIsRealtimeState",
+                "ensureFormatProfiles",
+                "getCurrentFormatProfileState",
+                "resolveFormatProfileContext",
+                "applyFormatProfileState"
+            ])
         });
 
         function getCurrentState() {

@@ -37,9 +37,18 @@
             };
         }
 
+        function pickSafeCallables(keys) {
+            return keys.reduce((acc, key) => {
+                acc[key] = toSafeCallable(key, safeDeps[key]);
+                return acc;
+            }, {});
+        }
+
         const dep = Object.freeze({
-            getCanUseForeignObjectRenderer: toSafeCallable("getCanUseForeignObjectRenderer", safeDeps.getCanUseForeignObjectRenderer),
-            setCanUseForeignObjectRenderer: toSafeCallable("setCanUseForeignObjectRenderer", safeDeps.setCanUseForeignObjectRenderer)
+            ...pickSafeCallables([
+                "getCanUseForeignObjectRenderer",
+                "setCanUseForeignObjectRenderer"
+            ])
         });
 
         function getCachedForeignObjectRendererSupport() {
