@@ -156,7 +156,7 @@ test("getRowFormattedText returns empty text with missing dependencies", () => {
 test("buildTimezoneComputedSnapshotForDates correctly applies custom timezone offset", () => {
     const service = createService(createDepsStub());
     const customTz = { id: "custom1", type: "custom", abbr: "MYTZ" };
-    
+
     const snapshot = service.buildTimezoneComputedSnapshotForDates(customTz, [new Date("2026-01-01T00:00:00Z")]);
 
     expect(snapshot).toBeTruthy();

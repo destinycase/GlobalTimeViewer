@@ -112,7 +112,7 @@ describe("GTV main ui init module", () => {
             addEventListener() { }
         };
         const moduleApi = loadMainUiInitModule({ document: documentStub });
-        
+
         const service = moduleApi.createService({
             getUiSettingsActionsService: () => ({
                 bindTransferControls: () => {},
@@ -156,7 +156,7 @@ describe("GTV main ui init module", () => {
 
     it("attaches events correctly ONLY to elements that exist", () => {
         const attachedEvents = [];
-        
+
         const clickMockNode = {
             dataset: { tab: "live" },
             style: {},
@@ -218,7 +218,7 @@ describe("GTV main ui init module", () => {
         // Should have attached at least to our mocked node
         const clickEvents = attachedEvents.filter(e => e.type === "click" && e.node === "someButton");
         expect(clickEvents.length).toBeGreaterThan(0);
-        
+
         // Execute the handler to ensure it doesn't crash
         expect(() => clickEvents[0].handler({ preventDefault: () => {}, stopPropagation: () => {} })).not.toThrow();
     });

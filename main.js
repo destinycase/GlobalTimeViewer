@@ -17,6 +17,22 @@ const gtvT = (...args) => resolveTranslate()(...args);
 const MAIN_I18N_DATA = (GTV_GLOBAL.I18N_DATA && typeof GTV_GLOBAL.I18N_DATA === "object")
     ? GTV_GLOBAL.I18N_DATA
     : { ko: {}, en: {} };
+const gtvTFormatBridge = (key, vars = {}) => {
+    if (typeof GTV_GLOBAL?.tFormat === "function") {
+        return GTV_GLOBAL.tFormat(key, vars);
+    }
+    const base = String(gtvT(key) ?? key ?? "");
+    return Object.entries(vars || {}).reduce((acc, [name, value]) => {
+        const token = `{${name}}`;
+        return acc.split(token).join(String(value));
+    }, base);
+};
+const gtvApplyTranslationsBridge = (docRef = null) => {
+    if (typeof GTV_GLOBAL?.applyTranslations === "function") {
+        return GTV_GLOBAL.applyTranslations(docRef);
+    }
+    return undefined;
+};
 function getGlobalHostRef() {
     if (GTV_GLOBAL && (typeof GTV_GLOBAL === "object" || typeof GTV_GLOBAL === "function")) {
         return GTV_GLOBAL;
@@ -269,6 +285,27 @@ let persistenceServices = null;
 let persistenceService = null;
 let settingsIoService = null;
 let dataTransferService = null;
+let getSignedInclusiveDaySpan = null;
+let escapeHtmlViaSharedUtils = null;
+let getRenderableTimezoneRowsFromTableRender = null;
+let getMultiDisplayColumnHeaderFromTableRender = null;
+let getTimezoneRefByIdFromSnapshotService = null;
+let normalizeZoneAbbreviationViaSearch = null;
+let getDefaultMultiSubgroupNameViaState = null;
+let sanitizeMultiSubgroupIdViaState = null;
+let getMultiRangeTitleTextFromRenderService = null;
+let buildTimezoneComputedSnapshotForDatesViaSnapshotService = null;
+let formatSnapshotTextViaSnapshotService = null;
+let sanitizeMultiSubgroupNameViaState = null;
+let sanitizeMultiSubgroupNameForExport = null;
+let buildStaticRowCellFromTableRender = null;
+let buildDynamicRowCellFromTableRender = null;
+let getRowFormattedTextViaSnapshotService = null;
+let getRowCopyTextViaSnapshotService = null;
+let applyFirstRangeStartAdjustAction = null;
+let ensureGroupMultiSubgroupsViaState = null;
+let createMultiSubgroupStateViaState = null;
+let sanitizeMultiStatePayloadViaState = null;
 
 const directStateSetters = mainAppStateVarsService.createDirectStateSetters({
     groups: (value) => { groups = value; },
@@ -2048,7 +2085,7 @@ const mainPersistenceCompositionServices = GTV_MAIN_RUNTIME_PERSISTENCE_COMPOSIT
     getTimezoneSearchServiceRef,
     refreshSelectWidths,
     switchMainTab,
-    tFormat,
+    tFormat: gtvTFormatBridge,
     applyVersionBranding,
     getPatchedCurrentThemeState,
     getPatchedCurrentLangState,
@@ -2251,7 +2288,7 @@ const mainRuntimeBootstrapWiringServices = GTV_MAIN_RUNTIME_BOOTSTRAP_WIRING.cre
     applyTheme,
     loadUiScalePreference,
     applyUiScale,
-    applyTranslations,
+    applyTranslations: gtvApplyTranslationsBridge,
     applyVersionBranding,
     bindFacadeMethod,
     getMainUiInitServiceRef,

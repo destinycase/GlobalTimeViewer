@@ -358,12 +358,12 @@ describe("GTV main core service assembly module", () => {
 
     it("throws a TypeError when a required structural dependency factory is completely omitted", () => {
         const moduleApi = loadMainCoreServiceAssemblyModule();
-        
+
         // Provide an empty deps object, which should cause deps.GTV_MAIN_SERVICE_METHOD_BRIDGE.createService to throw
         expect(() => {
             moduleApi.createService({});
         }).toThrow(/Cannot read properties of undefined/);
-        
+
         // Provide partial deps but missing one in the middle (e.g., GTV_MAIN_FORMAT_PROFILE_FACADE)
         const makeApi = (name) => ({ createService: () => ({ name }) });
         const partialDeps = {
@@ -449,7 +449,7 @@ describe("GTV main core service assembly module", () => {
 
         // When creating, the priority logic should inject getRuntimeCurrentLangState into tzRuntime
         moduleApi.createService(mockDeps);
-        
+
         // Execute the bound function inside tzRuntime to verify it calls the runtime version
         const boundLangFn = calls.tzRuntime.getCurrentLang;
         expect(boundLangFn()).toBe("ko");
