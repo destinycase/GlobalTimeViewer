@@ -52,6 +52,18 @@
 
         function adjustSelectWidthForContent(select, minWidth = 0) {
             if (!select) return;
+            const fixedWidth = parseInt(select.dataset?.fixedWidth || "", 10);
+            if (Number.isFinite(fixedWidth) && fixedWidth > 0) {
+                if (select.style) {
+                    select.style.width = `${fixedWidth}px`;
+                    select.style.minWidth = `${fixedWidth}px`;
+                    select.style.maxWidth = `${fixedWidth}px`;
+                }
+                if (select.dataset) {
+                    select.dataset.minWidth = String(fixedWidth);
+                }
+                return;
+            }
 
             const documentRef = getDocumentRef();
             if (!documentRef || typeof documentRef.createElement !== "function") return;

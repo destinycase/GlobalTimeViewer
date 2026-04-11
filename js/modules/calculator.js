@@ -458,6 +458,24 @@
         return `${padFn(days)}${daySuffix} ${padFn(hours)}:${padFn(minutes)}:${padFn(seconds)}`;
     }
 
+    function isElementDisplayNone(element) {
+        if (!element || typeof element !== "object") return true;
+        const inlineDisplay = (typeof element?.style?.display === "string")
+            ? element.style.display.trim()
+            : "";
+        if (inlineDisplay) return inlineDisplay === "none";
+        if (element?.classList && typeof element.classList.contains === "function" && element.classList.contains("is-hidden")) {
+            return true;
+        }
+        if (typeof globalObj?.getComputedStyle === "function") {
+            const computedDisplay = globalObj.getComputedStyle(element)?.display;
+            if (typeof computedDisplay === "string" && computedDisplay.trim()) {
+                return computedDisplay === "none";
+            }
+        }
+        return false;
+    }
+
     function renderCountdownSlot(slotIdx, refs, countdownState, t, helpers, runtime = {}, options) {
         const { syncMeta = false } = (options && typeof options === "object") ? options : {};
         const datePickerCtor = (typeof runtime.datePickerCtor === "function") ? runtime.datePickerCtor : null;
@@ -477,7 +495,7 @@
                 slot.name = buildCountdownDefaultName(slotIdx, t);
             }
             nameBtn.textContent = slot.name;
-            if (nameInput.style.display === "none") {
+            if (isElementDisplayNone(nameInput)) {
                 nameInput.value = slot.name;
             }
 
@@ -580,7 +598,7 @@
             const targetInput = targetInputs[i];
 
             const closeNameEditor = (commit) => {
-                if (nameInput.style.display === "none") return;
+                if (isElementDisplayNone(nameInput)) return;
                 if (commit) {
                     const trimmed = String(nameInput.value || "").trim();
                     if (!trimmed) {

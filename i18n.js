@@ -89,6 +89,7 @@ const EN_I18N = {
 
     th_tz_abbr: "Timezone",
     th_order: "Order",
+    label_base_order: "Base",
     th_region: "Name",
     th_utc_offset: "UTC",
     th_copy: "Copy",
@@ -342,6 +343,7 @@ const KO_OVERRIDES = {
 
     th_tz_abbr: "시간대",
     th_order: "순서",
+    label_base_order: "기준",
     th_region: "이름",
     th_copy: "복사",
     th_remove: "제거",

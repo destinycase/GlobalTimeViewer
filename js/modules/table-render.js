@@ -464,7 +464,7 @@
             const baseRow = doc.createElement("tr");
             baseRow.className = "time-row static base-row";
             baseRow.id = `tz-row-${baseRef.id}`;
-            let baseInner = `<td class="move-cell"><span class="drag-spacer" aria-hidden="true"></span></td>`;
+            let baseInner = `<td class="move-cell"><span class="base-order-label">${translate("label_base_order")}</span></td>`;
             displayColumns.forEach((colKey) => {
                 baseInner += buildStaticRowCell(colKey, effectiveSlotCount, baseRefName);
             });

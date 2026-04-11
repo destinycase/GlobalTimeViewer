@@ -127,8 +127,20 @@
         }
 
         function getElementDisplay(el) {
-            const display = el?.style?.display;
-            return (typeof display === "string") ? display : "";
+            if (!el || typeof el !== "object") return "";
+            const inlineDisplay = el?.style?.display;
+            if (typeof inlineDisplay === "string" && inlineDisplay.trim()) {
+                return inlineDisplay;
+            }
+            if (el?.classList && typeof el.classList.contains === "function" && el.classList.contains("is-hidden")) {
+                return "none";
+            }
+            if (typeof globalObj?.getComputedStyle === "function") {
+                const computed = globalObj.getComputedStyle(el);
+                const computedDisplay = computed?.display;
+                return (typeof computedDisplay === "string") ? computedDisplay : "";
+            }
+            return "";
         }
 
         function setElementDisplay(el, value) {

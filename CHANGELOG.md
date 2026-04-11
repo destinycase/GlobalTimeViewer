@@ -1,5 +1,10 @@
 # 변경 이력
 
+## [3.12.6] - 2026-04-11
+### 변경됨
+- 버전 메타데이터를 `3.12.6`으로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`)
+- 시간대 테이블의 기준 시간 행에서 순서 셀에 `기준` 라벨이 표시되도록 개선했습니다.
+
 ## [3.12.5] - 2026-04-11
 ### 변경됨
 - 버전 메타데이터를 `3.12.5`로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`)
