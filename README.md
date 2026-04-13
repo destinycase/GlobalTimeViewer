@@ -1,4 +1,4 @@
-# Global Time Viewer v3.12.6
+# Global Time Viewer v3.12.7
 
 ## 프로젝트 개요
 Global Time Viewer는 여러 시간대를 빠르게 비교하고, 시간 조정/기간 계산/복사/이미지 저장을 지원하는 브라우저 기반 도구입니다.

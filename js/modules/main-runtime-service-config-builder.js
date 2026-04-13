@@ -727,7 +727,13 @@
                 ...pickAliasedDeps(d, {
                     "isShowCopyFormat": "getPatchedShowCopyFormatState",
                     "getDisplayFormatOrder": "getPatchedDisplayFormatOrderState",
+                    "getActiveFormatProfileContext": "getPatchedActiveFormatProfileContextState",
                 }),
+                ...pickDeps(d,
+                    "patchAppState",
+                    "sanitizeCopyFormatOrderForContext",
+                    "syncActiveFormatProfileFromState"
+                ),
                 setDisplayFormatOrder: createContextStateSetter(
                     d,
                     "displayFormatOrder",
@@ -786,6 +792,7 @@
                 ),
                 ...pickAliasedDeps(d, {
                     "getSlotCount": "getPatchedSlotCountState",
+                    "getShowCopyFormat": "getPatchedShowCopyFormatState",
                     "getShowTimeline": "getPatchedShowTimelineState",
                     "getIsRealtime": "getIsRealtimeState",
                     "setIsRealtime": "setIsRealtimeState",
@@ -821,7 +828,6 @@
                     "updateTimeAdjustPanel": "updateTimeAdjustPanelSafely",
                 }),
                 ...pickDeps(d,
-                    "syncActiveFormatProfileFromState",
                     "resolveFormatProfileContext",
                 ),
                 ...pickDeps(d, "activateFormatProfileContext")

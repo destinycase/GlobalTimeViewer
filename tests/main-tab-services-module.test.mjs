@@ -59,6 +59,10 @@ describe("GTV main tab services module", () => {
         let renderCopyFormatControlsCalled = 0;
         let switchMainTabCalls = 0;
         let refreshDividerCalls = 0;
+        const patchAppState = () => {};
+        const getActiveFormatProfileContext = () => "live";
+        const sanitizeCopyFormatOrderForContext = (order) => order;
+        const syncActiveFormatProfileFromState = () => {};
 
         const services = moduleApi.createService({
             GTV_FORMAT_CONTROLS: {
@@ -93,13 +97,21 @@ describe("GTV main tab services module", () => {
             },
             t: (key) => key,
             savePersistence: () => {},
-            renderList: () => {}
+            renderList: () => {},
+            patchAppState,
+            getActiveFormatProfileContext,
+            sanitizeCopyFormatOrderForContext,
+            syncActiveFormatProfileFromState
         });
 
         expect(services.formatControlsService.id).toBe("format-controls");
         expect(services.tabUiService.id).toBe("tab-ui");
         expect(services.tabOrchestratorService.id).toBe("tab-orchestrator");
         expect(typeof formatConfig.renderList).toBe("function");
+        expect(formatConfig.patchAppState).toBe(patchAppState);
+        expect(formatConfig.getActiveFormatProfileContext).toBe(getActiveFormatProfileContext);
+        expect(formatConfig.sanitizeCopyFormatOrderForContext).toBe(sanitizeCopyFormatOrderForContext);
+        expect(formatConfig.syncActiveFormatProfileFromState).toBe(syncActiveFormatProfileFromState);
 
         tabUiConfig.renderCopyFormatControls();
         expect(renderCopyFormatControlsCalled).toBe(1);

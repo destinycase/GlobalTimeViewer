@@ -285,7 +285,6 @@ td {
 .sm-btn:hover,
 .icon-btn:hover {
     background: var(--btn-secondary-hover);
-    transform: translateY(-1px);
     box-shadow:
         0 4px 8px rgba(0, 0, 0, 0.15),
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
@@ -532,6 +531,34 @@ td {
     box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
+/* Keep focused controls stable (no lift animation while focused). */
+:where(
+    button,
+    .sm-btn,
+    .icon-btn,
+    .off-btn,
+    .form-input,
+    .form-select,
+    .time-input,
+    .nav-item,
+    .group-tab,
+    .multi-subgroup-tab
+):focus,
+:where(
+    button,
+    .sm-btn,
+    .icon-btn,
+    .off-btn,
+    .form-input,
+    .form-select,
+    .time-input,
+    .nav-item,
+    .group-tab,
+    .multi-subgroup-tab
+):focus-visible {
+    transform: none !important;
+}
+
 /* Hide Spinners (Arrows) in Number Inputs */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -578,6 +605,8 @@ input[type=number] {
     flex-wrap: wrap;
     gap: 15px;
     align-items: stretch;
+    position: relative;
+    z-index: 20;
     background: var(--panel-bg);
     padding: 15px;
     border-radius: 12px;
@@ -1631,7 +1660,6 @@ input[type=number] {
 }
 
 .group-tab:hover {
-    transform: translateY(-3px);
     background: var(--btn-secondary-hover);
     border-color: rgba(56, 189, 248, 0.4);
     color: var(--text);
@@ -1726,7 +1754,6 @@ input[type=number] {
 }
 
 .multi-subgroup-tab:hover {
-    transform: translateY(-1px);
     background: var(--btn-secondary-hover);
     border-color: rgba(56, 189, 248, 0.35);
     color: var(--text);
@@ -2182,7 +2209,6 @@ input[type=number] {
 }
 
 .multi-range-block:hover {
-    transform: translateY(-2px);
     box-shadow:
         0 10px 15px -3px rgba(0, 0, 0, 0.1),
         0 4px 6px -2px rgba(0, 0, 0, 0.05),
@@ -2744,7 +2770,6 @@ input[type=number] {
 }
 
 .calc-card:hover {
-    transform: translateY(-4px);
     box-shadow:
         0 12px 20px -5px rgba(0, 0, 0, 0.15),
         0 8px 10px -5px rgba(0, 0, 0, 0.08),

@@ -95,7 +95,11 @@
                 "setCopyFormatOrder",
                 "getCopyTimePartsEnabled",
                 "setCopyTimePartsEnabled",
-                "upgradeNativeTitleTooltips"
+                "upgradeNativeTitleTooltips",
+                "patchAppState",
+                "getActiveFormatProfileContext",
+                "sanitizeCopyFormatOrderForContext",
+                "syncActiveFormatProfileFromState"
             ])
         });
 
@@ -119,6 +123,44 @@
             const activeKeys = dep.getActiveTimePartKeys();
             if (Array.isArray(activeKeys) && activeKeys.length) return activeKeys;
             return Array.isArray(safeDeps.TIME_PART_KEYS) ? safeDeps.TIME_PART_KEYS : [];
+        }
+
+        function toOrderArray(order) {
+            return Array.isArray(order)
+                ? order.filter((key) => typeof key === "string" && key)
+                : [];
+        }
+
+        function normalizeOrderForContext(nextOrder) {
+            const rawOrder = toOrderArray(nextOrder);
+            const sanitizedOrder = toOrderArray(dep.sanitizeCopyFormatOrder(nextOrder));
+            const baseOrder = sanitizedOrder.length ? sanitizedOrder : rawOrder;
+            const context = dep.getActiveFormatProfileContext();
+            const contextualOrder = toOrderArray(dep.sanitizeCopyFormatOrderForContext(baseOrder, context));
+            if (contextualOrder.length) return contextualOrder;
+            return baseOrder;
+        }
+
+        function isSameOrder(a, b) {
+            const left = toOrderArray(a);
+            const right = toOrderArray(b);
+            if (left.length !== right.length) return false;
+            for (let i = 0; i < left.length; i += 1) {
+                if (left[i] !== right[i]) return false;
+            }
+            return true;
+        }
+
+        function applyOrderWithFallback(stateKey, nextOrder, setterFn, getterFn) {
+            const safeOrder = normalizeOrderForContext(nextOrder);
+            setterFn(safeOrder);
+
+            const updatedOrder = toOrderArray(getterFn());
+            if (isSameOrder(updatedOrder, safeOrder)) return safeOrder;
+
+            dep.patchAppState({ [stateKey]: safeOrder });
+            dep.syncActiveFormatProfileFromState();
+            return safeOrder;
         }
 
         function isElementLike(el) {
@@ -299,8 +341,71 @@
             const doc = getDocumentRef();
             const safeOrder = Array.isArray(order) ? order : [];
             const safeEnabled = (enabled && typeof enabled === "object") ? enabled : {};
-            const { onToggle, onReorder, timePartsEnabled, onTimePartToggle } = options;
+            const { onToggle, onReorder, onReorderPreview, timePartsEnabled, onTimePartToggle } = options;
             if (!isElementLike(list) || !doc || typeof doc.createElement !== "function") return;
+            let didCommitReorderOnDrop = false;
+            let lastPreviewOrderSignature = "";
+
+            function collectCurrentOrder() {
+                if (typeof list.querySelectorAll !== "function") return [];
+                return Array.from(list.querySelectorAll(".copy-format-item") || [])
+                    .map((el) => el?.dataset?.key)
+                    .filter((value) => typeof value === "string" && value);
+            }
+
+            function getOrderSignature(nextOrder) {
+                return Array.isArray(nextOrder) ? nextOrder.join("\u0001") : "";
+            }
+
+            function previewCurrentOrder() {
+                if (typeof onReorderPreview !== "function") return;
+                const nextOrder = collectCurrentOrder();
+                const signature = getOrderSignature(nextOrder);
+                if (signature === lastPreviewOrderSignature) return;
+                lastPreviewOrderSignature = signature;
+                onReorderPreview(nextOrder);
+            }
+
+            function commitCurrentOrder() {
+                if (typeof onReorder !== "function") return;
+                const nextOrder = collectCurrentOrder();
+                lastPreviewOrderSignature = getOrderSignature(nextOrder);
+                onReorder(nextOrder);
+            }
+
+            function getDropTargetFromEvent(event) {
+                const clientX = Number(event?.clientX);
+                const clientY = Number(event?.clientY);
+                if (Number.isFinite(clientX) && Number.isFinite(clientY)) {
+                    return getCopyFormatDropTarget(list, clientX, clientY);
+                }
+
+                const target = event?.target;
+                if (!target || typeof target.closest !== "function") return null;
+                const candidate = target.closest(".copy-format-item:not(.dragging)");
+                if (!candidate) return null;
+                if (typeof list.contains === "function" && !list.contains(candidate)) return null;
+                return candidate;
+            }
+
+            function moveDraggingItemToDropTarget(event, options = {}) {
+                const { animate = true } = options;
+                const dragging = (typeof list.querySelector === "function")
+                    ? list.querySelector(".copy-format-item.dragging")
+                    : null;
+                if (!dragging) return false;
+
+                const after = getDropTargetFromEvent(event);
+                if (after === dragging || dragging.nextElementSibling === after) return false;
+
+                if (typeof list.insertBefore !== "function") return false;
+                const beforeRects = animate ? captureCopyFormatItemRects(list) : null;
+                list.insertBefore(dragging, after);
+                if (animate && beforeRects) {
+                    animateCopyFormatReorder(list, beforeRects);
+                }
+                return true;
+            }
 
             bindTimePartsOutsideClickHandler();
             list.textContent = "";
@@ -314,7 +419,7 @@
 
                 const dragHandle = doc.createElement("span");
                 dragHandle.className = "copy-format-drag";
-                dragHandle.textContent = "??떘";
+                dragHandle.textContent = "\u22EE\u22EE";
                 dragHandle.draggable = true;
 
                 const label = doc.createElement("label");
@@ -380,6 +485,8 @@
                 }
 
                 dragHandle.addEventListener("dragstart", (e) => {
+                    didCommitReorderOnDrop = false;
+                    lastPreviewOrderSignature = "";
                     if (item.classList && typeof item.classList.add === "function") item.classList.add("dragging");
                     if (e.dataTransfer) {
                         e.dataTransfer.effectAllowed = "move";
@@ -391,9 +498,10 @@
                 dragHandle.addEventListener("dragend", () => {
                     if (item.classList && typeof item.classList.remove === "function") item.classList.remove("dragging");
                     clearCopyFormatDragGhost();
-                    if (typeof list.querySelectorAll !== "function") return;
-                    const nextOrder = Array.from(list.querySelectorAll(".copy-format-item") || []).map((el) => el?.dataset?.key);
-                    if (typeof onReorder === "function") onReorder(nextOrder);
+                    if (!didCommitReorderOnDrop) {
+                        commitCurrentOrder();
+                    }
+                    didCommitReorderOnDrop = false;
                 });
 
                 list.appendChild(item);
@@ -405,13 +513,8 @@
                     : null;
                 if (!dragging) return;
                 e.preventDefault();
-                const beforeRects = captureCopyFormatItemRects(list);
-                const after = getCopyFormatDropTarget(list, e.clientX, e.clientY);
-                if (after === dragging || dragging.nextElementSibling === after) return;
-                if (typeof list.insertBefore === "function") {
-                    list.insertBefore(dragging, after);
-                    animateCopyFormatReorder(list, beforeRects);
-                }
+                const moved = moveDraggingItemToDropTarget(e, { animate: true });
+                if (moved) previewCurrentOrder();
             };
 
             list.ondrop = (e) => {
@@ -420,7 +523,11 @@
                     : null;
                 if (!dragging) return;
                 e.preventDefault();
+                const moved = moveDraggingItemToDropTarget(e, { animate: false });
                 clearCopyFormatDragGhost();
+                didCommitReorderOnDrop = true;
+                if (moved) previewCurrentOrder();
+                commitCurrentOrder();
             };
         }
 
@@ -457,10 +564,25 @@
                         savePersistenceSafe();
                     },
                     onReorder: (nextOrder) => {
-                        dep.setDisplayFormatOrder(dep.sanitizeCopyFormatOrder(nextOrder));
+                        applyOrderWithFallback(
+                            "displayFormatOrder",
+                            nextOrder,
+                            dep.setDisplayFormatOrder,
+                            dep.getDisplayFormatOrder
+                        );
                         dep.renderList();
                         dep.updateCopyFormatPreview();
                         savePersistenceSafe();
+                    },
+                    onReorderPreview: (nextOrder) => {
+                        applyOrderWithFallback(
+                            "displayFormatOrder",
+                            nextOrder,
+                            dep.setDisplayFormatOrder,
+                            dep.getDisplayFormatOrder
+                        );
+                        dep.renderList();
+                        dep.updateCopyFormatPreview();
                     },
                     timePartsEnabled: dep.getDisplayTimePartsEnabled(),
                     onTimePartToggle: (partKey, checked) => {
@@ -491,9 +613,23 @@
                         savePersistenceSafe();
                     },
                     onReorder: (nextOrder) => {
-                        dep.setCopyFormatOrder(dep.sanitizeCopyFormatOrder(nextOrder));
+                        applyOrderWithFallback(
+                            "copyFormatOrder",
+                            nextOrder,
+                            dep.setCopyFormatOrder,
+                            dep.getCopyFormatOrder
+                        );
                         dep.updateCopyFormatPreview();
                         savePersistenceSafe();
+                    },
+                    onReorderPreview: (nextOrder) => {
+                        applyOrderWithFallback(
+                            "copyFormatOrder",
+                            nextOrder,
+                            dep.setCopyFormatOrder,
+                            dep.getCopyFormatOrder
+                        );
+                        dep.updateCopyFormatPreview();
                     },
                     timePartsEnabled: dep.getCopyTimePartsEnabled(),
                     onTimePartToggle: (partKey, checked) => {

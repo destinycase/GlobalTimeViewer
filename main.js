@@ -1873,6 +1873,7 @@ const mainRuntimeDomainServices = GTV_MAIN_RUNTIME_DOMAIN_SERVICE_BOOTSTRAP.crea
     serviceBootstrap,
     COPY_FORMAT_KEYS,
     TIME_PART_KEYS,
+    sanitizeCopyFormatOrder,
     getRenderListRef,
     getPatchedDisplayFormatOrderState,
     getPatchedActiveFormatProfileContextState,

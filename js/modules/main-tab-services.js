@@ -59,7 +59,11 @@
                 "getCopyTimePartsEnabled",
                 "setCopyTimePartsEnabled",
                 "getActiveCopyFormatKeys",
-                "getActiveTimePartKeys"
+                "getActiveTimePartKeys",
+                "patchAppState",
+                "getActiveFormatProfileContext",
+                "sanitizeCopyFormatOrderForContext",
+                "syncActiveFormatProfileFromState"
             ])
         });
 

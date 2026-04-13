@@ -494,6 +494,8 @@ describe("GTV main runtime service config builder module", () => {
         };
 
         const tabConfig = builder.buildMainTabServicesConfig(deps);
+        expect(tabConfig.getShowCopyFormat()).toBe(false);
+        expect(tabConfig.getShowTimeline()).toBe(false);
         tabConfig.setDisplayFormatOrder(["time"]);
         tabConfig.setDisplayFormatEnabled({ time: false });
         tabConfig.setDisplayTimePartsEnabled({ ampm: false });
