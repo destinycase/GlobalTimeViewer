@@ -55,17 +55,8 @@ describe("GTV main runtime domain service bootstrap module", () => {
         }
     });
 
-    it("builds runtime domain services through builder/core method contracts", () => {
+    it("builds domain services from configs assembled beside their consumers", () => {
         const moduleApi = loadMainRuntimeDomainServiceBootstrapModule();
-
-        const buildMainFixedTimeServicesConfig = vi.fn(() => ({ kind: "fixed-config" }));
-        const buildMainMultiRangeServicesConfig = vi.fn(() => ({ kind: "multi-range-config" }));
-        const buildMainTimeAdjustServicesConfig = vi.fn(() => ({ kind: "time-adjust-config" }));
-        const buildMainTabServicesConfig = vi.fn(() => ({ kind: "tab-config" }));
-        const buildMainGroupStateServicesConfig = vi.fn(() => ({ kind: "group-state-config" }));
-        const buildMainImageExportNamingProxyConfig = vi.fn(() => ({ kind: "image-naming-config" }));
-        const buildMainImageExportServicesConfig = vi.fn(() => ({ kind: "image-export-config" }));
-        const buildMainAppStateServicesConfig = vi.fn(() => ({ kind: "app-state-config" }));
 
         const createMainFixedTimeServices = vi.fn(() => ({
             fixedTimeCoreService: { name: "fixed-core-service" },
@@ -82,77 +73,35 @@ describe("GTV main runtime domain service bootstrap module", () => {
             multiBulkToolsService: { name: "multi-bulk-tools-service" },
             timeAdjustActionsService: { name: "time-adjust-actions-service" }
         }));
-        const createMainTabServices = vi.fn(() => ({
-            formatControlsService: { name: "format-controls-service" },
-            tabUiService: { name: "tab-ui-service" },
-            tabOrchestratorService: { name: "tab-orchestrator-service" }
-        }));
         const createMainGroupStateServices = vi.fn(() => ({
             multiStateService: { name: "multi-state-service" },
             groupStateService: { name: "group-state-service" }
         }));
-        const createMainImageExportNamingProxy = vi.fn(() => ({
-            sanitizeFilenamePart: (value) => value,
-            formatDateTimeByTimezone: () => "formatted",
-            getTimezoneTableImageFilename: () => "timezone.png",
-            getMultiRangeTableImageFilename: () => "multi-range.png",
-            getMultiRangeTitlesImageFilename: () => "multi-range-titles.png"
-        }));
-        const createMainImageExportServices = vi.fn(() => ({
-            imageExportNamingService: { name: "image-export-naming-service" },
-            imageExportActionsService: { name: "image-export-actions-service" }
-        }));
-        const createMainAppStateServices = vi.fn(() => ({
-            appStatePatcherService: { name: "app-state-patcher-service" },
-            appPersistenceStateService: { name: "app-persistence-state-service" }
-        }));
 
+        const showToast = vi.fn((message) => `toast:${message}`);
+        const groups = () => [{ id: "group-1" }];
         const service = moduleApi.createService({
-            mainRuntimeServiceConfigBuilderService: {
-                buildMainFixedTimeServicesConfig,
-                buildMainMultiRangeServicesConfig,
-                buildMainTimeAdjustServicesConfig,
-                buildMainTabServicesConfig,
-                buildMainGroupStateServicesConfig,
-                buildMainImageExportNamingProxyConfig,
-                buildMainImageExportServicesConfig,
-                buildMainAppStateServicesConfig
-            },
+            gtvT: (key) => `tx:${key}`,
+            deferDynamicCall: (getter) => (...args) => getter()(...args),
+            getShowToastRef: () => showToast,
+            getGroupsStateSnapshot: groups,
             mainCoreServices: {
                 createMainFixedTimeServices,
                 createMainMultiRangeServices,
                 createMainTimeAdjustServices,
-                createMainTabServices,
-                createMainGroupStateServices,
-                createMainImageExportNamingProxy,
-                createMainImageExportServices,
-                createMainAppStateServices
+                createMainGroupStateServices
             }
         });
 
-        expect(buildMainFixedTimeServicesConfig).toHaveBeenCalledTimes(1);
-        expect(buildMainMultiRangeServicesConfig).toHaveBeenCalledTimes(1);
-        expect(buildMainTimeAdjustServicesConfig).toHaveBeenCalledTimes(1);
-        expect(buildMainTabServicesConfig).toHaveBeenCalledTimes(1);
-        expect(buildMainGroupStateServicesConfig).toHaveBeenCalledTimes(1);
-        expect(buildMainImageExportNamingProxyConfig).toHaveBeenCalledTimes(1);
-        expect(buildMainImageExportServicesConfig).toHaveBeenCalledTimes(1);
-        expect(buildMainAppStateServicesConfig).toHaveBeenCalledTimes(1);
-
-        expect(createMainFixedTimeServices).toHaveBeenCalledWith({ kind: "fixed-config" });
-        expect(createMainMultiRangeServices).toHaveBeenCalledWith({ kind: "multi-range-config" });
-        expect(createMainTimeAdjustServices).toHaveBeenCalledWith({ kind: "time-adjust-config" });
-        expect(createMainTabServices).toHaveBeenCalledWith({ kind: "tab-config" });
-        expect(createMainGroupStateServices).toHaveBeenCalledWith({ kind: "group-state-config" });
-        expect(createMainImageExportNamingProxy).toHaveBeenCalledWith({ kind: "image-naming-config" });
-        expect(createMainImageExportServices).toHaveBeenCalledWith({ kind: "image-export-config" });
-        expect(createMainAppStateServices).toHaveBeenCalledWith({ kind: "app-state-config" });
+        expect(createMainFixedTimeServices.mock.calls[0][0].t("hello")).toBe("tx:hello");
+        expect(createMainFixedTimeServices.mock.calls[0][0].showToast("hello")).toBe("toast:hello");
+        expect(showToast).toHaveBeenCalledWith("hello");
+        expect(createMainMultiRangeServices.mock.calls[0][0].t("hello")).toBe("tx:hello");
+        expect(typeof createMainTimeAdjustServices.mock.calls[0][0]).toBe("object");
+        expect(createMainGroupStateServices.mock.calls[0][0].getGroups).toBe(groups);
 
         expect(service.fixedTimeCoreService).toEqual({ name: "fixed-core-service" });
         expect(service.copyActionsService).toEqual({ name: "copy-actions-service" });
-        expect(service.tabOrchestratorService).toEqual({ name: "tab-orchestrator-service" });
-        expect(service.imageExportActionsService).toEqual({ name: "image-export-actions-service" });
-        expect(service.appPersistenceStateService).toEqual({ name: "app-persistence-state-service" });
         expect(Object.isFrozen(service)).toBe(true);
     });
 
@@ -160,13 +109,10 @@ describe("GTV main runtime domain service bootstrap module", () => {
         const moduleApi = loadMainRuntimeDomainServiceBootstrapModule();
 
         expect(() => moduleApi.createService({})).toThrow(
-            "Missing required dependency: mainRuntimeServiceConfigBuilderService"
+            "Missing required dependency: mainCoreServices"
         );
-        expect(() => moduleApi.createService({
-            mainRuntimeServiceConfigBuilderService: {},
-            mainCoreServices: {}
-        })).toThrow(
-            "Missing required dependency: mainRuntimeServiceConfigBuilderService.buildMainFixedTimeServicesConfig"
+        expect(() => moduleApi.createService({ mainCoreServices: {} })).toThrow(
+            "Missing required dependency: mainCoreServices.createMainFixedTimeServices"
         );
     });
 });

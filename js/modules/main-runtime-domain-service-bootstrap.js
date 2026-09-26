@@ -18,52 +18,341 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function pickDeps(depNames = []) {
+        function pickDeps(source, ...depNames) {
+            if (Array.isArray(source)) { depNames = source; source = safeDeps; }
             const resolved = {};
-            depNames.forEach((depName) => {
-                resolved[depName] = safeDeps[depName];
-            });
+            depNames.forEach((depName) => { resolved[depName] = source[depName]; });
             return resolved;
         }
 
-        const mainRuntimeServiceConfigBuilderService = requireObject(
-            safeDeps.mainRuntimeServiceConfigBuilderService,
-            "mainRuntimeServiceConfigBuilderService"
-        );
-        const mainCoreServices = requireObject(safeDeps.mainCoreServices, "mainCoreServices");
+        function resolveDeps(overrides = {}) {
+            return (overrides && typeof overrides === "object") ? overrides : {};
+        }
 
-        const buildMainFixedTimeServicesConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainFixedTimeServicesConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainFixedTimeServicesConfig"
-        );
-        const buildMainMultiRangeServicesConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainMultiRangeServicesConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainMultiRangeServicesConfig"
-        );
-        const buildMainTimeAdjustServicesConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainTimeAdjustServicesConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainTimeAdjustServicesConfig"
-        );
-        const buildMainTabServicesConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainTabServicesConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainTabServicesConfig"
-        );
-        const buildMainGroupStateServicesConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainGroupStateServicesConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainGroupStateServicesConfig"
-        );
-        const buildMainImageExportNamingProxyConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainImageExportNamingProxyConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainImageExportNamingProxyConfig"
-        );
-        const buildMainImageExportServicesConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainImageExportServicesConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainImageExportServicesConfig"
-        );
-        const buildMainAppStateServicesConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainAppStateServicesConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainAppStateServicesConfig"
-        );
+        function pickAliasedDeps(d, aliasMap = {}) {
+            const resolved = {};
+            Object.keys(aliasMap).forEach((targetKey) => { resolved[targetKey] = d[aliasMap[targetKey]]; });
+            return resolved;
+        }
+
+        function deferDynamic(d, getter) {
+            if (typeof d.deferDynamicCall !== "function") return () => undefined;
+            return d.deferDynamicCall(getter);
+        }
+
+        function buildMainFixedTimeServicesConfig(deps = {}) {
+            const d = resolveDeps(deps);
+            return {
+                ...pickDeps(d,
+                    "GTV_FIXED_TIME_CORE",
+                    "GTV_FIXED_TIME_TIMELINE",
+                    "GTV_FIXED_TIME_ACTIONS",
+                    "DEFAULT_FIXED_TIME_VALUE",
+                    "MIN_FIXED_TIME_SLOT_COUNT",
+                    "TIMELINE_TOTAL_SECONDS",
+                ),
+                ...pickAliasedDeps(d, {
+                    "I18N_DATA": "MAIN_I18N_DATA",
+                    "t": "gtvT",
+                    "getCurrentLang": "getPatchedCurrentLangState",
+                }),
+                ...pickDeps(d,
+                    "sanitizeFixedTimeValue",
+                    "getFixedOffsetForDisplayAtDate",
+                    "getLocalPartsByTimezone",
+                    "getUTCDateFromLocalParts",
+                    "pad",
+                    "sanitizeTimePartsEnabledForContext",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getDisplayTimePartsEnabled": "getPatchedDisplayTimePartsEnabledState",
+                }),
+                ...pickDeps(d,
+                    "getDefaultFixedTimeName",
+                    "sanitizeFixedTimeName",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getFixedDateParts": "getFixedDatePartsFromGroup",
+                }),
+                ...pickDeps(d,
+                    "getDayNightMarkerByHour",
+                    "getCurrentGroup",
+                    "ensureGroupFixedTimes",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getGlobalTime": "getGlobalTimeState",
+                }),
+                ...pickDeps(d,
+                    "resolveFixedTimeSlotUtcDate",
+                    "clampNumber",
+                    "getFixedTimeSlotCount",
+                    "sanitizeFixedTimeId",
+                    "getFixedTimeSlotHeaderLabel",
+                    "sanitizeCopyFormatOrderForContext",
+                    "sanitizeCopyFormatEnabledForContext",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getCopyFormatOrder": "getPatchedCopyFormatOrderState",
+                    "getCopyFormatEnabled": "getPatchedCopyFormatEnabledState",
+                    "getCopyTimePartsEnabled": "getPatchedCopyTimePartsEnabledState",
+                    "buildTimezoneComputedSnapshotForDates": "buildTimezoneComputedSnapshotForDatesViaSnapshotService",
+                    "formatSnapshotText": "formatSnapshotTextViaSnapshotService",
+                }),
+                ...pickDeps(d, "getBaseTimezoneRef"),
+                ...pickAliasedDeps(d, {
+                    "getRenderableTimezoneRows": "getRenderableTimezoneRowsFromTableRender",
+                }),
+                ...pickDeps(d, "parseDateTimeParts"),
+                showToast: deferDynamic(d, d.getShowToastRef),
+                ...pickAliasedDeps(d, {
+                    "writeClipboard": "writeClipboardText",
+                }),
+                ...pickDeps(d, "buildFixedTimeDisplayPayloadAtUtc"),
+                renderFixedTimeTab: deferDynamic(d, d.getRenderFixedTimeTabRef),
+                renderTimelineFrame: deferDynamic(d, d.getRenderTimelineFrameRef),
+                savePersistence: deferDynamic(d, d.getSavePersistenceSafelyRef),
+                ...pickDeps(d, "setFixedTimeSlotCount"),
+                refreshFixedTimeSlotCountControls: deferDynamic(d, d.getRefreshFixedTimeSlotCountControlsRef)
+            };
+        }
+
+        function buildMainMultiRangeServicesConfig(deps = {}) {
+            const d = resolveDeps(deps);
+            return {
+                ...pickDeps(d,
+                    "GTV_MULTI_RANGE_RENDER",
+                    "GTV_MULTI_RANGE_COPY",
+                    "GTV_COPY_ACTIONS",
+                ),
+                ...pickAliasedDeps(d, {
+                    "I18N_DATA": "MAIN_I18N_DATA",
+                    "t": "gtvT",
+                    "getCurrentLang": "getPatchedCurrentLangState",
+                }),
+                ...pickDeps(d,
+                    "pad",
+                    "getDayNightMarkerByHour",
+                    "getCustomOffsetMinutes",
+                    "getFixedOffsetForDisplayAtDate",
+                    "normalizeCustomAbbr",
+                    "getZoneAbbreviation",
+                    "getSignedInclusiveDaySpan",
+                    "getSignedDurationDayHourMinute",
+                    "getZoneDisplayName",
+                    "getZoneDisplayNameForUiAtDate",
+                ),
+                ...pickAliasedDeps(d, {
+                    "sanitizeMultiSubgroupName": "sanitizeMultiSubgroupNameViaState",
+                }),
+                ...pickDeps(d,
+                    "getCurrentMultiSubgroupName",
+                    "sanitizeMultiRangeTitle",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getMultiRangeTitle": "getPatchedMultiRangeTitleState",
+                    "buildStaticRowCell": "buildStaticRowCellFromTableRender",
+                    "buildDynamicRowCell": "buildDynamicRowCellFromTableRender",
+                }),
+                ...pickDeps(d,
+                    "isMultiRangeStartEditEnabled",
+                    "isMultiRangeEndEditEnabled",
+                    "handleMultiRangeTimeChange",
+                    "copyMultiRangeRow",
+                    "hideFloatingTooltip",
+                    "ensureMultiRangeState",
+                    "refreshMultiRangeControls",
+                    "renderMultiBulkToolSets",
+                    "getBaseTimezoneRef",
+                ),
+                ...pickAliasedDeps(d, {
+                    "escapeHtml": "escapeHtmlViaSharedUtils",
+                }),
+                ...pickDeps(d, "getDisplayColumns"),
+                ...pickAliasedDeps(d, {
+                    "getRenderableTimezoneRows": "getRenderableTimezoneRowsFromTableRender",
+                    "getMultiRanges": "getPatchedMultiRangesState",
+                    "getMultiRangeCollapsed": "getPatchedMultiRangeCollapsedState",
+                    "getMultiRangeCount": "getPatchedMultiRangeCountState",
+                    "buildTimezoneComputedSnapshotForDates": "buildTimezoneComputedSnapshotForDatesViaSnapshotService",
+                }),
+                ...pickDeps(d,
+                    "saveMultiRangeSingleImage",
+                    "setMultiRangesCollapsedBelow",
+                    "toggleMultiRangeCollapsed",
+                    "renderTimeAdjustSet",
+                    "applyMultiRangeTimeAdjustAction",
+                    "attachTimeAdjustToggleLabel",
+                    "setMultiRangeStartEditEnabled",
+                    "setMultiRangeEndEditEnabled",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getMultiDisplayColumnHeader": "getMultiDisplayColumnHeaderFromTableRender",
+                    "updateTimeAdjustPanel": "updateTimeAdjustPanelSafely",
+                }),
+                ...pickDeps(d,
+                    "updateCopyFormatPreview",
+                    "upgradeNativeTitleTooltips",
+                ),
+                showToast: deferDynamic(d, d.getShowToastRef),
+                ...pickAliasedDeps(d, {
+                    "getTimezoneRefById": "getTimezoneRefByIdFromSnapshotService",
+                }),
+                ...pickDeps(d,
+                    "buildTimezoneComputedSnapshotForRange",
+                    "formatSnapshotText",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getCopyFormatOrder": "getPatchedCopyFormatOrderState",
+                    "getCopyFormatEnabled": "getPatchedCopyFormatEnabledState",
+                    "getCopyTimePartsEnabled": "getPatchedCopyTimePartsEnabledState",
+                    "writeClipboard": "writeClipboardText",
+                    "isShowCopyFormat": "getPatchedShowCopyFormatState",
+                }),
+                ...pickDeps(d,
+                    "isMultiTab",
+                    "isFixedTimeTab",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getRowFormattedText": "getRowFormattedTextViaSnapshotService",
+                    "getRowCopyText": "getRowCopyTextViaSnapshotService",
+                }),
+                ...pickDeps(d,
+                    "getFixedTimePreviewCopyText",
+                    "getAllFixedTimeRowsCopyText",
+                ),
+                ...pickDeps(d, "copyAllMultiRangeTimezones")
+            };
+        }
+
+        function buildMainTimeAdjustServicesConfig(deps = {}) {
+            const d = resolveDeps(deps);
+            return {
+                ...pickDeps(d,
+                    "GTV_TIME_ADJUST_UI",
+                    "GTV_MULTI_BULK_TOOLS",
+                    "GTV_TIME_ADJUST_ACTIONS",
+                    "MIN_TIME_ADJUST_DAY_STEP",
+                    "MAX_TIME_ADJUST_DAY_STEP",
+                    "DEFAULT_TIME_ADJUST_DAY_STEP",
+                ),
+                ...pickAliasedDeps(d, {
+                    "t": "gtvT",
+                    "savePersistence": "savePersistenceSafely",
+                }),
+                ...pickDeps(d, "applyTimeAdjustAction"),
+                ...pickAliasedDeps(d, {
+                    "getCurrentMainTab": "getPatchedMainTabState",
+                    "isRealtime": "getIsRealtimeState",
+                    "getSlotCount": "getPatchedSlotCountState",
+                }),
+                ...pickDeps(d, "getTimeAdjustDayStepValue"),
+                setTimeAdjustDayStepValue: (slotIdx, value) => {
+                    const daySteps = [...(typeof d.getTimeAdjustDayStepBySlotSnapshot === "function"
+                        ? d.getTimeAdjustDayStepBySlotSnapshot()
+                        : [])];
+                    daySteps[slotIdx] = value;
+                    if (typeof d.setTimeAdjustDayStepBySlotState === "function") {
+                        d.setTimeAdjustDayStepBySlotState(daySteps);
+                    }
+                },
+                ...pickDeps(d, "upgradeNativeTitleTooltips"),
+                ...pickAliasedDeps(d, {
+                    "getMultiRangeCount": "getPatchedMultiRangeCountState",
+                }),
+                ...pickDeps(d,
+                    "applyBulkRangeAllAction",
+                    "applyFirstRangeStartAdjustAction",
+                    "setAllMultiRangeStartEditEnabled",
+                    "setAllMultiRangeEndEditEnabled",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getGlobalTimes": "getGlobalTimesState",
+                }),
+                updateClocks: deferDynamic(d, d.getUpdateClocksRef),
+                ...pickDeps(d,
+                    "getBaseTimezoneRef",
+                    "getFixedOffsetForDisplay",
+                    "getFixedOffsetForDisplayAtDate",
+                    "getCustomOffsetMinutes",
+                    "getTimeAdjustDayStep",
+                    "timeService",
+                ),
+                ...pickAliasedDeps(d, {
+                    "sanitizeUtcMs": "sanitizeUtcMsViaTimeCore",
+                }),
+                ...pickDeps(d, "ensureMultiRangeState"),
+                ...pickAliasedDeps(d, {
+                    "getMultiRanges": "getPatchedMultiRangesState",
+                }),
+                ...pickDeps(d,
+                    "isMultiRangeStartLinked",
+                    "isMultiTab",
+                ),
+                ...pickAliasedDeps(d, {
+                    "renderMultiRanges": "renderMultiRangesSafely",
+                    "savePersistenceForce": "savePersistenceSafely",
+                }),
+                ...pickDeps(d,
+                    "isMultiRangeStartEditEnabled",
+                    "isMultiRangeEndEditEnabled",
+                    "syncLinkedRangesFrom",
+                    "getMultiRangeSlotDate",
+                    "setMultiRangeSlotDate",
+                    "syncFollowingRangesByDuration",
+                ),
+                ...pickDeps(d, "syncMultiRangeStartLinks")
+            };
+        }
+
+        function buildMainGroupStateServicesConfig(deps = {}) {
+            const d = resolveDeps(deps);
+            return {
+                ...pickDeps(d,
+                    "GTV_MULTI_STATE",
+                    "serviceBootstrap",
+                    "MIN_MULTI_RANGE_COUNT",
+                ),
+                ...pickAliasedDeps(d, {
+                    "t": "gtvT",
+                    "getGroups": "getGroupsStateSnapshot",
+                }),
+                ...pickDeps(d,
+                    "getDefaultMultiRangeBounds",
+                    "sanitizeMultiRangeCount",
+                    "sanitizeMultiRangeItem",
+                ),
+                ...pickAliasedDeps(d, {
+                    "sanitizeUtcMs": "sanitizeUtcMsViaTimeCore",
+                }),
+                ...pickDeps(d,
+                    "sanitizeTimezoneId",
+                    "createUniqueTimezoneId",
+                    "normalizeCustomAbbr",
+                ),
+                ...pickAliasedDeps(d, {
+                    "normalizeZoneAbbreviation": "normalizeZoneAbbreviationViaSearch",
+                }),
+                ...pickDeps(d, "sanitizeBaseTimezoneId"),
+                ...pickAliasedDeps(d, {
+                    "sanitizeUtcRowOrder": "sanitizeUtcRowOrderViaTimeCore",
+                }),
+                ...pickDeps(d,
+                    "sanitizeFixedTimes",
+                    "sanitizeFixedDateValue",
+                ),
+                ...pickDeps(d, "sanitizeFixedTimeShowLiveNow")
+            };
+        }
+
+
+
+
+
+
+
+
+
+        const mainCoreServices = requireObject(safeDeps.mainCoreServices, "mainCoreServices");
 
         const createMainFixedTimeServices = requireFunction(
             mainCoreServices.createMainFixedTimeServices,
@@ -77,26 +366,14 @@
             mainCoreServices.createMainTimeAdjustServices,
             "mainCoreServices.createMainTimeAdjustServices"
         );
-        const createMainTabServices = requireFunction(
-            mainCoreServices.createMainTabServices,
-            "mainCoreServices.createMainTabServices"
-        );
+
         const createMainGroupStateServices = requireFunction(
             mainCoreServices.createMainGroupStateServices,
             "mainCoreServices.createMainGroupStateServices"
         );
-        const createMainImageExportNamingProxy = requireFunction(
-            mainCoreServices.createMainImageExportNamingProxy,
-            "mainCoreServices.createMainImageExportNamingProxy"
-        );
-        const createMainImageExportServices = requireFunction(
-            mainCoreServices.createMainImageExportServices,
-            "mainCoreServices.createMainImageExportServices"
-        );
-        const createMainAppStateServices = requireFunction(
-            mainCoreServices.createMainAppStateServices,
-            "mainCoreServices.createMainAppStateServices"
-        );
+
+
+
 
         const mainFixedTimeServicesConfig = buildMainFixedTimeServicesConfig({
             ...pickDeps([
@@ -282,69 +559,11 @@
         const multiBulkToolsService = mainTimeAdjustServices.multiBulkToolsService;
         const timeAdjustActionsService = mainTimeAdjustServices.timeAdjustActionsService;
 
-        const mainTabServicesConfig = buildMainTabServicesConfig({
-            ...pickDeps([
-                "GTV_FORMAT_CONTROLS",
-                "serviceBootstrap",
-                "COPY_FORMAT_KEYS",
-                "TIME_PART_KEYS",
-                "gtvT",
-                "sanitizeCopyFormatOrder",
-                "deferDynamicCall",
-                "getRenderListRef",
-                "updateCopyFormatPreview",
-                "savePersistenceSafely",
-                "upgradeNativeTitleTooltips",
-                "getPatchedShowCopyFormatState",
-                "getPatchedDisplayFormatOrderState",
-                "getPatchedActiveFormatProfileContextState",
-                "patchAppState",
-                "sanitizeCopyFormatOrderForContext",
-                "syncActiveFormatProfileFromState",
-                "getPatchedDisplayFormatEnabledState",
-                "sanitizeCopyFormatEnabledForContext",
-                "getPatchedDisplayTimePartsEnabledState",
-                "sanitizeTimePartsEnabledForContext",
-                "getPatchedCopyFormatOrderState",
-                "getPatchedCopyFormatEnabledState",
-                "getPatchedCopyTimePartsEnabledState",
-                "getActiveCopyFormatKeysForCurrentContext",
-                "getActiveTimePartKeysForCurrentContext",
-                "sanitizeMainTab",
-                "clampGroupIndex",
-                "normalizeGroupTabState",
-                "isMultiTab",
-                "isFixedTimeTab",
-                "getPatchedSlotCountState",
-                "getPatchedShowTimelineState",
-                "getIsRealtimeState",
-                "setIsRealtimeState",
-                "setGlobalTimeState",
-                "getPatchedMainTabState",
-                "setCurrentMainTabState",
-                "getPatchedActiveGroupIdState",
-                "setActiveGroupIdState",
-                "getActiveGroupIdByMainTabStateSnapshot",
-                "setActiveGroupIdByMainTabState",
-                "hideFloatingTooltip",
-                "syncCurrentMultiStateToActiveSubgroup",
-                "refreshMultiRangeControls",
-                "renderBaseTimeSelect",
-                "loadCurrentMultiStateFromActiveSubgroup",
-                "bindFacadeMethod",
-                "getGroupTabsServiceRef",
-                "renderMultiRangesSafely",
-                "renderFixedTimeTab",
-                "getRenderTimelineFrameRef",
-                "updateTimeAdjustPanelSafely",
-                "resolveFormatProfileContext",
-                "activateFormatProfileContext",
-            ]),
-        });
-        const mainTabServices = createMainTabServices(mainTabServicesConfig);
-        const formatControlsService = mainTabServices.formatControlsService;
-        const tabUiService = mainTabServices.tabUiService;
-        const tabOrchestratorService = mainTabServices.tabOrchestratorService;
+
+
+
+
+
 
         const mainGroupStateServicesConfig = buildMainGroupStateServicesConfig({
             ...pickDeps([
@@ -372,88 +591,19 @@
         const multiStateService = mainGroupStateServices.multiStateService;
         const groupStateService = mainGroupStateServices.groupStateService;
 
-        const mainImageExportNamingProxyConfig = buildMainImageExportNamingProxyConfig({
-            ...pickDeps([
-                "getImageExportNamingServiceRef",
-                "getCustomOffsetMinutes",
-                "pad",
-                "timeService",
-                "getBaseTimezoneRef",
-                "getGroupsStateSnapshot",
-                "getPatchedActiveGroupIdState",
-                "gtvT",
-                "getZoneAbbreviation",
-                "getBaseTimeSnapshot",
-                "sanitizeMultiSubgroupNameForExport",
-                "getCurrentMultiSubgroupName",
-            ]),
-        });
-        const mainImageExportNamingProxy = createMainImageExportNamingProxy(mainImageExportNamingProxyConfig);
-        const {
-            sanitizeFilenamePart,
-            formatDateTimeByTimezone,
-            getTimezoneTableImageFilename,
-            getMultiRangeTableImageFilename,
-            getMultiRangeTitlesImageFilename
-        } = mainImageExportNamingProxy;
 
-        const mainImageExportServicesConfig = buildMainImageExportServicesConfig({
-            ...pickDeps([
-                "GTV_IMAGE_EXPORT_NAMING",
-                "GTV_IMAGE_EXPORT_ACTIONS",
-                "GTV_IMAGE_EXPORT",
-                "gtvT",
-                "pad",
-                "timeService",
-                "getCustomOffsetMinutes",
-                "getBaseTimezoneRef",
-                "getBaseTimeSnapshot",
-                "getActiveGroupNameSnapshot",
-                "getZoneAbbreviation",
-                "sanitizeMultiSubgroupNameForExport",
-                "getCurrentMultiSubgroupName",
-                "deferDynamicCall",
-                "getShowToastRef",
-                "isMultiTab",
-                "ensureMultiRangeState",
-                "detectForeignObjectRendererSupport",
-                "renderTimezoneTableToPngDataUrl",
-                "renderTimezoneTableFallbackDataUrl",
-                "renderMultiRangesToPngDataUrl",
-                "renderMultiRangeSingleToPngDataUrl",
-                "renderMultiRangesFallbackDataUrl",
-                "renderMultiRangeTitlesToPngDataUrl",
-            ]),
-            getTimezoneTableImageFilename,
-            getMultiRangeTableImageFilename,
-            getMultiRangeTitlesImageFilename,
-            ...pickDeps([
-                "getPatchedMultiRangesState",
-                "isDomExceptionLike",
-                "setCanUseForeignObjectRenderer",
-            ]),
-        });
-        const mainImageExportServices = createMainImageExportServices(mainImageExportServicesConfig);
-        const imageExportNamingService = mainImageExportServices.imageExportNamingService;
-        const imageExportActionsService = mainImageExportServices.imageExportActionsService;
 
-        const mainAppStateServicesConfig = buildMainAppStateServicesConfig({
-            ...pickDeps([
-                "GTV_APP_STATE_PATCHER",
-                "GTV_APP_PERSISTENCE_STATE",
-                "getMainAppStateSource",
-                "directStateSetters",
-                "setIsRealtimeState",
-                "syncActiveFormatProfileFromState",
-                "ensureFormatProfiles",
-                "getCurrentFormatProfileState",
-                "resolveFormatProfileContext",
-                "applyFormatProfileState",
-            ]),
-        });
-        const mainAppStateServices = createMainAppStateServices(mainAppStateServicesConfig);
-        const appStatePatcherService = mainAppStateServices.appStatePatcherService;
-        const appPersistenceStateService = mainAppStateServices.appPersistenceStateService;
+
+
+
+
+
+
+
+
+
+
+
 
         return Object.freeze({
             fixedTimeCoreService,
@@ -465,20 +615,8 @@
             timeAdjustUiService,
             multiBulkToolsService,
             timeAdjustActionsService,
-            formatControlsService,
-            tabUiService,
-            tabOrchestratorService,
             multiStateService,
             groupStateService,
-            sanitizeFilenamePart,
-            formatDateTimeByTimezone,
-            getTimezoneTableImageFilename,
-            getMultiRangeTableImageFilename,
-            getMultiRangeTitlesImageFilename,
-            imageExportNamingService,
-            imageExportActionsService,
-            appStatePatcherService,
-            appPersistenceStateService
         });
     }
 

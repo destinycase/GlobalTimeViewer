@@ -389,7 +389,6 @@ const {
     GTV_MAIN_COMPOSITION_CONFIG_BUILDER, GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS,
     GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER, GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS,
     GTV_MAIN_CORE_SERVICE_BINDINGS, GTV_MAIN_FOUNDATION_SERVICE_BINDINGS,
-    GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER, GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER_BINDINGS,
     GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES, GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS,
     REQUIRED_BOOTSTRAP_SPECS
 } = GTV_MAIN_GLOBAL_BINDINGS.createService({
@@ -474,6 +473,7 @@ mainRuntimeCoreAccessorService = GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS.createS
     defaultNightStartHour: DEFAULT_NIGHT_START_HOUR
 });
 
+// Runtime assembly phase: validate registered APIs and initialize shared state access.
 function assertRequiredServices() {
     return callRuntimeCoreAccessorWithFallback("assertRequiredServices", mainBootstrapGuardService);
 }
@@ -1159,6 +1159,7 @@ const {
 });
 const GTV_MAIN_RUNTIME_CORE_FOUNDATION_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeCoreFoundationBootstrap;
 assertBindingCreateService(GTV_MAIN_RUNTIME_CORE_FOUNDATION_BOOTSTRAP, "GTVMainRuntimeCoreFoundationBootstrap");
+// Runtime assembly phase: create core domain services before feature services.
 const mainRuntimeCoreFoundationServices = GTV_MAIN_RUNTIME_CORE_FOUNDATION_BOOTSTRAP.createService({
     mainCoreAssemblyConfigBuilderService,
     coreServiceAssemblyBindings: GTV_MAIN_CORE_SERVICE_ASSEMBLY_BINDINGS,
@@ -1533,12 +1534,6 @@ const {
     formatProfileFacadeService: mainCoreServices.mainFormatProfileFacadeService
 });
 
-assertBindingCreateService(GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER_BINDINGS, "GTVMainRuntimeServiceConfigBuilderBindings");
-const {
-    mainRuntimeServiceConfigBuilderService
-} = GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER_BINDINGS.createService({
-    runtimeServiceConfigBuilderModule: GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER
-});
 const GTV_MAIN_RUNTIME_CORE_SERVICE_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeCoreServiceBootstrap;
 assertBindingCreateService(GTV_MAIN_RUNTIME_CORE_SERVICE_BOOTSTRAP, "GTVMainRuntimeCoreServiceBootstrap");
 const {
@@ -1549,7 +1544,6 @@ const {
     timezoneSearchService,
     snapshotFormatService
 } = GTV_MAIN_RUNTIME_CORE_SERVICE_BOOTSTRAP.createService({
-    mainRuntimeServiceConfigBuilderService,
     mainCoreServices,
     getDocumentRefOrNull,
     getComputedStyleSafely,
@@ -1593,6 +1587,7 @@ const {
 });
 
 // --- Group Data Structures ---
+// Runtime composition phase: construct table, domain, persistence, and UI services.
 
 let multiBulkToolsService = null;
 let timelineFrameService = null;
@@ -1613,7 +1608,6 @@ let timeAdjustActionsService = null;
 const GTV_MAIN_RUNTIME_TABLE_IMAGE_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeTableImageBootstrap;
 assertBindingCreateService(GTV_MAIN_RUNTIME_TABLE_IMAGE_BOOTSTRAP, "GTVMainRuntimeTableImageBootstrap");
 const mainRuntimeTableImageServices = GTV_MAIN_RUNTIME_TABLE_IMAGE_BOOTSTRAP.createService({
-    mainRuntimeServiceConfigBuilderService,
     mainCoreServices,
     deferDynamicCall,
     getTranslatorRef,
@@ -1737,8 +1731,8 @@ multiRangeImageRenderService = mainRuntimeTableImageServices.multiRangeImageRend
 
 const GTV_MAIN_RUNTIME_DOMAIN_SERVICE_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeDomainServiceBootstrap;
 assertBindingCreateService(GTV_MAIN_RUNTIME_DOMAIN_SERVICE_BOOTSTRAP, "GTVMainRuntimeDomainServiceBootstrap");
-const mainRuntimeDomainServices = GTV_MAIN_RUNTIME_DOMAIN_SERVICE_BOOTSTRAP.createService({
-    mainRuntimeServiceConfigBuilderService,
+// Feature services depend on the core and shared helpers assembled above.
+const mainRuntimeDomainServiceDeps = {
     mainCoreServices,
     GTV_FIXED_TIME_CORE,
     GTV_FIXED_TIME_TIMELINE,
@@ -1966,20 +1960,22 @@ const mainRuntimeDomainServices = GTV_MAIN_RUNTIME_DOMAIN_SERVICE_BOOTSTRAP.crea
     ensureFormatProfiles,
     getCurrentFormatProfileState,
     applyFormatProfileState
-});
+};
+const mainRuntimeDomainServices = GTV_MAIN_RUNTIME_DOMAIN_SERVICE_BOOTSTRAP.createService(mainRuntimeDomainServiceDeps);
+const GTV_MAIN_RUNTIME_UI_SERVICES_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeUiServicesBootstrap;
+assertBindingCreateService(GTV_MAIN_RUNTIME_UI_SERVICES_BOOTSTRAP, "GTVMainRuntimeUiServicesBootstrap");
+const mainRuntimeUiServices = GTV_MAIN_RUNTIME_UI_SERVICES_BOOTSTRAP.createService(mainRuntimeDomainServiceDeps);
 const {
     multiRangeRenderService,
     multiRangeCopyService,
-    copyActionsService,
+    copyActionsService
+} = mainRuntimeDomainServices;
+const {
     formatControlsService,
     tabUiService,
     tabOrchestratorService,
-    sanitizeFilenamePart,
-    formatDateTimeByTimezone,
-    getTimezoneTableImageFilename,
-    getMultiRangeTableImageFilename,
-    getMultiRangeTitlesImageFilename
-} = mainRuntimeDomainServices;
+    sanitizeFilenamePart
+} = mainRuntimeUiServices;
 fixedTimeCoreService = mainRuntimeDomainServices.fixedTimeCoreService;
 fixedTimeTimelineService = mainRuntimeDomainServices.fixedTimeTimelineService;
 fixedTimeActionsService = mainRuntimeDomainServices.fixedTimeActionsService;
@@ -1988,10 +1984,10 @@ multiBulkToolsService = mainRuntimeDomainServices.multiBulkToolsService;
 timeAdjustActionsService = mainRuntimeDomainServices.timeAdjustActionsService;
 multiStateService = mainRuntimeDomainServices.multiStateService;
 groupStateService = mainRuntimeDomainServices.groupStateService;
-imageExportNamingService = mainRuntimeDomainServices.imageExportNamingService;
-imageExportActionsService = mainRuntimeDomainServices.imageExportActionsService;
-appStatePatcherService = mainRuntimeDomainServices.appStatePatcherService;
-appPersistenceStateService = mainRuntimeDomainServices.appPersistenceStateService;
+imageExportNamingService = mainRuntimeUiServices.imageExportNamingService;
+imageExportActionsService = mainRuntimeUiServices.imageExportActionsService;
+appStatePatcherService = mainRuntimeUiServices.appStatePatcherService;
+appPersistenceStateService = mainRuntimeUiServices.appPersistenceStateService;
 ensureFormatProfiles(createDefaultFormatProfile("live"));
 activateFormatProfileForCurrentContext({ syncCurrent: false });
 
@@ -2000,6 +1996,7 @@ assertBindingCreateService(
     GTV_MAIN_RUNTIME_PERSISTENCE_COMPOSITION_BOOTSTRAP,
     "GTVMainRuntimePersistenceCompositionBootstrap"
 );
+// Persistence and app composition collect domain services for the final runtime.
 const mainPersistenceCompositionServices = GTV_MAIN_RUNTIME_PERSISTENCE_COMPOSITION_BOOTSTRAP.createService({
     mainCompositionConfigBuilderService,
     mainCoreServices,
@@ -2250,12 +2247,12 @@ var mainRuntimeUiBridgeAccessorService = null;
 var mainRuntimeOperationAccessorService = null;
 const GTV_MAIN_RUNTIME_BOOTSTRAP_WIRING = GTV_GLOBAL.GTVMainRuntimeBootstrapWiring;
 assertBindingCreateService(GTV_MAIN_RUNTIME_BOOTSTRAP_WIRING, "GTVMainRuntimeBootstrapWiring");
+// Final wiring exposes the assembled services through the compatibility facade.
 const mainRuntimeBootstrapWiringServices = GTV_MAIN_RUNTIME_BOOTSTRAP_WIRING.createService({
     runtimeUiBridgeAccessorBindings: GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS,
     runtimeOperationAccessorBindings: GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_BINDINGS,
     runtimePublicApiBindings: GTV_MAIN_RUNTIME_PUBLIC_API_BINDINGS,
     runtimeBootstrapAccessorBindings: GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS,
-    mainRuntimeServiceConfigBuilderService,
     mainCoreServices,
     runtimeUiBridgeAccessorProxiesModule: GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES,
     runtimeOperationAccessorProxiesModule: GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES,
@@ -2315,6 +2312,7 @@ mainRuntimePublicApiService = mainRuntimeBootstrapWiringServices.mainRuntimePubl
 mainAppBootstrapService = mainRuntimeBootstrapWiringServices.mainAppBootstrapService;
 mainRuntimeBootstrapAccessorService = mainRuntimeBootstrapWiringServices.mainRuntimeBootstrapAccessorService;
 
+// Public compatibility facade: keep legacy globals as thin calls into runtime services.
 function callMainRuntimePublicApi(methodName, ...args) {
     return mainRuntimePublicApiService[methodName](...args);
 }

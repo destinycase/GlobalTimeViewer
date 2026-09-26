@@ -3,14 +3,14 @@ import { createRequire } from "node:module";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-runtime-state-helper-aliases-bindings.js");
+const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-runtime-state-helper-aliases.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
 const moduleCleanupStack = [];
 
 function loadMainRuntimeStateHelperAliasesBindingsModule() {
     const globalPatches = { window: {} };
-    const keys = ["window", "GTVMainRuntimeStateHelperAliasesBindings", ...Object.keys(globalPatches)];
+    const keys = ["window", "GTVMainRuntimeStateHelperAliasesBindings", "GTVMainRuntimeStateHelperAliases", ...Object.keys(globalPatches)];
     const previous = new Map();
     keys.forEach((key) => {
         previous.set(key, {

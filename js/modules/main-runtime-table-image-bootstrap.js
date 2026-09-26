@@ -18,44 +18,240 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function pickDeps(depNames = []) {
+        function resolveDeps(overrides = {}) {
+            return (overrides && typeof overrides === "object") ? overrides : {};
+        }
+
+        function pickDeps(source, ...depNames) {
+            if (Array.isArray(source)) {
+                depNames = source;
+                source = safeDeps;
+            } else if (!source || typeof source !== "object") {
+                source = safeDeps;
+            }
             const resolved = {};
             depNames.forEach((depName) => {
-                resolved[depName] = safeDeps[depName];
+                resolved[depName] = source[depName];
             });
             return resolved;
         }
 
-        const mainRuntimeServiceConfigBuilderService = requireObject(
-            safeDeps.mainRuntimeServiceConfigBuilderService,
-            "mainRuntimeServiceConfigBuilderService"
-        );
-        const mainCoreServices = requireObject(safeDeps.mainCoreServices, "mainCoreServices");
+        function pickAliasedDeps(source, aliasMap = {}) {
+            const resolved = {};
+            Object.keys(aliasMap).forEach((targetKey) => {
+                resolved[targetKey] = source[aliasMap[targetKey]];
+            });
+            return resolved;
+        }
 
-        const buildTimeInputMutationsConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildTimeInputMutationsConfig,
-            "mainRuntimeServiceConfigBuilderService.buildTimeInputMutationsConfig"
-        );
-        const buildMainRowOrderConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainRowOrderConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainRowOrderConfig"
-        );
-        const buildMainRowViewConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainRowViewConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainRowViewConfig"
-        );
-        const buildTableRenderConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildTableRenderConfig,
-            "mainRuntimeServiceConfigBuilderService.buildTableRenderConfig"
-        );
-        const buildMainImageExportBridgeProxyConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainImageExportBridgeProxyConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainImageExportBridgeProxyConfig"
-        );
-        const buildMainImageRuntimeServicesConfig = requireFunction(
-            mainRuntimeServiceConfigBuilderService.buildMainImageRuntimeServicesConfig,
-            "mainRuntimeServiceConfigBuilderService.buildMainImageRuntimeServicesConfig"
-        );
+        function deferDynamic(source, getter) {
+            if (typeof source.deferDynamicCall !== "function") return () => undefined;
+            return source.deferDynamicCall(getter);
+        }
+
+        function bindFacade(source, getter, methodName) {
+            if (typeof source.bindFacadeMethod !== "function") return () => undefined;
+            return source.bindFacadeMethod(getter, methodName);
+        }
+
+        function buildTimeInputMutationsConfig(deps = {}) {
+            const d = resolveDeps(deps);
+            return {
+                t: deferDynamic(d, d.getTranslatorRef),
+                showToast: deferDynamic(d, d.getShowToastRef),
+                ...pickAliasedDeps(d, {
+                    "isRealtime": "getIsRealtimeState",
+                }),
+                ...pickDeps(d,
+                    "isMultiTab",
+                    "isMultiRangeStartEditEnabled",
+                    "isMultiRangeEndEditEnabled",
+                    "ensureMultiRangeState",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getMultiRanges": "getPatchedMultiRangesState",
+                }),
+                ...pickDeps(d,
+                    "getMultiRangeSlotDate",
+                    "setMultiRangeSlotDate",
+                    "syncFollowingRangesByDuration",
+                    "syncMultiRangeStartLinks",
+                    "parseDateTimeParts",
+                    "getCurrentGroupZones",
+                    "getCustomOffsetMinutes",
+                    "getFixedOffsetForDisplayAtDate",
+                    "getTimezoneOffset",
+                ),
+                ...pickAliasedDeps(d, {
+                    "resolveLocalDateParts": "resolveLocalDatePartsViaTimeService",
+                    "buildStrictUtcDateFromParts": "buildStrictUtcDateFromPartsViaCore",
+                    "getGlobalTime": "getGlobalTimeState",
+                    "setGlobalTime": "setGlobalTimeValue",
+                }),
+                updateClocks: deferDynamic(d, d.getUpdateClocksRef),
+                renderList: deferDynamic(d, d.getRenderListRef),
+                ...pickAliasedDeps(d, {
+                    "renderMultiRanges": "renderMultiRangesSafely",
+                }),
+                savePersistence: deferDynamic(d, d.getSavePersistenceSafelyRef)
+            };
+        }
+
+        function buildMainRowOrderConfig(deps = {}) {
+            const d = resolveDeps(deps);
+            return {
+                ...pickDeps(d,
+                    "requestUiFrame",
+                    "cancelUiFrame",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getGroups": "getGroupsStateSnapshot",
+                    "getActiveGroupId": "getPatchedActiveGroupIdState",
+                }),
+                ...pickDeps(d, "getCurrentGroupBaseTimezoneId"),
+                ...pickAliasedDeps(d, {
+                    "getPersistenceService": "getPersistenceServiceRef",
+                    "getDocumentRef": "getDocumentRefOrNull",
+                }),
+                ...pickDeps(d, "NodeCtor")
+            };
+        }
+
+        function buildMainRowViewConfig(deps = {}) {
+            const d = resolveDeps(deps);
+            return {
+                ...pickDeps(d, "rowViewCache"),
+                ...pickAliasedDeps(d, {
+                    "maxRuntimeCacheSize": "MAX_RUNTIME_CACHE_SIZE",
+                    "getDocumentRef": "getDocumentRefOrNull",
+                    "getSnapshotFormatService": "getSnapshotFormatServiceRef",
+                    "getGlobalTime": "getGlobalTimeState",
+                }),
+                ...pickDeps(d,
+                    "getZoneDisplayName",
+                    "getZoneDisplayNameForUiAtDate",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getCurrentLang": "getPatchedCurrentLangState",
+                    "getI18nData": "getI18nDataRef",
+                    "isRealtime": "getIsRealtimeState",
+                    "getSlotCount": "getPatchedSlotCountState",
+                }),
+                ...pickDeps(d,
+                    "normalizeDayNightMarker",
+                    "getDayNightGlyph",
+                ),
+                ...pickAliasedDeps(d, {
+                    "t": "gtvT",
+                }),
+            };
+        }
+
+        function buildTableRenderConfig(deps = {}) {
+            const d = resolveDeps(deps);
+            return {
+                ...pickAliasedDeps(d, {
+                    "t": "gtvT",
+                }),
+                ...pickDeps(d, "sanitizeCopyFormatOrder"),
+                ...pickAliasedDeps(d, {
+                    "getDisplayFormatOrder": "getPatchedDisplayFormatOrderState",
+                    "getDisplayFormatEnabled": "getPatchedDisplayFormatEnabledState",
+                    "getDisplayTimePartsEnabled": "getPatchedDisplayTimePartsEnabledState",
+                    "isRealtime": "getIsRealtimeState",
+                    "getSlotCount": "getPatchedSlotCountState",
+                }),
+                ...pickDeps(d, "isMultiTab"),
+                ...pickAliasedDeps(d, {
+                    "renderMultiRanges": "renderMultiRangesSafely",
+                }),
+                ...pickDeps(d, "getBaseTimezoneRef"),
+                ...pickAliasedDeps(d, {
+                    "getGlobalTime": "getGlobalTimeState",
+                    "escapeHtml": "escapeHtmlViaSharedUtils",
+                }),
+                ...pickDeps(d,
+                    "getZoneDisplayName",
+                    "getZoneDisplayNameForUiAtDate",
+                    "removeTimezone",
+                    "handleTimeChange",
+                    "saveOrder",
+                    "getCurrentGroupZones",
+                    "isCurrentGroupUtcRowVisible",
+                    "getCurrentGroupUtcRowOrder",
+                    "getUTCRef",
+                    "renderBaseTimeSelect",
+                ),
+                ...pickAliasedDeps(d, {
+                    "updateTimeAdjustPanel": "updateTimeAdjustPanelSafely",
+                }),
+                updateClocks: deferDynamic(d, d.getUpdateClocksRef),
+                ...pickDeps(d,
+                    "hideFloatingTooltip",
+                    "upgradeNativeTitleTooltips",
+                    "createDragGhostFromRow",
+                    "clearDragGhost",
+                ),
+                copyRow: bindFacade(d, d.getCopyActionsServiceRef, "copyRow")
+            };
+        }
+
+        function buildMainImageExportBridgeProxyConfig(deps = {}) {
+            const d = resolveDeps(deps);
+            return {
+                ...pickAliasedDeps(d, {
+                    "getImageExportBridgeService": "getImageExportBridgeServiceRef",
+                    "getDefaultTableExportContext": "createDefaultTableExportContext",
+                }),
+            };
+        }
+
+        function buildMainImageRuntimeServicesConfig(deps = {}) {
+            const d = resolveDeps(deps);
+            return {
+                ...pickDeps(d,
+                    "GTV_IMAGE_CLONE",
+                    "GTV_IMAGE_FOREIGN_RENDER",
+                    "GTV_IMAGE_EXPORT_BRIDGE",
+                    "GTV_TABLE_IMAGE_RENDER",
+                    "GTV_MULTI_RANGE_IMAGE_RENDER",
+                    "TABLE_IMAGE_EXPORT_WIDTH",
+                    "EXPORT_MONO_FONT_FAMILY",
+                ),
+                document: (typeof d.getDocumentRefOrNull === "function") ? d.getDocumentRefOrNull() : null,
+                ...pickAliasedDeps(d, {
+                    "getCanUseForeignObjectRenderer": "getCanUseForeignObjectRendererRef",
+                }),
+                ...pickDeps(d, "setCanUseForeignObjectRenderer"),
+                ...pickAliasedDeps(d, {
+                    "getImageExportActionsService": "getImageExportActionsServiceRef",
+                    "getDefaultTableExportContext": "createDefaultTableExportContext",
+                }),
+                ...pickDeps(d,
+                    "isFixedTimeTab",
+                    "waitForDocumentFontsReady",
+                    "prepareExportCanvas",
+                    "drawExportCellText",
+                    "cloneTableForImageExport",
+                    "renderElementWithForeignObjectToPngDataUrl",
+                ),
+                ...pickAliasedDeps(d, {
+                    "t": "gtvT",
+                }),
+                ...pickDeps(d,
+                    "ensureMultiRangeState",
+                    "getBaseTimezoneRef",
+                ),
+                ...pickAliasedDeps(d, {
+                    "getMultiRanges": "getPatchedMultiRangesState",
+                    "getMultiRangeTitleText": "getMultiRangeTitleTextFromRenderService",
+                }),
+                ...pickDeps(d, "cloneMultiRangeBlockForImageExport"),
+                ...pickDeps(d, "extractTableCellText")
+            };
+        }
+
+        const mainCoreServices = requireObject(safeDeps.mainCoreServices, "mainCoreServices");
         const createTimeInputMutationsService = requireFunction(
             mainCoreServices.createTimeInputMutationsService,
             "mainCoreServices.createTimeInputMutationsService"

@@ -3,14 +3,14 @@ import { createRequire } from "node:module";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-state-domain-wrapper-bridge-bindings.js");
+const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-state-domain-wrapper-bridge.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
 const moduleCleanupStack = [];
 
 function loadMainStateDomainWrapperBridgeBindingsModule() {
     const globalPatches = { window: {} };
-    const keys = ["window", "GTVMainStateDomainWrapperBridgeBindings", ...Object.keys(globalPatches)];
+    const keys = ["window", "GTVMainStateDomainWrapperBridgeBindings", "GTVMainStateDomainWrapperBridge", ...Object.keys(globalPatches)];
     const previous = new Map();
     keys.forEach((key) => {
         previous.set(key, {

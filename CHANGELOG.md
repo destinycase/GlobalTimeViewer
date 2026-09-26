@@ -1,5 +1,12 @@
 # 변경 이력
 
+## [3.71.8] - 2026-09-26
+### 변경됨
+- 버전 메타데이터를 `3.71.8`로 올렸습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`)
+- 서비스 설정 구성을 각 조립부 가까이 모으고, 도메인 서비스와 UI·앱 서비스를 책임별 bootstrap으로 정리했습니다.
+- 단순 전달만 하던 바인딩 모듈을 소유 모듈과 합치고, 로더 목록 검증과 모듈 의존성 인벤토리를 CI에 추가했습니다.
+- 상태 정규화와 계산기 카운트다운 상태를 각각 응집된 모듈로 분리하고 테스트를 보강했습니다.
+
 ## [3.12.7] - 2026-04-13
 ### 변경됨
 - 버전 메타데이터를 `3.12.7`로 상향했습니다. (`package.json`, `package-lock.json`, `manifest.json`, `js/modules/app-config.js`, `README.md`)

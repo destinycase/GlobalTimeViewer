@@ -3,6 +3,11 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import {
+    parseSourceScriptList,
+    validateRuntimeScriptCoverage,
+    validateSourceScriptFiles
+} from "./source-script-list.mjs";
 
 const require = createRequire(import.meta.url);
 const { ZipFile } = require("yazl");
@@ -120,10 +125,10 @@ function syncVersionMetadata() {
 
 function readScriptList() {
     if (!fs.existsSync(SCRIPT_LIST_PATH)) return [];
-    return readText(SCRIPT_LIST_PATH)
-        .split(/\r?\n/)
-        .map((entry) => entry.trim())
-        .filter(Boolean);
+    const sourceScripts = parseSourceScriptList(readText(SCRIPT_LIST_PATH));
+    validateSourceScriptFiles(ROOT_DIR, sourceScripts);
+    validateRuntimeScriptCoverage(ROOT_DIR, sourceScripts);
+    return sourceScripts;
 }
 
 function readSourceScriptLoaderList() {

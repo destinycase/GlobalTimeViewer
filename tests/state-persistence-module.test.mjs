@@ -4,8 +4,10 @@ import { createRequire } from "node:module";
 import { afterEach, describe, expect, it } from "vitest";
 
 const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "state-persistence.js");
+const NORMALIZER_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "persistence-state-normalizer.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
+const NORMALIZER_MODULE_ID = require.resolve(NORMALIZER_MODULE_PATH);
 const moduleCleanupStack = [];
 
 function createLocalStorageStub() {
@@ -105,7 +107,7 @@ function loadStatePersistenceModule(options = {}) {
         chrome: options.chrome
     };
 
-    const keys = ["window", "GTVStatePersistence", ...Object.keys(globalPatches)];
+    const keys = ["window", "GTVStatePersistence", "GTVPersistenceStateNormalizer", ...Object.keys(globalPatches)];
     const previous = new Map();
     keys.forEach((key) => {
         previous.set(key, {
@@ -120,9 +122,12 @@ function loadStatePersistenceModule(options = {}) {
     });
 
     delete require.cache[MODULE_ID];
+    delete require.cache[NORMALIZER_MODULE_ID];
+    require(NORMALIZER_MODULE_PATH);
     require(MODULE_PATH);
     moduleCleanupStack.push(() => {
         delete require.cache[MODULE_ID];
+        delete require.cache[NORMALIZER_MODULE_ID];
         keys.forEach((key) => {
             const entry = previous.get(key);
             if (!entry || !entry.exists) {

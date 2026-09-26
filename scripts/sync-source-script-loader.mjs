@@ -1,6 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+    parseSourceScriptList,
+    validateRuntimeScriptCoverage,
+    validateSourceScriptFiles
+} from "./source-script-list.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,15 +18,9 @@ function readScriptList() {
         throw new Error(`Missing script list: ${SCRIPT_LIST_PATH}`);
     }
 
-    const sourceScripts = fs.readFileSync(SCRIPT_LIST_PATH, "utf8")
-        .split(/\r?\n/)
-        .map((entry) => entry.trim())
-        .filter(Boolean);
-
-    if (sourceScripts.length === 0) {
-        throw new Error("script_list.tmp is empty.");
-    }
-
+    const sourceScripts = parseSourceScriptList(fs.readFileSync(SCRIPT_LIST_PATH, "utf8"));
+    validateSourceScriptFiles(ROOT_DIR, sourceScripts);
+    validateRuntimeScriptCoverage(ROOT_DIR, sourceScripts);
     return sourceScripts;
 }
 
@@ -38,26 +37,38 @@ function renderSourceScriptLoader(sourceScripts) {
             throw new Error("Document API unavailable for source script loader.");
         }
 
-        const parent = documentRef.body || documentRef.head || documentRef.documentElement;
+        const parent = documentRef.head || documentRef.body || documentRef.documentElement;
         if (!parent || typeof parent.appendChild !== "function") {
             throw new Error("No valid parent element for source script loader.");
         }
 
-        paths.forEach((src) => {
+        const scripts = [];
+        const loadPromises = paths.map((src) => new Promise((resolve, reject) => {
             const scriptEl = documentRef.createElement("script");
+            scripts.push(scriptEl);
             scriptEl.src = src;
-            scriptEl.defer = true;
             scriptEl.async = false;
+            scriptEl.onload = resolve;
+            scriptEl.onerror = () => reject(new Error("Failed to load source script: " + src));
             parent.appendChild(scriptEl);
+        }));
+        return Promise.all(loadPromises).catch((error) => {
+            scripts.forEach((scriptEl) => scriptEl.remove?.());
+            throw error;
         });
     }
 
-    try {
-        injectScriptsDynamically(SOURCE_SCRIPTS);
-    } catch (error) {
+    injectScriptsDynamically(SOURCE_SCRIPTS).catch((error) => {
         console.error("[GTV] Failed to inject source scripts.", error);
-        throw error;
-    }
+        const documentRef = globalObj?.document || null;
+        const errorBanner = documentRef?.getElementById?.("fatal-error-banner");
+        const errorDescription = documentRef?.getElementById?.("fatal-error-desc");
+        if (errorDescription) {
+            errorDescription.textContent = error.message || String(error);
+        }
+        errorBanner?.classList?.remove?.("is-hidden");
+        documentRef?.getElementById?.("app-loading-overlay")?.classList?.add?.("hidden");
+    });
 })(typeof window !== "undefined" ? window : globalThis);
 `;
 }

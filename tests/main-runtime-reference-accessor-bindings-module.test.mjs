@@ -3,14 +3,14 @@ import { createRequire } from "node:module";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-runtime-reference-accessor-bindings.js");
+const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-runtime-reference-accessors.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
 const moduleCleanupStack = [];
 
 function loadMainRuntimeReferenceAccessorBindingsModule() {
     const globalPatches = { window: {} };
-    const keys = ["window", "GTVMainRuntimeReferenceAccessorBindings", ...Object.keys(globalPatches)];
+    const keys = ["window", "GTVMainRuntimeReferenceAccessorBindings", "GTVMainRuntimeReferenceAccessors", ...Object.keys(globalPatches)];
     const previous = new Map();
     keys.forEach((key) => {
         previous.set(key, {

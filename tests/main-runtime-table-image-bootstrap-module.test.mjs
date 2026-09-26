@@ -55,15 +55,8 @@ describe("GTV main runtime table-image bootstrap module", () => {
         }
     });
 
-    it("builds table/image runtime services using builder and core factories", () => {
+    it("builds table/image runtime services from local dependency mappings and core factories", () => {
         const moduleApi = loadMainRuntimeTableImageBootstrapModule();
-        const buildTimeInputMutationsConfig = vi.fn(() => ({ kind: "time-input-config" }));
-        const buildMainRowOrderConfig = vi.fn(() => ({ kind: "row-order-config" }));
-        const buildMainRowViewConfig = vi.fn(() => ({ kind: "row-view-config" }));
-        const buildTableRenderConfig = vi.fn(() => ({ kind: "table-render-config" }));
-        const buildMainImageExportBridgeProxyConfig = vi.fn(() => ({ kind: "image-bridge-config" }));
-        const buildMainImageRuntimeServicesConfig = vi.fn(() => ({ kind: "image-runtime-config" }));
-
         const createTimeInputMutationsService = vi.fn(() => ({ name: "time-input-service" }));
         const createMainRowOrderServices = vi.fn(() => ({
             bindRowContainerDragAndDrop: () => "bind-dnd",
@@ -108,16 +101,26 @@ describe("GTV main runtime table-image bootstrap module", () => {
             tableImageRenderService: { name: "table-image-render-service" },
             multiRangeImageRenderService: { name: "multi-range-image-render-service" }
         }));
+        const getGroupsStateSnapshot = () => [{ id: "g1" }];
+        const getPersistenceServiceRef = () => ({ name: "persistence" });
+        const getDocumentRefOrNull = () => ({ name: "document" });
+        const getCopyActionsServiceRef = () => ({ copyRow: () => "copied" });
+        const imageCloneApi = { name: "image-clone-api" };
 
         const service = moduleApi.createService({
-            mainRuntimeServiceConfigBuilderService: {
-                buildTimeInputMutationsConfig,
-                buildMainRowOrderConfig,
-                buildMainRowViewConfig,
-                buildTableRenderConfig,
-                buildMainImageExportBridgeProxyConfig,
-                buildMainImageRuntimeServicesConfig
-            },
+            deferDynamicCall: (getter) => (...args) => getter()(...args),
+            bindFacadeMethod: (getter, methodName) => (...args) => getter()[methodName](...args),
+            getTranslatorRef: () => (key) => `tx:${key}`,
+            getShowToastRef: () => (message) => `toast:${message}`,
+            getGroupsStateSnapshot,
+            getPersistenceServiceRef,
+            getDocumentRefOrNull,
+            MAX_RUNTIME_CACHE_SIZE: 72,
+            gtvT: (key) => `ui:${key}`,
+            getCopyActionsServiceRef,
+            getImageExportBridgeServiceRef: () => ({ name: "image-bridge" }),
+            createDefaultTableExportContext: () => ({ name: "export-context" }),
+            GTV_IMAGE_CLONE: imageCloneApi,
             mainCoreServices: {
                 createTimeInputMutationsService,
                 createMainRowOrderServices,
@@ -128,19 +131,23 @@ describe("GTV main runtime table-image bootstrap module", () => {
             }
         });
 
-        expect(buildTimeInputMutationsConfig).toHaveBeenCalledTimes(1);
-        expect(buildMainRowOrderConfig).toHaveBeenCalledTimes(1);
-        expect(buildMainRowViewConfig).toHaveBeenCalledTimes(1);
-        expect(buildTableRenderConfig).toHaveBeenCalledTimes(1);
-        expect(buildMainImageExportBridgeProxyConfig).toHaveBeenCalledTimes(1);
-        expect(buildMainImageRuntimeServicesConfig).toHaveBeenCalledTimes(1);
+        expect(createTimeInputMutationsService.mock.calls[0][0].t("x")).toBe("tx:x");
+        expect(createMainRowOrderServices.mock.calls[0][0].getGroups).toBe(getGroupsStateSnapshot);
+        expect(createMainRowOrderServices.mock.calls[0][0].getPersistenceService).toBe(getPersistenceServiceRef);
+        expect(createMainRowViewServices.mock.calls[0][0].maxRuntimeCacheSize).toBe(72);
+        expect(createMainRowViewServices.mock.calls[0][0].getDocumentRef).toBe(getDocumentRefOrNull);
+        expect(createTableRenderService.mock.calls[0][0].t("x")).toBe("ui:x");
+        expect(createTableRenderService.mock.calls[0][0].copyRow()).toBe("copied");
+        expect(createMainImageExportBridgeProxy.mock.calls[0][0].getDefaultTableExportContext()).toEqual({ name: "export-context" });
+        expect(createMainImageRuntimeServices.mock.calls[0][0].GTV_IMAGE_CLONE).toBe(imageCloneApi);
+        expect(createMainImageRuntimeServices.mock.calls[0][0].document).toEqual({ name: "document" });
 
-        expect(createTimeInputMutationsService).toHaveBeenCalledWith({ kind: "time-input-config" });
-        expect(createMainRowOrderServices).toHaveBeenCalledWith({ kind: "row-order-config" });
-        expect(createMainRowViewServices).toHaveBeenCalledWith({ kind: "row-view-config" });
-        expect(createTableRenderService).toHaveBeenCalledWith({ kind: "table-render-config" });
-        expect(createMainImageExportBridgeProxy).toHaveBeenCalledWith({ kind: "image-bridge-config" });
-        expect(createMainImageRuntimeServices).toHaveBeenCalledWith({ kind: "image-runtime-config" });
+        expect(createTimeInputMutationsService).toHaveBeenCalledTimes(1);
+        expect(createMainRowOrderServices).toHaveBeenCalledTimes(1);
+        expect(createMainRowViewServices).toHaveBeenCalledTimes(1);
+        expect(createTableRenderService).toHaveBeenCalledTimes(1);
+        expect(createMainImageExportBridgeProxy).toHaveBeenCalledTimes(1);
+        expect(createMainImageRuntimeServices).toHaveBeenCalledTimes(1);
 
         expect(service.timeInputMutationsService).toEqual({ name: "time-input-service" });
         expect(service.tableRenderService).toEqual({ name: "table-render-service" });
@@ -155,13 +162,7 @@ describe("GTV main runtime table-image bootstrap module", () => {
         const moduleApi = loadMainRuntimeTableImageBootstrapModule();
 
         expect(() => moduleApi.createService({})).toThrow(
-            "Missing required dependency: mainRuntimeServiceConfigBuilderService"
-        );
-        expect(() => moduleApi.createService({
-            mainRuntimeServiceConfigBuilderService: {},
-            mainCoreServices: {}
-        })).toThrow(
-            "Missing required dependency: mainRuntimeServiceConfigBuilderService.buildTimeInputMutationsConfig"
+            "Missing required dependency: mainCoreServices"
         );
     });
 });

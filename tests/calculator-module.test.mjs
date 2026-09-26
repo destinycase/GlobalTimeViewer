@@ -5,8 +5,10 @@ import { afterEach, expect, test } from "vitest";
 
 const require = createRequire(import.meta.url);
 const TIME_CORE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "time-core.js");
+const COUNTDOWN_STATE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "calculator-countdown-state.js");
 const CALCULATOR_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "calculator.js");
 const TIME_CORE_MODULE_ID = require.resolve(TIME_CORE_MODULE_PATH);
+const COUNTDOWN_STATE_MODULE_ID = require.resolve(COUNTDOWN_STATE_MODULE_PATH);
 const CALCULATOR_MODULE_ID = require.resolve(CALCULATOR_MODULE_PATH);
 
 const activeRestores = [];
@@ -351,6 +353,7 @@ function createCalculatorContext() {
         "setInterval",
         "clearInterval",
         "GTVTimeCore",
+        "GTVCalculatorCountdownState",
         "GTVCalculator",
         "__gtvCalcRefresh",
         "CustomDatePicker"
@@ -373,12 +376,15 @@ function createCalculatorContext() {
     };
 
     delete require.cache[TIME_CORE_MODULE_ID];
+    delete require.cache[COUNTDOWN_STATE_MODULE_ID];
     delete require.cache[CALCULATOR_MODULE_ID];
     require(TIME_CORE_MODULE_PATH);
+    require(COUNTDOWN_STATE_MODULE_PATH);
     require(CALCULATOR_MODULE_PATH);
 
     activeRestores.push(() => {
         delete require.cache[TIME_CORE_MODULE_ID];
+        delete require.cache[COUNTDOWN_STATE_MODULE_ID];
         delete require.cache[CALCULATOR_MODULE_ID];
         preservedKeys.forEach((key) => {
             const value = preserved.get(key);

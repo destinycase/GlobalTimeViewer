@@ -26,6 +26,9 @@ jobs:
       - name: Run lint
         run: npm.cmd run lint
 
+      - name: Check module dependency inventory
+        run: npm.cmd run docs:module-inventory:check
+
   test:
     runs-on: windows-latest
     steps:

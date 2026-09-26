@@ -3,14 +3,14 @@ import { createRequire } from "node:module";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-runtime-bridge-proxy-bindings.js");
+const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-runtime-bridge-proxies.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
 const moduleCleanupStack = [];
 
 function loadMainRuntimeBridgeProxyBindingsModule() {
     const globalPatches = { window: {} };
-    const keys = ["window", "GTVMainRuntimeBridgeProxyBindings", ...Object.keys(globalPatches)];
+    const keys = ["window", "GTVMainRuntimeBridgeProxyBindings", "GTVMainRuntimeBridgeProxies", ...Object.keys(globalPatches)];
     const previous = new Map();
     keys.forEach((key) => {
         previous.set(key, {

@@ -707,8 +707,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS: "GTVMainCoreAssemblyConfigBuilderBindings",
         GTV_MAIN_CORE_SERVICE_BINDINGS: "GTVMainCoreServiceBindings",
         GTV_MAIN_FOUNDATION_SERVICE_BINDINGS: "GTVMainFoundationServiceBindings",
-        GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER: "GTVMainRuntimeServiceConfigBuilder",
-        GTV_MAIN_RUNTIME_SERVICE_CONFIG_BUILDER_BINDINGS: "GTVMainRuntimeServiceConfigBuilderBindings",
         GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES: "GTVMainPatchedStateAccessorProxies",
         GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS: "GTVMainPatchedStateAccessorBindings"
     });

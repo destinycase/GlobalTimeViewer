@@ -1,4 +1,4 @@
-# Global Time Viewer v3.12.7
+# Global Time Viewer v3.71.8
 
 ## 프로젝트 개요
 Global Time Viewer는 여러 시간대를 빠르게 비교하고, 시간 조정/기간 계산/복사/이미지 저장을 지원하는 브라우저 기반 도구입니다.
@@ -26,6 +26,8 @@ Global Time Viewer는 여러 시간대를 빠르게 비교하고, 시간 조정/
 - 커버리지: `npm run test:coverage`
 - 빌드: `npm run build`
 - 엄격 빌드(버전 정합성 검사): `npm run build:strict`
+- 모듈 관계 인벤토리 재생성: `npm run docs:module-inventory`
+- 인벤토리 최신성 확인: `npm run docs:module-inventory:check`
 
 ## 개발 가이드
 

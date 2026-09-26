@@ -3,14 +3,14 @@ import { createRequire } from "node:module";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-facade-bridge-bindings.js");
+const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-facade-bridge.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
 const moduleCleanupStack = [];
 
 function loadMainFacadeBridgeBindingsModule() {
     const globalPatches = { window: {} };
-    const keys = ["window", "GTVMainFacadeBridgeBindings", ...Object.keys(globalPatches)];
+    const keys = ["window", "GTVMainFacadeBridgeBindings", "GTVMainFacadeBridge", ...Object.keys(globalPatches)];
     const previous = new Map();
     keys.forEach((key) => {
         previous.set(key, {

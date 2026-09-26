@@ -1,9 +1,6 @@
 (function initGtvCalculator(globalObj) {
     "use strict";
 
-    const COUNTDOWN_SLOT_COUNT = 3;
-    const COUNTDOWN_STORAGE_KEY = "GTV_CalcCountdown_v1";
-
     function isStorageRef(value) {
         return !!value
             && typeof value.getItem === "function"
@@ -110,6 +107,7 @@
             getStorageRef: () => getGlobalStorageRef(),
             getDocumentRef: () => getGlobalDocumentRef(),
             getLuxonDateTimeRef: () => getGlobalLuxonDateTimeRef(),
+            countdownStateModule: globalObj?.GTVCalculatorCountdownState || null,
             datePickerCtor: (typeof globalObj?.CustomDatePicker === "function") ? globalObj.CustomDatePicker : null,
             timeCoreRef: globalObj?.GTVTimeCore || null,
             refreshTargetRef: globalObj || null
@@ -380,16 +378,11 @@
 
     // ?? 移댁슫?몃떎????????????????????????????????????????????????????????????????
 
-    function buildCountdownDefaultName(slotIdx, t) {
-        const prefix = (t("calc_countdown_default_prefix") || "Countdown").trim() || "Countdown";
-        return `${prefix} ${slotIdx + 1}`;
-    }
-
-    function makeCountdownStorage(storageRef) {
+    function makeCountdownStorage(storageRef, storageKey) {
         function loadCountdownState() {
             try {
                 if (!storageRef || typeof storageRef.getItem !== "function") return null;
-                const raw = storageRef.getItem(COUNTDOWN_STORAGE_KEY);
+                const raw = storageRef.getItem(storageKey);
                 if (!raw) return null;
                 const parsed = JSON.parse(raw);
                 return Array.isArray(parsed) ? parsed : null;
@@ -401,61 +394,13 @@
         function saveCountdownState(state) {
             try {
                 if (!storageRef || typeof storageRef.setItem !== "function") return;
-                storageRef.setItem(COUNTDOWN_STORAGE_KEY, JSON.stringify(state));
+                storageRef.setItem(storageKey, JSON.stringify(state));
             } catch (_err) {
                 // 怨꾩궛湲??꾩슜 蹂댁“ ?곹깭 ????ㅽ뙣??臾댁떆?쒕떎.
             }
         }
 
         return { loadCountdownState, saveCountdownState };
-    }
-
-    function normalizeCountdownState(persisted, t) {
-        const base = Array.isArray(persisted) ? persisted : [];
-        const next = [];
-        for (let i = 0; i < COUNTDOWN_SLOT_COUNT; i++) {
-            const source = base[i] || {};
-            const hasCustomName = !!source.nameIsCustom;
-            const fallbackName = buildCountdownDefaultName(i, t);
-            const rawName = (typeof source.name === "string") ? source.name.trim() : "";
-            next.push({
-                name: rawName || fallbackName,
-                nameIsCustom: hasCustomName && !!rawName,
-                targetIso: (typeof source.targetIso === "string") ? source.targetIso : "",
-                active: !!source.active,
-                pausedRemainingMs: Number.isFinite(source.pausedRemainingMs)
-                    ? Math.max(0, Math.floor(source.pausedRemainingMs))
-                    : null
-            });
-        }
-        return next;
-    }
-
-    function parseCountdownRemainingMs(slot, nowMs) {
-        if (!slot) return null;
-        if (slot.active && slot.targetIso) {
-            const targetMs = Date.parse(slot.targetIso);
-            if (!Number.isFinite(targetMs)) return null;
-            return targetMs - nowMs;
-        }
-        if (Number.isFinite(slot.pausedRemainingMs)) return slot.pausedRemainingMs;
-        if (slot.targetIso) {
-            const targetMs = Date.parse(slot.targetIso);
-            if (!Number.isFinite(targetMs)) return null;
-            return Math.max(0, targetMs - nowMs);
-        }
-        return null;
-    }
-
-    function formatCountdownText(remainingMs, t, padFn = defaultPad2) {
-        const clampedMs = Math.max(0, Math.floor(remainingMs));
-        const totalSeconds = Math.floor(clampedMs / 1000);
-        const days = Math.floor(totalSeconds / 86400);
-        const hours = Math.floor((totalSeconds % 86400) / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
-        const daySuffix = t("calc_countdown_day_suffix") || "d";
-        return `${padFn(days)}${daySuffix} ${padFn(hours)}:${padFn(minutes)}:${padFn(seconds)}`;
     }
 
     function isElementDisplayNone(element) {
@@ -478,6 +423,7 @@
 
     function renderCountdownSlot(slotIdx, refs, countdownState, t, helpers, runtime = {}, options) {
         const { syncMeta = false } = (options && typeof options === "object") ? options : {};
+        const countdownStateUtils = runtime.countdownStateUtils;
         const datePickerCtor = (typeof runtime.datePickerCtor === "function") ? runtime.datePickerCtor : null;
         const luxonDT = runtime.luxonDT || null;
         const padFn = (typeof runtime.pad2 === "function") ? runtime.pad2 : defaultPad2;
@@ -492,7 +438,7 @@
 
         if (syncMeta) {
             if (!slot.nameIsCustom) {
-                slot.name = buildCountdownDefaultName(slotIdx, t);
+                slot.name = countdownStateUtils.buildDefaultName(slotIdx, t);
             }
             nameBtn.textContent = slot.name;
             if (isElementDisplayNone(nameInput)) {
@@ -523,7 +469,7 @@
         }
 
         const nowMs = Date.now();
-        let remainingMs = parseCountdownRemainingMs(slot, nowMs);
+        let remainingMs = countdownStateUtils.parseRemainingMs(slot, nowMs);
         let expired = false;
 
         if (slot.active && Number.isFinite(remainingMs) && remainingMs <= 0) {
@@ -535,14 +481,14 @@
 
         if (!Number.isFinite(remainingMs)) {
             toggleBtn.textContent = slot.active ? t("calc_countdown_stop") : t("calc_countdown_start");
-            displayEl.textContent = formatCountdownText(0, t, padFn);
+            displayEl.textContent = countdownStateUtils.formatRemainingText(0, t, padFn);
             displayEl.classList.remove("expired");
             statusEl.textContent = "";
             statusEl.classList.remove("expired");
             return;
         }
 
-        displayEl.textContent = formatCountdownText(remainingMs, t, padFn);
+        displayEl.textContent = countdownStateUtils.formatRemainingText(remainingMs, t, padFn);
         if (expired || (!slot.active && remainingMs === 0 && !!slot.targetIso)) {
             displayEl.classList.add("expired");
             statusEl.classList.add("expired");
@@ -564,6 +510,7 @@
      * @param {object} timerIds - { countdownTimerId } 李몄“ 媛앹껜 (?몃??먯꽌 ?뚯쑀)
      */
     function initCountdown(t, helpers, cdStorage, timerIds, runtime = {}) {
+        const countdownStateUtils = runtime.countdownStateUtils;
         const luxonDT = runtime.luxonDT || null;
         const nameButtons = helpers.querySelectorAll(".countdown-name-btn");
         const nameInputs = helpers.querySelectorAll(".countdown-name-input");
@@ -572,18 +519,18 @@
         const displayEls = helpers.querySelectorAll(".countdown-display");
         const statusEls = helpers.querySelectorAll(".countdown-status");
         if (
-            nameButtons.length < COUNTDOWN_SLOT_COUNT ||
-            nameInputs.length < COUNTDOWN_SLOT_COUNT ||
-            toggleButtons.length < COUNTDOWN_SLOT_COUNT ||
-            targetInputs.length < COUNTDOWN_SLOT_COUNT ||
-            displayEls.length < COUNTDOWN_SLOT_COUNT ||
-            statusEls.length < COUNTDOWN_SLOT_COUNT
+            nameButtons.length < countdownStateUtils.slotCount ||
+            nameInputs.length < countdownStateUtils.slotCount ||
+            toggleButtons.length < countdownStateUtils.slotCount ||
+            targetInputs.length < countdownStateUtils.slotCount ||
+            displayEls.length < countdownStateUtils.slotCount ||
+            statusEls.length < countdownStateUtils.slotCount
         ) {
             return { refresh: () => { } };
         }
 
         // ?대줈? ?대? ?곹깭 ??紐⑤뱢 ?꾩뿭 ?ㅼ뿼 ?놁쓬
-        const countdownState = normalizeCountdownState(cdStorage.loadCountdownState(), t);
+        const countdownState = countdownStateUtils.normalizeState(cdStorage.loadCountdownState(), t);
         const refs = { nameButtons, nameInputs, toggleButtons, targetInputs, displayEls, statusEls };
 
         const saveState = () => cdStorage.saveCountdownState(countdownState);
@@ -592,7 +539,7 @@
             if (expired) saveState();
         };
 
-        for (let i = 0; i < COUNTDOWN_SLOT_COUNT; i++) {
+        for (let i = 0; i < countdownStateUtils.slotCount; i++) {
             const nameBtn = nameButtons[i];
             const nameInput = nameInputs[i];
             const targetInput = targetInputs[i];
@@ -602,7 +549,7 @@
                 if (commit) {
                     const trimmed = String(nameInput.value || "").trim();
                     if (!trimmed) {
-                        countdownState[i].name = buildCountdownDefaultName(i, t);
+                        countdownState[i].name = countdownStateUtils.buildDefaultName(i, t);
                         countdownState[i].nameIsCustom = false;
                     } else {
                         countdownState[i].name = trimmed;
@@ -616,7 +563,7 @@
             };
 
             nameBtn.addEventListener("click", () => {
-                nameInput.value = countdownState[i].name || buildCountdownDefaultName(i, t);
+                nameInput.value = countdownState[i].name || countdownStateUtils.buildDefaultName(i, t);
                 nameBtn.style.display = "none";
                 nameInput.style.display = "block";
                 nameInput.focus();
@@ -662,7 +609,7 @@
         helpers.querySelectorAll(".countdown-slot-controls .sm-btn[data-action]").forEach((btn) => {
             const slotIdx = Number(btn.getAttribute("data-slot"));
             const action = btn.getAttribute("data-action");
-            if (!Number.isInteger(slotIdx) || slotIdx < 0 || slotIdx >= COUNTDOWN_SLOT_COUNT) return;
+            if (!Number.isInteger(slotIdx) || slotIdx < 0 || slotIdx >= countdownStateUtils.slotCount) return;
             const targetInput = targetInputs[slotIdx];
 
             btn.addEventListener("click", () => {
@@ -671,7 +618,7 @@
 
                 if (action === "toggle") {
                     if (slot.active) {
-                        const remainingMs = parseCountdownRemainingMs(slot, Date.now());
+                        const remainingMs = countdownStateUtils.parseRemainingMs(slot, Date.now());
                         slot.active = false;
                         slot.pausedRemainingMs = Number.isFinite(remainingMs)
                             ? Math.max(0, Math.floor(remainingMs))
@@ -701,18 +648,18 @@
         }
         timerIds.countdown = setInterval(() => {
             if (!isCalculatorTabActive(helpers)) return;
-            for (let i = 0; i < COUNTDOWN_SLOT_COUNT; i++) {
+            for (let i = 0; i < countdownStateUtils.slotCount; i++) {
                 render(i);
             }
         }, 1000);
 
-        for (let i = 0; i < COUNTDOWN_SLOT_COUNT; i++) {
+        for (let i = 0; i < countdownStateUtils.slotCount; i++) {
             render(i, { syncMeta: true });
         }
 
         return {
             refresh() {
-                for (let i = 0; i < COUNTDOWN_SLOT_COUNT; i++) {
+                for (let i = 0; i < countdownStateUtils.slotCount; i++) {
                     render(i, { syncMeta: true });
                 }
             }
@@ -1146,8 +1093,29 @@
         const luxonDT = resolveLuxonDateTimeRef(safeDeps);
         const documentRef = resolveDocumentRef(safeDeps);
         const refreshTargetRef = resolveRefreshTargetRef(safeDeps);
+        const countdownStateModule = (
+            safeDeps.countdownStateModule
+            || globalObj?.GTVCalculatorCountdownState
+            || null
+        );
+        if (!countdownStateModule || typeof countdownStateModule.createService !== "function") {
+            throw new Error("Missing required module API: GTVCalculatorCountdownState.createService");
+        }
+        const countdownStateUtils = countdownStateModule.createService();
+        if (
+            !countdownStateUtils
+            || typeof countdownStateUtils.normalizeState !== "function"
+            || typeof countdownStateUtils.parseRemainingMs !== "function"
+            || typeof countdownStateUtils.formatRemainingText !== "function"
+            || typeof countdownStateUtils.buildDefaultName !== "function"
+            || !Number.isInteger(countdownStateUtils.slotCount)
+            || typeof countdownStateUtils.storageKey !== "string"
+        ) {
+            throw new Error("Invalid calculator countdown state service");
+        }
         const runtime = Object.freeze({
             luxonDT,
+            countdownStateUtils,
             datePickerCtor: resolveDatePickerCtor(safeDeps),
             pad2: resolvePad2Ref(safeDeps)
         });
@@ -1176,7 +1144,7 @@
             const copyText = (typeof opts.copyText === "function") ? opts.copyText : (async () => { });
 
             const helpers = makeDocHelpers(documentRef);
-            const cdStorage = makeCountdownStorage(storageRef);
+            const cdStorage = makeCountdownStorage(storageRef, countdownStateUtils.storageKey);
 
             const periodAndShift = initPeriodAndDateShift(t, helpers, runtime);
             const countdown = initCountdown(t, helpers, cdStorage, timerIds, runtime);

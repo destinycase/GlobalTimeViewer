@@ -61,28 +61,40 @@ describe("GTV main runtime bootstrap wiring module", () => {
         const operationCreateService = vi.fn(() => ({ name: "operation-accessor" }));
         const publicApiCreateService = vi.fn(() => ({ name: "public-api" }));
         const bootstrapAccessorCreateService = vi.fn(() => ({ name: "bootstrap-accessor" }));
-        const buildMainAppBootstrapConfig = vi.fn(() => ({ kind: "app-bootstrap-config" }));
-        const createMainAppBootstrapService = vi.fn(() => ({ name: "app-bootstrap-service" }));
+        const createMainAppBootstrapService = vi.fn((config) => ({ config, name: "app-bootstrap-service" }));
+        const getMainUiInitServiceRef = () => ({ initUI: () => "initialized" });
+        const getTimezoneSearchServiceRef = () => ({ initSearchAndSelect: () => "searched" });
+        const getTimerEngineServiceRef = () => ({ startRealtimeTicker: () => "started" });
 
         const service = moduleApi.createService({
             runtimeUiBridgeAccessorBindings: { createService: uiCreateService },
             runtimeOperationAccessorBindings: { createService: operationCreateService },
             runtimePublicApiBindings: { createService: publicApiCreateService },
             runtimeBootstrapAccessorBindings: { createService: bootstrapAccessorCreateService },
-            mainRuntimeServiceConfigBuilderService: { buildMainAppBootstrapConfig },
-            mainCoreServices: { createMainAppBootstrapService }
+            mainCoreServices: { createMainAppBootstrapService },
+            bindFacadeMethod: (getter, methodName) => (...args) => getter()[methodName](...args),
+            getMainUiInitServiceRef,
+            getTimezoneSearchServiceRef,
+            getTimerEngineServiceRef,
+            deferDynamicCall: (getter) => (...args) => getter()(...args),
+            getPatchedMainTabState: () => "live",
+            getUpdateClocksRef: () => () => "updated"
         });
 
         expect(uiCreateService).toHaveBeenCalledTimes(1);
         expect(operationCreateService).toHaveBeenCalledTimes(1);
         expect(publicApiCreateService).toHaveBeenCalledTimes(1);
-        expect(buildMainAppBootstrapConfig).toHaveBeenCalledTimes(1);
-        expect(createMainAppBootstrapService).toHaveBeenCalledWith({ kind: "app-bootstrap-config" });
+        const appBootstrapConfig = createMainAppBootstrapService.mock.calls[0][0];
+        expect(appBootstrapConfig.initUI()).toBe("initialized");
+        expect(appBootstrapConfig.initSearchAndSelect()).toBe("searched");
+        expect(appBootstrapConfig.startRealtimeTicker()).toBe("started");
+        expect(appBootstrapConfig.getCurrentMainTab()).toBe("live");
+        expect(appBootstrapConfig.updateClocks()).toBe("updated");
         expect(bootstrapAccessorCreateService).toHaveBeenCalledTimes(1);
         expect(service.mainRuntimeUiBridgeAccessorService).toEqual({ name: "ui-accessor" });
         expect(service.mainRuntimeOperationAccessorService).toEqual({ name: "operation-accessor" });
         expect(service.mainRuntimePublicApiService).toEqual({ name: "public-api" });
-        expect(service.mainAppBootstrapService).toEqual({ name: "app-bootstrap-service" });
+        expect(service.mainAppBootstrapService).toMatchObject({ name: "app-bootstrap-service" });
         expect(service.mainRuntimeBootstrapAccessorService).toEqual({ name: "bootstrap-accessor" });
         expect(Object.isFrozen(service)).toBe(true);
     });
@@ -96,7 +108,6 @@ describe("GTV main runtime bootstrap wiring module", () => {
             runtimeOperationAccessorBindings: {},
             runtimePublicApiBindings: {},
             runtimeBootstrapAccessorBindings: {},
-            mainRuntimeServiceConfigBuilderService: {},
             mainCoreServices: {}
         })).toThrow("Missing required dependency: runtimeUiBridgeAccessorBindings.createService");
     });

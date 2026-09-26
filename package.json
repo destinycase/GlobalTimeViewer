@@ -1,6 +1,6 @@
 {
   "name": "globaltimeviewer",
-  "version": "3.12.7",
+  "version": "3.71.8",
   "description": "Global Time Viewer는 여러 시간대를 빠르게 비교하고, 시간 조정/기간 계산/복사/이미지 저장까지 처리할 수 있는 브라우저 기반 도구입니다.",
   "main": "main.js",
   "directories": {
@@ -11,10 +11,12 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "sync:source-loader": "node ./scripts/sync-source-script-loader.mjs",
+    "docs:module-inventory": "node ./scripts/generate-module-dependency-inventory.mjs",
+    "docs:module-inventory:check": "node ./scripts/generate-module-dependency-inventory.mjs --check",
     "build": "node ./scripts/build-extension.mjs",
     "build:strict": "node ./scripts/build-extension.mjs --enforce-version-consistency",
     "build:vite": "vite build",
-    "ci:gate": "npm run lint && npm run test:coverage && npm run build:strict"
+    "ci:gate": "npm run lint && npm run docs:module-inventory:check && npm run test:coverage && npm run build:strict"
   },
   "keywords": [],
   "author": "",

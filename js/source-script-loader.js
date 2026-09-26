@@ -17,23 +17,19 @@
     "js/modules/main-app-state-vars.js",
     "js/modules/main-app-state-vars-bindings.js",
     "js/modules/main-core-service-assembly.js",
-    "js/modules/main-core-service-assembly-bindings.js",
     "js/modules/main-module-resolver.js",
     "js/modules/main-module-spec.js",
     "js/modules/main-module-resolution-bindings.js",
     "js/modules/main-foundation-services.js",
-    "js/modules/main-foundation-services-bindings.js",
     "js/modules/main-shared-utils.js",
     "js/modules/service-invoke-utils.js",
     "js/modules/main-service-method-bridge.js",
     "js/modules/main-bootstrap-guard.js",
     "js/modules/main-bootstrap-guard-bindings.js",
     "js/modules/main-runtime-host-utils.js",
-    "js/modules/main-runtime-host-utils-bindings.js",
     "js/modules/main-runtime-host-accessor-proxies.js",
     "js/modules/main-runtime-host-accessor-bindings.js",
     "js/modules/main-runtime-primary-state.js",
-    "js/modules/main-runtime-primary-state-bindings.js",
     "js/modules/main-runtime-primary-state-accessor-proxies.js",
     "js/modules/main-runtime-primary-state-accessor-bindings.js",
     "js/modules/main-runtime-service-bridge-helpers.js",
@@ -52,25 +48,19 @@
     "js/modules/main-runtime-state-patch-accessor-proxies.js",
     "js/modules/main-runtime-state-patch-accessor-bindings.js",
     "js/modules/main-runtime-patched-state-fallback.js",
-    "js/modules/main-runtime-patched-state-fallback-bindings.js",
     "js/modules/main-runtime-local-state-helpers.js",
-    "js/modules/main-runtime-local-state-helpers-bindings.js",
     "js/modules/main-runtime-local-state-accessor-proxies.js",
     "js/modules/main-runtime-local-state-accessor-bindings.js",
     "js/modules/main-runtime-bridge-proxies.js",
-    "js/modules/main-runtime-bridge-proxy-bindings.js",
     "js/modules/main-runtime-timezone-helpers.js",
     "js/modules/main-runtime-timezone-helper-bindings.js",
     "js/modules/main-runtime-state-helpers.js",
     "js/modules/main-runtime-state-helper-aliases.js",
-    "js/modules/main-runtime-state-helper-aliases-bindings.js",
     "js/modules/main-runtime-state-helper-accessor-proxies.js",
     "js/modules/main-runtime-state-helper-accessor-bindings.js",
     "js/modules/main-runtime-state-helper-bootstrap.js",
     "js/modules/main-runtime-reference-accessors.js",
-    "js/modules/main-runtime-reference-accessor-bindings.js",
     "js/modules/main-state-domain-wrapper-bridge.js",
-    "js/modules/main-state-domain-wrapper-bridge-bindings.js",
     "js/modules/main-state-domain-wrapper-global-bindings.js",
     "js/modules/main-state-domain-wrapper-global-bindings-bridge.js",
     "js/modules/main-state-domain-proxy-bindings.js",
@@ -78,7 +68,6 @@
     "js/modules/main-facade-method-binder-bindings.js",
     "js/modules/main-facade-bindings.js",
     "js/modules/main-facade-bridge.js",
-    "js/modules/main-facade-bridge-bindings.js",
     "js/modules/main-format-profile-facade-bindings.js",
     "js/modules/main-core-service-bindings.js",
     "js/modules/main-foundation-service-bindings.js",
@@ -86,14 +75,13 @@
     "js/modules/main-composition-config-builder-bindings.js",
     "js/modules/main-core-assembly-config-builder.js",
     "js/modules/main-core-assembly-config-builder-bindings.js",
-    "js/modules/main-runtime-service-config-builder.js",
-    "js/modules/main-runtime-service-config-builder-bindings.js",
     "js/modules/main-runtime-state-core-bootstrap.js",
     "js/modules/main-runtime-core-service-bootstrap.js",
     "js/modules/main-runtime-core-assembly-bootstrap.js",
     "js/modules/main-runtime-core-foundation-bootstrap.js",
     "js/modules/main-runtime-table-image-bootstrap.js",
     "js/modules/main-runtime-domain-service-bootstrap.js",
+    "js/modules/main-runtime-ui-services-bootstrap.js",
     "js/modules/main-runtime-persistence-composition-bootstrap.js",
     "js/modules/main-runtime-composition-bootstrap.js",
     "js/modules/main-runtime-bootstrap-wiring.js",
@@ -146,6 +134,7 @@
     "js/modules/timer-engine.js",
     "js/modules/time-service.js",
     "js/modules/timezone-data.js",
+    "js/modules/calculator-countdown-state.js",
     "js/modules/calculator.js",
     "js/modules/calculator-actions.js",
     "js/modules/multi-state.js",
@@ -187,13 +176,13 @@
     "js/modules/ui-settings-actions.js",
     "js/modules/app-persistence-state.js",
     "js/modules/persistence-service-bundle.js",
+    "js/modules/persistence-state-normalizer.js",
     "js/modules/state-persistence.js",
     "js/modules/ui-preferences-state.js",
     "js/modules/settings-io.js",
     "js/modules/data-transfer.js",
     "js/modules/main-global-bindings.js",
     "js/modules/main-test-helpers.js",
-    "js/modules/main-test-helpers-bindings.js",
     "main.js"
 ]);
     const documentRef = globalObj?.document || null;
@@ -203,24 +192,36 @@
             throw new Error("Document API unavailable for source script loader.");
         }
 
-        const parent = documentRef.body || documentRef.head || documentRef.documentElement;
+        const parent = documentRef.head || documentRef.body || documentRef.documentElement;
         if (!parent || typeof parent.appendChild !== "function") {
             throw new Error("No valid parent element for source script loader.");
         }
 
-        paths.forEach((src) => {
+        const scripts = [];
+        const loadPromises = paths.map((src) => new Promise((resolve, reject) => {
             const scriptEl = documentRef.createElement("script");
+            scripts.push(scriptEl);
             scriptEl.src = src;
-            scriptEl.defer = true;
             scriptEl.async = false;
+            scriptEl.onload = resolve;
+            scriptEl.onerror = () => reject(new Error("Failed to load source script: " + src));
             parent.appendChild(scriptEl);
+        }));
+        return Promise.all(loadPromises).catch((error) => {
+            scripts.forEach((scriptEl) => scriptEl.remove?.());
+            throw error;
         });
     }
 
-    try {
-        injectScriptsDynamically(SOURCE_SCRIPTS);
-    } catch (error) {
+    injectScriptsDynamically(SOURCE_SCRIPTS).catch((error) => {
         console.error("[GTV] Failed to inject source scripts.", error);
-        throw error;
-    }
+        const documentRef = globalObj?.document || null;
+        const errorBanner = documentRef?.getElementById?.("fatal-error-banner");
+        const errorDescription = documentRef?.getElementById?.("fatal-error-desc");
+        if (errorDescription) {
+            errorDescription.textContent = error.message || String(error);
+        }
+        errorBanner?.classList?.remove?.("is-hidden");
+        documentRef?.getElementById?.("app-loading-overlay")?.classList?.add?.("hidden");
+    });
 })(typeof window !== "undefined" ? window : globalThis);

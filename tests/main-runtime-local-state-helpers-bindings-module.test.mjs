@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-runtime-local-state-helpers-bindings.js");
+const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-runtime-local-state-helpers.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
 const moduleCleanupStack = [];
