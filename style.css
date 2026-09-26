@@ -2854,6 +2854,7 @@ input[type=number] {
 
 .calc-date-input-wrap {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 4px;
     width: 100%;
@@ -2867,6 +2868,12 @@ input[type=number] {
 
 .calc-date-input-wrap .calendar-btn {
     flex-shrink: 0;
+}
+
+.field-error {
+    flex: 0 0 100%;
+    color: var(--danger, #dc2626);
+    font-size: 0.85em;
 }
 
 .calc-period-input-row .form-input {
@@ -3980,7 +3987,20 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     margin-top: 14px;
 }
 
-.fatal-error-actions .sm-btn {
+.fatal-error-action {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+}
+
+.fatal-error-action small {
+    color: var(--text-dim);
+    line-height: 1.35;
+}
+
+.fatal-error-actions > .sm-btn {
     flex: 1 1 0;
 }
 

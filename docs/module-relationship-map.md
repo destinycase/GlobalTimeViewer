@@ -1,6 +1,6 @@
 # Global Time Viewer 모듈 관계도
 
-> 기준: v3.71.8 소스 트리. `script_list.tmp`, `main.js`, `js/modules/main-module-spec.js` 및 각 서비스의 `createService(deps)` 배선을 기준으로 정리했습니다. 파일 수는 소스 트리에서 계산한 값이며, 관계도는 모든 개별 의존성을 나열한 그래프가 아니라 런타임 레이어와 주요 연결을 보여줍니다.
+> 기준: v3.12.9 소스 트리. `script_list.tmp`, `main.js`, `js/modules/main-module-spec.js` 및 각 서비스의 `createService(deps)` 배선을 기준으로 정리했습니다. 파일 수는 소스 트리에서 계산한 값이며, 관계도는 모든 개별 의존성을 나열한 그래프가 아니라 런타임 레이어와 주요 연결을 보여줍니다.
 
 모듈 파일별 전역 API, 입력 의존성 키, 반환 서비스 API, 모듈 등록 경로 및 `main.js` 조립 호출 목록은 [상세 인벤토리](module-dependency-inventory.md)를 참고하세요. 이 인벤토리는 [generate-module-dependency-inventory.mjs](../scripts/generate-module-dependency-inventory.mjs)로 현재 소스에서 다시 생성할 수 있습니다.
 

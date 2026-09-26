@@ -245,6 +245,7 @@
                     if (!normalized) {
                         showToast(t("toast_invalid_date"));
                         fixedTimeDateInput.value = before;
+                        fixedTimeDateInput.focus?.();
                         return;
                     }
                     const changed = setCurrentGroupFixedDate(normalized, { persist: true, rerender: true });
@@ -378,9 +379,19 @@
                     const name = (nameInput?.value || "").trim();
                     const offH = parseInt(offHInput?.value, 10) || 0;
                     const offM = parseInt(offMInput?.value, 10) || 0;
-                    if (!name) return showToast(t("toast_input_name"));
+                    if (!name) {
+                        showToast(t("toast_input_name"));
+                        nameInput?.focus?.();
+                        return;
+                    }
                     const added = addTimezone({ id: createUniqueTimezoneId("tz-c"), abbr, name, offH, offM, type: "custom" });
-                    if (added === false) return;
+                    if (added === false) {
+                        abbrInput?.focus?.();
+                        return;
+                    }
+                    if (added === true) {
+                        showToast(`${t("toast_custom_timezone_added")} ${abbr} · ${name}`, { type: "success" });
+                    }
                     if (abbrInput) abbrInput.value = "";
                     if (nameInput) nameInput.value = "";
                 });

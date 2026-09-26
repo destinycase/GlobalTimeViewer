@@ -78,6 +78,9 @@ function createElement({
         },
         setAttribute(name, valueToSet) {
             attributes.set(name, String(valueToSet));
+        },
+        removeAttribute(name) {
+            attributes.delete(name);
         }
     };
 
@@ -130,13 +133,16 @@ function createStorageStub() {
 function createDocumentRefFromElements(elements, options = {}) {
     const explicitElements = [
         elements.periodStart,
+        elements.periodStartError,
         elements.periodEnd,
+        elements.periodEndError,
         elements.periodSwapBtn,
         elements.periodRes,
         elements.periodHourRes,
         elements.periodMinRes,
         elements.periodSecRes,
         elements.offsetStart,
+        elements.offsetStartError,
         elements.offVal,
         elements.offUnit,
         elements.offDir,
@@ -213,7 +219,9 @@ function createCalculatorContext() {
     };
 
     const periodStart = register(createElement({ id: "period-start", type: "date", value: "2026-03-07" }));
+    const periodStartError = register(createElement({ id: "period-start-error" }));
     const periodEnd = register(createElement({ id: "period-end", type: "date", value: "2026-03-08" }));
+    const periodEndError = register(createElement({ id: "period-end-error" }));
     const periodSwapBtn = register(createElement({ id: "period-swap-btn", type: "button" }));
     const periodRes = register(createElement({ id: "period-res", textContent: "" }));
     const periodHourRes = register(createElement({ id: "period-hour-res", textContent: "" }));
@@ -221,6 +229,7 @@ function createCalculatorContext() {
     const periodSecRes = register(createElement({ id: "period-sec-res", textContent: "" }));
 
     const offsetStart = register(createElement({ id: "offset-start", type: "date", value: "2026-03-07" }));
+    const offsetStartError = register(createElement({ id: "offset-start-error" }));
     const offVal = register(createElement({ id: "off-val", type: "number", value: "0" }));
     const offUnit = register(createElement({ id: "off-unit", type: "select-one", value: "day" }));
     const offDir = register(createElement({ id: "off-dir", type: "select-one", value: "after" }));
@@ -402,13 +411,16 @@ function createCalculatorContext() {
         sandbox,
         elements: {
             periodStart,
+            periodStartError,
             periodEnd,
+            periodEndError,
             periodSwapBtn,
             periodRes,
             periodHourRes,
             periodMinRes,
             periodSecRes,
             offsetStart,
+            offsetStartError,
             offVal,
             offUnit,
             offDir,
@@ -448,7 +460,8 @@ function createTranslator() {
         calc_countdown_expired: "Expired",
         calc_countdown_rename_prompt: "Edit countdown name:",
         calc_countdown_day_suffix: "d",
-        calc_unix_invalid: "Invalid timestamp"
+        calc_unix_invalid: "Invalid timestamp",
+        calc_invalid_date_help: "Enter a valid date in YYYY-MM-DD format."
     };
     return (key) => map[key] || key;
 }
@@ -481,6 +494,34 @@ test("date shift supports year unit with before direction", () => {
     elements.offDir.dispatch("change");
 
     expect(elements.offsetRes.value).toBe("2024-03-07 00:00:00");
+});
+
+test("date calculators reject overflow dates, report the field, and recover on valid input", () => {
+    const { sandbox, elements } = createCalculatorContext();
+    sandbox.GTVCalculator.initCalculators({ t: createTranslator(), copyText: async () => { } });
+
+    elements.periodEnd.value = elements.periodStart.value;
+    elements.periodStart.dispatch("input");
+    expect(elements.periodRes.textContent).toBe("0d");
+    expect(elements.periodStart.getAttribute("aria-invalid")).toBe(null);
+
+    elements.offsetStart._cdp = { selectedDate: new Date("2026-03-07T00:00:00Z") };
+    elements.offsetStart.value = "2026-02-31";
+    elements.offsetStart.dispatch("input");
+    expect(elements.offsetRes.value).toBe("-");
+    expect(elements.offsetStart.getAttribute("aria-invalid")).toBe("true");
+    expect(elements.offsetStartError.textContent).toBe("Enter a valid date in YYYY-MM-DD format.");
+
+    elements.offsetStart.value = "2024-02-29";
+    elements.offsetStart.dispatch("input");
+    expect(elements.offsetRes.value).toBe("2024-02-29 00:00:00");
+    expect(elements.offsetStart.getAttribute("aria-invalid")).toBe(null);
+    expect(elements.offsetStartError.textContent).toBe("");
+
+    elements.periodStart.value = "2026-13-01";
+    elements.periodStart.dispatch("input");
+    expect(elements.periodStart.getAttribute("aria-invalid")).toBe("true");
+    expect(elements.periodStartError.textContent).toBe("Enter a valid date in YYYY-MM-DD format.");
 });
 
 test("date shift clamps month overflow to the month end", () => {

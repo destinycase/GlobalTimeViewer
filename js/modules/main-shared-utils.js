@@ -81,16 +81,25 @@
         }
 
         function parseLocalDateTimeToUtcMs(value) {
-            const match = (value || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+            const match = (typeof value === "string" ? value : "")
+                .trim()
+                .match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
             if (!match) return NaN;
-            return Date.UTC(
-                Number(match[1]),
-                Number(match[2]) - 1,
-                Number(match[3]),
-                Number(match[4]),
-                Number(match[5]),
-                Number(match[6])
-            );
+            const [year, month, day, hour, minute, second] = match.slice(1).map(Number);
+            const result = new Date(0);
+            result.setUTCHours(0, 0, 0, 0);
+            result.setUTCFullYear(year, month - 1, day);
+            result.setUTCHours(hour, minute, second, 0);
+            if (
+                !Number.isFinite(result.getTime())
+                || result.getUTCFullYear() !== year
+                || result.getUTCMonth() !== month - 1
+                || result.getUTCDate() !== day
+                || result.getUTCHours() !== hour
+                || result.getUTCMinutes() !== minute
+                || result.getUTCSeconds() !== second
+            ) return NaN;
+            return result.getTime();
         }
 
         function escapeHtml(value) {

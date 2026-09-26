@@ -56,13 +56,22 @@ describe("GTV main shared utils module", () => {
     it("parses datetime-like input consistently", () => {
         const moduleApi = loadMainSharedUtilsModule();
         const service = moduleApi.createService();
+        const lowYearExpected = new Date(0);
+        lowYearExpected.setUTCFullYear(26, 2, 20);
+        lowYearExpected.setUTCHours(1, 2, 3, 0);
 
         expect(service.parseDateTimeParts("2026-03-20 01:02:03", "datetime")).toEqual([2026, 3, 20, 1, 2, 3]);
         expect(service.parseDateTimeParts("2026-03-20", "date")).toEqual([2026, 3, 20]);
         expect(service.parseDateTimeParts("01:02:03", "time")).toEqual([1, 2, 3]);
         expect(service.parseDateTimeParts("bad", "datetime")).toBe(null);
         expect(Number.isNaN(service.parseLocalDateTimeToUtcMs("bad"))).toBe(true);
+        expect(Number.isNaN(service.parseLocalDateTimeToUtcMs(null))).toBe(true);
+        expect(Number.isNaN(service.parseLocalDateTimeToUtcMs("2026-02-31 01:02:03"))).toBe(true);
+        expect(Number.isNaN(service.parseLocalDateTimeToUtcMs("2026-01-01 24:00:00"))).toBe(true);
+        expect(Number.isNaN(service.parseLocalDateTimeToUtcMs("2026-01-01 01:60:00"))).toBe(true);
+        expect(Number.isNaN(service.parseLocalDateTimeToUtcMs("2026-01-01 01:02:60"))).toBe(true);
         expect(service.parseLocalDateTimeToUtcMs("2026-03-20 01:02:03")).toBe(Date.UTC(2026, 2, 20, 1, 2, 3));
+        expect(service.parseLocalDateTimeToUtcMs("0026-03-20 01:02:03")).toBe(lowYearExpected.getTime());
         expect(service.escapeHtml("<div>'A' & \"B\"</div>")).toBe("&lt;div&gt;&#39;A&#39; &amp; &quot;B&quot;&lt;/div&gt;");
     });
 

@@ -37,9 +37,16 @@
                 </details>
             </div>
             <div class="fatal-error-actions">
-                <button id="fatal-error-retry-btn" class="sm-btn" type="button" data-i18n="btn_retry">Retry</button>
-                <button id="fatal-error-reset-btn" class="sm-btn danger" type="button" data-i18n="btn_reset_all">Reset
-                    All</button>
+                <div class="fatal-error-action">
+                    <button id="fatal-error-retry-btn" class="sm-btn" type="button"
+                        aria-describedby="fatal-error-retry-help" data-i18n="btn_retry">Retry</button>
+                    <small id="fatal-error-retry-help" data-i18n="error_retry_help">Reloads the app and keeps saved settings.</small>
+                </div>
+                <div class="fatal-error-action">
+                    <button id="fatal-error-reset-btn" class="sm-btn danger" type="button"
+                        aria-describedby="fatal-error-reset-help" data-i18n="btn_reset_all">Reset All</button>
+                    <small id="fatal-error-reset-help" data-i18n="error_reset_help">Clears saved settings, then reloads the app.</small>
+                </div>
             </div>
         </div>
     </div>
@@ -134,6 +141,8 @@
 
                     <div class="control-group">
                         <span class="inline-time-label" data-i18n="label_add_custom">Custom</span>
+                        <span class="info-tip" tabindex="0" role="img" data-i18n-title="tooltip_custom_timezone_help"
+                            aria-label="Info">i</span>
                         <input type="text" id="custom-abbr" class="form-input" placeholder="Timezone"
                             data-i18n="placeholder_abbr">
                         <input type="text" id="custom-name" class="form-input" placeholder="Name"
@@ -321,7 +330,8 @@
                             <div class="conv-row">
                                 <label data-i18n="calc_label_day" for="conv-day">Day</label>
                                 <div class="conv-input-group">
-                                    <input type="number" id="conv-day" class="form-input" placeholder="0">
+                                    <input type="number" id="conv-day" class="form-input" placeholder="0"
+                                        inputmode="decimal" step="any" aria-describedby="converter-help">
                                     <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-conv-day-btn"
                                         data-i18n-title="tooltip_copy">&#128203;</button>
                                 </div>
@@ -329,7 +339,8 @@
                             <div class="conv-row">
                                 <label data-i18n="calc_label_hour" for="conv-hour">Hour</label>
                                 <div class="conv-input-group">
-                                    <input type="number" id="conv-hour" class="form-input" placeholder="0">
+                                    <input type="number" id="conv-hour" class="form-input" placeholder="0"
+                                        inputmode="decimal" step="any" aria-describedby="converter-help">
                                     <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-conv-hour-btn"
                                         data-i18n-title="tooltip_copy">&#128203;</button>
                                 </div>
@@ -337,7 +348,8 @@
                             <div class="conv-row">
                                 <label data-i18n="calc_label_min" for="conv-min">Minute</label>
                                 <div class="conv-input-group">
-                                    <input type="number" id="conv-min" class="form-input" placeholder="0">
+                                    <input type="number" id="conv-min" class="form-input" placeholder="0"
+                                        inputmode="decimal" step="any" aria-describedby="converter-help">
                                     <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-conv-min-btn"
                                         data-i18n-title="tooltip_copy">&#128203;</button>
                                 </div>
@@ -345,11 +357,13 @@
                             <div class="conv-row">
                                 <label data-i18n="calc_label_sec" for="conv-sec">Second</label>
                                 <div class="conv-input-group">
-                                    <input type="number" id="conv-sec" class="form-input" placeholder="0">
+                                    <input type="number" id="conv-sec" class="form-input" placeholder="0"
+                                        inputmode="decimal" step="any" aria-describedby="converter-help">
                                     <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-conv-sec-btn"
                                         data-i18n-title="tooltip_copy">&#128203;</button>
                                 </div>
                             </div>
+                            <small id="converter-help" data-i18n="calc_converter_help">Enter a number; the other units update automatically.</small>
                         </div>
                     </div>
 
@@ -363,17 +377,26 @@
                                 </div>
                                 <div class="calc-period-input-row">
                                     <div class="calc-date-input-wrap">
-                                        <input type="text" id="period-start" class="form-input">
-                                        <button type="button" class="calendar-btn" id="period-start-trigger">&#128197;</button>
+                                        <input type="text" id="period-start" class="form-input" inputmode="numeric"
+                                            placeholder="YYYY-MM-DD" data-i18n="placeholder_fixed_date"
+                                            aria-describedby="calc-date-format-help period-start-error">
+                                        <button type="button" class="calendar-btn" id="period-start-trigger"
+                                            data-i18n-title="tooltip_open_date_picker">&#128197;</button>
+                                        <span id="period-start-error" class="field-error" role="status" aria-live="polite"></span>
                                     </div>
                                     <button type="button" id="period-swap-btn"
                                         class="sm-btn calc-period-swap-btn custom-tooltip"
                                         data-i18n-title="tooltip_swap_dates">&lt;-&gt;</button>
                                     <div class="calc-date-input-wrap">
-                                        <input type="text" id="period-end" class="form-input">
-                                        <button type="button" class="calendar-btn" id="period-end-trigger">&#128197;</button>
+                                        <input type="text" id="period-end" class="form-input" inputmode="numeric"
+                                            placeholder="YYYY-MM-DD" data-i18n="placeholder_fixed_date"
+                                            aria-describedby="calc-date-format-help period-end-error">
+                                        <button type="button" class="calendar-btn" id="period-end-trigger"
+                                            data-i18n-title="tooltip_open_date_picker">&#128197;</button>
+                                        <span id="period-end-error" class="field-error" role="status" aria-live="polite"></span>
                                     </div>
                                 </div>
+                                <small id="calc-date-format-help" data-i18n="calc_date_format_help">Enter a date as YYYY-MM-DD.</small>
                             </div>
                             <div class="calc-result-grid">
                                 <div class="calc-result-box calc-result-box-compact">
@@ -423,10 +446,15 @@
                             <div class="calc-shift-item">
                                 <label for="offset-start" data-i18n="calc_label_base">Base Date</label>
                                 <div class="calc-date-input-wrap">
-                                    <input type="text" id="offset-start" class="form-input">
-                                    <button type="button" class="calendar-btn" id="offset-start-trigger">&#128197;</button>
+                                    <input type="text" id="offset-start" class="form-input" inputmode="numeric"
+                                        placeholder="YYYY-MM-DD" data-i18n="placeholder_fixed_date"
+                                        aria-describedby="calc-date-format-help offset-start-error">
+                                    <button type="button" class="calendar-btn" id="offset-start-trigger"
+                                        data-i18n-title="tooltip_open_date_picker">&#128197;</button>
+                                    <span id="offset-start-error" class="field-error" role="status" aria-live="polite"></span>
                                 </div>
                             </div>
+                            <small id="date-offset-help" data-i18n="calc_offset_help">The shift is a whole number of days, weeks, months, or years.</small>
 
                             <!-- Row 2: Shift Amount & Controls -->
                             <div class="calc-shift-item">

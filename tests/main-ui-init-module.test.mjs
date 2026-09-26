@@ -19,6 +19,7 @@ function createNode({ id = "", value = "", checked = false, dataset = {} } = {})
         style: {},
         children,
         blurCallCount: 0,
+        focusCallCount: 0,
         addEventListener(type, handler) {
             const key = String(type);
             if (!handlers.has(key)) handlers.set(key, []);
@@ -30,6 +31,9 @@ function createNode({ id = "", value = "", checked = false, dataset = {} } = {})
         },
         blur() {
             this.blurCallCount += 1;
+        },
+        focus() {
+            this.focusCallCount += 1;
         },
         async dispatch(type, event = {}) {
             const key = String(type);
@@ -655,6 +659,7 @@ describe("GTV main ui init module", () => {
         customName.value = "";
         await addCustomBtn.dispatch("click");
         expect(calls.toasts.includes("toast_input_name")).toBe(true);
+        expect(customName.focusCallCount).toBe(1);
 
         customName.value = "City";
         await addCustomBtn.dispatch("click");
@@ -663,6 +668,7 @@ describe("GTV main ui init module", () => {
         await addCustomBtn.dispatch("click");
         expect(customAbbr.value).toBe("");
         expect(customName.value).toBe("");
+        expect(calls.toasts.some((message) => String(message).includes("toast_custom_timezone_added"))).toBe(true);
         expect(calls.addTimezone.length).toBe(2);
 
         await addGroupBtn.dispatch("click");

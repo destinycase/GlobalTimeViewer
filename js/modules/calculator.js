@@ -947,21 +947,25 @@
 
         // 湲곌컙 怨꾩궛?? UTC ?먯젙?쇰줈 ?뚯떛 (DST 寃쎄퀎 ?ㅻ쪟 諛⑹?)
         const getPickerDateUtc = (el) => {
-            let val = el.value;
-            if (el._cdp && el._cdp.selectedDate) {
-                const d = new Date(el._cdp.selectedDate);
-                val = `${d.getFullYear()}-${padFn(d.getMonth() + 1)}-${padFn(d.getDate())}`;
-            }
+            // The input is authoritative so manual edits are not masked by a stale picker selection.
+            const val = String(el.value || "").trim();
             if (val) {
-                const parts = val.split("-");
-                if (parts.length === 3) {
-                    const y = parseInt(parts[0], 10);
-                    const m = parseInt(parts[1], 10) - 1;
-                    const d = parseInt(parts[2], 10);
-                    if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-                        return new Date(Date.UTC(y, m, d));
-                    }
-                }
+                const match = val.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (!match) return null;
+                const y = Number(match[1]);
+                const month = Number(match[2]) - 1;
+                const day = Number(match[3]);
+                // Date.UTC remaps years 0–99 to 1900–1999; setUTCFullYear preserves the entered year.
+                const candidate = new Date(0);
+                candidate.setUTCHours(0, 0, 0, 0);
+                candidate.setUTCFullYear(y, month, day);
+                if (
+                    !Number.isFinite(candidate.getTime())
+                    || candidate.getUTCFullYear() !== y
+                    || candidate.getUTCMonth() !== month
+                    || candidate.getUTCDate() !== day
+                ) return null;
+                return candidate;
             }
             return null;
         };
@@ -980,9 +984,22 @@
             el.textContent = `${value}${suffix || ""}`;
         };
 
+        const setDateInputFeedback = (input, isInvalid) => {
+            const errorEl = helpers.getElementById(`${input.id}-error`);
+            if (isInvalid) {
+                input.setAttribute("aria-invalid", "true");
+                if (errorEl) errorEl.textContent = t("calc_invalid_date_help");
+            } else {
+                input.removeAttribute("aria-invalid");
+                if (errorEl) errorEl.textContent = "";
+            }
+        };
+
         const updateAll = () => {
             const startD = getPickerDateUtc(periodStart);
             const endD = getPickerDateUtc(periodEnd);
+            setDateInputFeedback(periodStart, !startD);
+            setDateInputFeedback(periodEnd, !endD);
 
             if (startD && endD) {
                 // Math.trunc ?ъ슜: ?쒖옉??> 醫낅즺???뚯닔) ???ㅻ갑??諛섏삱由?踰꾧렇 諛⑹?
@@ -999,6 +1016,7 @@
             }
 
             const offStartD = getPickerDateUtc(offsetStart);
+            setDateInputFeedback(offsetStart, !offStartD);
             if (!offStartD) { offsetResult.value = "-"; return; }
 
             const resultDate = new Date(offStartD.getTime());

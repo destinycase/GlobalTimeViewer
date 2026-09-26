@@ -491,6 +491,15 @@ const KO_OVERRIDES = {
 };
 
 Object.assign(EN_I18N, {
+    calc_date_format_help: "Enter a date as YYYY-MM-DD.",
+    calc_invalid_date_help: "Enter a valid date in YYYY-MM-DD format.",
+    calc_converter_help: "Enter a number; the other units update automatically. Decimals and negative values are supported.",
+    calc_offset_help: "Enter a whole number of days, weeks, months, or years.",
+    tooltip_open_date_picker: "Open date picker",
+    tooltip_custom_timezone_help: "Add a custom timezone by entering its abbreviation, city name, and UTC offset. Example: KST, Seoul, UTC+09:00.",
+    toast_custom_timezone_added: "Custom timezone added.",
+    error_retry_help: "Reloads the app and keeps saved settings.",
+    error_reset_help: "Clears saved settings, then reloads the app.",
     error_fatal_desc_module_load: "A required script failed to load. Please reload the extension.",
     error_fatal_desc_persistence: "Saved data could not be restored. You can retry or reset settings.",
     error_fatal_desc_state: "Application state initialization failed. You can retry or reset settings.",
@@ -503,6 +512,15 @@ Object.assign(EN_I18N, {
 });
 
 Object.assign(KO_OVERRIDES, {
+    calc_date_format_help: "\uB0A0\uC9DC\uB97C YYYY-MM-DD \uD615\uC2DD\uC73C\uB85C \uC785\uB825\uD558\uC138\uC694.",
+    calc_invalid_date_help: "\uC720\uD6A8\uD55C \uB0A0\uC9DC\uB97C YYYY-MM-DD \uD615\uC2DD\uC73C\uB85C \uC785\uB825\uD558\uC138\uC694.",
+    calc_converter_help: "\uC22B\uC790\uB97C \uC785\uB825\uD558\uBA74 \uB2E4\uB978 \uB2E8\uC704\uAC00 \uC790\uB3D9\uC73C\uB85C \uAC31\uC2E0\uB429\uB2C8\uB2E4. \uC18C\uC218\uC640 \uC74C\uC218\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    calc_offset_help: "\uC77C, \uC8FC, \uC6D4, \uB144 \uB2E8\uC704\uC758 \uC815\uC218\uB97C \uC785\uB825\uD558\uC138\uC694.",
+    tooltip_open_date_picker: "\uB2EC\uB825 \uC5F4\uAE30",
+    tooltip_custom_timezone_help: "\uC2DC\uAC04\uB300 \uC57D\uC5B4, \uB3C4\uC2DC \uC774\uB984, UTC \uC624\uD504\uC14B\uC744 \uC785\uB825\uD574 \uCEE4\uC2A4\uD140 \uC2DC\uAC04\uB300\uB97C \uCD94\uAC00\uD569\uB2C8\uB2E4. \uC608: KST, \uC11C\uC6B8, UTC+09:00.",
+    toast_custom_timezone_added: "\uC0AC\uC6A9\uC790 \uC9C0\uC815 \uC2DC\uAC04\uB300\uB97C \uCD94\uAC00\uD588\uC2B5\uB2C8\uB2E4.",
+    error_retry_help: "\uC800\uC7A5\uB41C \uC124\uC815\uC744 \uC720\uC9C0\uD55C \uCC44 \uC571\uC744 \uB2E4\uC2DC \uBD88\uB7EC\uC635\uB2C8\uB2E4.",
+    error_reset_help: "\uC800\uC7A5\uB41C \uC124\uC815\uC744 \uC0AD\uC81C\uD55C \uD6C4 \uC571\uC744 \uB2E4\uC2DC \uBD88\uB7EC\uC635\uB2C8\uB2E4.",
     placeholder_timezone_search: "\uB3C4\uC2DC, \uC2DC\uAC04\uB300, \uC57D\uC5B4, UTC \uC624\uD504\uC14B \uAC80\uC0C9...",
     overlay_no_tz_results: "\uC77C\uCE58\uD558\uB294 \uC2DC\uAC04\uB300\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
     btn_confirm: "\uD655\uC778",
