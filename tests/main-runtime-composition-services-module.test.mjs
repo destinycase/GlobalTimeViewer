@@ -56,6 +56,7 @@ describe("GTV main runtime composition services module", () => {
         let uiRuntimeConfig = null;
         let clockConfig = null;
         let saveCount = 0;
+        let fixedTimeRenderCount = 0;
         let copyControlCount = 0;
         let addGroupCount = 0;
         let addSubgroupCount = 0;
@@ -219,7 +220,7 @@ describe("GTV main runtime composition services module", () => {
                 refreshSelectWidths: () => {},
                 renderBaseTimeSelect: () => {},
                 updateRow: () => {},
-                renderFixedTimeTab: () => {}
+                renderFixedTimeTab: () => { fixedTimeRenderCount += 1; }
             },
             environment: {
                 getDocumentRef: () => ({
@@ -240,6 +241,7 @@ describe("GTV main runtime composition services module", () => {
         expect(service.mainClockOrchestratorService.id).toBe("clock");
 
         uiRuntimeConfig.savePersistence();
+        uiRuntimeConfig.renderFixedTimeTab();
         uiRuntimeConfig.renderCopyFormatControls();
         uiRuntimeConfig.addGroup();
         uiRuntimeConfig.addMultiSubgroup();
@@ -258,6 +260,7 @@ describe("GTV main runtime composition services module", () => {
         expect(clockConfig.isShowCopyFormat()).toBe(true);
 
         expect(saveCount).toBe(1);
+        expect(fixedTimeRenderCount).toBe(1);
         expect(copyControlCount).toBe(1);
         expect(addGroupCount).toBe(1);
         expect(addSubgroupCount).toBe(1);

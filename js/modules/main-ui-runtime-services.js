@@ -68,6 +68,7 @@
                 "getCurrentLang",
                 "getCurrentTheme",
                 "updateClocks",
+               "renderFixedTimeTab",
                 "savePersistence",
                 "getTimelineFrameElement"
             ])

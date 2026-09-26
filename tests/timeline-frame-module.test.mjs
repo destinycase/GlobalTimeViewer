@@ -266,6 +266,7 @@ describe("GTV timeline frame module", () => {
         const module = loadTimelineFrameModule();
         let applyCount = 0;
         let updateCount = 0;
+        let renderCount = 0;
         let saveCount = 0;
         const service = module.createService({
             getIsRealtime: () => false,
@@ -277,6 +278,9 @@ describe("GTV timeline frame module", () => {
             updateClocks: () => {
                 updateCount += 1;
             },
+            renderFixedTimeTab: () => {
+                renderCount += 1;
+            },
             savePersistence: () => {
                 saveCount += 1;
             }
@@ -285,11 +289,19 @@ describe("GTV timeline frame module", () => {
         service.applyTimelineRatioToSlot(0, 0.5, { id: "utc", zone: "UTC" }, { render: false, persist: false });
         expect(applyCount).toBe(1);
         expect(updateCount).toBe(0);
+        expect(renderCount).toBe(0);
+        expect(saveCount).toBe(0);
+
+        service.applyTimelineRatioToSlot(0, 0.6, { id: "utc", zone: "UTC" }, { render: true, persist: false });
+        expect(applyCount).toBe(2);
+        expect(updateCount).toBe(1);
+        expect(renderCount).toBe(1);
         expect(saveCount).toBe(0);
 
         service.applyTimelineRatioToSlot(0, 0.75, { id: "utc", zone: "UTC" });
-        expect(applyCount).toBe(2);
-        expect(updateCount).toBe(1);
+        expect(applyCount).toBe(3);
+        expect(updateCount).toBe(2);
+        expect(renderCount).toBe(2);
         expect(saveCount).toBe(1);
     });
 

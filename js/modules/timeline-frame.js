@@ -117,6 +117,7 @@
                 "getUTCDateFromLocalParts",
                 "applyFixedTimeSlotTimelineRatio",
                 "updateClocks",
+               "renderFixedTimeTab",
                 "savePersistence",
                 "getDayNightMarkerByHour",
                 "getZoneDisplayName",
@@ -342,10 +343,11 @@
             const shouldPersist = safeOptions.persist !== false;
 
             if (isFixedTimeTab()) {
-                const applied = dep.applyFixedTimeSlotTimelineRatio(slotIdx, ratio);
-                if (!applied) return;
-                if (shouldRender) dep.updateClocks();
-                if (shouldPersist) dep.savePersistence();
+               const applied = dep.applyFixedTimeSlotTimelineRatio(slotIdx, ratio);
+               if (!applied) return;
+               if (shouldRender) dep.updateClocks();
+                if (shouldRender) dep.renderFixedTimeTab();
+               if (shouldPersist) dep.savePersistence();
                 return;
             }
 

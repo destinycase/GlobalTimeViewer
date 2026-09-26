@@ -41,6 +41,9 @@
             if (isFixedTimeTab()) {
                 renderFixedTimeTab(true);
                 renderTimelineFrame();
+                if (isShowCopyFormat()) {
+                    updateCopyFormatPreview();
+                }
                 return;
             }
 

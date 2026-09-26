@@ -51,17 +51,20 @@ describe("GTV main clock orchestrator services module", () => {
             }
         }
     });
-    it("renders fixed-time tab path with timeline only", () => {
+    it("updates fixed-time view and enabled copy preview", () => {
         const moduleApi = loadMainClockOrchestratorServicesModule();
         let fixedRenderCount = 0;
         let timelineRenderCount = 0;
         let multiRenderCount = 0;
+        let previewCount = 0;
         const service = moduleApi.createService({
             isFixedTimeTab: () => true,
             renderFixedTimeTab: () => { fixedRenderCount += 1; },
             renderTimelineFrame: () => { timelineRenderCount += 1; },
             isMultiTab: () => false,
-            renderMultiRanges: () => { multiRenderCount += 1; }
+            renderMultiRanges: () => { multiRenderCount += 1; },
+            isShowCopyFormat: () => true,
+            updateCopyFormatPreview: () => { previewCount += 1; }
         });
 
         service.updateClocks();
@@ -69,6 +72,7 @@ describe("GTV main clock orchestrator services module", () => {
         expect(fixedRenderCount).toBe(1);
         expect(timelineRenderCount).toBe(1);
         expect(multiRenderCount).toBe(0);
+        expect(previewCount).toBe(1);
     });
 
     it("updates base/utc/rows and copy preview in live mode", () => {

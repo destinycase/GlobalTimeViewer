@@ -106,6 +106,7 @@
             getCurrentLang: state.getCurrentLang,
             getCurrentTheme: state.getCurrentTheme,
             updateClocks: actions.updateClocks,
+            renderFixedTimeTab: actions.renderFixedTimeTab,
             savePersistence: () => invokeService("getPersistenceService", "savePersistence", []),
             getTimelineFrameElement: () => {
                 const documentRef = (typeof environment.getDocumentRef === "function")

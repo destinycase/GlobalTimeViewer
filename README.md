@@ -2,7 +2,7 @@
 
 Global Time Viewer는 여러 지역의 시각을 비교하고, 날짜와 시간을 조정해 확인하며, 고정 시간 관리와 시간 관련 계산을 할 수 있는 Chrome 확장 프로그램입니다. 한국어와 영어, 어두운/밝은 테마, 화면 크기 조절을 지원하며 저장 설정을 내보내고 가져올 수 있습니다.
 
-**현재 소스 버전:** 3.12.9
+**현재 소스 버전:** 3.12.10
 **Chrome 웹 스토어:** [Global Time Viewer 열기](https://chromewebstore.google.com/detail/ojmkgfaeececindhbegihnonpndkbnho)
 
 ## 문서 안내
