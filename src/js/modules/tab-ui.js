@@ -19,42 +19,11 @@
             return (typeof document === "object" && document) ? document : null;
         }
 
-        function logWarn(...args) {
-            if (typeof safeDeps.logWarn === "function") {
-                safeDeps.logWarn(...args);
-                return;
-            }
-            if (typeof safeDeps.consoleWarn === "function") {
-                safeDeps.consoleWarn(...args);
-                return;
-            }
-            if (typeof globalObj?.console?.warn === "function") {
-                globalObj.console.warn(...args);
-                return;
-            }
-            if (typeof console === "object" && console && typeof console.warn === "function") {
-                console.warn(...args);
-            }
-        }
-
-        function toSafeCallable(depName, depFn) {
-            if (typeof depFn !== "function") return () => undefined;
-            return (...args) => {
-                try {
-                    return depFn(...args);
-                } catch (err) {
-                    logWarn(`[GTVTabUI] Dependency "${depName}" threw.`, err);
-                    return undefined;
-                }
-            };
-        }
-
-        function pickSafeCallables(keys) {
-            return keys.reduce((acc, key) => {
-                acc[key] = toSafeCallable(key, safeDeps[key]);
-                return acc;
-            }, {});
-        }
+        const serviceInvokeUtils = globalObj?.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils;
+        if (!serviceInvokeUtils) throw new Error("Missing required module API: GTVServiceInvokeUtils");
+        const logWarn = serviceInvokeUtils.createDependencyLogger(safeDeps, "warn", globalObj);
+        const toSafeCallable = serviceInvokeUtils.createSafeCallableFactory("GTVTabUI", logWarn);
+        const pickSafeCallables = (keys) => serviceInvokeUtils.pickSafeCallables(safeDeps, keys, toSafeCallable);
 
         const dep = Object.freeze({
             ...pickSafeCallables([

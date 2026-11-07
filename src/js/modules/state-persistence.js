@@ -76,24 +76,10 @@
             ? safeDeps.I18N_DATA
             : {};
 
-        function toSafeCallable(depName, depFn) {
-            if (typeof depFn !== "function") return () => undefined;
-            return (...args) => {
-                try {
-                    return depFn(...args);
-                } catch (err) {
-                    logger.warn(`[GTVStatePersistence] Dependency "${depName}" threw.`, err);
-                    return undefined;
-                }
-            };
-        }
-
-        function pickSafeCallables(keys) {
-            return keys.reduce((acc, key) => {
-                acc[key] = toSafeCallable(key, safeDeps[key]);
-                return acc;
-            }, {});
-        }
+        const serviceInvokeUtils = globalObj?.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils;
+        if (!serviceInvokeUtils) throw new Error("Missing required module API: GTVServiceInvokeUtils");
+        const toSafeCallable = serviceInvokeUtils.createSafeCallableFactory("GTVStatePersistence", (...args) => logger.warn(...args));
+        const pickSafeCallables = (keys) => serviceInvokeUtils.pickSafeCallables(safeDeps, keys, toSafeCallable);
 
         const dep = Object.freeze({
             ...pickSafeCallables([

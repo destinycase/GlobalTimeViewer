@@ -23,6 +23,7 @@ export default defineConfig({
     test: {
         include: ['tests/**/*.test.mjs'],
         exclude: ['node_modules/**', 'tests/local/**'],
+        setupFiles: ['tests/helpers/install-runtime-globals.mjs'],
         coverage: {
             provider: 'v8',
             reporter: ['text-summary', 'html'],

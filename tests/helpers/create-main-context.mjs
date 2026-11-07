@@ -7,6 +7,7 @@ const require = createRequire(import.meta.url);
 const luxon = require("luxon");
 
 const MAIN_JS_PATH = path.resolve(process.cwd(), "src", "main.js");
+const SERVICE_INVOKE_UTILS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "service-invoke-utils.js");
 const APP_CONFIG_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "app-config.js");
 const MAIN_CONSTANTS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-constants.js");
 const MAIN_CONSTANTS_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-constants-bindings.js");
@@ -277,6 +278,7 @@ function createStorageStub() {
 }
 
 export function createMainContext() {
+    const serviceInvokeUtilsCode = fs.readFileSync(SERVICE_INVOKE_UTILS_MODULE_PATH, "utf8");
     const appConfigCode = fs.readFileSync(APP_CONFIG_MODULE_PATH, "utf8");
     const mainConstantsCode = fs.readFileSync(MAIN_CONSTANTS_MODULE_PATH, "utf8");
     const mainConstantsBindingsCode = fs.readFileSync(MAIN_CONSTANTS_BINDINGS_MODULE_PATH, "utf8");
@@ -537,6 +539,7 @@ export function createMainContext() {
     sandbox.innerHeight = 1080;
 
     vm.createContext(sandbox);
+    vm.runInContext(serviceInvokeUtilsCode, sandbox, { filename: "js/modules/service-invoke-utils.js" });
     vm.runInContext(appConfigCode, sandbox, { filename: "js/modules/app-config.js" });
     vm.runInContext(mainConstantsCode, sandbox, { filename: "js/modules/main-constants.js" });
     vm.runInContext(mainConstantsBindingsCode, sandbox, { filename: "js/modules/main-constants-bindings.js" });

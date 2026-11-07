@@ -53,18 +53,12 @@
 
     function createDepFacade(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
-
-        function toSafeCallable(depName, depFn) {
-            if (typeof depFn !== "function") return () => undefined;
-            return (...args) => {
-                try {
-                    return depFn(...args);
-                } catch (err) {
-                    logError(safeDeps, `[GTVImageExport] Dependency "${depName}" threw.`, err);
-                    return undefined;
-                }
-            };
-        }
+        const serviceInvokeUtils = globalObj?.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils;
+        if (!serviceInvokeUtils) throw new Error("Missing required module API: GTVServiceInvokeUtils");
+        const toSafeCallable = serviceInvokeUtils.createSafeCallableFactory(
+            "GTVImageExport",
+            (...args) => logError(safeDeps, ...args)
+        );
 
         function toSafeAsyncCallable(depName, depFn) {
             if (typeof depFn !== "function") return async () => undefined;
@@ -78,12 +72,7 @@
             };
         }
 
-        function pickSafeCallables(keys) {
-            return keys.reduce((acc, key) => {
-                acc[key] = toSafeCallable(key, safeDeps[key]);
-                return acc;
-            }, {});
-        }
+        const pickSafeCallables = (keys) => serviceInvokeUtils.pickSafeCallables(safeDeps, keys, toSafeCallable);
 
         function pickSafeAsyncCallables(keys) {
             return keys.reduce((acc, key) => {

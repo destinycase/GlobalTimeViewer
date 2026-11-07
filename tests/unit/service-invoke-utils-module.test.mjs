@@ -87,4 +87,43 @@ describe("GTV service invoke utils module", () => {
         expect(invoke("uppercase", ["abc"], "fallback")).toBe("ABC");
         expect(invoke("missing", ["abc"], "fallback")).toBe("fallback");
     });
+
+    it("dependency logger prefers injected loggers, then host console, then global console", () => {
+        const moduleApi = loadServiceInvokeUtilsModule();
+        const calls = [];
+        moduleApi.createDependencyLogger({ logWarn: (...a) => calls.push(["logWarn", ...a]), consoleWarn: () => calls.push(["consoleWarn"]) })("w1");
+        moduleApi.createDependencyLogger({ consoleWarn: (...a) => calls.push(["consoleWarn", ...a]) })("w2");
+        moduleApi.createDependencyLogger({ logError: (...a) => calls.push(["logError", ...a]) }, "error")("e1");
+        moduleApi.createDependencyLogger({ consoleError: (...a) => calls.push(["consoleError", ...a]) }, "error")("e2");
+        const host = { console: { warn: (...a) => calls.push(["hostWarn", ...a]), error: (...a) => calls.push(["hostError", ...a]) } };
+        moduleApi.createDependencyLogger({}, "warn", host)("w3");
+        moduleApi.createDependencyLogger(null, "error", host)("e3");
+        expect(calls).toEqual([
+            ["logWarn", "w1"],
+            ["consoleWarn", "w2"],
+            ["logError", "e1"],
+            ["consoleError", "e2"],
+            ["hostWarn", "w3"],
+            ["hostError", "e3"]
+        ]);
+    });
+
+    it("safe callables no-op for missing deps and log thrown errors with the module tag", () => {
+        const moduleApi = loadServiceInvokeUtilsModule();
+        const logs = [];
+        const toSafeCallable = moduleApi.createSafeCallableFactory("GTVExample", (...a) => logs.push(a));
+        const boom = new Error("boom");
+        const picked = moduleApi.pickSafeCallables({
+            ok: (x) => x * 2,
+            bad: () => { throw boom; },
+            notFn: 3
+        }, ["ok", "bad", "notFn", "missing"], toSafeCallable);
+
+        expect(picked.ok(4)).toBe(8);
+        expect(picked.bad()).toBeUndefined();
+        expect(picked.notFn()).toBeUndefined();
+        expect(picked.missing()).toBeUndefined();
+        expect(logs).toEqual([['[GTVExample] Dependency "bad" threw.', boom]]);
+        expect(moduleApi.pickSafeCallables(null, null, toSafeCallable)).toEqual({});
+    });
 });

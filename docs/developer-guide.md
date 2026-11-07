@@ -120,6 +120,7 @@
 - `console.log`는 금지되어 있습니다. 필요한 진단은 목적이 명확한 `console.warn` 또는 `console.error`로 남깁니다.
 - `src/js/modules/`에서는 사용하지 않는 변수 검사가 적용됩니다. 의도적으로 사용하지 않는 매개변수는 기존 명명 규칙(`_` 접두사)을 따릅니다.
 - 모듈은 의존성을 인자로 받고 가능한 경우 DOM/브라우저 전역을 직접 참조하지 않아 테스트에서 대체 가능하게 합니다. 다만 기존 소유권 패턴과 충돌하는 신규 추상화를 만들지는 않습니다.
+- 의존성 함수를 감싸는 공통 코드는 모듈마다 새로 쓰지 않고 `service-invoke-utils.js`(`GTVServiceInvokeUtils`)의 함수를 씁니다. `createDependencyLogger(deps, "warn"|"error", globalObj)`는 주입된 로거와 콘솔 순서로 기록하고, `createSafeCallableFactory("GTV모듈명", log)`는 없는 의존성을 빈 함수로, 예외는 `[GTV모듈명] Dependency "이름" threw.`로 기록합니다. `pickSafeCallables(deps, keys, toSafeCallable)`는 의존성 목록을 한꺼번에 감쌉니다. 단위 검사는 `tests/helpers/install-runtime-globals.mjs`(Vitest 설정)가 이 도우미를 설치합니다.
 - 사용자 입력/가져오기 입력은 정규화와 검증 경로를 사용합니다. 생성 HTML에 사용자 값을 넣을 때는 기존 escaping 패턴을 따르고, 단순 텍스트는 DOM `textContent`를 우선합니다.
 - 새 화면 문구는 한국어/영어 번역 키를 함께 추가하고 버튼/툴팁은 키 연결(`data-i18n`, `data-i18n-title`)을 확인합니다.
 - 저장 실패/선택 기능 fallback과 필수 초기화 오류는 서로 다른 상황입니다. 전자는 기존 fallback과 사용자 피드백을 보존하고, 후자는 fatal error 흐름을 숨기지 않습니다.

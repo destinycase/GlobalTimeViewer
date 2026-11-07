@@ -21,12 +21,81 @@
             invokeGetterMethod(getter, methodName, args, fallback);
     }
 
+    const LOGGER_DEP_KEYS = Object.freeze({
+        warn: ["logWarn", "consoleWarn"],
+        error: ["logError", "consoleError"]
+    });
+
+    /**
+     * Returns a log function for a module's dependency bag. Order: injected
+     * logWarn/logError, injected consoleWarn/consoleError, the host's console, the global console.
+     */
+    function createDependencyLogger(deps = {}, level = "warn", hostRef = globalObj) {
+        const safeDeps = (deps && typeof deps === "object") ? deps : {};
+        const isError = level === "error";
+        const [primaryKey, consoleKey] = isError ? LOGGER_DEP_KEYS.error : LOGGER_DEP_KEYS.warn;
+        const writeConsole = (consoleRef, args) => {
+            if (!consoleRef || typeof consoleRef !== "object") return false;
+            if (isError && typeof consoleRef.error === "function") {
+                consoleRef.error(...args);
+                return true;
+            }
+            if (!isError && typeof consoleRef.warn === "function") {
+                consoleRef.warn(...args);
+                return true;
+            }
+            return false;
+        };
+        return (...args) => {
+            if (typeof safeDeps[primaryKey] === "function") {
+                safeDeps[primaryKey](...args);
+                return;
+            }
+            if (typeof safeDeps[consoleKey] === "function") {
+                safeDeps[consoleKey](...args);
+                return;
+            }
+            if (writeConsole(hostRef?.console, args)) return;
+            writeConsole(typeof console === "object" ? console : null, args);
+        };
+    }
+
+    /**
+     * Returns toSafeCallable(depName, depFn): a missing dependency becomes a no-op and a
+     * throwing one is logged as `[moduleTag] Dependency "<name>" threw.` and returns undefined.
+     */
+    function createSafeCallableFactory(moduleTag, log) {
+        const safeLog = (typeof log === "function") ? log : () => {};
+        return function toSafeCallable(depName, depFn) {
+            if (typeof depFn !== "function") return () => undefined;
+            return (...args) => {
+                try {
+                    return depFn(...args);
+                } catch (err) {
+                    safeLog(`[${moduleTag}] Dependency "${depName}" threw.`, err);
+                    return undefined;
+                }
+            };
+        };
+    }
+
+    function pickSafeCallables(deps, keys, toSafeCallable) {
+        const safeDeps = (deps && typeof deps === "object") ? deps : {};
+        return (Array.isArray(keys) ? keys : []).reduce((acc, key) => {
+            acc[key] = toSafeCallable(key, safeDeps[key]);
+            return acc;
+        }, {});
+    }
+
     function createService(_deps = {}) {
         return Object.freeze({
             resolveService,
             invokeServiceMethod,
             invokeGetterMethod,
-            createGetterMethodInvoker
+            createGetterMethodInvoker,
+            createDependencyLogger,
+            createSafeCallableFactory,
+            pickSafeCallables
         });
     }
 
@@ -37,6 +106,9 @@
         resolveService: defaultService.resolveService,
         invokeServiceMethod: defaultService.invokeServiceMethod,
         invokeGetterMethod: defaultService.invokeGetterMethod,
-        createGetterMethodInvoker: defaultService.createGetterMethodInvoker
+        createGetterMethodInvoker: defaultService.createGetterMethodInvoker,
+        createDependencyLogger: defaultService.createDependencyLogger,
+        createSafeCallableFactory: defaultService.createSafeCallableFactory,
+        pickSafeCallables: defaultService.pickSafeCallables
     });
 })(typeof window !== "undefined" ? window : globalThis);

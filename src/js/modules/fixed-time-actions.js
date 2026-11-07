@@ -4,60 +4,12 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
 
-        function logWarn(...args) {
-            if (typeof safeDeps.logWarn === "function") {
-                safeDeps.logWarn(...args);
-                return;
-            }
-            if (typeof safeDeps.consoleWarn === "function") {
-                safeDeps.consoleWarn(...args);
-                return;
-            }
-            if (typeof globalObj?.console?.warn === "function") {
-                globalObj.console.warn(...args);
-                return;
-            }
-            if (typeof console === "object" && console && typeof console.warn === "function") {
-                console.warn(...args);
-            }
-        }
-
-        function logError(...args) {
-            if (typeof safeDeps.logError === "function") {
-                safeDeps.logError(...args);
-                return;
-            }
-            if (typeof safeDeps.consoleError === "function") {
-                safeDeps.consoleError(...args);
-                return;
-            }
-            if (typeof globalObj?.console?.error === "function") {
-                globalObj.console.error(...args);
-                return;
-            }
-            if (typeof console === "object" && console && typeof console.error === "function") {
-                console.error(...args);
-            }
-        }
-
-        function toSafeCallable(depName, depFn) {
-            if (typeof depFn !== "function") return () => undefined;
-            return (...args) => {
-                try {
-                    return depFn(...args);
-                } catch (err) {
-                    logWarn(`[GTVFixedTimeActions] Dependency "${depName}" threw.`, err);
-                    return undefined;
-                }
-            };
-        }
-
-        function pickSafeCallables(keys) {
-            return keys.reduce((acc, key) => {
-                acc[key] = toSafeCallable(key, safeDeps[key]);
-                return acc;
-            }, {});
-        }
+        const serviceInvokeUtils = globalObj?.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils;
+        if (!serviceInvokeUtils) throw new Error("Missing required module API: GTVServiceInvokeUtils");
+        const logWarn = serviceInvokeUtils.createDependencyLogger(safeDeps, "warn", globalObj);
+        const logError = serviceInvokeUtils.createDependencyLogger(safeDeps, "error", globalObj);
+        const toSafeCallable = serviceInvokeUtils.createSafeCallableFactory("GTVFixedTimeActions", logWarn);
+        const pickSafeCallables = (keys) => serviceInvokeUtils.pickSafeCallables(safeDeps, keys, toSafeCallable);
 
         const dep = Object.freeze({
             ...pickSafeCallables([

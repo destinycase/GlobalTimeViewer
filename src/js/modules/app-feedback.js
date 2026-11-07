@@ -7,38 +7,11 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const boundClickHandlers = new WeakMap();
-        const logger = (typeof safeDeps.logError === "function")
-            ? safeDeps.logError
-            : (typeof safeDeps.consoleError === "function")
-                ? safeDeps.consoleError
-            : ((...args) => {
-                if (typeof globalObj?.console?.error === "function") {
-                    globalObj.console.error(...args);
-                    return;
-                }
-                if (typeof console === "object" && console && typeof console.error === "function") {
-                    console.error(...args);
-                }
-            });
-
-        function toSafeCallable(depName, depFn) {
-            if (typeof depFn !== "function") return () => undefined;
-            return (...args) => {
-                try {
-                    return depFn(...args);
-                } catch (err) {
-                    logger(`[GTVAppFeedback] Dependency "${depName}" threw.`, err);
-                    return undefined;
-                }
-            };
-        }
-
-        function pickSafeCallables(keys) {
-            return keys.reduce((acc, key) => {
-                acc[key] = toSafeCallable(key, safeDeps[key]);
-                return acc;
-            }, {});
-        }
+        const serviceInvokeUtils = globalObj?.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils;
+        if (!serviceInvokeUtils) throw new Error("Missing required module API: GTVServiceInvokeUtils");
+        const logger = serviceInvokeUtils.createDependencyLogger(safeDeps, "error", globalObj);
+        const toSafeCallable = serviceInvokeUtils.createSafeCallableFactory("GTVAppFeedback", logger);
+        const pickSafeCallables = (keys) => serviceInvokeUtils.pickSafeCallables(safeDeps, keys, toSafeCallable);
 
         const dep = Object.freeze({
             ...pickSafeCallables([
