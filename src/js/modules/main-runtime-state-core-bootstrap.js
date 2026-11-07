@@ -39,66 +39,79 @@
             safeDeps.runtimeHostUtilsBindings,
             "runtimeHostUtilsBindings"
         );
-        const runtimeHostAccessorBindings = requireObject(
-            safeDeps.runtimeHostAccessorBindings,
-            "runtimeHostAccessorBindings"
-        );
         const runtimePrimaryStateBindings = requireObject(
             safeDeps.runtimePrimaryStateBindings,
             "runtimePrimaryStateBindings"
-        );
-        const runtimePrimaryStateAccessorBindings = requireObject(
-            safeDeps.runtimePrimaryStateAccessorBindings,
-            "runtimePrimaryStateAccessorBindings"
         );
         const runtimePatchedStateFallbackBindings = requireObject(
             safeDeps.runtimePatchedStateFallbackBindings,
             "runtimePatchedStateFallbackBindings"
         );
-        const runtimeStatePatchAccessorBindings = requireObject(
-            safeDeps.runtimeStatePatchAccessorBindings,
-            "runtimeStatePatchAccessorBindings"
-        );
         const runtimeLocalStateHelpersBindings = requireObject(
             safeDeps.runtimeLocalStateHelpersBindings,
             "runtimeLocalStateHelpersBindings"
         );
-        const runtimeLocalStateAccessorBindings = requireObject(
-            safeDeps.runtimeLocalStateAccessorBindings,
-            "runtimeLocalStateAccessorBindings"
-        );
+
+        const serviceInvokeUtils = globalObj?.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils;
+        if (!serviceInvokeUtils || typeof serviceInvokeUtils.createRequiredModuleService !== "function") {
+            throw new Error("Missing required module API: GTVServiceInvokeUtils.createRequiredModuleService");
+        }
+        // Accessor proxy services are created directly (formerly one *-bindings module each) and
+        // exposed as frozen copies, as the bindings did.
+        const ACCESSOR_SPECS = Object.freeze({
+            Host: {
+                moduleKey: "runtimeHostAccessorProxiesModule",
+                moduleName: "GTVMainRuntimeHostAccessorProxies",
+                invalidMessage: "Invalid main runtime host accessor proxies service",
+                requiredMethods: ["applyVersionBranding","createCanvasSafely","getRandomUUIDSafely","getDocumentRefOrNull","getWindowRefOrNull","getLocationRefOrNull","getGlobalThisRefOrNull","getLuxonGlobalRef","getComputedStyleSafely","getRuntimeNowMs","setRuntimeInterval","clearRuntimeInterval","deferDynamicCall"]
+            },
+            PrimaryState: {
+                moduleKey: "runtimePrimaryStateAccessorProxiesModule",
+                moduleName: "GTVMainRuntimePrimaryStateAccessorProxies",
+                invalidMessage: "Invalid main runtime primary state accessor proxies service",
+                requiredMethods: ["setIsRealtimeState","getIsRealtimeState","getGlobalTimesState","getGlobalTimeState","setGlobalTimeState","getUiScaleState"]
+            },
+            StatePatch: {
+                moduleKey: "runtimeStatePatchAccessorProxiesModule",
+                moduleName: "GTVMainRuntimeStatePatchAccessorProxies",
+                invalidMessage: "Invalid main runtime state patch accessor proxies service",
+                requiredMethods: ["applyDirectStatePatch","buildPatchedStateFallbackSnapshot"]
+            },
+            LocalState: {
+                moduleKey: "runtimeLocalStateAccessorProxiesModule",
+                moduleName: "GTVMainRuntimeLocalStateAccessorProxies",
+                invalidMessage: "Invalid main runtime local state accessor proxies service",
+                requiredMethods: ["setMultiRangeState","getNextFixedTimeSeed","setUiPreferencesState","getBaseTimeSnapshot","getFixedTimeSlotCountForGroupRef","confirmRuntime","getActiveCopyFormatKeysForCurrentContext","getActiveTimePartKeysForCurrentContext","getCurrentUiScalePercent","getFixedTimeSlotCountForCurrentGroup","getCurrentGroupFixedTimeShowLiveNow","shouldRunRealtimeTick","getTimeAdjustDayStepValue"]
+            }
+        });
+        function createAccessorService(kind, accessorDeps) {
+            const spec = ACCESSOR_SPECS[kind];
+            return Object.freeze({
+                ...serviceInvokeUtils.createRequiredModuleService(
+                    safeDeps[spec.moduleKey],
+                    spec.moduleName,
+                    accessorDeps,
+                    spec.requiredMethods,
+                    spec.invalidMessage
+                )
+            });
+        }
 
         const createRuntimeHostUtilsService = requireFunction(
             runtimeHostUtilsBindings.createService,
             "runtimeHostUtilsBindings.createService"
         );
-        const createRuntimeHostAccessorService = requireFunction(
-            runtimeHostAccessorBindings.createService,
-            "runtimeHostAccessorBindings.createService"
-        );
         const createRuntimePrimaryStateService = requireFunction(
             runtimePrimaryStateBindings.createService,
             "runtimePrimaryStateBindings.createService"
-        );
-        const createRuntimePrimaryStateAccessorService = requireFunction(
-            runtimePrimaryStateAccessorBindings.createService,
-            "runtimePrimaryStateAccessorBindings.createService"
         );
         const createRuntimePatchedStateFallbackService = requireFunction(
             runtimePatchedStateFallbackBindings.createService,
             "runtimePatchedStateFallbackBindings.createService"
         );
-        const createRuntimeStatePatchAccessorService = requireFunction(
-            runtimeStatePatchAccessorBindings.createService,
-            "runtimeStatePatchAccessorBindings.createService"
-        );
         const createRuntimeLocalStateHelpersService = requireFunction(
             runtimeLocalStateHelpersBindings.createService,
             "runtimeLocalStateHelpersBindings.createService"
-        );
-        const createRuntimeLocalStateAccessorService = requireFunction(
-            runtimeLocalStateAccessorBindings.createService,
-            "runtimeLocalStateAccessorBindings.createService"
         );
 
         const {
@@ -111,9 +124,8 @@
                 "getGlobalRef",
             ]),
         });
-        const hostAccessors = createRuntimeHostAccessorService({
+        const hostAccessors = createAccessorService("Host", {
             ...pickDeps([
-                "runtimeHostAccessorProxiesModule",
             ]),
             getMainRuntimeHostUtilsService: () => mainRuntimeHostUtilsService
         });
@@ -131,9 +143,8 @@
                 "getUiScale",
             ]),
         });
-        const primaryStateAccessors = createRuntimePrimaryStateAccessorService({
+        const primaryStateAccessors = createAccessorService("PrimaryState", {
             ...pickDeps([
-                "runtimePrimaryStateAccessorProxiesModule",
             ]),
             getMainRuntimePrimaryStateService: () => mainRuntimePrimaryStateService,
             ...pickDeps([
@@ -179,9 +190,8 @@
                 "getMultiRangeTitle",
             ]),
         });
-        const mainRuntimeStatePatchAccessorService = createRuntimeStatePatchAccessorService({
+        const mainRuntimeStatePatchAccessorService = createAccessorService("StatePatch", {
             ...pickDeps([
-                "runtimeStatePatchAccessorProxiesModule",
                 "getMainDirectStatePatchService",
                 "getDirectStateSetters",
                 "getNormalizeDayNightRangeValues",
@@ -254,9 +264,8 @@
                 "getTimeAdjustDayStepBySlotSnapshot",
             ]),
         });
-        const localStateAccessors = createRuntimeLocalStateAccessorService({
+        const localStateAccessors = createAccessorService("LocalState", {
             ...pickDeps([
-                "runtimeLocalStateAccessorProxiesModule",
             ]),
             getMainRuntimeLocalStateHelpersService: () => mainRuntimeLocalStateHelpersService,
             ...pickDeps([

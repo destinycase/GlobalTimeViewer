@@ -108,6 +108,21 @@ describe("GTV service invoke utils module", () => {
         ]);
     });
 
+    it("createRequiredModuleService validates the module API and required methods", () => {
+        const moduleApi = loadServiceInvokeUtilsModule();
+        const received = [];
+        const goodModule = { createService: (deps) => { received.push(deps); return { run: () => 1, stop: () => 2 }; } };
+        const service = moduleApi.createRequiredModuleService(goodModule, "GTVGood", { a: 1 }, ["run", "stop"], "bad");
+        expect(service.run()).toBe(1);
+        expect(received).toEqual([{ a: 1 }]);
+        expect(() => moduleApi.createRequiredModuleService(null, "GTVMissing", {}, [], "bad"))
+            .toThrow("Missing required module API: GTVMissing.createService");
+        expect(() => moduleApi.createRequiredModuleService({ createService: () => ({ run: () => 1 }) }, "GTVPartial", {}, ["run", "stop"], "Invalid partial"))
+            .toThrow("Invalid partial");
+        expect(() => moduleApi.createRequiredModuleService({ createService: () => null }, "GTVNull", {}))
+            .toThrow("Invalid GTVNull service");
+    });
+
     it("safe callables no-op for missing deps and log thrown errors with the module tag", () => {
         const moduleApi = loadServiceInvokeUtilsModule();
         const logs = [];

@@ -80,21 +80,14 @@ function assertBindingCreateService(bindingsModule, moduleApiName) {
         throw new Error(`Missing required module API: ${moduleApiName}.createService`);
     }
 }
-// Creates a module service and checks the methods main.js relies on. Replaces the former
-// one-module *-bindings wrappers, keeping their error messages.
+// Single-module services are created through GTVServiceInvokeUtils.createRequiredModuleService
+// (replaces the former *-bindings wrappers, same error messages).
 function createRequiredModuleService(moduleApi, moduleName, deps, requiredMethods, invalidMessage) {
-    if (!moduleApi || typeof moduleApi.createService !== "function") {
-        throw new Error(`Missing required module API: ${moduleName}.createService`);
+    const serviceInvokeUtils = GTV_GLOBAL.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils;
+    if (!serviceInvokeUtils || typeof serviceInvokeUtils.createRequiredModuleService !== "function") {
+        throw new Error("Missing required module API: GTVServiceInvokeUtils.createRequiredModuleService");
     }
-    const service = moduleApi.createService(deps);
-    if (
-        !service
-        || typeof service !== "object"
-        || requiredMethods.some((methodName) => typeof service[methodName] !== "function")
-    ) {
-        throw new Error(invalidMessage);
-    }
-    return service;
+    return serviceInvokeUtils.createRequiredModuleService(moduleApi, moduleName, deps, requiredMethods, invalidMessage);
 }
 function callRuntimeCoreAccessorWithFallback(methodName, fallbackService, ...args) {
     const runtimeAccessorMethod = mainRuntimeCoreAccessorService?.[methodName];
@@ -370,9 +363,9 @@ assertBindingCreateService(GTV_MAIN_GLOBAL_BINDINGS, "GTVMainGlobalBindings");
 const {
     GTV_MAIN_BOOTSTRAP_GUARD,
     GTV_MAIN_RUNTIME_HOST_UTILS, GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS,
-    GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_HOST_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_PRIMARY_STATE, GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS,
-    GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS,
     GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS,
@@ -380,10 +373,10 @@ const {
     GTV_MAIN_RUNTIME_PUBLIC_API_BINDINGS,
     GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS,
     GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES,
-    GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK, GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS,
     GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS, GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS,
-    GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_PROXIES,
     GTV_MAIN_FACADE_BINDINGS, GTV_MAIN_RUNTIME_BRIDGE_PROXIES, GTV_MAIN_RUNTIME_BRIDGE_PROXY_BINDINGS,
     GTV_MAIN_RUNTIME_TIMEZONE_HELPERS,
     GTV_MAIN_RUNTIME_STATE_HELPERS, GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES,
@@ -735,19 +728,15 @@ assertBindingCreateService(GTV_MAIN_RUNTIME_STATE_CORE_BOOTSTRAP, "GTVMainRuntim
 } = GTV_MAIN_RUNTIME_STATE_CORE_BOOTSTRAP.createService({
     runtimeHostUtilsBindings: GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS,
     runtimeHostUtilsModule: GTV_MAIN_RUNTIME_HOST_UTILS,
-    runtimeHostAccessorBindings: GTV_MAIN_RUNTIME_HOST_ACCESSOR_BINDINGS,
     runtimeHostAccessorProxiesModule: GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES,
     runtimePrimaryStateBindings: GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS,
     runtimePrimaryStateModule: GTV_MAIN_RUNTIME_PRIMARY_STATE,
-    runtimePrimaryStateAccessorBindings: GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS,
     runtimePrimaryStateAccessorProxiesModule: GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES,
     runtimePatchedStateFallbackBindings: GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS,
     runtimePatchedStateFallbackModule: GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK,
-    runtimeStatePatchAccessorBindings: GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS,
     runtimeStatePatchAccessorProxiesModule: GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES,
     runtimeLocalStateHelpersBindings: GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS,
     runtimeLocalStateHelpersModule: GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS,
-    runtimeLocalStateAccessorBindings: GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_BINDINGS,
     runtimeLocalStateAccessorProxiesModule: GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_PROXIES,
     appDisplayName: APP_DISPLAY_NAME,
     version: VERSION,

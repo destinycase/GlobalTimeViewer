@@ -65,7 +65,7 @@ describe("GTV main runtime state core bootstrap module", () => {
             runtimeHostUtilsBindings: {
                 createService: vi.fn(() => ({ mainRuntimeHostUtilsService: { name: "host-utils" } }))
             },
-            runtimeHostAccessorBindings: {
+            runtimeHostAccessorProxiesModule: {
                 createService: vi.fn(() => ({
                     applyVersionBranding: vi.fn(),
                     createCanvasSafely: vi.fn(() => null),
@@ -85,7 +85,7 @@ describe("GTV main runtime state core bootstrap module", () => {
             runtimePrimaryStateBindings: {
                 createService: vi.fn(() => ({ mainRuntimePrimaryStateService: { name: "primary-state" } }))
             },
-            runtimePrimaryStateAccessorBindings: {
+            runtimePrimaryStateAccessorProxiesModule: {
                 createService: vi.fn(() => ({
                     setIsRealtimeState,
                     getIsRealtimeState: vi.fn(() => true),
@@ -100,7 +100,7 @@ describe("GTV main runtime state core bootstrap module", () => {
                     mainRuntimePatchedStateFallbackService: { name: "patched-fallback" }
                 }))
             },
-            runtimeStatePatchAccessorBindings: {
+            runtimeStatePatchAccessorProxiesModule: {
                 createService: vi.fn((deps) => {
                     capturedStatePatchAccessorDeps = deps;
                     return {
@@ -114,7 +114,7 @@ describe("GTV main runtime state core bootstrap module", () => {
                     mainRuntimeLocalStateHelpersService: { name: "local-state-helpers" }
                 }))
             },
-            runtimeLocalStateAccessorBindings: {
+            runtimeLocalStateAccessorProxiesModule: {
                 createService: vi.fn(() => ({
                     setMultiRangeState: vi.fn(),
                     getNextFixedTimeSeed: vi.fn(() => 1),

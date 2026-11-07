@@ -87,6 +87,26 @@
         }, {});
     }
 
+    /**
+     * Creates a service from a module API and checks the methods the caller relies on.
+     * Replaces the former single-module *-bindings wrappers and keeps their error messages:
+     * `Missing required module API: <moduleName>.createService` and the given invalidMessage.
+     */
+    function createRequiredModuleService(moduleApi, moduleName, deps, requiredMethods = [], invalidMessage = "") {
+        if (!moduleApi || typeof moduleApi.createService !== "function") {
+            throw new Error(`Missing required module API: ${moduleName}.createService`);
+        }
+        const service = moduleApi.createService(deps);
+        if (
+            !service
+            || typeof service !== "object"
+            || (Array.isArray(requiredMethods) ? requiredMethods : []).some((name) => typeof service[name] !== "function")
+        ) {
+            throw new Error(invalidMessage || `Invalid ${moduleName} service`);
+        }
+        return service;
+    }
+
     function createService(_deps = {}) {
         return Object.freeze({
             resolveService,
@@ -95,7 +115,8 @@
             createGetterMethodInvoker,
             createDependencyLogger,
             createSafeCallableFactory,
-            pickSafeCallables
+            pickSafeCallables,
+            createRequiredModuleService
         });
     }
 
@@ -109,6 +130,7 @@
         createGetterMethodInvoker: defaultService.createGetterMethodInvoker,
         createDependencyLogger: defaultService.createDependencyLogger,
         createSafeCallableFactory: defaultService.createSafeCallableFactory,
-        pickSafeCallables: defaultService.pickSafeCallables
+        pickSafeCallables: defaultService.pickSafeCallables,
+        createRequiredModuleService: defaultService.createRequiredModuleService
     });
 })(typeof window !== "undefined" ? window : globalThis);
