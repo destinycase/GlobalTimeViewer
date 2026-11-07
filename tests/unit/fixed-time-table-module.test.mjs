@@ -434,6 +434,77 @@ describe("GTV fixed time table module", () => {
         expect(customZoneCode.length).toBeGreaterThan(0);
     });
 
+    it("renderFixedTimeTable updates cells in place when only slot times change", () => {
+        const { doc, body } = createTableDocument();
+        const module = loadFixedTimeTableModule({ document: doc });
+        const group = { fixedTimes: [{ id: "slot-1", name: "Morning", time: "09:00" }] };
+        const baseRef = { id: "utc", zone: "UTC", type: "standard" };
+        const zones = [{ id: "custom-1", zone: "Custom/1", type: "custom" }];
+        const copied = [];
+        const applied = [];
+        let bindCalls = 0;
+        const slotUtc = () => new Date(`2026-03-07T${group.fixedTimes[0].time}:00.000Z`);
+        const service = module.createService({
+            t: (key) => key,
+            getCurrentGroup: () => group,
+            ensureGroupFixedTimes: () => { },
+            getFixedTimeDisplayPartsEnabled: () => ({ dn: true, time: true, weekday: true }),
+            getDisplayFormatOrder: () => ["timezone", "region", "offset", "time"],
+            getDisplayFormatEnabled: () => ({ timezone: true, region: true, offset: true, time: true }),
+            sanitizeCopyFormatOrderForContext: (order) => order,
+            sanitizeCopyFormatEnabledForContext: (enabled) => enabled,
+            getFixedTimeTimelineIndicatorColor: () => "#00aaff",
+            getFixedTimeSlotHeaderLabel: (slot) => `${slot.name} ${slot.time}`,
+            getBaseTimezoneRef: () => baseRef,
+            getRenderableTimezoneRows: () => zones,
+            getGlobalTime: () => new Date("2026-03-07T00:00:00.000Z"),
+            resolveFixedTimeSlotUtcDate: () => slotUtc(),
+            getZoneAbbreviation: () => "ABC",
+            getZoneDisplayNameForUiAtDate: () => "Zone",
+            getZoneDisplayName: () => "Zone",
+            formatUtcOffsetLabel: (minutes) => `UTC${minutes}`,
+            getCustomOffsetMinutes: () => 0,
+            getFixedOffsetForDisplayAtDate: () => Number.NaN,
+            getTimezoneOffset: () => 0,
+            buildFixedTimeDisplayPayloadAtUtc: (utcDate) => ({
+                dayNightGlyph: utcDate.getUTCHours() < 12 ? "AM" : "PM",
+                dayNightMarker: "DAY",
+                dayName: "Sat",
+                weekdayIndex: 6
+            }),
+            buildFixedTimeCellInputValue: (utcDate) => utcDate.toISOString().slice(11, 19),
+            bindCustomDatePickerForInput: () => { bindCalls += 1; },
+            applyFixedTimeSlotByTimezoneInput: (_idx, _tz, _value, utcDate) => { applied.push(utcDate.toISOString()); },
+            copyFixedTimeCellByTimezone: async (_tz, utcDate) => { copied.push(utcDate.toISOString()); },
+            upgradeNativeTitleTooltips: () => { }
+        });
+
+        service.renderFixedTimeTable();
+        const firstInputs = findByClass(body, "fixed-time-time-input");
+        const firstDn = findByClass(body, "dn-icon");
+        expect(firstInputs.map((input) => input.value)).toEqual(["09:00:00", "09:00:00"]);
+
+        group.fixedTimes[0].time = "15:30";
+        service.renderFixedTimeTable();
+
+        const secondInputs = findByClass(body, "fixed-time-time-input");
+        expect(secondInputs[0]).toBe(firstInputs[0]);
+        expect(secondInputs.map((input) => input.value)).toEqual(["15:30:00", "15:30:00"]);
+        expect(firstDn[0].textContent).toBe("PM");
+        expect(bindCalls).toBe(2);
+        findByClass(body, "fixed-time-copy-btn")[0].dispatchEvent({ type: "click" });
+        firstInputs[1].dispatchEvent({ type: "change", target: firstInputs[1] });
+        expect(copied).toEqual(["2026-03-07T15:30:00.000Z"]);
+        expect(applied).toEqual(["2026-03-07T15:30:00.000Z"]);
+
+        zones.push({ id: "custom-2", zone: "Custom/2", type: "custom" });
+        service.renderFixedTimeTable();
+        const rebuiltInputs = findByClass(body, "fixed-time-time-input");
+        expect(rebuiltInputs.length).toBe(3);
+        expect(rebuiltInputs[0]).not.toBe(firstInputs[0]);
+        expect(bindCalls).toBe(5);
+    });
+
     it("renderFixedTimeTable appends realtime-now column when enabled", () => {
         const { doc, headRow, body } = createTableDocument();
         const module = loadFixedTimeTableModule({ document: doc });

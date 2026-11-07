@@ -4,6 +4,8 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const liveNowElementMap = new Map();
+        // DOM references from the last full render, reused when only cell values change (e.g. timeline drag).
+        let slotCellCache = null;
 
         const serviceInvokeUtils = globalObj?.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils;
         if (!serviceInvokeUtils) throw new Error("Missing required module API: GTVServiceInvokeUtils");
@@ -288,8 +290,6 @@
                 return;
             }
 
-            liveNowElementMap.clear();
-
             if (typeof documentRef.querySelector !== "function") return;
             const headRow = documentRef.querySelector("#fixed-time-table-head tr");
             const group = dep.getCurrentGroup();
@@ -306,6 +306,29 @@
                 fixedTimeTable.style.setProperty("--fixed-time-slot-min-width", `${slotLayout.columnMinWidthPx}px`);
                 fixedTimeTable.style.setProperty("--fixed-time-input-width", `${slotLayout.inputWidthPx}px`);
             }
+
+            const signatureBaseRef = dep.getBaseTimezoneRef();
+            const tableSignature = buildTableSignature({
+                baseRef: signatureBaseRef,
+                rows: signatureBaseRef ? [signatureBaseRef, ...getRenderableTimezoneRowsSafe(signatureBaseRef)] : [],
+                fixedTimes,
+                showLiveNowColumn,
+                displayPartsEnabled,
+                displayColumns
+            });
+            if (
+                slotCellCache
+                && slotCellCache.signature === tableSignature
+                && slotCellCache.body === body
+                && slotCellCache.rowRefs.every((ref) => (ref.rowEl.parentNode || ref.rowEl.parentElement) === body)
+                && updateSlotCellsInPlace(slotCellCache, { fixedTimes, displayPartsEnabled })
+            ) {
+                return;
+            }
+
+            liveNowElementMap.clear();
+            slotCellCache = null;
+            const nextCache = { signature: tableSignature, body, slotTitleEls: [], rowRefs: [] };
 
             headRow.textContent = "";
 
@@ -386,6 +409,7 @@
                     const slotTitle = documentRef.createElement("span");
                     slotTitle.className = "fixed-time-slot-title";
                     slotTitle.textContent = dep.getFixedTimeSlotHeaderLabel(slot, slotIdx, fixedTimes.length) || "";
+                    nextCache.slotTitleEls[slotIdx] = slotTitle;
 
                     const slotTitleWrap = documentRef.createElement("span");
                     slotTitleWrap.className = "fixed-time-slot-title-wrap";
@@ -444,6 +468,8 @@
                 const isBaseRow = tz.id === baseRef.id;
                 if (isBaseRow) row.classList.add("static");
                 row.draggable = false;
+                const rowRef = { rowEl: row, zoneCodeEl: null, zoneNameEl: null, offsetEl: null, cells: [] };
+                nextCache.rowRefs.push(rowRef);
 
                 const offsetAnchorDate = isValidDate(slotUtcDates[0]) ? slotUtcDates[0] : anchorDate;
                 displayColumns.forEach((colKey) => {
@@ -456,6 +482,7 @@
                         zoneCode.className = "zone-code";
                         zoneCode.textContent = dep.getZoneAbbreviation(tz, anchorDate) || "";
                         applyZoneCodeKindClass(zoneCode, tz);
+                        rowRef.zoneCodeEl = zoneCode;
                         abbrWrap.appendChild(zoneCode);
                         tzCell.appendChild(abbrWrap);
                         row.appendChild(tzCell);
@@ -469,6 +496,7 @@
                         const zoneName = documentRef.createElement("span");
                         zoneName.className = "zone-name";
                         zoneName.textContent = getZoneDisplayNameForUiAtDate(tz, offsetAnchorDate) || "";
+                        rowRef.zoneNameEl = zoneName;
                         zoneInfo.appendChild(zoneName);
                         nameCell.appendChild(zoneInfo);
                         row.appendChild(nameCell);
@@ -480,6 +508,7 @@
                         const offsetText = documentRef.createElement("span");
                         offsetText.className = "offset-text";
                         offsetText.textContent = getFixedTimeOffsetTextAtDate(tz, offsetAnchorDate);
+                        rowRef.offsetEl = offsetText;
                         offsetCell.appendChild(offsetText);
                         row.appendChild(offsetCell);
                         return;
@@ -500,6 +529,10 @@
                         const timeCell = documentRef.createElement("td");
                         timeCell.className = "fixed-time-time";
                         const payload = dep.buildFixedTimeDisplayPayloadAtUtc(utcDate, tz);
+                        // Handlers read the cell's current slot time, which in-place updates keep fresh.
+                        const cellState = { utcDate, tz };
+                        const cellRef = { state: cellState, dnEl: null, timeInput: null, dayEl: null };
+                        rowRef.cells.push(cellRef);
                         const cellWrap = documentRef.createElement("div");
                         cellWrap.className = "fixed-time-cell-wrap";
 
@@ -513,6 +546,7 @@
                             dnEl.textContent = payload?.dayNightGlyph || "";
                             dnEl.title = payload?.dayNightMarker === "DAY" ? translate("dn_day") : translate("dn_night");
                             timeGroup.appendChild(dnEl);
+                            cellRef.dnEl = dnEl;
                             hasTimeGroupContent = true;
                         }
 
@@ -525,6 +559,7 @@
                             timeInput.spellcheck = false;
                             timeInput.value = dep.buildFixedTimeCellInputValue(utcDate, tz) || "";
                             timeGroup.appendChild(timeInput);
+                            cellRef.timeInput = timeInput;
                             hasTimeGroupContent = true;
                         }
 
@@ -535,6 +570,7 @@
                             dayEl.className = `day-badge${isSun ? " day-sun" : (isSat ? " day-sat" : "")}`;
                             dayEl.textContent = payload.dayName;
                             timeGroup.appendChild(dayEl);
+                            cellRef.dayEl = dayEl;
                             hasTimeGroupContent = true;
                         }
 
@@ -555,7 +591,7 @@
 
                             const commitCellInput = () => {
                                 const latestInput = String(timeInput.value || "").trim();
-                                dep.applyFixedTimeSlotByTimezoneInput(slotIdx, tz, latestInput, utcDate);
+                                dep.applyFixedTimeSlotByTimezoneInput(slotIdx, cellState.tz, latestInput, cellState.utcDate);
                             };
                             timeInput.addEventListener("change", commitCellInput);
                             timeInput.addEventListener("keydown", (event) => {
@@ -576,7 +612,7 @@
                         copyBtn.title = translate("tooltip_copy");
                         copyBtn.textContent = "\uD83D\uDCCB";
                         copyBtn.addEventListener("click", async () => {
-                            await dep.copyFixedTimeCellByTimezone(tz, utcDate);
+                            await dep.copyFixedTimeCellByTimezone(cellState.tz, cellState.utcDate);
                         });
                         cellWrap.appendChild(copyBtn);
 
@@ -587,8 +623,79 @@
 
                 body.appendChild(row);
             });
+            slotCellCache = nextCache;
             dep.upgradeNativeTitleTooltips(headRow);
             dep.upgradeNativeTitleTooltips(body);
+        }
+
+        // Everything that decides which elements exist. Cell values (slot times, day/night,
+        // weekday, offsets) are not part of it and are refreshed in place.
+        function buildTableSignature({ baseRef, rows, fixedTimes, showLiveNowColumn, displayPartsEnabled, displayColumns }) {
+            return JSON.stringify({
+                base: baseRef?.id ?? null,
+                rows,
+                slots: fixedTimes.map((slot) => ({ id: slot?.id, name: slot?.name })),
+                showLiveNowColumn,
+                parts: displayPartsEnabled,
+                columns: displayColumns,
+                labels: [translate("th_region"), translate("tooltip_copy"), translate("btn_rename")]
+            });
+        }
+
+        function setDayBadge(dayEl, payload) {
+            const weekdayIdx = Number(payload.weekdayIndex);
+            dayEl.className = `day-badge${weekdayIdx === 0 ? " day-sun" : (weekdayIdx === 6 ? " day-sat" : "")}`;
+            dayEl.textContent = payload.dayName;
+        }
+
+        // Returns false (caller does a full render) when the cached elements cannot represent the new values.
+        function updateSlotCellsInPlace(cache, { fixedTimes, displayPartsEnabled }) {
+            const documentRef = getDocumentRef();
+            const baseRef = dep.getBaseTimezoneRef();
+            if (!baseRef) return false;
+            const rows = [baseRef, ...getRenderableTimezoneRowsSafe(baseRef)];
+            if (rows.length !== cache.rowRefs.length) return false;
+            const globalTimeSlot0 = dep.getGlobalTime(0);
+            const anchorDate = isValidDate(globalTimeSlot0) ? globalTimeSlot0 : new Date();
+            const slotUtcDates = fixedTimes.map((slot) => dep.resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate));
+
+            const plan = rows.map((tz, rowIdx) => {
+                const rowRef = cache.rowRefs[rowIdx];
+                if (!rowRef || rowRef.cells.length !== slotUtcDates.length) return null;
+                const cells = slotUtcDates.map((utcDate, slotIdx) => {
+                    const cellRef = rowRef.cells[slotIdx];
+                    const payload = dep.buildFixedTimeDisplayPayloadAtUtc(utcDate, tz);
+                    const needsDay = !!(displayPartsEnabled.weekday && payload?.dayName);
+                    if (needsDay !== !!cellRef.dayEl) return null;
+                    return { cellRef, utcDate, payload };
+                });
+                return cells.every(Boolean) ? { tz, rowRef, cells } : null;
+            });
+            if (!plan.every(Boolean)) return false;
+
+            fixedTimes.forEach((slot, slotIdx) => {
+                const titleEl = cache.slotTitleEls[slotIdx];
+                if (titleEl) titleEl.textContent = dep.getFixedTimeSlotHeaderLabel(slot, slotIdx, fixedTimes.length) || "";
+            });
+            const offsetAnchorDate = isValidDate(slotUtcDates[0]) ? slotUtcDates[0] : anchorDate;
+            plan.forEach(({ tz, rowRef, cells }) => {
+                if (rowRef.zoneCodeEl) rowRef.zoneCodeEl.textContent = dep.getZoneAbbreviation(tz, anchorDate) || "";
+                if (rowRef.zoneNameEl) rowRef.zoneNameEl.textContent = getZoneDisplayNameForUiAtDate(tz, offsetAnchorDate) || "";
+                if (rowRef.offsetEl) rowRef.offsetEl.textContent = getFixedTimeOffsetTextAtDate(tz, offsetAnchorDate);
+                cells.forEach(({ cellRef, utcDate, payload }) => {
+                    cellRef.state.utcDate = utcDate;
+                    cellRef.state.tz = tz;
+                    if (cellRef.dnEl) {
+                        cellRef.dnEl.textContent = payload?.dayNightGlyph || "";
+                        cellRef.dnEl.title = payload?.dayNightMarker === "DAY" ? translate("dn_day") : translate("dn_night");
+                    }
+                    if (cellRef.timeInput && documentRef?.activeElement !== cellRef.timeInput) {
+                        cellRef.timeInput.value = dep.buildFixedTimeCellInputValue(utcDate, tz) || "";
+                    }
+                    if (cellRef.dayEl) setDayBadge(cellRef.dayEl, payload);
+                });
+            });
+            return true;
         }
 
         return Object.freeze({

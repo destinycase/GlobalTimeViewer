@@ -210,6 +210,12 @@ function buildScenarios(ctx) {
                     return { x: i.left + i.width / 2, y: i.top + i.height / 2, boxLeft: b.left, boxWidth: b.width, boxY: b.top + b.height / 2 };
                 })()`));
                 const before = JSON.stringify((await api.storedData())?.groups?.[0]?.fixedTimes || []);
+                // Mark a slot cell input: an in-place update keeps the element, a rebuild replaces it.
+                const markedValue = await api.ev(`(() => {
+                    const input = document.querySelector("#fixed-time-body .fixed-time-time-input");
+                    input.dataset.gtvChromeMark = "1";
+                    return input.value;
+                })()`);
                 const targetX = geometry.boxLeft + (geometry.boxWidth * 0.25);
                 await api.mouse("mousePressed", geometry.x, geometry.y);
                 for (let step = 1; step <= 5; step++) {
@@ -221,11 +227,17 @@ function buildScenarios(ctx) {
                     const value = JSON.stringify((await api.storedData())?.groups?.[0]?.fixedTimes || []);
                     return value !== before ? value : false;
                 }, 5000);
+                const markedAfter = await api.ev(`(() => {
+                    const input = document.querySelector('#fixed-time-body .fixed-time-time-input[data-gtv-chrome-mark="1"]');
+                    return input ? input.value : null;
+                })()`);
+                assert(markedAfter !== null, "드래그 중 고정 시간 표 셀이 다시 만들어짐(제자리 갱신 아님)");
+                assert(markedAfter !== markedValue, `셀 시각이 갱신되지 않음: ${markedValue}`);
                 await api.reload();
                 await api.switchTab("fixed-time");
                 const reloaded = JSON.stringify((await api.storedData())?.groups?.[0]?.fixedTimes || []);
                 assert(reloaded === after, "다시 연 뒤 슬롯 시각이 저장값과 다름");
-                return `슬롯 시각 저장 변경: ${before} → ${after}`;
+                return `슬롯 시각 저장 변경: ${before} → ${after}, 셀 제자리 갱신 ${markedValue} → ${markedAfter}`;
             }
         },
         {
