@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createMainContext } from "./helpers/create-main-context.mjs";
+import { createMainContext } from "../helpers/create-main-context.mjs";
 
 describe("main global API smoke", () => {
     it("keeps core global facade APIs available", () => {

@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { createMainContext } from "./helpers/create-main-context.mjs";
+import { createMainContext } from "../helpers/create-main-context.mjs";
 
 test("core/time-change: ignores manual input while realtime mode is enabled", () => {
     const { sandbox, run } = createMainContext();

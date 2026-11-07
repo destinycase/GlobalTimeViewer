@@ -7,7 +7,7 @@ import {
     parseSourceScriptList,
     validateRuntimeScriptCoverage,
     validateSourceScriptFiles
-} from "../scripts/source-script-list.mjs";
+} from "../../scripts/source-script-list.mjs";
 
 let tempDir;
 

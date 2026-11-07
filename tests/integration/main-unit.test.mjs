@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { createMainContext } from "./helpers/create-main-context.mjs";
+import { createMainContext } from "../helpers/create-main-context.mjs";
 
 test("sanitizeTimezoneId normalizes reserved or empty ids", () => {
     const { sandbox } = createMainContext();

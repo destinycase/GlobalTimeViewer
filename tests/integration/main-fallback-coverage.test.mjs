@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { runMainWithSandbox } from "./helpers/run-main-fallback-sandbox.mjs";
+import { runMainWithSandbox } from "../helpers/run-main-fallback-sandbox.mjs";
 
 describe("main.js fallback coverage guards", () => {
     it("uses constant fallbacks in window context before resolver guard fails", () => {

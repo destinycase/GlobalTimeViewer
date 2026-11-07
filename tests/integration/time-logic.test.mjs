@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createMainContext } from "./helpers/create-main-context.mjs";
+import { createMainContext } from "../helpers/create-main-context.mjs";
 
 describe("Global Time Viewer - Time Logic", () => {
     it("buildStrictUtcDateFromParts returns a valid Date for valid parts", () => {

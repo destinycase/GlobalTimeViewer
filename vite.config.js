@@ -21,7 +21,7 @@ export default defineConfig({
     customLogger: logger,
     base: '',
     test: {
-        include: ['tests/**/*.test.{mjs,js}'],
+        include: ['tests/**/*.test.mjs'],
         exclude: ['node_modules/**', 'tests/local/**'],
         coverage: {
             provider: 'v8',
