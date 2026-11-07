@@ -1,6 +1,6 @@
 # Global Time Viewer 모듈 관계도
 
-> 기준: v3.12.10 소스 트리. `script_list.tmp`, `main.js`, `js/modules/main-module-spec.js` 및 각 서비스의 `createService(deps)` 배선을 기준으로 정리했습니다. 파일 수는 소스 트리에서 계산한 값이며, 관계도는 모든 개별 의존성을 나열한 그래프가 아니라 런타임 레이어와 주요 연결을 보여줍니다.
+> 기준: 1차 안정 버전 v3.12.10 소스 트리. `src/script_list.tmp`, `src/main.js`, `src/js/modules/main-module-spec.js` 및 각 서비스의 `createService(deps)` 배선을 기준으로 정리했습니다. 아래 경로는 특별한 표시가 없으면 `src/` 기준입니다. 파일 수는 소스 트리에서 계산한 값이며, 관계도는 모든 개별 의존성을 나열한 그래프가 아니라 런타임 레이어와 주요 연결을 보여줍니다.
 
 모듈 파일별 전역 API, 입력 의존성 키, 반환 서비스 API, 모듈 등록 경로 및 `main.js` 조립 호출 목록은 [상세 인벤토리](module-dependency-inventory.md)를 참고하세요. 이 인벤토리는 [generate-module-dependency-inventory.mjs](../scripts/generate-module-dependency-inventory.mjs)로 현재 소스에서 다시 생성할 수 있습니다.
 
@@ -87,7 +87,7 @@ flowchart LR
 | 시간과 시간대 | `time-core.js`, `time-service.js`, `time-input-mutations.js`, `timezone-data.js`, `timezone-search.js`, `timer-engine.js` |
 | 그룹 및 앱 상태 | `group-state.js`, `group-context-state.js`, `group-tabs.js`, `app-state-patcher.js`, `app-persistence-state.js`, `ui-preferences-state.js`, `format-profile-state.js` |
 | 고정 시간 및 타임라인 | `fixed-time-core.js`, `fixed-time-slot-utils.js`, `fixed-time-state.js`, `fixed-time-actions.js`, `fixed-time-table.js`, `fixed-time-timeline.js`, `timeline-frame.js` |
-| 연속 시간 편집 | `multi-state.js`, `multi-range-state.js`, `multi-range-render.js`, `multi-range-copy.js`, `multi-range-image-render.js`, `multi-bulk-tools.js` |
+| 연속 시간 변경 | `multi-state.js`, `multi-range-state.js`, `multi-range-render.js`, `multi-range-copy.js`, `multi-range-image-render.js`, `multi-bulk-tools.js` |
 | 렌더·복사·이미지 | `table-render.js`, `table-image-render.js`, `copy-actions.js`, `image-export.js`, `image-export-actions.js`, `image-export-bridge.js`, `image-export-naming.js`, `image-clone.js`, `image-foreign-render.js` |
 | 계산기·사용자 작업 | `calculator-countdown-state.js`(상태 정규화/표시), `calculator.js`(DOM 이벤트/기능 조립), `calculator-actions.js`, `date-picker.js`, `time-adjust-ui.js`, `time-adjust-actions.js`, `format-controls.js`, `ui-settings-actions.js` |
 | 저장·설정 이동 | `persistence-state-normalizer.js`(저장 payload 정규화), `state-persistence.js`(저장소 동기화·로드·초기화), `persistence-service-bundle.js`, `settings-io.js`, `data-transfer.js` |
@@ -96,8 +96,8 @@ flowchart LR
 
 - `js/modules/`에는 기능 모듈, `main-...-bindings`, accessor/proxy, bootstrap/config-builder 계열이 함께 있습니다. 이름이 유사해도 일부는 API 검증 또는 fallback 동작을 제공하므로 내용과 테스트를 확인하기 전에는 중복 모듈로 간주하지 않습니다.
 - 공통 도메인 서비스는 대체로 `createService(deps)` 형태이고, 의존성을 명시적으로 전달합니다. 반면 `main.js`는 레거시 호환과 전역 상태 연결을 담당하므로 새 도메인 로직을 이 파일에 추가하기보다 기능 모듈에 두고 조립부에서 연결하는 것이 현재 패턴에 맞습니다.
-- 새 런타임 모듈을 추가하거나 제거할 때는 `script_list.tmp`를 갱신한 뒤 `npm run sync:source-loader`를 실행합니다. 이 명령과 빌드는 목록 중복·경로·파일 누락·전체 런타임 파일 포함 여부를 검사합니다.
-- 변경 확인은 영향 모듈 테스트, `npm run lint`, `npm run test:coverage`, 배포 전 `npm run build:strict` 순으로 수행합니다. 빠른 전체 확인은 `npm run ci:gate`입니다.
+- 새 런타임 모듈을 추가하거나 제거할 때는 `src/script_list.tmp`를 갱신한 뒤 `npm run sync:source-loader`를 실행합니다. 이 명령과 빌드는 목록 중복·경로·파일 누락·전체 런타임 파일 포함 여부를 검사합니다.
+- 변경 확인은 영향 모듈 테스트, `npm run lint`, `npm run test:coverage`, 배포 전 `npm run package`(엄격 빌드, 배포 ZIP 생성, 배포물 검사) 순으로 수행합니다. 빠른 전체 확인은 `npm run ci:gate`입니다.
 
 ## 관계도의 한계
 

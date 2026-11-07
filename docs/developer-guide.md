@@ -1,57 +1,72 @@
 # Global Time Viewer 개발자 가이드
 
-이 문서는 현재 소스 트리의 구조와 실행 계약을 설명합니다. 프로그램은 단순한 정적 HTML 페이지가 아닙니다. 일반적인 ES 모듈 import 대신 전역 GTV... API와 순서가 지정된 스크립트 로더를 사용하는 브라우저 확장이므로, 파일 분리나 로드 순서를 바꾸기 전에 관련 경계를 먼저 이해해야 합니다.
+이 문서는 현재 소스 트리의 구조와 실행 계약, 검증·배포·문서 관리 절차를 설명합니다. 프로그램은 단순한 정적 HTML 페이지가 아닙니다. 일반적인 ES 모듈 import 대신 전역 `GTV...` API와 순서가 지정된 스크립트 로더를 사용하는 브라우저 확장이므로, 파일 분리나 로드 순서를 바꾸기 전에 관련 경계를 먼저 이해해야 합니다.
 
-**기준 소스 버전:** 3.12.10. 모듈별 실제 API와 전역 의존성은 [생성 인벤토리](module-dependency-inventory.md), 전체 연결은 [모듈 관계도](module-relationship-map.md), 기능별 탐색은 [코드 탐색 안내](code-navigation.md)를 함께 참고하세요.
+**기준:** 1차 안정 버전 v3.12.10. 모듈별 실제 API와 전역 의존성은 [생성 인벤토리](module-dependency-inventory.md), 전체 연결은 [모듈 관계도](module-relationship-map.md), 기능별 탐색은 [코드 탐색 안내](code-navigation.md), 용어는 [용어 사전](Glossary.md)을 함께 참고하세요.
 
-## 1. 프로젝트 구성
+## 목차
 
-| 경로/파일 | 역할 |
-| --- | --- |
-| index.html | 애플리케이션의 DOM 골격, 메뉴/입력/표 컨테이너, 로딩·치명 오류 화면, 생성 스크립트 로더 참조를 정의합니다. |
-| style.css | 화면 레이아웃, 컴포넌트 상태, 테마 및 UI 크기 표현을 담당합니다. |
-| i18n.js | 전역 번역 사전/API를 제공합니다. 화면 문자열을 추가할 때 한국어와 영어 키를 함께 관리합니다. |
-| main.js | 런타임 조립 지점입니다. 주요 상태와 호스트 API를 준비하고 여러 main-*-bootstrap 조립 서비스를 호출하며 공개 전역 호환 API를 연결합니다. 순수 계산 모듈로 취급하지 마세요. |
-| main-module-spec.js / main-module-resolver.js | 모듈 전역 API의 필수/선택 계약을 선언하고 실제 로드된 API를 검증·해결합니다. |
-| main-app-bootstrap.js | 조립된 애플리케이션의 시작 순서를 제어합니다. 저장 데이터 로드, 지역명/번역 및 설정 적용, UI 초기화, 표 갱신과 타이머 시작 등을 연결합니다. |
-| js/modules/ | 시간 계산, 상태, 지속성, 렌더링, 상호작용 등 기능 모듈과 main-*-bindings/composition/bootstrap 계층을 포함합니다. 파일명이 비슷해도 API 연결과 fallback이 다를 수 있으므로 구현을 확인하세요. |
-| js/source-script-loader.js | script_list.tmp를 바탕으로 생성되는 순차 로더입니다. 직접 편집하지 않습니다. |
-| script_list.tmp | 브라우저 런타임 스크립트 로드 순서의 원본 목록입니다. 앞선 스크립트 전역 API가 뒤의 스크립트에서 사용될 수 있습니다. |
-| js/vendor/ | Luxon 등 브라우저에서 사용하는 외부 라이브러리입니다. |
-| tests/ | Vitest 모듈 단위 및 통합 성격 테스트입니다. |
-| scripts/ | 로더/모듈 인벤토리 생성, 빌드 등 개발 자동화 스크립트입니다. |
-| dist/, dist_extension/, js/bundle.js, ZIP | 빌드 과정에서 생성되는 산출물입니다. 생성 결과를 직접 수정하지 않습니다. |
+1. [저장소 폴더 구조](#1-저장소-폴더-구조)
+2. [런타임 흐름과 로드 순서](#2-런타임-흐름과-로드-순서)
+3. [아키텍처와 책임 경계](#3-아키텍처와-책임-경계)
+4. [상태와 저장 데이터](#4-상태와-저장-데이터)
+5. [안전한 변경 절차](#5-안전한-변경-절차)
+6. [코딩 컨벤션](#6-코딩-컨벤션)
+7. [개발 환경·검증·배포](#7-개발-환경검증배포)
+8. [문서 관리](#8-문서-관리)
+
+## 1. 저장소 폴더 구조
+
+| 위치 | 내용 | Git |
+| --- | --- | --- |
+| `src/` | 제품 코드. 확장 화면(`index.html`, `style.css`, `i18n.js`, `main.js`), 기능 모듈 `js/modules/`, 외부 라이브러리 `js/vendor/`, 생성 로더 `js/source-script-loader.js`, 로드 순서 원본 `script_list.tmp`, 서비스 워커 `background.js`. `src/` 안의 상대 경로는 배포물의 경로와 같습니다. | 포함 |
+| `manifest.json`(루트) | 확장 매니페스트. 아이콘·서비스 워커 경로는 배포물(`dist_extension/`) 기준입니다. | 포함 |
+| `Asset/icons/` | 앱 아이콘 원본. 빌드가 배포물의 `icons/`로 복사합니다. | 포함 |
+| `Asset/store_assets/chrome-web-store/` | 스토어 제출 이미지. 배포 ZIP에는 들어가지 않습니다. | 포함 |
+| `scripts/` | 빌드(`build-extension.mjs`), 패키징(`package-extension.mjs`, `zip-archive.mjs`), 로더 동기화, 인벤토리 생성 도구 | 포함 |
+| `tests/` | 모든 검사. 구성은 7장 [검사 파일의 위치](#검사-파일의-위치) 참고. `tests/local/`만 Git 제외 | 포함(일부 제외) |
+| `docs/` | 공개 문서(8장 참고) | 포함 |
+| `dist/` | Vite 중간 빌드 출력 | 제외 |
+| `dist_extension/` | 확장 배포 폴더(압축 해제 상태). Chrome에서 직접 불러올 수 있습니다. | 제외 |
+| `release/` | 로컬 배포 ZIP(`gtv-vX.Y.Z.zip`). 모든 안정 버전과 마지막 안정 버전 이후 ZIP만 보관 | 제외 |
+| `coverage/`, `src/js/bundle.js` | 커버리지 보고서, 빌드 중간 번들 | 제외 |
+| `docs_dev/` | 내부 조사·검수 보고서. 이전 안정 버전까지의 보고서는 `docs_dev/archive/until-v버전/`에 보관 | 제외 |
+| `scratch/` | 검사 실행 로그·재현 결과·임시 빌드 | 제외 |
+| `AGENTS.md`, `CLAUDE.md` | 로컬 작업 지침 | 제외 |
 
 ## 2. 런타임 흐름과 로드 순서
 
-1. index.html은 DOM과 스타일을 준비하고 js/source-script-loader.js를 불러옵니다.
-2. 생성 로더는 script_list.tmp에 선언된 순서대로 스크립트를 삽입합니다. 비동기 병렬 로드가 아니라 전역 등록 순서가 의미 있는 로드입니다.
-3. 설정, 번역, vendor, 모듈 API가 등록됩니다. 각 모듈은 보통 window.GTV... 또는 호스트 전역 객체에 API를 등록합니다.
-4. main.js가 main-module-spec 및 resolver를 사용해 요구 모듈 API가 준비되었는지 확인하고 상태/의존성을 조립합니다.
-5. 도메인, UI, 지속성 서비스의 createService(deps) 경계를 통해 필요한 의존성을 전달하고 공개 API를 연결합니다.
-6. GTVMainAppBootstrap이 초기화 순서를 진행하고 성공 후 상호작용/시계 갱신을 시작합니다. 필수 초기화 실패 시 사용자용 오류 화면이 표시됩니다.
+1. `src/index.html`은 DOM과 스타일을 준비하고 `js/source-script-loader.js`를 불러옵니다.
+2. 생성 로더는 `src/script_list.tmp`에 선언된 순서대로 스크립트를 삽입합니다. 비동기 병렬 로드가 아니라 전역 등록 순서가 의미 있는 로드입니다.
+3. 설정, 번역, vendor, 모듈 API가 등록됩니다. 각 모듈은 보통 `window.GTV...` 또는 호스트 전역 객체에 API를 등록합니다.
+4. `main.js`가 `main-module-spec` 및 resolver를 사용해 필요한 모듈 API가 준비되었는지 확인하고 상태/의존성을 조립합니다.
+5. 도메인, UI, 지속성 서비스의 `createService(deps)` 경계를 통해 필요한 의존성을 전달하고 공개 API를 연결합니다.
+6. `GTVMainAppBootstrap`이 초기화 순서를 진행하고 성공 후 상호작용/시계 갱신을 시작합니다. 필수 초기화 실패 시 사용자용 오류 화면이 표시됩니다.
 
-따라서 런타임 파일을 추가/이동하거나 스크립트 순서를 바꾸는 변경은 아래를 한 묶음으로 다룹니다.
+배포 빌드는 같은 순서 목록을 하나의 축약 번들(`js/bundle.js`)로 합쳐 생성 로더 대신 사용합니다.
+
+런타임 파일을 추가/이동하거나 스크립트 순서를 바꾸는 변경은 아래를 한 묶음으로 다룹니다.
 
 1. 적절한 도메인 소유 모듈에 구현하고 필요한 전역 API 계약을 정합니다.
-2. js/modules/main-module-spec.js의 계약 선언 및 이에 해당하는 조립 지점을 확인합니다.
-3. script_list.tmp에서 의존 관계에 맞는 위치에 등록합니다.
-4. npm run sync:source-loader로 생성 로더를 갱신합니다. 생성 파일을 수동으로 고치지 않습니다.
-5. 로더 체크, 해당 모듈 테스트, 동작 회귀 검사 및 빌드를 실행합니다.
+2. `src/js/modules/main-module-spec.js`의 계약 선언 및 이에 해당하는 조립 지점을 확인합니다.
+3. `src/script_list.tmp`에서 의존 관계에 맞는 위치에 등록합니다.
+4. `npm run sync:source-loader`로 생성 로더를 갱신합니다. 생성 파일을 수동으로 고치지 않습니다.
+5. 모듈 API나 의존성이 바뀌었으면 `npm run docs:module-inventory`로 인벤토리를 다시 만듭니다.
+6. 로더 검사, 해당 모듈 테스트, 동작 회귀 검사 및 빌드를 실행합니다.
 
 ## 3. 아키텍처와 책임 경계
 
 ### 모듈 API와 의존성 전달
 
-대부분의 런타임 모듈은 IIFE 내부에서 createService(deps = {}) 형태의 서비스를 만들고, 전역에 모듈 API를 등록합니다. 인스턴스별 deps 전달이 테스트 대역과 실행 환경 차이를 수용하는 경계입니다. 새 기능의 구현은 책임을 가진 도메인 모듈에 두고, 조립 파일에는 의존성 전달과 API wiring만 둡니다.
+대부분의 런타임 모듈은 IIFE 내부에서 `createService(deps = {})` 형태의 서비스를 만들고, 전역에 모듈 API를 등록합니다. 인스턴스별 deps 전달이 테스트 대역과 실행 환경 차이를 수용하는 경계입니다. 새 기능의 구현은 책임을 가진 도메인 모듈에 두고, 조립 파일에는 의존성 전달과 API wiring만 둡니다.
 
 일반적으로 모듈 API는 불변 객체로 공개됩니다. 기존 API 반환 형식과 전역 이름을 바꾸면 resolver, 조립 서비스, 테스트와 호환 호출자가 동시에 영향을 받을 수 있습니다. 공개 API 변경은 단일 파일 리팩터링처럼 취급하지 말고 모든 소비자와 테스트를 추적하세요.
 
 ### 조립 계층과 main.js
 
-main.js는 규모가 크더라도 단순히 줄 수를 줄이기 위해 분해하면 안 됩니다. 여러 초기 상태, 호스트/브라우저 접근, 공개 전역 호환 함수 및 조립 순서가 모여 있는 곳입니다. 비슷한 코드라는 이유만으로 상태 소유권이나 호출 순서를 작은 파일들에 복제하면 추적해야 할 연결 지점이 늘어납니다.
+`main.js`는 규모가 크더라도 단순히 줄 수를 줄이기 위해 분해하면 안 됩니다. 여러 초기 상태, 호스트/브라우저 접근, 공개 전역 호환 함수 및 조립 순서가 모여 있는 곳입니다. 비슷한 코드라는 이유만으로 상태 소유권이나 호출 순서를 작은 파일들에 복제하면 추적해야 할 연결 지점이 늘어납니다.
 
-기능별 책임은 도메인 모듈에 둡니다. main-runtime-*-bootstrap.js, *-composition.js, *-bindings.js 계열은 이미 존재하는 조립 책임을 따릅니다. 변경 전 [코드 탐색 안내](code-navigation.md)의 main.js 연결 지점과 [관계도](module-relationship-map.md)를 보고, 새 파일이 실제로 응집도나 테스트 경계를 높이는지 확인하세요. 크기만 작은 공용 util 모듈을 추가하지 않습니다.
+기능별 책임은 도메인 모듈에 둡니다. `main-runtime-*-bootstrap.js`, `*-composition.js`, `*-bindings.js` 계열은 이미 존재하는 조립 책임을 따릅니다. 변경 전 [코드 탐색 안내](code-navigation.md)의 `main.js` 연결 지점과 [관계도](module-relationship-map.md)를 보고, 새 파일이 실제로 응집도나 테스트 경계를 높이는지 확인하세요. 크기만 작은 공용 util 모듈을 추가하지 않습니다.
 
 ### 주요 도메인 소유권
 
@@ -72,71 +87,135 @@ main.js는 규모가 크더라도 단순히 줄 수를 줄이기 위해 분해�
 
 - 핵심 실행 상태는 조립 계층이 소유하고, 각 도메인 서비스에는 필요한 읽기/쓰기 함수가 전달됩니다. 같은 상태의 별도 사본을 UI 모듈에 장기간 보유하면 화면과 저장 데이터가 어긋날 수 있습니다.
 - 앱 상태 patching, 그룹 컨텍스트, 사용자 환경설정, 복사/표시 형식은 각각의 소유 모듈 경로를 통해 변경합니다. 이미 있는 updater/normalizer 경로를 우회해 직접 전역을 바꾸지 마세요.
-- 저장소 접근은 state-persistence.js를 중심으로 하며 Chrome 확장 환경에서는 chrome.storage.local, 가능한 실행 환경에서는 localStorage fallback 경로를 지원합니다. 접근 경로의 예외/fallback 동작을 유지해야 합니다.
-- 현재 핵심 데이터 키는 GTV_v324_Data이고 구버전 키 목록은 app-config.js가 선언합니다. 테마, 언어, UI 배율은 별도 키(GTV_Theme, GTV_Lang, GTV_UIScale)입니다. 실제 저장 구조를 바꾸려면 normalizer, 마이그레이션/legacy fallback, 설정 내보내기/가져오기, 테스트를 함께 검토합니다.
-- 설정 가져오기는 외부 JSON 입력이므로 settings-io.js와 data-transfer.js의 검증·정규화·저장 실패 경로를 건너뛰지 않습니다. 개별 그룹/보조 그룹 가져오기를 전체 설정 가져오기와 같은 payload로 가정하지 마세요.
+- 저장소 접근은 `state-persistence.js`를 중심으로 하며 Chrome 확장 환경에서는 `chrome.storage.local`, 가능한 실행 환경에서는 `localStorage` fallback 경로를 지원합니다. 저장 데이터는 `revision`, `updatedAt`, `data`로 감싸며 두 저장소 중 최신 것을 복원합니다.
+- 현재 핵심 데이터 키는 `GTV_v324_Data`이고 구버전 키 목록은 `app-config.js`가 선언합니다. 테마, 언어, UI 배율은 별도 키(`GTV_Theme`, `GTV_Lang`, `GTV_UIScale`)입니다. 실제 저장 구조를 바꾸려면 normalizer, 마이그레이션/legacy fallback, 설정 내보내기/가져오기, 테스트를 함께 검토합니다.
+- 설정 가져오기는 외부 JSON 입력이므로 `settings-io.js`와 `data-transfer.js`의 검증·정규화·저장 실패 경로를 건너뛰지 않습니다. 개별 그룹/보조 그룹 가져오기를 전체 설정 가져오기와 같은 payload로 가정하지 마세요.
 
 ## 5. 안전한 변경 절차
 
 1. **현행 구현을 찾습니다.** 먼저 [코드 탐색 안내](code-navigation.md)를 보고 생성 인벤토리에서 모듈의 API, 입력, 소비자를 확인합니다.
 2. **변경 책임을 고릅니다.** 기능 동작은 소유 도메인에, 조립 변경은 기존 composition/bootstrap에, 사용자 안내/표시는 UI 경계에 둡니다. 단지 분리를 위한 새 파일을 만들지 않습니다.
 3. **계약을 기록합니다.** 함수 입력/반환, 비동기 여부, 상태 변경 소유자, 전역 API 및 저장 payload가 달라지는지 먼저 확인합니다. 핵심 기능과 데이터 결과를 바꾸는 UX 수정은 별도 동작 변경으로 검토해야 합니다.
-4. **최소 범위로 수정합니다.** 직접 관련 소비자만 바꾸고 fallback/오류 흐름을 보존합니다. 사용자 문자열은 i18n.js의 한국어/영어 양쪽에 추가합니다.
-5. **검증합니다.** 아래 명령을 실행하고 변경한 도메인의 기존 테스트를 확인합니다. 저장, 날짜 경계, 시간대/서머타임, 가져오기 입력이라면 경계 사례 테스트가 필요합니다.
-6. **문서를 갱신합니다.** 공개 동작/개발 흐름/모듈 계약이 바뀌면 이 가이드, 관계도/탐색 문서, 릴리스 기록 중 영향받는 곳을 반영합니다. 스크립트 소유권이 바뀌면 생성 인벤토리도 검사합니다.
+4. **최소 범위로 수정합니다.** 직접 관련 소비자만 바꾸고 fallback/오류 흐름을 보존합니다. 사용자 문자열은 `src/i18n.js`의 한국어/영어 양쪽에 추가합니다.
+5. **검증합니다.** 7장의 명령을 실행하고 변경한 도메인의 기존 테스트를 확인합니다. 저장, 날짜 경계, 시간대/서머타임, 가져오기 입력이라면 경계 사례 테스트가 필요합니다.
+6. **버전·이력·문서를 갱신합니다.** 제품 동작을 바꿨으면 7장의 버전 규칙에 따라 패치 버전을 올리고 [개발 이력](development-history.md)에 기능 변경을 적습니다. 구조/모듈 계약이 바뀌면 이 가이드, 관계도/탐색 문서, 인벤토리 중 영향받는 곳을 같은 작업에서 반영합니다.
 
 ### 특히 피할 변경
 
 - 기존 전역 API를 검토 없이 삭제/이름 변경하거나 모든 파일을 ES module로 한 번에 바꾸기
-- script_list.tmp와 생성 로더 사이의 불일치 또는 로드 순서 의존성 깨뜨리기
-- main.js 상태/호환 경계를 기능별 작은 파일에 중복 분산하기
+- `src/script_list.tmp`와 생성 로더 사이의 불일치 또는 로드 순서 의존성 깨뜨리기
+- `main.js` 상태/호환 경계를 기능별 작은 파일에 중복 분산하기
 - 의미 있는 응집 없이 지나치게 작은 모듈 또는 모든 기능을 빨아들이는 공용 util 파일 만들기
 - 가져오기 데이터를 정규화기/검증기 우회해서 저장하거나 기존 저장 키 호환성을 제거하기
 - UI 문자열을 하드코딩해 두 언어가 서로 달라지게 만들기
 - 계산 또는 데이터 출력을 바꾸는 수정인데 화면 문구 변경으로만 취급하기
-- 오류를 무시하는 광범위한 catch 또는 정상 오류를 console.log로 숨기기
+- 오류를 무시하는 광범위한 catch 또는 정상 오류를 `console.log`로 숨기기
 
 ## 6. 코딩 컨벤션
 
-현재 ESLint 설정(eslint.config.cjs)을 최종 기준으로 합니다.
+현재 ESLint 설정(`eslint.config.cjs`)을 최종 기준으로 합니다.
 
-- JavaScript 코드는 "use strict"를 사용하고 동등 비교는 ===/!==로 작성합니다.
-- 정의되지 않은 변수, 중복 선언/키, 도달 불가능 코드, 부동소수점 정밀도 손실, debugger를 허용하지 않습니다.
-- console.log는 금지되어 있습니다. 필요한 진단은 목적이 명확한 console.warn 또는 console.error로 남깁니다.
-- js/modules/에서는 사용하지 않는 변수 검사가 적용됩니다. 사용하지 않는 의존성/임시 변수를 남기지 말고, 의도적으로 사용하지 않는 매개변수는 기존 명명 규칙을 따릅니다.
+- JavaScript 코드는 `"use strict"`를 사용하고 동등 비교는 `===`/`!==`로 작성합니다.
+- 정의되지 않은 변수, 중복 선언/키, 도달 불가능 코드, 부동소수점 정밀도 손실, `debugger`를 허용하지 않습니다.
+- `console.log`는 금지되어 있습니다. 필요한 진단은 목적이 명확한 `console.warn` 또는 `console.error`로 남깁니다.
+- `src/js/modules/`에서는 사용하지 않는 변수 검사가 적용됩니다. 의도적으로 사용하지 않는 매개변수는 기존 명명 규칙(`_` 접두사)을 따릅니다.
 - 모듈은 의존성을 인자로 받고 가능한 경우 DOM/브라우저 전역을 직접 참조하지 않아 테스트에서 대체 가능하게 합니다. 다만 기존 소유권 패턴과 충돌하는 신규 추상화를 만들지는 않습니다.
-- 사용자 입력/가져오기 입력은 정규화와 검증 경로를 사용합니다. 생성 HTML에 사용자 값을 넣을 때는 기존 escaping 패턴을 따르고, 단순 텍스트는 DOM textContent를 우선합니다.
-- 새 화면 문구는 한국어/영어 번역 키를 함께 추가하고 버튼/툴팁은 키 연결(data-i18n, data-i18n-title)을 확인합니다.
+- 사용자 입력/가져오기 입력은 정규화와 검증 경로를 사용합니다. 생성 HTML에 사용자 값을 넣을 때는 기존 escaping 패턴을 따르고, 단순 텍스트는 DOM `textContent`를 우선합니다.
+- 새 화면 문구는 한국어/영어 번역 키를 함께 추가하고 버튼/툴팁은 키 연결(`data-i18n`, `data-i18n-title`)을 확인합니다.
 - 저장 실패/선택 기능 fallback과 필수 초기화 오류는 서로 다른 상황입니다. 전자는 기존 fallback과 사용자 피드백을 보존하고, 후자는 fatal error 흐름을 숨기지 않습니다.
-- UTF-8 인코딩을 유지하고 기존 파일의 개행 형식을 불필요하게 전체 변환하지 않습니다. 포맷 변경 diff가 실제 코드 변경과 섞이지 않도록 주의합니다.
+- 텍스트 파일은 UTF-8, LF 줄바꿈으로 고정합니다(`.gitattributes`, `.editorconfig`). 포맷 변경 diff가 실제 코드 변경과 섞이지 않도록 주의합니다.
 
-## 7. 테스트, 검사, 빌드
+## 7. 개발 환경·검증·배포
 
-Node.js와 npm을 준비한 뒤 저장소 루트에서 실행합니다.
+### 브랜치와 태그
+
+소스 작업과 GitHub 기본 브랜치는 `main`입니다. CI는 `main`에 대한 푸시와 풀 리퀘스트에서 lint, 인벤토리 검사, 커버리지 포함 전체 검사를 실행한 뒤 패키징을 검증합니다. 패키징 작업은 앞의 검사가 통과한 뒤에만 시작하므로 패키징 안의 사전 검사는 CI에서만 건너뛰며(`GTV_SKIP_PRETEST=1`, CI가 아닌 곳에서는 거부), 만든 ZIP을 GitHub 결과물(artifact)이나 Release로 올리지 않습니다. 실행 환경은 버전을 고정한 Windows 러너입니다.
+
+안정 버전 태그(`vX.Y.Z`)는 같은 버전의 기준판 문서(`docs/master-baseline-vX.Y.Z.md`)와 짝을 이루며 모두 보존합니다. 문서 최신화를 이유로 태그를 옮기지 않습니다. 지금 있는 안정 버전은 [README의 문서 안내](../README.md#문서-안내)에서 확인합니다.
+
+### 준비와 빌드
+
+Node.js 버전은 `.nvmrc`(24.14.0)를 따릅니다.
 
 ```sh
-npm install
-npm run lint
-npm test -- --run
-npm run test:coverage
-npm run docs:module-inventory:check
-npm run build:strict
+npm ci
+npm run build
 ```
 
-- 빠른 작업에서는 변경 모듈의 Vitest 파일부터 실행한 뒤 관련 통합 테스트를 실행합니다. 전체 테스트는 npm test -- --run, 커버리지 포함 실행은 npm run test:coverage입니다.
-- npm run docs:module-inventory:check는 체크인된 모듈 인벤토리가 소스와 일치하는지 확인합니다. 재생성은 npm run docs:module-inventory입니다.
-- script_list.tmp 수정 후에는 npm run sync:source-loader를 실행합니다.
-- npm run build:strict는 버전 일관성을 확인하며 확장 산출물과 ZIP을 생성합니다. CI 전체 관문은 npm run ci:gate(lint, 인벤토리 검사, 커버리지 테스트, strict build)입니다.
-- 제품 동작을 바꾸는 변경은 lint만으로 충분하지 않습니다. 영향 모듈 테스트, 저장/시간 경계 시나리오와 빌드까지 확인하세요.
+`npm run build`는 스크립트 목록 검증 → 번들 결합·축약(크기 한도 950KB) → Vite 빌드 → 배포 폴더 구성 순으로 `dist_extension/`을 만듭니다. Chrome의 `chrome://extensions`에서 개발자 모드를 켜고 `dist_extension/`을 불러와 확인합니다. `npm run build:strict`는 버전 불일치를 자동 수정하지 않고 실패시킵니다. Windows에서 npm.ps1이 차단되면 `npm.cmd`·`npx.cmd`를 사용할 수 있습니다.
 
-## 8. 버전과 배포
+### 검증 종류
 
-버전을 바꿀 때는 적어도 package.json, package-lock.json, manifest.json, js/modules/app-config.js, README.md, docs/CHANGELOG.md의 버전 참조를 함께 확인합니다. 빌드 스크립트는 확장 파일을 dist_extension/에 모으고 GlobalTimeViewer_extension.zip을 만듭니다. 결과물을 직접 손으로 고치는 대신 원본을 수정하고 다시 빌드합니다. 배포 전 strict build와 관련 검증을 통과했는지 확인합니다.
+| 명령 | 내용 |
+| --- | --- |
+| `npm run lint` | ESLint(경고 0) |
+| `npm test` | 단위·통합 검사(`tests/unit`, `tests/integration`). 감시 모드는 `npm run test:watch` |
+| `npm run test:coverage` | 단위·통합 검사 + 커버리지 기준(구문·줄 83%, 분기 72%, 함수 70%) |
+| `npm run docs:module-inventory:check` | 체크인된 모듈 인벤토리가 소스와 일치하는지 확인 |
+| `npm run test:package` | 배포물 검사(`tests/audit`). 현재 버전의 `release/gtv-vX.Y.Z.zip`이 없으면 건너뜀(skip)으로 표시 |
+| `npm run ci:gate` | lint → 인벤토리 검사 → 커버리지 → strict build |
+| `npm run package` | 배포 ZIP 생성과 배포물 검사(아래) |
 
-## 9. 참고 문서
+배포물 검사는 ZIP의 이름과 매니페스트·번들 버전, 필수 파일, 매니페스트와 `index.html`이 가리키는 파일의 존재, 소스·테스트·개발 파일과 숨김 파일의 미포함, LF 줄바꿈, 개발 환경 값(Git 사용자 정보, 홈·작업 폴더 경로)의 노출 여부, `dist_extension/`과의 파일 단위 일치를 확인합니다. 건너뜀이 있으면 통과로 세지 않습니다.
 
-- [모듈 관계도](module-relationship-map.md): 스크립트 시작점, 조립 계층, 기능 도메인의 시각적 관계
-- [코드 탐색 안내](code-navigation.md): main.js와 주요 기능의 변경 위치
-- [모듈 의존성 인벤토리](module-dependency-inventory.md): 파일별 API/의존성과 스크립트 순서(생성 파일)
-- [사용자 가이드](user-guide.md): 프로그램 사용 관점 안내
-- [변경 이력](CHANGELOG.md): 버전별 변경 사항과 버전 번호 정정 내역
+#### 검사 파일의 위치
+
+| 위치 | 내용 |
+| --- | --- |
+| `tests/unit/` | 모듈 단위 검사. 파일 하나가 `src/` 모듈 또는 스크립트 하나를 대상으로 합니다(`*-module.test.mjs`). |
+| `tests/integration/` | `main.js` 조립·전역 API·런타임 흐름·로더 동기화·i18n 무결성처럼 여러 모듈을 함께 실행하는 검사 |
+| `tests/audit/` | 배포 ZIP 검사 |
+| `tests/helpers/` | 검사 공용 도우미(`main.js` 실행 샌드박스 등) |
+| `tests/local/` | 검수자 전용 도구(Git·자동 검사 제외) |
+
+모든 검사는 명령 하나로 사람 개입 없이 끝나고 스스로 통과/실패를 판정해야 합니다. 사람이 클릭·확인해야 하는 검사나 장시간 검사는 만들지 않으며, 자동으로 확인할 수 없는 범위는 내부 보고서에 미검증 범위로 적습니다. 검사 결과·로그·임시 빌드는 `scratch/`에 둡니다.
+
+### 배포 ZIP 만들기
+
+```sh
+npm run package
+```
+
+1. 회귀 검사(`npm test`)
+2. 엄격 빌드(`npm run build:strict`) → `dist_extension/`
+3. 빌드 결과의 매니페스트 버전 확인
+4. `release/gtv-vX.Y.Z.zip` 생성. 같은 이름의 ZIP이 있으면 덮어쓰지 않고 중단합니다.
+5. ZIP을 다시 읽어 `dist_extension/`과 파일 단위로 대조하고 배포물 검사를 실행한 뒤 크기와 SHA-256을 출력합니다.
+
+ZIP 항목은 이름순으로, 고정된 시각·권한 값으로 기록하므로 같은 소스에서 다시 만들면 같은 SHA-256이 나옵니다. 중간 검증이나 재현성 확인은 `GTV_RELEASE_DIR=scratch/...`로 출력 폴더를 분리합니다.
+
+### 버전과 배포 완료 기준
+
+제품 동작을 바꾸면 패치 버전을 정확히 1 올리고 `package.json`·`package-lock.json` 루트·`manifest.json`(`version`, `version_name`)·`src/js/modules/app-config.js`·README를 맞춥니다. 같은 논리적 작업은 한 버전으로 묶고 메이저·마이너 변경은 별도 지시에 따릅니다. 문서·테스트·검증 도구·폴더 구조만 바꾸면 버전을 올리지 않습니다.
+
+[개발 이력](development-history.md)에는 기능 추가·개선·제거와 사용자에게 영향을 주는 동작 변경만 해당 버전에 적습니다. 웹 스토어 제출 기준이 되는 안정 버전은 기능 변경이 없어도 지정 사실과 기준판 문서 링크를 남깁니다. 안정 버전 지정과 실제 스토어 제출·게시 완료는 구분합니다. 검증 결과·조사·문서 정리·커밋·ZIP 생성 기록은 `docs_dev/`에 남깁니다.
+
+제품 작업은 필요한 검사, 배포 ZIP 생성과 배포물 검사, 이력과 로컬 커밋까지 확인합니다. 실패가 남으면 배포 완료로 보고하지 않습니다. 문서만 바꿨을 때 검증된 같은 버전 ZIP을 다시 만들지 않습니다.
+
+`release/`의 로컬 ZIP과 원격 푸시·GitHub Release·웹 스토어 제출은 별개이며, 외부 공개는 별도 요청으로 수행합니다. `release/`에는 모든 안정 버전 ZIP과 마지막 안정 버전 이후에 만든 ZIP만 둡니다. 새 안정 버전을 선언하면 직전 안정 버전과 새 안정 버전 사이의 ZIP을 지웁니다. 지운 버전은 Git 커밋에서 다시 빌드할 수 있고, 파일 지문은 내부 보고서에 남깁니다. 웹 스토어에는 안정 버전 ZIP만 제출합니다.
+
+## 8. 문서 관리
+
+| 위치 | 담는 내용 |
+| --- | --- |
+| `README.md`·`docs/user-guide.md` | 프로그래밍 지식이 없는 사용자를 위한 소개·조작·문제 해결. 현재 안정 버전 기준 |
+| `docs/developer-guide.md` | 개발 용어를 아는 비프로그래머를 위한 구조·운영·검증 설명. 현재 소스 구조 기준 |
+| `docs/code-navigation.md`·`docs/module-relationship-map.md` | 기능별 코드 위치와 모듈 관계. 현재 소스 구조 기준 |
+| `docs/module-dependency-inventory.md` | 소스에서 생성하는 모듈 API·의존성 목록. 직접 고치지 않고 `npm run docs:module-inventory`로 다시 만듭니다 |
+| `docs/Glossary.md` | 화면·기능·시간 개념·배포 용어의 공통 이름. 새 화면 요소나 개념을 추가하면 함께 갱신 |
+| `docs/development-history.md` | 공개용 버전별 기능 변경 이력 |
+| `docs/master-baseline-*.md` | 안정 버전별 기준 태그·배포 해시와 차수별 기능. 이전 기준판만 링크하며, 선언 뒤에는 다음 기준판이 생겨도 수정하지 않습니다 |
+| `docs_dev/` | 상세 조사·검수·내부 보고서. 버전별 보고서(`vX.Y.Z/`), 안정판·정리 기록(`stable/`), 다음 가이드에 넣을 보류 문안(`pending-guide-text/`)을 구분하고 최상위에는 색인만 둡니다. 이전 기록은 `archive/until-v버전/`에 보관합니다. Git 제외 대상입니다. |
+| `scratch/` | 실행 로그·재현 결과·임시 빌드. 현재 안정 버전 자체의 검증 증거와 그 이후 기록만 남깁니다. Git 제외 대상입니다. |
+
+사용자 가이드는 새 안정 버전이 선언될 때 그 버전 기준으로 다시 맞추며, 과거 버전 표현은 넣지 않습니다. 공개 문서에는 민감한 URL·인증 값을 넣지 않고, 내부 보고서를 필수 링크로 연결하지 않습니다. 조사 결과에는 관측과 추정, 완료한 검사와 보류한 검사를 구분해 기록합니다.
+
+### 새 안정 버전을 선언할 때
+
+1. `npm run package`로 `release/gtv-v버전.zip`을 만들고 크기·SHA-256을 확인합니다. 태그할 소스로 `scratch/`에 다시 만들어 같은 SHA-256인지 확인합니다.
+2. `docs/master-baseline-v버전.md`를 추가합니다. 직전 안정 버전 이후 추가·개선된 기능과 기준 커밋, ZIP 크기·SHA-256을 적습니다. 기존 기준판 문서와 태그는 고치지 않습니다.
+3. 개발 이력에 지정 사실을 적고, 사용자 가이드를 새 안정 버전 기준으로 다시 맞추고, README·개발자 가이드·용어 사전의 현재 안정 버전 표기를 바꿉니다.
+4. 선언 커밋에 기준 태그(`v버전`)를 만듭니다.
+5. `release/`: 직전 안정 버전과 새 안정 버전 사이의 ZIP을 지웁니다. 지우기 전에 파일 목록과 해시를 `docs_dev/stable/`에 남깁니다.
+6. `scratch/`: 새 안정 버전 자체의 검증 증거와 그 이후 기록만 남기고 지웁니다. 지울 목록은 `docs_dev/stable/`에 남깁니다.
+7. `docs_dev/`: 새 안정 버전 이전 보고서를 `docs_dev/archive/until-v버전/`으로 옮기고 색인을 고칩니다. 지우지는 않습니다.

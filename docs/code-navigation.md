@@ -2,12 +2,14 @@
 
 개발 환경과 변경 규칙 전반은 [개발자 가이드](developer-guide.md), 프로그램 사용 방법은 [사용자 가이드](user-guide.md)를 참고하세요.
 
+제품 코드는 모두 `src/` 아래에 있으며, 아래 경로는 특별한 표시가 없으면 `src/` 기준입니다(예: `main.js` = `src/main.js`, `js/modules/` = `src/js/modules/`).
+
 이 문서는 프로젝트를 처음 읽거나 기능을 수정할 때, 구현 위치와 실행 흐름을 빠르게 찾기 위한 안내입니다. 모든 파일을 한 번에 읽기보다 아래 경계에 맞춰 관련된 부분만 따라갑니다.
 
 ## 실행 흐름
 
-1. `script_list.tmp`가 브라우저 런타임 스크립트의 로드 순서를 정합니다.
-2. `js/source-script-loader.js`가 그 순서대로 API 스크립트를 로드합니다.
+1. `src/script_list.tmp`가 브라우저 런타임 스크립트의 로드 순서를 정합니다.
+2. `src/js/source-script-loader.js`가 그 순서대로 API 스크립트를 로드합니다.
 3. `main.js`가 `main-module-spec.js`와 `main-module-resolver.js`를 사용해 모듈 계약을 확인합니다.
 4. `main.js`가 상태 접근자, 핵심 서비스, 도메인 서비스, UI·저장 서비스를 순서대로 조립합니다.
 5. 조립된 공개 API가 `main-app-bootstrap.js`를 통해 앱 초기화를 시작합니다.
@@ -49,6 +51,6 @@
 
 ## 구조 검증 명령
 
-- `npm run sync:source-loader`: 스크립트 manifest와 생성 로더를 동기화합니다.
+- `npm run sync:source-loader`: 스크립트 목록(`src/script_list.tmp`)으로 생성 로더를 다시 만듭니다.
 - `npm run docs:module-inventory:check`: 의존성 인벤토리가 현재 코드와 일치하는지 확인합니다.
 - `npm run ci:gate`: 린트, 문서 확인, 커버리지 테스트, 엄격 빌드를 순서대로 수행합니다.
