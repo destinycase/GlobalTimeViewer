@@ -53,21 +53,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
             assertRequiredServices: () => {}
         })
     };
-    const mainBootstrapGuardBindingsStub = {
-        createService: (deps = {}) => {
-            const safeDeps = (deps && typeof deps === "object") ? deps : {};
-            const bootstrapGuardModule = safeDeps.bootstrapGuardModule;
-            const service = (
-                bootstrapGuardModule
-                && typeof bootstrapGuardModule.createService === "function"
-            )
-                ? bootstrapGuardModule.createService(safeDeps)
-                : { assertRequiredServices: () => {} };
-            return {
-                mainBootstrapGuardService: service
-            };
-        }
-    };
     const mainRuntimeBridgeProxiesStub = {
         createService: () => ({})
     };
@@ -93,27 +78,7 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
             bindFacadeMethod: () => () => undefined
         })
     };
-    const mainFacadeMethodBinderBindingsStub = {
-        createService: (deps = {}) => {
-            const safeDeps = (deps && typeof deps === "object") ? deps : {};
-            const facadeMethodBinderModule = safeDeps.facadeMethodBinderModule;
-            const service = (
-                facadeMethodBinderModule
-                && typeof facadeMethodBinderModule.createService === "function"
-            )
-                ? facadeMethodBinderModule.createService(safeDeps)
-                : {
-                    deriveFacadeServiceName: () => "facadeService",
-                    bindFacadeMethod: () => () => undefined
-                };
-            return {
-                mainFacadeMethodBinderService: service,
-                deriveFacadeServiceName: service.deriveFacadeServiceName,
-                bindFacadeMethod: service.bindFacadeMethod
-            };
-        }
-    };
-    const mainRuntimeServiceBridgeAccessorBindingsStub = {
+    const mainRuntimeServiceBridgeAccessorProxiesStub = {
         createService: () => ({
             warnMissingServiceMethod: () => undefined,
             showMissingFeatureToastOnce: () => undefined,
@@ -136,12 +101,10 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
             renderMultiRangesSafely: () => undefined
         })
     };
-    const mainRuntimeServiceBridgeHelperBindingsStub = {
-        createService: () => ({
-            mainRuntimeServiceBridgeHelpersService: {}
-        })
+    const mainRuntimeServiceBridgeHelpersStub = {
+        createService: () => ({})
     };
-    const mainRuntimeCoreAccessorBindingsStub = {
+    const mainRuntimeCoreAccessorProxiesStub = {
         createService: () => ({
             syncRealtimeFlagToGlobal: () => undefined,
             getRuntimeCurrentLangValue: () => "ko",
@@ -510,7 +473,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
     };
     const MAIN_GLOBAL_BINDING_MAP = Object.freeze({
         GTV_MAIN_BOOTSTRAP_GUARD: "GTVMainBootstrapGuard",
-        GTV_MAIN_BOOTSTRAP_GUARD_BINDINGS: "GTVMainBootstrapGuardBindings",
         GTV_MAIN_RUNTIME_HOST_UTILS: "GTVMainRuntimeHostUtils",
         GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS: "GTVMainRuntimeHostUtilsBindings",
         GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES: "GTVMainRuntimeHostAccessorProxies",
@@ -520,9 +482,7 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES: "GTVMainRuntimePrimaryStateAccessorProxies",
         GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS: "GTVMainRuntimePrimaryStateAccessorBindings",
         GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS: "GTVMainRuntimeServiceBridgeHelpers",
-        GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS: "GTVMainRuntimeServiceBridgeHelperBindings",
         GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES: "GTVMainRuntimeServiceBridgeAccessorProxies",
-        GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS: "GTVMainRuntimeServiceBridgeAccessorBindings",
         GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES: "GTVMainRuntimeUiBridgeAccessorProxies",
         GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS: "GTVMainRuntimeUiBridgeAccessorBindings",
         GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES: "GTVMainRuntimeOperationAccessorProxies",
@@ -531,7 +491,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES: "GTVMainRuntimeBootstrapAccessorProxies",
         GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS: "GTVMainRuntimeBootstrapAccessorBindings",
         GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES: "GTVMainRuntimeCoreAccessorProxies",
-        GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS: "GTVMainRuntimeCoreAccessorBindings",
         GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES: "GTVMainRuntimeStatePatchAccessorProxies",
         GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS: "GTVMainRuntimeStatePatchAccessorBindings",
         GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK: "GTVMainRuntimePatchedStateFallback",
@@ -561,7 +520,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE: "GTVMainStateDomainWrapperGlobalBindingsBridge",
         GTV_MAIN_STATE_DOMAIN_PROXY_BINDINGS: "GTVMainStateDomainProxyBindings",
         GTV_MAIN_FACADE_METHOD_BINDER: "GTVMainFacadeMethodBinder",
-        GTV_MAIN_FACADE_METHOD_BINDER_BINDINGS: "GTVMainFacadeMethodBinderBindings",
         GTV_MAIN_FACADE_BRIDGE: "GTVMainFacadeBridge",
         GTV_MAIN_FACADE_BRIDGE_BINDINGS: "GTVMainFacadeBridgeBindings",
         GTV_MAIN_COMPOSITION_CONFIG_BUILDER: "GTVMainCompositionConfigBuilder",
@@ -616,22 +574,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
             mainMultiRangeTabFacadeService: null
         })
     };
-    const mainModuleResolutionBindingsStub = {
-        createService: (deps = {}) => {
-            const safeDeps = (deps && typeof deps === "object") ? deps : {};
-            const moduleResolverModule = safeDeps.moduleResolverModule;
-            const moduleSpecModule = safeDeps.moduleSpecModule;
-            if (!moduleResolverModule || typeof moduleResolverModule.resolveModules !== "function") {
-                throw new Error("Missing required module API: GTVMainModuleResolver.resolveModules");
-            }
-            if (!moduleSpecModule || typeof moduleSpecModule.createSpecMap !== "function") {
-                throw new Error("Missing required module API: GTVMainModuleSpec.createSpecMap");
-            }
-            return {
-                resolveModulesFromSpec: () => moduleResolverModule.resolveModules(moduleSpecModule.createSpecMap())
-            };
-        }
-    };
     const mainRuntimeLangStateStub = {
         createService: () => ({
             syncRealtimeFlagToGlobal: () => {},
@@ -659,14 +601,12 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         windowRef.GTVMainAppStateVars = mainAppStateVarsStub;
         windowRef.GTVMainStateInitializer = mainStateInitializerStub;
         windowRef.GTVMainBootstrapGuard = mainBootstrapGuardStub;
-        windowRef.GTVMainBootstrapGuardBindings = mainBootstrapGuardBindingsStub;
         windowRef.GTVMainRuntimeBridgeProxies = mainRuntimeBridgeProxiesStub;
         windowRef.GTVMainRuntimeBridgeProxyBindings = mainRuntimeBridgeProxyBindingsStub;
         windowRef.GTVMainFacadeMethodBinder = mainFacadeMethodBinderStub;
-        windowRef.GTVMainFacadeMethodBinderBindings = mainFacadeMethodBinderBindingsStub;
-        windowRef.GTVMainRuntimeServiceBridgeHelperBindings = mainRuntimeServiceBridgeHelperBindingsStub;
-        windowRef.GTVMainRuntimeServiceBridgeAccessorBindings = mainRuntimeServiceBridgeAccessorBindingsStub;
-        windowRef.GTVMainRuntimeCoreAccessorBindings = mainRuntimeCoreAccessorBindingsStub;
+        windowRef.GTVMainRuntimeServiceBridgeHelpers = mainRuntimeServiceBridgeHelpersStub;
+        windowRef.GTVMainRuntimeServiceBridgeAccessorProxies = mainRuntimeServiceBridgeAccessorProxiesStub;
+        windowRef.GTVMainRuntimeCoreAccessorProxies = mainRuntimeCoreAccessorProxiesStub;
         windowRef.GTVMainRuntimePublicApiBindings = mainRuntimePublicApiBindingsStub;
         windowRef.GTVMainRuntimeStateCoreBootstrap = mainRuntimeStateCoreBootstrapStub;
         windowRef.GTVMainRuntimeCoreServiceBootstrap = mainRuntimeCoreServiceBootstrapStub;
@@ -682,7 +622,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         windowRef.GTVMainTestHelpers = mainTestHelpersStub;
         windowRef.GTVMainTestHelpersBindings = mainTestHelpersBindingsStub;
         windowRef.GTVMainCoreServiceAssembly = mainCoreServiceAssemblyStub;
-        windowRef.GTVMainModuleResolutionBindings = mainModuleResolutionBindingsStub;
         globalPatches.window = windowRef;
     } else if (constantsDefined) {
         globalPatches.GTVMainConstants = {};
@@ -691,14 +630,12 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         globalPatches.GTVMainAppStateVars = mainAppStateVarsStub;
         globalPatches.GTVMainStateInitializer = mainStateInitializerStub;
         globalPatches.GTVMainBootstrapGuard = mainBootstrapGuardStub;
-        globalPatches.GTVMainBootstrapGuardBindings = mainBootstrapGuardBindingsStub;
         globalPatches.GTVMainRuntimeBridgeProxies = mainRuntimeBridgeProxiesStub;
         globalPatches.GTVMainRuntimeBridgeProxyBindings = mainRuntimeBridgeProxyBindingsStub;
         globalPatches.GTVMainFacadeMethodBinder = mainFacadeMethodBinderStub;
-        globalPatches.GTVMainFacadeMethodBinderBindings = mainFacadeMethodBinderBindingsStub;
-        globalPatches.GTVMainRuntimeServiceBridgeHelperBindings = mainRuntimeServiceBridgeHelperBindingsStub;
-        globalPatches.GTVMainRuntimeServiceBridgeAccessorBindings = mainRuntimeServiceBridgeAccessorBindingsStub;
-        globalPatches.GTVMainRuntimeCoreAccessorBindings = mainRuntimeCoreAccessorBindingsStub;
+        globalPatches.GTVMainRuntimeServiceBridgeHelpers = mainRuntimeServiceBridgeHelpersStub;
+        globalPatches.GTVMainRuntimeServiceBridgeAccessorProxies = mainRuntimeServiceBridgeAccessorProxiesStub;
+        globalPatches.GTVMainRuntimeCoreAccessorProxies = mainRuntimeCoreAccessorProxiesStub;
         globalPatches.GTVMainRuntimePublicApiBindings = mainRuntimePublicApiBindingsStub;
         globalPatches.GTVMainRuntimeStateCoreBootstrap = mainRuntimeStateCoreBootstrapStub;
         globalPatches.GTVMainRuntimeCoreServiceBootstrap = mainRuntimeCoreServiceBootstrapStub;
@@ -714,7 +651,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         globalPatches.GTVMainTestHelpers = mainTestHelpersStub;
         globalPatches.GTVMainTestHelpersBindings = mainTestHelpersBindingsStub;
         globalPatches.GTVMainCoreServiceAssembly = mainCoreServiceAssemblyStub;
-        globalPatches.GTVMainModuleResolutionBindings = mainModuleResolutionBindingsStub;
     }
     const keys = [
         "window",
@@ -728,14 +664,12 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         "GTVMainAppStateVars",
         "GTVMainStateInitializer",
         "GTVMainBootstrapGuard",
-        "GTVMainBootstrapGuardBindings",
         "GTVMainRuntimeBridgeProxies",
         "GTVMainRuntimeBridgeProxyBindings",
         "GTVMainFacadeMethodBinder",
-        "GTVMainFacadeMethodBinderBindings",
-        "GTVMainRuntimeServiceBridgeHelperBindings",
-        "GTVMainRuntimeServiceBridgeAccessorBindings",
-        "GTVMainRuntimeCoreAccessorBindings",
+        "GTVMainRuntimeServiceBridgeHelpers",
+        "GTVMainRuntimeServiceBridgeAccessorProxies",
+        "GTVMainRuntimeCoreAccessorProxies",
         "GTVMainRuntimePublicApiBindings",
         "GTVMainRuntimeStateCoreBootstrap",
         "GTVMainRuntimeCoreServiceBootstrap",
@@ -751,7 +685,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         "GTVMainTestHelpers",
         "GTVMainTestHelpersBindings",
         "GTVMainCoreServiceAssembly",
-        "GTVMainModuleResolutionBindings",
         ...Object.keys(globalPatches)
     ];
     const previous = new Map();

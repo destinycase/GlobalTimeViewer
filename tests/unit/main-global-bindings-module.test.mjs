@@ -56,7 +56,6 @@ describe("GTV main global bindings module", () => {
         const moduleApi = loadMainGlobalBindingsModule();
         const runtimeGlobalRef = {
             GTVMainBootstrapGuard: { name: "bootstrap-guard" },
-            GTVMainRuntimeCoreAccessorBindings: { createService: () => ({}) },
             GTVMainRuntimePublicApiBindings: { createService: () => ({}) },
             GTVMainPatchedStateAccessorBindings: { createService: () => ({}) }
         };
@@ -66,7 +65,6 @@ describe("GTV main global bindings module", () => {
         });
 
         expect(service.GTV_MAIN_BOOTSTRAP_GUARD).toBe(runtimeGlobalRef.GTVMainBootstrapGuard);
-        expect(service.GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS).toBe(runtimeGlobalRef.GTVMainRuntimeCoreAccessorBindings);
         expect(service.GTV_MAIN_RUNTIME_PUBLIC_API_BINDINGS).toBe(runtimeGlobalRef.GTVMainRuntimePublicApiBindings);
         expect(service.GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS).toBe(runtimeGlobalRef.GTVMainPatchedStateAccessorBindings);
         expect(Array.isArray(service.REQUIRED_BOOTSTRAP_SPECS)).toBe(true);

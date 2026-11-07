@@ -368,18 +368,18 @@ const SERVICE_METHOD_MISSING = Symbol("GTV_SERVICE_METHOD_MISSING");
 const GTV_MAIN_GLOBAL_BINDINGS = GTV_GLOBAL.GTVMainGlobalBindings;
 assertBindingCreateService(GTV_MAIN_GLOBAL_BINDINGS, "GTVMainGlobalBindings");
 const {
-    GTV_MAIN_BOOTSTRAP_GUARD, GTV_MAIN_BOOTSTRAP_GUARD_BINDINGS,
+    GTV_MAIN_BOOTSTRAP_GUARD,
     GTV_MAIN_RUNTIME_HOST_UTILS, GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS,
     GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_HOST_ACCESSOR_BINDINGS,
     GTV_MAIN_RUNTIME_PRIMARY_STATE, GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS,
     GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS,
-    GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS, GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS,
-    GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS,
+    GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS,
     GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_BINDINGS,
     GTV_MAIN_RUNTIME_PUBLIC_API_BINDINGS,
     GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS,
-    GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS,
+    GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS,
     GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK, GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS,
     GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS, GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS,
@@ -394,7 +394,7 @@ const {
     GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE, GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_BINDINGS,
     GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS, GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE,
     GTV_MAIN_STATE_DOMAIN_PROXY_BINDINGS, GTV_MAIN_FACADE_METHOD_BINDER,
-    GTV_MAIN_FACADE_METHOD_BINDER_BINDINGS, GTV_MAIN_FACADE_BRIDGE, GTV_MAIN_FACADE_BRIDGE_BINDINGS,
+    GTV_MAIN_FACADE_BRIDGE, GTV_MAIN_FACADE_BRIDGE_BINDINGS,
     GTV_MAIN_COMPOSITION_CONFIG_BUILDER, GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS,
     GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER, GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS,
     GTV_MAIN_CORE_SERVICE_BINDINGS, GTV_MAIN_FOUNDATION_SERVICE_BINDINGS,
@@ -415,17 +415,13 @@ const REQUIRED_BOOTSTRAP_SERVICE_GETTERS = Object.freeze({
     calculatorActionsService: () => calculatorActionsService
 });
 
-assertBindingCreateService(GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS, "GTVMainRuntimeServiceBridgeHelperBindings");
-({
-    mainRuntimeServiceBridgeHelpersService
-} = GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS.createService({
-    runtimeServiceBridgeHelpersModule: GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS,
+mainRuntimeServiceBridgeHelpersService = createRequiredModuleService(GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS, "GTVMainRuntimeServiceBridgeHelpers", {
     getMainServiceMethodBridgeService: () => mainServiceMethodBridgeService,
     getAppFeedbackService: () => appFeedbackService,
     getPersistenceService: () => persistenceService,
     getMainMultiRangeTabFacadeService: () => mainMultiRangeTabFacadeService,
     getTranslator: () => gtvT
-}));
+}, [], "Invalid main runtime service bridge helpers service");
 
 var warnMissingServiceMethod;
 var showMissingFeatureToastOnce;
@@ -433,7 +429,6 @@ var getServiceMethod;
 var callServiceMethod;
 var savePersistenceSafely;
 var renderMultiRangesSafely;
-assertBindingCreateService(GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS, "GTVMainRuntimeServiceBridgeAccessorBindings");
 ({
     warnMissingServiceMethod,
     showMissingFeatureToastOnce,
@@ -441,38 +436,40 @@ assertBindingCreateService(GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS, "G
     callServiceMethod,
     savePersistenceSafely,
     renderMultiRangesSafely
-} = GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS.createService({
-    runtimeServiceBridgeAccessorProxiesModule: GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES,
+} = createRequiredModuleService(GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES, "GTVMainRuntimeServiceBridgeAccessorProxies", {
     getMainRuntimeServiceBridgeHelpersService: () => mainRuntimeServiceBridgeHelpersService,
     getMainServiceMethodBridgeService: () => mainServiceMethodBridgeService,
     getAppFeedbackService: () => appFeedbackService,
     getPersistenceService: () => persistenceService,
     getMainMultiRangeTabFacadeService: () => mainMultiRangeTabFacadeService,
     getTranslator: () => gtvT
-}));
+}, [
+    "warnMissingServiceMethod",
+    "showMissingFeatureToastOnce",
+    "getServiceMethod",
+    "callServiceMethod",
+    "savePersistenceSafely",
+    "renderMultiRangesSafely"
+], "Invalid main runtime service bridge accessor proxies service"));
 
-assertBindingCreateService(GTV_MAIN_FACADE_METHOD_BINDER_BINDINGS, "GTVMainFacadeMethodBinderBindings");
 const {
     deriveFacadeServiceName,
     bindFacadeMethod
-} = GTV_MAIN_FACADE_METHOD_BINDER_BINDINGS.createService({
-    facadeMethodBinderModule: GTV_MAIN_FACADE_METHOD_BINDER,
-    callServiceMethod
-});
+} = createRequiredModuleService(
+    GTV_MAIN_FACADE_METHOD_BINDER,
+    "GTVMainFacadeMethodBinder",
+    { callServiceMethod },
+    ["deriveFacadeServiceName", "bindFacadeMethod"],
+    "Invalid main facade method binder service"
+);
 
-assertBindingCreateService(GTV_MAIN_BOOTSTRAP_GUARD_BINDINGS, "GTVMainBootstrapGuardBindings");
-const {
-    mainBootstrapGuardService
-} = GTV_MAIN_BOOTSTRAP_GUARD_BINDINGS.createService({
-    bootstrapGuardModule: GTV_MAIN_BOOTSTRAP_GUARD,
+const mainBootstrapGuardService = createRequiredModuleService(GTV_MAIN_BOOTSTRAP_GUARD, "GTVMainBootstrapGuard", {
     serviceGetters: REQUIRED_BOOTSTRAP_SERVICE_GETTERS,
     getServiceMethod,
     requiredSpecs: REQUIRED_BOOTSTRAP_SPECS
-});
+}, ["assertRequiredServices"], "Invalid main bootstrap guard service");
 
-assertBindingCreateService(GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS, "GTVMainRuntimeCoreAccessorBindings");
-mainRuntimeCoreAccessorService = GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS.createService({
-    runtimeCoreAccessorProxiesModule: GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES,
+mainRuntimeCoreAccessorService = Object.freeze({ ...createRequiredModuleService(GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES, "GTVMainRuntimeCoreAccessorProxies", {
     getMainRuntimeLangStateService: () => mainRuntimeLangStateService,
     getMainDayNightRangeUtilsService: () => mainDayNightRangeUtilsService,
     getMainBootstrapGuardService: () => mainBootstrapGuardService,
@@ -480,7 +477,14 @@ mainRuntimeCoreAccessorService = GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS.createS
     defaultLang: "ko",
     defaultDayStartHour: DEFAULT_DAY_START_HOUR,
     defaultNightStartHour: DEFAULT_NIGHT_START_HOUR
-});
+}, [
+    "syncRealtimeFlagToGlobal",
+    "getRuntimeCurrentLangValue",
+    "syncCurrentLang",
+    "sanitizeDayNightHourValue",
+    "normalizeDayNightRangeValues",
+    "assertRequiredServices"
+], "Invalid main runtime core accessor proxies service") });
 
 // Runtime assembly phase: validate registered APIs and initialize shared state access.
 function assertRequiredServices() {
@@ -537,15 +541,13 @@ const zoneAbbrCache = new Map();
 const rowViewCache = new Map();
 const GTV_MAIN_MODULE_RESOLVER = GTV_GLOBAL.GTVMainModuleResolver;
 const GTV_MAIN_MODULE_SPEC = GTV_GLOBAL.GTVMainModuleSpec;
-const GTV_MAIN_MODULE_RESOLUTION_BINDINGS = GTV_GLOBAL.GTVMainModuleResolutionBindings;
-assertBindingCreateService(GTV_MAIN_MODULE_RESOLUTION_BINDINGS, "GTVMainModuleResolutionBindings");
-const {
-    resolveModulesFromSpec
-} = GTV_MAIN_MODULE_RESOLUTION_BINDINGS.createService({
-    moduleResolverModule: GTV_MAIN_MODULE_RESOLVER,
-    moduleSpecModule: GTV_MAIN_MODULE_SPEC
-});
-const mainResolvedModules = resolveModulesFromSpec();
+if (!GTV_MAIN_MODULE_RESOLVER || typeof GTV_MAIN_MODULE_RESOLVER.resolveModules !== "function") {
+    throw new Error("Missing required module API: GTVMainModuleResolver.resolveModules");
+}
+if (!GTV_MAIN_MODULE_SPEC || typeof GTV_MAIN_MODULE_SPEC.createSpecMap !== "function") {
+    throw new Error("Missing required module API: GTVMainModuleSpec.createSpecMap");
+}
+const mainResolvedModules = GTV_MAIN_MODULE_RESOLVER.resolveModules(GTV_MAIN_MODULE_SPEC.createSpecMap());
 const {
     GTV_SERVICE_BOOTSTRAP,
     GTV_APP_STATE_PATCHER,

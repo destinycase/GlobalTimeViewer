@@ -3,7 +3,6 @@
 
     const BINDING_MAP = Object.freeze({
         GTV_MAIN_BOOTSTRAP_GUARD: "GTVMainBootstrapGuard",
-        GTV_MAIN_BOOTSTRAP_GUARD_BINDINGS: "GTVMainBootstrapGuardBindings",
         GTV_MAIN_RUNTIME_HOST_UTILS: "GTVMainRuntimeHostUtils",
         GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS: "GTVMainRuntimeHostUtilsBindings",
         GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES: "GTVMainRuntimeHostAccessorProxies",
@@ -13,9 +12,7 @@
         GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES: "GTVMainRuntimePrimaryStateAccessorProxies",
         GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS: "GTVMainRuntimePrimaryStateAccessorBindings",
         GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS: "GTVMainRuntimeServiceBridgeHelpers",
-        GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS: "GTVMainRuntimeServiceBridgeHelperBindings",
         GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES: "GTVMainRuntimeServiceBridgeAccessorProxies",
-        GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS: "GTVMainRuntimeServiceBridgeAccessorBindings",
         GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES: "GTVMainRuntimeUiBridgeAccessorProxies",
         GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS: "GTVMainRuntimeUiBridgeAccessorBindings",
         GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES: "GTVMainRuntimeOperationAccessorProxies",
@@ -24,7 +21,6 @@
         GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES: "GTVMainRuntimeBootstrapAccessorProxies",
         GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS: "GTVMainRuntimeBootstrapAccessorBindings",
         GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES: "GTVMainRuntimeCoreAccessorProxies",
-        GTV_MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS: "GTVMainRuntimeCoreAccessorBindings",
         GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES: "GTVMainRuntimeStatePatchAccessorProxies",
         GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS: "GTVMainRuntimeStatePatchAccessorBindings",
         GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK: "GTVMainRuntimePatchedStateFallback",
@@ -54,7 +50,6 @@
         GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE: "GTVMainStateDomainWrapperGlobalBindingsBridge",
         GTV_MAIN_STATE_DOMAIN_PROXY_BINDINGS: "GTVMainStateDomainProxyBindings",
         GTV_MAIN_FACADE_METHOD_BINDER: "GTVMainFacadeMethodBinder",
-        GTV_MAIN_FACADE_METHOD_BINDER_BINDINGS: "GTVMainFacadeMethodBinderBindings",
         GTV_MAIN_FACADE_BRIDGE: "GTVMainFacadeBridge",
         GTV_MAIN_FACADE_BRIDGE_BINDINGS: "GTVMainFacadeBridgeBindings",
         GTV_MAIN_COMPOSITION_CONFIG_BUILDER: "GTVMainCompositionConfigBuilder",

@@ -18,13 +18,11 @@ const MAIN_CORE_SERVICE_ASSEMBLY_MODULE_PATH = path.resolve(process.cwd(), "src"
 const MAIN_CORE_SERVICE_ASSEMBLY_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-core-service-assembly.js");
 const MAIN_MODULE_RESOLVER_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-module-resolver.js");
 const MAIN_MODULE_SPEC_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-module-spec.js");
-const MAIN_MODULE_RESOLUTION_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-module-resolution-bindings.js");
 const MAIN_FOUNDATION_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-foundation-services.js");
 const MAIN_FOUNDATION_SERVICES_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-foundation-services.js");
 const MAIN_SHARED_UTILS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-shared-utils.js");
 const MAIN_SERVICE_METHOD_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-service-method-bridge.js");
 const MAIN_BOOTSTRAP_GUARD_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-bootstrap-guard.js");
-const MAIN_BOOTSTRAP_GUARD_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-bootstrap-guard-bindings.js");
 const MAIN_RUNTIME_HOST_UTILS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-host-utils.js");
 const MAIN_RUNTIME_HOST_UTILS_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-host-utils.js");
 const MAIN_RUNTIME_HOST_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-host-accessor-proxies.js");
@@ -34,9 +32,7 @@ const MAIN_RUNTIME_PRIMARY_STATE_BINDINGS_MODULE_PATH = path.resolve(process.cwd
 const MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-primary-state-accessor-proxies.js");
 const MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-primary-state-accessor-bindings.js");
 const MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-service-bridge-helpers.js");
-const MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-service-bridge-helper-bindings.js");
 const MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-service-bridge-accessor-proxies.js");
-const MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-service-bridge-accessor-bindings.js");
 const MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-ui-bridge-accessor-proxies.js");
 const MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-ui-bridge-accessor-bindings.js");
 const MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-operation-accessor-proxies.js");
@@ -45,7 +41,6 @@ const MAIN_RUNTIME_PUBLIC_API_BINDINGS_MODULE_PATH = path.resolve(process.cwd(),
 const MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-bootstrap-accessor-proxies.js");
 const MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-bootstrap-accessor-bindings.js");
 const MAIN_RUNTIME_CORE_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-core-accessor-proxies.js");
-const MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-core-accessor-bindings.js");
 const MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-state-patch-accessor-proxies.js");
 const MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-state-patch-accessor-bindings.js");
 const MAIN_RUNTIME_PATCHED_STATE_FALLBACK_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-patched-state-fallback.js");
@@ -68,7 +63,6 @@ const MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_MODULE_PATH = path.resolve(proce
 const MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-state-domain-wrapper-global-bindings-bridge.js");
 const MAIN_STATE_DOMAIN_PROXY_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-state-domain-proxy-bindings.js");
 const MAIN_FACADE_METHOD_BINDER_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-facade-method-binder.js");
-const MAIN_FACADE_METHOD_BINDER_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-facade-method-binder-bindings.js");
 const MAIN_FACADE_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-facade-bindings.js");
 const MAIN_FACADE_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-facade-bridge.js");
 const MAIN_FORMAT_PROFILE_FACADE_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-format-profile-facade-bindings.js");
@@ -284,13 +278,11 @@ export function createMainContext() {
     const mainCoreServiceAssemblyBindingsCode = fs.readFileSync(MAIN_CORE_SERVICE_ASSEMBLY_BINDINGS_MODULE_PATH, "utf8");
     const mainModuleResolverCode = fs.readFileSync(MAIN_MODULE_RESOLVER_MODULE_PATH, "utf8");
     const mainModuleSpecCode = fs.readFileSync(MAIN_MODULE_SPEC_MODULE_PATH, "utf8");
-    const mainModuleResolutionBindingsCode = fs.readFileSync(MAIN_MODULE_RESOLUTION_BINDINGS_MODULE_PATH, "utf8");
     const mainFoundationServicesCode = fs.readFileSync(MAIN_FOUNDATION_SERVICES_MODULE_PATH, "utf8");
     const mainFoundationServicesBindingsCode = fs.readFileSync(MAIN_FOUNDATION_SERVICES_BINDINGS_MODULE_PATH, "utf8");
     const mainSharedUtilsCode = fs.readFileSync(MAIN_SHARED_UTILS_MODULE_PATH, "utf8");
     const mainServiceMethodBridgeCode = fs.readFileSync(MAIN_SERVICE_METHOD_BRIDGE_MODULE_PATH, "utf8");
     const mainBootstrapGuardCode = fs.readFileSync(MAIN_BOOTSTRAP_GUARD_MODULE_PATH, "utf8");
-    const mainBootstrapGuardBindingsCode = fs.readFileSync(MAIN_BOOTSTRAP_GUARD_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimeHostUtilsCode = fs.readFileSync(MAIN_RUNTIME_HOST_UTILS_MODULE_PATH, "utf8");
     const mainRuntimeHostUtilsBindingsCode = fs.readFileSync(MAIN_RUNTIME_HOST_UTILS_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimeHostAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_HOST_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
@@ -300,9 +292,7 @@ export function createMainContext() {
     const mainRuntimePrimaryStateAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
     const mainRuntimePrimaryStateAccessorBindingsCode = fs.readFileSync(MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimeServiceBridgeHelpersCode = fs.readFileSync(MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS_MODULE_PATH, "utf8");
-    const mainRuntimeServiceBridgeHelperBindingsCode = fs.readFileSync(MAIN_RUNTIME_SERVICE_BRIDGE_HELPER_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimeServiceBridgeAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
-    const mainRuntimeServiceBridgeAccessorBindingsCode = fs.readFileSync(MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimeUiBridgeAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
     const mainRuntimeUiBridgeAccessorBindingsCode = fs.readFileSync(MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimeOperationAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
@@ -311,7 +301,6 @@ export function createMainContext() {
     const mainRuntimeBootstrapAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
     const mainRuntimeBootstrapAccessorBindingsCode = fs.readFileSync(MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimeCoreAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_CORE_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
-    const mainRuntimeCoreAccessorBindingsCode = fs.readFileSync(MAIN_RUNTIME_CORE_ACCESSOR_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimeStatePatchAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
     const mainRuntimeStatePatchAccessorBindingsCode = fs.readFileSync(MAIN_RUNTIME_STATE_PATCH_ACCESSOR_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimePatchedStateFallbackCode = fs.readFileSync(MAIN_RUNTIME_PATCHED_STATE_FALLBACK_MODULE_PATH, "utf8");
@@ -334,7 +323,6 @@ export function createMainContext() {
     const mainStateDomainWrapperGlobalBindingsBridgeCode = fs.readFileSync(MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE_MODULE_PATH, "utf8");
     const mainStateDomainProxyBindingsCode = fs.readFileSync(MAIN_STATE_DOMAIN_PROXY_BINDINGS_MODULE_PATH, "utf8");
     const mainFacadeMethodBinderCode = fs.readFileSync(MAIN_FACADE_METHOD_BINDER_MODULE_PATH, "utf8");
-    const mainFacadeMethodBinderBindingsCode = fs.readFileSync(MAIN_FACADE_METHOD_BINDER_BINDINGS_MODULE_PATH, "utf8");
     const mainFacadeBindingsCode = fs.readFileSync(MAIN_FACADE_BINDINGS_MODULE_PATH, "utf8");
     const mainFacadeBridgeCode = fs.readFileSync(MAIN_FACADE_BRIDGE_MODULE_PATH, "utf8");
     const mainFormatProfileFacadeBindingsCode = fs.readFileSync(MAIN_FORMAT_PROFILE_FACADE_BINDINGS_MODULE_PATH, "utf8");
@@ -540,13 +528,11 @@ export function createMainContext() {
     vm.runInContext(mainCoreServiceAssemblyBindingsCode, sandbox, { filename: "js/modules/main-core-service-assembly.js" });
     vm.runInContext(mainModuleResolverCode, sandbox, { filename: "js/modules/main-module-resolver.js" });
     vm.runInContext(mainModuleSpecCode, sandbox, { filename: "js/modules/main-module-spec.js" });
-    vm.runInContext(mainModuleResolutionBindingsCode, sandbox, { filename: "js/modules/main-module-resolution-bindings.js" });
     vm.runInContext(mainFoundationServicesCode, sandbox, { filename: "js/modules/main-foundation-services.js" });
     vm.runInContext(mainFoundationServicesBindingsCode, sandbox, { filename: "js/modules/main-foundation-services.js" });
     vm.runInContext(mainSharedUtilsCode, sandbox, { filename: "js/modules/main-shared-utils.js" });
     vm.runInContext(mainServiceMethodBridgeCode, sandbox, { filename: "js/modules/main-service-method-bridge.js" });
     vm.runInContext(mainBootstrapGuardCode, sandbox, { filename: "js/modules/main-bootstrap-guard.js" });
-    vm.runInContext(mainBootstrapGuardBindingsCode, sandbox, { filename: "js/modules/main-bootstrap-guard-bindings.js" });
     vm.runInContext(mainRuntimeHostUtilsCode, sandbox, { filename: "js/modules/main-runtime-host-utils.js" });
     vm.runInContext(mainRuntimeHostUtilsBindingsCode, sandbox, { filename: "js/modules/main-runtime-host-utils.js" });
     vm.runInContext(mainRuntimeHostAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-host-accessor-proxies.js" });
@@ -556,9 +542,7 @@ export function createMainContext() {
     vm.runInContext(mainRuntimePrimaryStateAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-primary-state-accessor-proxies.js" });
     vm.runInContext(mainRuntimePrimaryStateAccessorBindingsCode, sandbox, { filename: "js/modules/main-runtime-primary-state-accessor-bindings.js" });
     vm.runInContext(mainRuntimeServiceBridgeHelpersCode, sandbox, { filename: "js/modules/main-runtime-service-bridge-helpers.js" });
-    vm.runInContext(mainRuntimeServiceBridgeHelperBindingsCode, sandbox, { filename: "js/modules/main-runtime-service-bridge-helper-bindings.js" });
     vm.runInContext(mainRuntimeServiceBridgeAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-service-bridge-accessor-proxies.js" });
-    vm.runInContext(mainRuntimeServiceBridgeAccessorBindingsCode, sandbox, { filename: "js/modules/main-runtime-service-bridge-accessor-bindings.js" });
     vm.runInContext(mainRuntimeUiBridgeAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-ui-bridge-accessor-proxies.js" });
     vm.runInContext(mainRuntimeUiBridgeAccessorBindingsCode, sandbox, { filename: "js/modules/main-runtime-ui-bridge-accessor-bindings.js" });
     vm.runInContext(mainRuntimeOperationAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-operation-accessor-proxies.js" });
@@ -567,7 +551,6 @@ export function createMainContext() {
     vm.runInContext(mainRuntimeBootstrapAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-bootstrap-accessor-proxies.js" });
     vm.runInContext(mainRuntimeBootstrapAccessorBindingsCode, sandbox, { filename: "js/modules/main-runtime-bootstrap-accessor-bindings.js" });
     vm.runInContext(mainRuntimeCoreAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-core-accessor-proxies.js" });
-    vm.runInContext(mainRuntimeCoreAccessorBindingsCode, sandbox, { filename: "js/modules/main-runtime-core-accessor-bindings.js" });
     vm.runInContext(mainRuntimeStatePatchAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-state-patch-accessor-proxies.js" });
     vm.runInContext(mainRuntimeStatePatchAccessorBindingsCode, sandbox, { filename: "js/modules/main-runtime-state-patch-accessor-bindings.js" });
     vm.runInContext(mainRuntimePatchedStateFallbackCode, sandbox, { filename: "js/modules/main-runtime-patched-state-fallback.js" });
@@ -590,7 +573,6 @@ export function createMainContext() {
     vm.runInContext(mainStateDomainWrapperGlobalBindingsBridgeCode, sandbox, { filename: "js/modules/main-state-domain-wrapper-global-bindings-bridge.js" });
     vm.runInContext(mainStateDomainProxyBindingsCode, sandbox, { filename: "js/modules/main-state-domain-proxy-bindings.js" });
     vm.runInContext(mainFacadeMethodBinderCode, sandbox, { filename: "js/modules/main-facade-method-binder.js" });
-    vm.runInContext(mainFacadeMethodBinderBindingsCode, sandbox, { filename: "js/modules/main-facade-method-binder-bindings.js" });
     vm.runInContext(mainFacadeBindingsCode, sandbox, { filename: "js/modules/main-facade-bindings.js" });
     vm.runInContext(mainFacadeBridgeCode, sandbox, { filename: "js/modules/main-facade-bridge.js" });
     vm.runInContext(mainFormatProfileFacadeBindingsCode, sandbox, { filename: "js/modules/main-format-profile-facade-bindings.js" });
