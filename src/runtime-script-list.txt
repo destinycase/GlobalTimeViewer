@@ -131,6 +131,9 @@ js/modules/timer-engine.js
 js/modules/time-service.js
 js/modules/timezone-data.js
 js/modules/calculator-countdown-state.js
+js/modules/calculator-date-format.js
+js/modules/calculator-countdown.js
+js/modules/calculator-format-converter.js
 js/modules/calculator.js
 js/modules/calculator-actions.js
 js/modules/multi-state.js

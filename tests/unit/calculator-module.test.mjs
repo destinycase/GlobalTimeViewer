@@ -10,6 +10,8 @@ const CALCULATOR_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules
 const TIME_CORE_MODULE_ID = require.resolve(TIME_CORE_MODULE_PATH);
 const COUNTDOWN_STATE_MODULE_ID = require.resolve(COUNTDOWN_STATE_MODULE_PATH);
 const CALCULATOR_MODULE_ID = require.resolve(CALCULATOR_MODULE_PATH);
+const CALCULATOR_TOOL_MODULE_PATHS = ["calculator-date-format.js", "calculator-countdown.js", "calculator-format-converter.js"]
+    .map((name) => path.resolve(process.cwd(), "src", "js", "modules", name));
 
 const activeRestores = [];
 
@@ -363,6 +365,9 @@ function createCalculatorContext() {
         "clearInterval",
         "GTVTimeCore",
         "GTVCalculatorCountdownState",
+        "GTVCalculatorDateFormat",
+        "GTVCalculatorCountdown",
+        "GTVCalculatorFormatConverter",
         "GTVCalculator",
         "__gtvCalcRefresh",
         "CustomDatePicker"
@@ -389,6 +394,10 @@ function createCalculatorContext() {
     delete require.cache[CALCULATOR_MODULE_ID];
     require(TIME_CORE_MODULE_PATH);
     require(COUNTDOWN_STATE_MODULE_PATH);
+    CALCULATOR_TOOL_MODULE_PATHS.forEach((modulePath) => {
+        delete require.cache[require.resolve(modulePath)];
+        require(modulePath);
+    });
     require(CALCULATOR_MODULE_PATH);
 
     activeRestores.push(() => {

@@ -78,7 +78,7 @@
 | 실시간 표와 표 이미지 | table-render, table-image-render, image-export-* | 표시 데이터와 이미지용 복제/렌더 경로를 혼동하지 말고 현재 UI 상태를 기준으로 합니다. |
 | 고정 시간/타임라인 | fixed-time-core, fixed-time-state, fixed-time-actions, fixed-time-table, fixed-time-timeline | 고정 날짜, 슬롯 상태, 표시 여부가 같이 움직이는 경로를 추적합니다. |
 | 다중 연속 시간 범위 | multi-state, multi-range-state, multi-range-render, multi-range-copy, multi-bulk-tools | 그룹/보조 그룹별 범위, 개수, 편집 옵션을 함께 유지합니다. |
-| 계산기/날짜 입력 | calculator, calculator-actions, calculator-countdown-state, date-picker, time-adjust-* | 계산 결과 의미를 바꾸지 않고 DOM 입력 검증/피드백과 핵심 연산을 구분합니다. |
+| 계산기/날짜 입력 | calculator, calculator-date-format, calculator-countdown, calculator-countdown-state, calculator-format-converter, calculator-actions, date-picker, time-adjust-* | 계산 결과 의미를 바꾸지 않고 DOM 입력 검증/피드백과 핵심 연산을 구분합니다. |
 | 저장/설정 가져오기 | persistence-state-normalizer, state-persistence, persistence-service-bundle, settings-io, data-transfer | 정규화, 저장소 fallback, 구버전 읽기, 전체/그룹/보조 그룹 payload는 다른 책임입니다. |
 
 이 표는 탐색용 요약입니다. 정확한 파일별 전역 API/입력 계약은 생성 인벤토리를 기준으로 합니다.

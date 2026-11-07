@@ -683,6 +683,10 @@ export function createMainContext() {
     vm.runInContext(timeServiceCode, sandbox, { filename: "js/modules/time-service.js" });
     vm.runInContext(timezoneDataCode, sandbox, { filename: "js/modules/timezone-data.js" });
     vm.runInContext(calculatorCountdownStateCode, sandbox, { filename: "js/modules/calculator-countdown-state.js" });
+    ["calculator-date-format.js", "calculator-countdown.js", "calculator-format-converter.js"].forEach((name) => {
+        const toolCode = fs.readFileSync(path.resolve(process.cwd(), "src", "js", "modules", name), "utf8");
+        vm.runInContext(toolCode, sandbox, { filename: `js/modules/${name}` });
+    });
     vm.runInContext(calculatorCode, sandbox, { filename: "js/modules/calculator.js" });
     vm.runInContext(calculatorActionsCode, sandbox, { filename: "js/modules/calculator-actions.js" });
     vm.runInContext(multiStateCode, sandbox, { filename: "js/modules/multi-state.js" });

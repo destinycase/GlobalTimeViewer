@@ -37,9 +37,6 @@
         return globalObj?.luxon?.DateTime || null;
     }
 
-    function defaultPad2(value) {
-        return String(Math.max(0, Math.trunc(Number(value) || 0))).padStart(2, "0");
-    }
 
     function resolveStorageRef(safeDeps) {
         if (typeof safeDeps.getStorageRef === "function") {
@@ -94,12 +91,21 @@
         return (typeof globalObj !== "undefined" && globalObj) ? globalObj : null;
     }
 
-    function resolvePad2Ref(safeDeps) {
+    function resolvePad2Ref(safeDeps, fallbackPad2) {
         if (typeof safeDeps.pad2 === "function") return safeDeps.pad2;
         if (typeof safeDeps.timeCoreRef?.pad === "function") return safeDeps.timeCoreRef.pad;
         if (typeof safeDeps.GTVTimeCore?.pad === "function") return safeDeps.GTVTimeCore.pad;
         if (typeof globalObj?.GTVTimeCore?.pad === "function") return globalObj.GTVTimeCore.pad;
-        return defaultPad2;
+        return fallbackPad2;
+    }
+
+    // Calculator tool modules load before this file (runtime-script-list order) and register globals.
+    function resolveCalculatorModule(injected, globalName) {
+        const moduleApi = injected || globalObj?.[globalName] || globalThis[globalName];
+        if (!moduleApi || typeof moduleApi.createService !== "function") {
+            throw new Error(`Missing required module API: ${globalName}.createService`);
+        }
+        return moduleApi.createService();
     }
 
     function buildLegacyServiceDeps() {
@@ -138,716 +144,13 @@
             getCurrentTheme() {
                 const theme = _doc?.documentElement?.getAttribute?.("data-theme");
                 return (typeof theme === "string" && theme.trim()) ? theme : "dark";
-            }
-        };
-    }
-
-    function isCalculatorTabActive(helpers) {
-        const calcSection = helpers.getElementById("calc-section");
-        if (!calcSection?.classList || typeof calcSection.classList.contains !== "function") {
-            return true;
-        }
-        return calcSection.classList.contains("active");
-    }
-
-    const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
-    const LOCAL_DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
-    const SQL_DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/;
-    const ISO_WITH_EXPLICIT_ZONE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/i;
-    const RFC2822_PATTERN = /^(?:[A-Za-z]{3},\s*)?\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\s+\d{2}:\d{2}(?::\d{2})?\s+(?:[A-Za-z]{1,5}|[+-]\d{4})$/;
-
-    function isValidDateObject(value) {
-        return value instanceof Date && !Number.isNaN(value.getTime());
-    }
-
-    function buildValidatedLocalDate(year, month, day, hour = 0, minute = 0, second = 0) {
-        const y = Number(year);
-        const m = Number(month);
-        const d = Number(day);
-        const h = Number(hour);
-        const min = Number(minute);
-        const sec = Number(second);
-        const built = new Date(y, m - 1, d, h, min, sec, 0);
-        if (Number.isNaN(built.getTime())) return null;
-        if (
-            built.getFullYear() !== y ||
-            built.getMonth() !== m - 1 ||
-            built.getDate() !== d ||
-            built.getHours() !== h ||
-            built.getMinutes() !== min ||
-            built.getSeconds() !== sec
-        ) {
-            return null;
-        }
-        return built;
-    }
-
-    // Strict UTC date validation is shared with the rest of the app through GTVTimeCore.
-    function buildValidatedUtcDate(year, month, day, hour = 0, minute = 0, second = 0) {
-        const timeCore = globalObj?.GTVTimeCore;
-        if (!timeCore || typeof timeCore.buildStrictUtcDateFromParts !== "function") return null;
-        return timeCore.buildStrictUtcDateFromParts({ year, month, day, hour, minute, second });
-    }
-
-    function parseLocalDateOnlyString(raw) {
-        const matched = String(raw || "").trim().match(DATE_ONLY_PATTERN);
-        if (!matched) return null;
-        return buildValidatedLocalDate(matched[1], matched[2], matched[3]);
-    }
-
-    function parseLocalDateTimeString(raw) {
-        const matched = String(raw || "").trim().match(LOCAL_DATETIME_PATTERN);
-        if (!matched) return null;
-        return buildValidatedLocalDate(
-            matched[1], matched[2], matched[3],
-            matched[4], matched[5], matched[6] || 0
-        );
-    }
-
-    function parseUtcDateTimeString(raw) {
-        const matched = String(raw || "").trim().match(LOCAL_DATETIME_PATTERN);
-        if (!matched) return null;
-        return buildValidatedUtcDate(
-            matched[1], matched[2], matched[3],
-            matched[4], matched[5], matched[6] || 0
-        );
-    }
-
-    function parseUtcDateOnlyString(raw) {
-        const matched = String(raw || "").trim().match(DATE_ONLY_PATTERN);
-        if (!matched) return null;
-        return buildValidatedUtcDate(matched[1], matched[2], matched[3]);
-    }
-
-    function parseSqlDateTimeString(raw) {
-        const matched = String(raw || "").trim().match(SQL_DATETIME_PATTERN);
-        if (!matched) return null;
-        return buildValidatedLocalDate(
-            matched[1], matched[2], matched[3],
-            matched[4], matched[5], matched[6]
-        );
-    }
-
-    function parseZonedIsoString(raw) {
-        const normalized = String(raw || "").trim();
-        if (!ISO_WITH_EXPLICIT_ZONE_PATTERN.test(normalized)) return null;
-        const epochMs = Date.parse(normalized);
-        return Number.isFinite(epochMs) ? new Date(epochMs) : null;
-    }
-
-    function parseRfc2822String(raw) {
-        const normalized = String(raw || "").trim();
-        if (!RFC2822_PATTERN.test(normalized)) return null;
-        const epochMs = Date.parse(normalized);
-        return Number.isFinite(epochMs) ? new Date(epochMs) : null;
-    }
-
-    function parseIsoLocalDateString(raw, luxonDT) {
-        const normalized = String(raw || "").trim();
-        if (!normalized) return null;
-        const hasExplicitZone = ISO_WITH_EXPLICIT_ZONE_PATTERN.test(normalized);
-
-        if (luxonDT && typeof luxonDT.fromISO === "function") {
-            const parsed = hasExplicitZone
-                ? luxonDT.fromISO(normalized, { setZone: true })
-                : luxonDT.fromISO(normalized, { zone: "local" });
-            if (parsed?.isValid) return parsed.toJSDate();
-        }
-
-        return parseZonedIsoString(normalized)
-            || parseLocalDateTimeString(normalized)
-            || parseLocalDateOnlyString(normalized);
-    }
-
-    function parseIsoUtcDateString(raw, luxonDT) {
-        const normalized = String(raw || "").trim();
-        if (!normalized) return null;
-        const hasExplicitZone = ISO_WITH_EXPLICIT_ZONE_PATTERN.test(normalized);
-
-        if (luxonDT && typeof luxonDT.fromISO === "function") {
-            const parsed = hasExplicitZone
-                ? luxonDT.fromISO(normalized, { setZone: true })
-                : luxonDT.fromISO(normalized, { zone: "utc" });
-            if (parsed?.isValid) return parsed.toJSDate();
-        }
-
-        return parseZonedIsoString(normalized)
-            || parseUtcDateTimeString(normalized)
-            || parseUtcDateOnlyString(normalized);
-    }
-
-    function parseSqlDateWithLuxon(raw, luxonDT) {
-        const normalized = String(raw || "").trim();
-        if (!normalized) return null;
-
-        if (luxonDT && typeof luxonDT.fromSQL === "function") {
-            const parsed = luxonDT.fromSQL(normalized, { zone: "local" });
-            if (parsed?.isValid) return parsed.toJSDate();
-        }
-        if (luxonDT && typeof luxonDT.fromFormat === "function") {
-            const parsed = luxonDT.fromFormat(normalized, "yyyy-LL-dd HH:mm:ss", { zone: "local" });
-            if (parsed?.isValid) return parsed.toJSDate();
-        }
-
-        return parseSqlDateTimeString(normalized);
-    }
-
-    function parseRfc2822DateWithLuxon(raw, luxonDT) {
-        const normalized = String(raw || "").trim();
-        if (!normalized) return null;
-
-        if (luxonDT && typeof luxonDT.fromRFC2822 === "function") {
-            const parsed = luxonDT.fromRFC2822(normalized, { setZone: true });
-            if (parsed?.isValid) return parsed.toJSDate();
-        }
-
-        return parseRfc2822String(normalized);
-    }
-
-    function toValidDate(value, luxonDT) {
-        if (!value) return null;
-        if (isValidDateObject(value)) return new Date(value.getTime());
-        if (typeof value === "number" && Number.isFinite(value)) {
-            const parsed = new Date(value);
-            return Number.isNaN(parsed.getTime()) ? null : parsed;
-        }
-        if (typeof value !== "string") return null;
-        return parseIsoLocalDateString(value, luxonDT)
-            || parseSqlDateWithLuxon(value, luxonDT)
-            || parseRfc2822DateWithLuxon(value, luxonDT);
-    }
-
-    function formatDateOnly(dateObj, padFn = defaultPad2) {
-        const year = dateObj.getFullYear();
-        const month = padFn(dateObj.getMonth() + 1);
-        const day = padFn(dateObj.getDate());
-        return `${year}-${month}-${day}`;
-    }
-
-    function formatDateTimeForInput(dateObj, padFn = defaultPad2) {
-        const year = dateObj.getFullYear();
-        const month = padFn(dateObj.getMonth() + 1);
-        const day = padFn(dateObj.getDate());
-        const hour = padFn(dateObj.getHours());
-        const minute = padFn(dateObj.getMinutes());
-        const second = padFn(dateObj.getSeconds());
-        return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
-    }
-
-    function formatLocalDateTime(dateObj, padFn = defaultPad2) {
-        const year = dateObj.getFullYear();
-        const month = padFn(dateObj.getMonth() + 1);
-        const day = padFn(dateObj.getDate());
-        const hour = padFn(dateObj.getHours());
-        const minute = padFn(dateObj.getMinutes());
-        const second = padFn(dateObj.getSeconds());
-        return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-    }
-
-    function formatUTCDateTime(dateObj, padFn = defaultPad2) {
-        const year = dateObj.getUTCFullYear();
-        const month = padFn(dateObj.getUTCMonth() + 1);
-        const day = padFn(dateObj.getUTCDate());
-        const hour = padFn(dateObj.getUTCHours());
-        const minute = padFn(dateObj.getUTCMinutes());
-        const second = padFn(dateObj.getUTCSeconds());
-        return `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
-    }
-
-    function formatUTCDateOnlyStartOfDay(dateObj, padFn = defaultPad2) {
-        const year = dateObj.getUTCFullYear();
-        const month = padFn(dateObj.getUTCMonth() + 1);
-        const day = padFn(dateObj.getUTCDate());
-        return `${year}-${month}-${day} 00:00:00`;
-    }
-
-    // ── 카운트다운 ───────────────────────────────────────────────
-
-    function makeCountdownStorage(storageRef, storageKey) {
-        function loadCountdownState() {
-            try {
-                if (!storageRef || typeof storageRef.getItem !== "function") return null;
-                const raw = storageRef.getItem(storageKey);
-                if (!raw) return null;
-                const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : null;
-            } catch (_err) {
-                return null;
-            }
-        }
-
-        function saveCountdownState(state) {
-            try {
-                if (!storageRef || typeof storageRef.setItem !== "function") return;
-                storageRef.setItem(storageKey, JSON.stringify(state));
-            } catch (_err) {
-                // 계산기 전용 보조 상태 저장 실패는 무시한다.
-            }
-        }
-
-        return { loadCountdownState, saveCountdownState };
-    }
-
-    function isElementDisplayNone(element) {
-        if (!element || typeof element !== "object") return true;
-        const inlineDisplay = (typeof element?.style?.display === "string")
-            ? element.style.display.trim()
-            : "";
-        if (inlineDisplay) return inlineDisplay === "none";
-        if (element?.classList && typeof element.classList.contains === "function" && element.classList.contains("is-hidden")) {
-            return true;
-        }
-        if (typeof globalObj?.getComputedStyle === "function") {
-            const computedDisplay = globalObj.getComputedStyle(element)?.display;
-            if (typeof computedDisplay === "string" && computedDisplay.trim()) {
-                return computedDisplay === "none";
-            }
-        }
-        return false;
-    }
-
-    function renderCountdownSlot(slotIdx, refs, countdownState, t, helpers, runtime = {}, options) {
-        const { syncMeta = false } = (options && typeof options === "object") ? options : {};
-        const countdownStateUtils = runtime.countdownStateUtils;
-        const datePickerCtor = (typeof runtime.datePickerCtor === "function") ? runtime.datePickerCtor : null;
-        const luxonDT = runtime.luxonDT || null;
-        const padFn = (typeof runtime.pad2 === "function") ? runtime.pad2 : defaultPad2;
-        const slot = countdownState[slotIdx];
-        const nameBtn = refs.nameButtons[slotIdx];
-        const nameInput = refs.nameInputs[slotIdx];
-        const toggleBtn = refs.toggleButtons[slotIdx];
-        const targetInput = refs.targetInputs[slotIdx];
-        const displayEl = refs.displayEls[slotIdx];
-        const statusEl = refs.statusEls[slotIdx];
-        if (!slot || !nameBtn || !nameInput || !toggleBtn || !targetInput || !displayEl || !statusEl) return;
-
-        if (syncMeta) {
-            if (!slot.nameIsCustom) {
-                slot.name = countdownStateUtils.buildDefaultName(slotIdx, t);
-            }
-            nameBtn.textContent = slot.name;
-            if (isElementDisplayNone(nameInput)) {
-                nameInput.value = slot.name;
-            }
-
-            if (datePickerCtor && !targetInput._cdp) {
-                targetInput._cdp = new datePickerCtor(targetInput, {
-                    type: "datetime",
-                    lang: helpers.getCurrentLang(),
-                    theme: helpers.getCurrentTheme(),
-                    triggerElement: helpers.querySelector(`.trigger-cd-${slotIdx}`) || null
-                });
-            }
-
-            if (slot.targetIso) {
-                const targetDate = toValidDate(slot.targetIso, luxonDT);
-                if (targetInput._cdp) {
-                    if (targetDate) targetInput._cdp.setDate(targetDate);
-                    else targetInput._cdp.setDate(null);
-                } else {
-                    targetInput.value = targetDate ? formatDateTimeForInput(targetDate, padFn) : "";
+            },
+            isCalculatorTabActive() {
+                const calcSection = this.getElementById("calc-section");
+                if (!calcSection?.classList || typeof calcSection.classList.contains !== "function") {
+                    return true;
                 }
-            } else {
-                if (targetInput._cdp) targetInput._cdp.setDate(null);
-                else targetInput.value = "";
-            }
-        }
-
-        const nowMs = Date.now();
-        let remainingMs = countdownStateUtils.parseRemainingMs(slot, nowMs);
-        let expired = false;
-
-        if (slot.active && Number.isFinite(remainingMs) && remainingMs <= 0) {
-            slot.active = false;
-            slot.pausedRemainingMs = 0;
-            remainingMs = 0;
-            expired = true;
-        }
-
-        if (!Number.isFinite(remainingMs)) {
-            toggleBtn.textContent = slot.active ? t("calc_countdown_stop") : t("calc_countdown_start");
-            displayEl.textContent = countdownStateUtils.formatRemainingText(0, t, padFn);
-            displayEl.classList.remove("expired");
-            statusEl.textContent = "";
-            statusEl.classList.remove("expired");
-            return;
-        }
-
-        displayEl.textContent = countdownStateUtils.formatRemainingText(remainingMs, t, padFn);
-        if (expired || (!slot.active && remainingMs === 0 && !!slot.targetIso)) {
-            displayEl.classList.add("expired");
-            statusEl.classList.add("expired");
-            statusEl.textContent = t("calc_countdown_expired");
-        } else {
-            displayEl.classList.remove("expired");
-            statusEl.classList.remove("expired");
-            statusEl.textContent = "";
-        }
-        toggleBtn.textContent = slot.active ? t("calc_countdown_stop") : t("calc_countdown_start");
-        return expired;
-    }
-
-    /**
-     * initCountdown — 클로저 기반 타이머 관리
-     * @param {function} t - 번역 함수
-     * @param {object} helpers - DOM 헬퍼 (getElementById 등)
-     * @param {object} cdStorage - { loadCountdownState, saveCountdownState }
-     * @param {object} timerIds - { countdownTimerId } 참조 객체 (외부에서 소유)
-     */
-    function initCountdown(t, helpers, cdStorage, timerIds, runtime = {}) {
-        const countdownStateUtils = runtime.countdownStateUtils;
-        const luxonDT = runtime.luxonDT || null;
-        const nameButtons = helpers.querySelectorAll(".countdown-name-btn");
-        const nameInputs = helpers.querySelectorAll(".countdown-name-input");
-        const toggleButtons = helpers.querySelectorAll(".countdown-toggle-btn");
-        const targetInputs = helpers.querySelectorAll(".countdown-target-input");
-        const displayEls = helpers.querySelectorAll(".countdown-display");
-        const statusEls = helpers.querySelectorAll(".countdown-status");
-        if (
-            nameButtons.length < countdownStateUtils.slotCount ||
-            nameInputs.length < countdownStateUtils.slotCount ||
-            toggleButtons.length < countdownStateUtils.slotCount ||
-            targetInputs.length < countdownStateUtils.slotCount ||
-            displayEls.length < countdownStateUtils.slotCount ||
-            statusEls.length < countdownStateUtils.slotCount
-        ) {
-            return { refresh: () => { } };
-        }
-
-        // 클로저 내부 상태 — 모듈 전역 오염 없음
-        const countdownState = countdownStateUtils.normalizeState(cdStorage.loadCountdownState(), t);
-        const refs = { nameButtons, nameInputs, toggleButtons, targetInputs, displayEls, statusEls };
-
-        const saveState = () => cdStorage.saveCountdownState(countdownState);
-        const render = (i, opts) => {
-            const expired = renderCountdownSlot(i, refs, countdownState, t, helpers, runtime, opts);
-            if (expired) saveState();
-        };
-
-        for (let i = 0; i < countdownStateUtils.slotCount; i++) {
-            const nameBtn = nameButtons[i];
-            const nameInput = nameInputs[i];
-            const targetInput = targetInputs[i];
-
-            const closeNameEditor = (commit) => {
-                if (isElementDisplayNone(nameInput)) return;
-                if (commit) {
-                    const trimmed = String(nameInput.value || "").trim();
-                    if (!trimmed) {
-                        countdownState[i].name = countdownStateUtils.buildDefaultName(i, t);
-                        countdownState[i].nameIsCustom = false;
-                    } else {
-                        countdownState[i].name = trimmed;
-                        countdownState[i].nameIsCustom = true;
-                    }
-                    saveState();
-                }
-                nameInput.style.display = "none";
-                nameBtn.style.display = "inline-flex";
-                render(i, { syncMeta: true });
-            };
-
-            nameBtn.addEventListener("click", () => {
-                nameInput.value = countdownState[i].name || countdownStateUtils.buildDefaultName(i, t);
-                nameBtn.style.display = "none";
-                nameInput.style.display = "block";
-                nameInput.focus();
-                nameInput.select();
-            });
-
-            nameInput.addEventListener("keydown", (event) => {
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    closeNameEditor(true);
-                    nameInput.blur();
-                    return;
-                }
-                if (event.key === "Escape") {
-                    event.preventDefault();
-                    closeNameEditor(false);
-                    nameInput.blur();
-                }
-            });
-
-            nameInput.addEventListener("blur", () => closeNameEditor(true));
-
-            targetInput.addEventListener("change", () => {
-                const parsed = (targetInput._cdp && targetInput._cdp.selectedDate)
-                    ? toValidDate(targetInput._cdp.selectedDate, luxonDT)
-                    : toValidDate(targetInput.value, luxonDT);
-                if (!parsed) {
-                    countdownState[i].targetIso = "";
-                    countdownState[i].active = false;
-                    countdownState[i].pausedRemainingMs = null;
-                } else {
-                    countdownState[i].targetIso = parsed.toISOString();
-                    countdownState[i].pausedRemainingMs = null;
-                    if (!countdownState[i].active) {
-                        countdownState[i].pausedRemainingMs = Math.max(0, parsed.getTime() - Date.now());
-                    }
-                }
-                render(i, { syncMeta: true });
-                saveState();
-            });
-        }
-
-        helpers.querySelectorAll(".countdown-slot-controls .sm-btn[data-action]").forEach((btn) => {
-            const slotIdx = Number(btn.getAttribute("data-slot"));
-            const action = btn.getAttribute("data-action");
-            if (!Number.isInteger(slotIdx) || slotIdx < 0 || slotIdx >= countdownStateUtils.slotCount) return;
-            const targetInput = targetInputs[slotIdx];
-
-            btn.addEventListener("click", () => {
-                const slot = countdownState[slotIdx];
-                if (!slot) return;
-
-                if (action === "toggle") {
-                    if (slot.active) {
-                        const remainingMs = countdownStateUtils.parseRemainingMs(slot, Date.now());
-                        slot.active = false;
-                        slot.pausedRemainingMs = Number.isFinite(remainingMs)
-                            ? Math.max(0, Math.floor(remainingMs))
-                            : null;
-                    } else {
-                        const parsed = toValidDate(targetInput.value, luxonDT) || toValidDate(slot.targetIso, luxonDT);
-                        if (!parsed) return;
-                        slot.targetIso = parsed.toISOString();
-                        slot.active = true;
-                        slot.pausedRemainingMs = null;
-                    }
-                } else if (action === "reset") {
-                    slot.targetIso = "";
-                    slot.active = false;
-                    slot.pausedRemainingMs = null;
-                    targetInput.value = "";
-                }
-
-                render(slotIdx, { syncMeta: true });
-                saveState();
-            });
-        });
-
-        // 이전 타이머 정리 후 새 타이머 등록 (클로저 내부 timerIds 객체 사용)
-        if (timerIds.countdown !== null && timerIds.countdown !== undefined) {
-            clearInterval(timerIds.countdown);
-        }
-        timerIds.countdown = setInterval(() => {
-            if (!isCalculatorTabActive(helpers)) return;
-            for (let i = 0; i < countdownStateUtils.slotCount; i++) {
-                render(i);
-            }
-        }, 1000);
-
-        for (let i = 0; i < countdownStateUtils.slotCount; i++) {
-            render(i, { syncMeta: true });
-        }
-
-        return {
-            refresh() {
-                for (let i = 0; i < countdownStateUtils.slotCount; i++) {
-                    render(i, { syncMeta: true });
-                }
-            }
-        };
-    }
-
-    // ── Unix 타임스탬프 변환기 ─────────────────────────────────────
-
-    function initUnixTimestampConverter(t, helpers, luxonDT, timerIds, runtime = {}) {
-        const padFn = (typeof runtime.pad2 === "function") ? runtime.pad2 : defaultPad2;
-        const unixNowValue = helpers.getElementById("unix-now-value");
-        const unixNowMsValue = helpers.getElementById("unix-now-ms-value");
-        const unixSyncNowBtn = helpers.getElementById("unix-sync-now-btn");
-        const unixTsInput = helpers.getElementById("unix-ts-input");
-        const unixTsMsInput = helpers.getElementById("unix-ts-ms-input");
-        const unixIsoLocalInput = helpers.getElementById("unix-iso-local-input");
-        const unixIsoUtcInput = helpers.getElementById("unix-iso-utc-input");
-        const unixRfc2822Input = helpers.getElementById("unix-rfc2822-input");
-        const unixSqlInput = helpers.getElementById("unix-sql-input");
-        const unixHumanInput = helpers.getElementById("unix-human-input");
-        const smartFormatRows = helpers.querySelectorAll(".smart-format-row");
-
-        if (
-            !unixNowValue || !unixNowMsValue || !unixTsInput || !unixTsMsInput ||
-            !unixIsoLocalInput || !unixIsoUtcInput || !unixRfc2822Input || !unixSqlInput || !unixHumanInput
-        ) {
-            return { refresh: () => { } };
-        }
-
-        const editableFields = [
-            { key: "unix_sec", el: unixTsInput },
-            { key: "unix_ms", el: unixTsMsInput },
-            { key: "iso_local", el: unixIsoLocalInput },
-            { key: "iso_utc", el: unixIsoUtcInput },
-            { key: "rfc2822", el: unixRfc2822Input },
-            { key: "sql", el: unixSqlInput }
-        ];
-
-        let activeEpochMs = Date.now();
-        let hasValidEpoch = true;
-        let isSyncing = false;
-
-        const setRowsInvalid = (invalid) => {
-            smartFormatRows.forEach((row) => {
-                if (!row || !row.classList) return;
-                if (invalid) row.classList.add("is-invalid");
-                else row.classList.remove("is-invalid");
-            });
-        };
-
-        const formatIsoLocalWithOffset = (dateObj) => {
-            const year = dateObj.getFullYear();
-            const month = padFn(dateObj.getMonth() + 1);
-            const day = padFn(dateObj.getDate());
-            const hour = padFn(dateObj.getHours());
-            const minute = padFn(dateObj.getMinutes());
-            const second = padFn(dateObj.getSeconds());
-            const totalOffsetMinutes = -dateObj.getTimezoneOffset();
-            const sign = totalOffsetMinutes >= 0 ? "+" : "-";
-            const absOffset = Math.abs(totalOffsetMinutes);
-            const offsetHour = padFn(Math.floor(absOffset / 60));
-            const offsetMinute = padFn(absOffset % 60);
-            return `${year}-${month}-${day}T${hour}:${minute}:${second}${sign}${offsetHour}:${offsetMinute}`;
-        };
-
-        const buildFieldValues = (epochMs) => {
-            const safeEpochMs = Math.trunc(Number(epochMs));
-            if (!Number.isFinite(safeEpochMs)) return null;
-
-            if (luxonDT && typeof luxonDT.fromMillis === "function") {
-                const utc = luxonDT.fromMillis(safeEpochMs, { zone: "utc" });
-                if (!utc.isValid) return null;
-                const local = utc.toLocal().setLocale(helpers.getCurrentLang());
-                return {
-                    unixSec: String(Math.floor(safeEpochMs / 1000)),
-                    unixMs: String(safeEpochMs),
-                    isoLocal: local.toISO({ suppressMilliseconds: true, includeOffset: true }) || "",
-                    isoUtc: utc.toISO({ suppressMilliseconds: true, includeOffset: true }) || "",
-                    rfc2822: local.toRFC2822() || "",
-                    sql: local.toFormat("yyyy-LL-dd HH:mm:ss"),
-                    human: local.toLocaleString(luxonDT.DATETIME_FULL_WITH_SECONDS)
-                };
-            }
-
-            const dateObj = new Date(safeEpochMs);
-            if (Number.isNaN(dateObj.getTime())) return null;
-            const locale = helpers.getCurrentLang() === "ko" ? "ko-KR" : "en-US";
-            return {
-                unixSec: String(Math.floor(safeEpochMs / 1000)),
-                unixMs: String(safeEpochMs),
-                isoLocal: formatIsoLocalWithOffset(dateObj),
-                isoUtc: formatUTCDateTime(dateObj, padFn),
-                rfc2822: dateObj.toUTCString(),
-                sql: formatLocalDateTime(dateObj, padFn),
-                human: dateObj.toLocaleString(locale, {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                    weekday: "short"
-                })
-            };
-        };
-
-        const setFieldValues = (values) => {
-            if (!values) return;
-            isSyncing = true;
-            unixTsInput.value = values.unixSec;
-            unixTsMsInput.value = values.unixMs;
-            unixIsoLocalInput.value = values.isoLocal;
-            unixIsoUtcInput.value = values.isoUtc;
-            unixRfc2822Input.value = values.rfc2822;
-            unixSqlInput.value = values.sql;
-            unixHumanInput.value = values.human;
-            isSyncing = false;
-        };
-
-        const renderInvalid = () => {
-            hasValidEpoch = false;
-            setRowsInvalid(true);
-            const invalidText = t("calc_unix_invalid");
-            setFieldValues({
-                unixSec: invalidText, unixMs: invalidText, isoLocal: invalidText,
-                isoUtc: invalidText, rfc2822: invalidText, sql: invalidText, human: invalidText
-            });
-        };
-
-        const renderFromEpoch = (epochMs) => {
-            const values = buildFieldValues(epochMs);
-            if (!values) { renderInvalid(); return; }
-            hasValidEpoch = true;
-            setRowsInvalid(false);
-            setFieldValues(values);
-        };
-
-        const parseFieldValue = (key, value) => {
-            const raw = String(value || "").trim();
-            if (!raw) return null;
-
-            if (key === "unix_sec") {
-                const sec = Number(raw);
-                return Number.isFinite(sec) ? Math.trunc(sec * 1000) : null;
-            }
-            if (key === "unix_ms") {
-                const ms = Number(raw);
-                return Number.isFinite(ms) ? Math.trunc(ms) : null;
-            }
-
-            let parsedDate = null;
-            if (key === "iso_local") {
-                parsedDate = parseIsoLocalDateString(raw, luxonDT);
-            } else if (key === "iso_utc") {
-                parsedDate = parseIsoUtcDateString(raw, luxonDT);
-            } else if (key === "rfc2822") {
-                parsedDate = parseRfc2822DateWithLuxon(raw, luxonDT);
-            } else if (key === "sql") {
-                parsedDate = parseSqlDateWithLuxon(raw, luxonDT);
-            }
-
-            return isValidDateObject(parsedDate) ? Math.trunc(parsedDate.getTime()) : null;
-        };
-
-        const handleFieldInput = (key, fieldEl) => {
-            if (isSyncing || !fieldEl) return;
-            const parsedMs = parseFieldValue(key, fieldEl.value);
-            if (!Number.isFinite(parsedMs)) { renderInvalid(); return; }
-            activeEpochMs = Math.trunc(parsedMs);
-            renderFromEpoch(activeEpochMs);
-        };
-
-        const updateNow = () => {
-            if (!isCalculatorTabActive(helpers)) return;
-            const nowMs = Date.now();
-            unixNowValue.textContent = String(Math.floor(nowMs / 1000));
-            unixNowMsValue.textContent = String(Math.trunc(nowMs));
-        };
-
-        const syncNow = () => {
-            activeEpochMs = Date.now();
-            renderFromEpoch(activeEpochMs);
-            updateNow();
-        };
-
-        editableFields.forEach(({ key, el }) => {
-            el.addEventListener("input", () => handleFieldInput(key, el));
-            el.addEventListener("change", () => handleFieldInput(key, el));
-        });
-        if (unixSyncNowBtn) unixSyncNowBtn.addEventListener("click", syncNow);
-
-        // 이전 타이머 정리 후 새 타이머 등록
-        if (timerIds.unix !== null && timerIds.unix !== undefined) {
-            clearInterval(timerIds.unix);
-        }
-        timerIds.unix = setInterval(updateNow, 1000);
-        syncNow();
-
-        return {
-            refresh() {
-                updateNow();
-                if (hasValidEpoch) renderFromEpoch(activeEpochMs);
-                else renderInvalid();
+                return calcSection.classList.contains("active");
             }
         };
     }
@@ -892,7 +195,8 @@
 
     function initPeriodAndDateShift(t, helpers, runtime = {}) {
         const datePickerCtor = (typeof runtime.datePickerCtor === "function") ? runtime.datePickerCtor : null;
-        const padFn = (typeof runtime.pad2 === "function") ? runtime.pad2 : defaultPad2;
+        const dateFormat = runtime.dateFormat;
+        const padFn = (typeof runtime.pad2 === "function") ? runtime.pad2 : dateFormat.defaultPad2;
         const periodStart = helpers.getElementById("period-start");
         const periodEnd = helpers.getElementById("period-end");
         const periodSwapBtn = helpers.getElementById("period-swap-btn");
@@ -932,10 +236,10 @@
 
         // 기간 계산은 UTC 자정 기준으로 파싱한다 (DST 경계 오류 방지).
         // The input is authoritative so manual edits are not masked by a stale picker selection.
-        const getPickerDateUtc = (el) => parseUtcDateOnlyString(el.value);
+        const getPickerDateUtc = (el) => dateFormat.parseUtcDateOnlyString(el.value);
 
         const today = new Date();
-        const todayText = formatDateOnly(today, padFn);
+        const todayText = dateFormat.formatDateOnly(today, padFn);
         if (!periodStart.value) periodStart.value = todayText;
         if (!periodEnd.value) periodEnd.value = todayText;
         if (!offsetStart.value) offsetStart.value = todayText;
@@ -1000,7 +304,7 @@
                 if (resultDate.getUTCDate() !== targetDay) resultDate.setUTCDate(0);
             }
 
-            offsetResult.value = formatUTCDateOnlyStartOfDay(resultDate, padFn);
+            offsetResult.value = dateFormat.formatUTCDateOnlyStartOfDay(resultDate, padFn);
         };
 
         [periodStart, periodEnd, offsetStart, offsetValueInput, offsetUnit, offsetDirection].forEach((el) => {
@@ -1028,7 +332,7 @@
             // Swap the typed date text. The date picker works in local time, so it receives a
             // local-midnight date built from the same text (never the UTC-midnight calculation date).
             const setSwappedDateValue = (el, value) => {
-                const localDate = parseLocalDateOnlyString(value);
+                const localDate = dateFormat.parseLocalDateOnlyString(value);
                 if (el._cdp && localDate) el._cdp.setDate(localDate);
                 else el.value = value;
             };
@@ -1090,11 +394,15 @@
         ) {
             throw new Error("Invalid calculator countdown state service");
         }
+        const dateFormat = resolveCalculatorModule(safeDeps.dateFormatModule, "GTVCalculatorDateFormat");
+        const countdownTool = resolveCalculatorModule(safeDeps.countdownModule, "GTVCalculatorCountdown");
+        const formatConverter = resolveCalculatorModule(safeDeps.formatConverterModule, "GTVCalculatorFormatConverter");
         const runtime = Object.freeze({
             luxonDT,
             countdownStateUtils,
+            dateFormat,
             datePickerCtor: resolveDatePickerCtor(safeDeps),
-            pad2: resolvePad2Ref(safeDeps)
+            pad2: resolvePad2Ref(safeDeps, dateFormat.defaultPad2)
         });
 
         // 클로저 내부 타이머 참조 — 외부 전역 변수 오염 없음
@@ -1121,11 +429,11 @@
             const copyText = (typeof opts.copyText === "function") ? opts.copyText : (async () => { });
 
             const helpers = makeDocHelpers(documentRef);
-            const cdStorage = makeCountdownStorage(storageRef, countdownStateUtils.storageKey);
+            const cdStorage = countdownTool.makeCountdownStorage(storageRef, countdownStateUtils.storageKey);
 
             const periodAndShift = initPeriodAndDateShift(t, helpers, runtime);
-            const countdown = initCountdown(t, helpers, cdStorage, timerIds, runtime);
-            const unixConverter = initUnixTimestampConverter(t, helpers, luxonDT, timerIds, runtime);
+            const countdown = countdownTool.initCountdown(t, helpers, cdStorage, timerIds, runtime);
+            const unixConverter = formatConverter.initUnixTimestampConverter(t, helpers, luxonDT, timerIds, runtime);
             initConverter(helpers);
 
             bindCopyButtons(copyText, helpers, [

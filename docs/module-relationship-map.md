@@ -76,7 +76,8 @@ flowchart LR
     STATE["앱/환경설정 상태\napp-state-patcher · ui-preferences-state\nformat-profile-state"] --> PERSIST["저장/설정 이전\nstate-persistence · settings-io\napp-persistence-state"]
     PERSIST --> STATE
     SCHEMA["저장 데이터 스키마\npersistence-state-normalizer"] --> PERSIST
-    CALCSTATE["카운트다운 상태 서비스\ncalculator-countdown-state"] --> CALCUI["계산기 UI 조립\ncalculator · calculator-actions"]
+    CALCSTATE["카운트다운 상태 서비스\ncalculator-countdown-state"] --> CALCTOOLS["계산기 도구\ncalculator-countdown · calculator-format-converter\ncalculator-date-format"]
+    CALCTOOLS --> CALCUI["계산기 UI 조립\ncalculator · calculator-actions"]
     CALCUI --> DATEPICKER["date-picker"]
     CALCUI --> TIME
     UI["초기화/알림/설정 UI\nmain-ui-init · app-feedback · ui-settings-actions"] --> TABLE
@@ -89,7 +90,7 @@ flowchart LR
 | 고정 시간 및 타임라인 | `fixed-time-core.js`, `fixed-time-slot-utils.js`, `fixed-time-state.js`, `fixed-time-actions.js`, `fixed-time-table.js`, `fixed-time-timeline.js`, `timeline-frame.js` |
 | 연속 시간 변경 | `multi-state.js`, `multi-range-state.js`, `multi-range-render.js`, `multi-range-copy.js`, `multi-range-image-render.js`, `multi-bulk-tools.js` |
 | 렌더·복사·이미지 | `table-render.js`, `table-image-render.js`, `copy-actions.js`, `image-export.js`, `image-export-actions.js`, `image-export-bridge.js`, `image-export-naming.js`, `image-clone.js`, `image-foreign-render.js` |
-| 계산기·사용자 작업 | `calculator-countdown-state.js`(상태 정규화/표시), `calculator.js`(DOM 이벤트/기능 조립), `calculator-actions.js`, `date-picker.js`, `time-adjust-ui.js`, `time-adjust-actions.js`, `format-controls.js`, `ui-settings-actions.js` |
+| 계산기·사용자 작업 | `calculator-countdown-state.js`(상태 정규화/표시), `calculator-date-format.js`(날짜 파싱·형식), `calculator-countdown.js`(카운트다운), `calculator-format-converter.js`(시간 포맷 변환기), `calculator.js`(단위 변환·기간/날짜 이동·기능 조립), `calculator-actions.js`, `date-picker.js`, `time-adjust-ui.js`, `time-adjust-actions.js`, `format-controls.js`, `ui-settings-actions.js` |
 | 저장·설정 이동 | `persistence-state-normalizer.js`(저장 payload 정규화), `state-persistence.js`(저장소 동기화·로드·초기화), `persistence-service-bundle.js`, `settings-io.js`, `data-transfer.js` |
 
 ## 모듈 경계와 변경 시 확인 사항

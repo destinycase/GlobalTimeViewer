@@ -39,7 +39,7 @@
 | --- | --- | --- |
 | 시간 계산·시간대 처리 | `time-service.js` | `time-core.js`, `timezone-data.js`, `time-input-mutations.js`, `timer-engine.js` |
 | 그룹·탭 상태 | `group-state.js` | `group-context-state.js`, `group-tabs.js`, `app-state-patcher.js` |
-| 계산기 입력·표시 | `calculator.js` | `calculator-countdown-state.js`, `calculator-actions.js`, `date-picker.js` |
+| 계산기 입력·표시 | `calculator.js`(단위 변환·기간/날짜 이동·조립) | `calculator-date-format.js`(날짜 파싱·형식), `calculator-countdown.js`, `calculator-countdown-state.js`, `calculator-format-converter.js`(시간 포맷 변환기), `calculator-actions.js`, `date-picker.js` |
 | 저장 데이터 정규화 | `persistence-state-normalizer.js` | `state-persistence.js`, `format-profile-state.js`, `multi-state.js` |
 | 브라우저 저장소·설정 초기화 | `state-persistence.js` | `persistence-service-bundle.js`, `settings-io.js`, `data-transfer.js` |
 | 핵심·표·이미지 서비스 의존성 구성 | `main-runtime-core-service-bootstrap.js`, `main-runtime-table-image-bootstrap.js` | 각 조립부가 생성할 서비스의 설정을 함께 구성 |
