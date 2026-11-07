@@ -1,86 +1,59 @@
-name: CI
+name: GTV Quality & Package CI
 
 on:
   push:
+    branches: [ main ]
   pull_request:
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    branches: [ main ]
 
 jobs:
-  lint:
-    runs-on: windows-latest
+  quality:
+    name: Quality Verification
+    # 실행 환경을 고정한다. 러너 이미지가 바뀌어 검사 결과가 흔들리지 않게 한다.
+    runs-on: windows-2025
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: ".nvmrc"
           cache: npm
 
       - name: Install dependencies
-        run: npm.cmd ci
+        run: npm ci
 
-      - name: Run lint
-        run: npm.cmd run lint
+      - name: Lint
+        run: npm run lint
 
       - name: Check module dependency inventory
-        run: npm.cmd run docs:module-inventory:check
+        run: npm run docs:module-inventory:check
 
-  test:
-    runs-on: windows-latest
+      # 커버리지 실행이 단위·통합 검사 전체를 포함하므로 검사를 따로 반복하지 않는다.
+      - name: Unit & integration tests with coverage
+        run: npm run test:coverage
+
+  package-verification:
+    name: Build & Package Integrity Verification
+    needs: quality
+    runs-on: windows-2025
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: ".nvmrc"
           cache: npm
 
       - name: Install dependencies
-        run: npm.cmd ci
+        run: npm ci
 
-      - name: Run tests
-        run: npm.cmd run test -- --run
-
-  coverage:
-    runs-on: windows-latest
-    needs: test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-          cache: npm
-
-      - name: Install dependencies
-        run: npm.cmd ci
-
-      - name: Run coverage
-        run: npm.cmd run test:coverage
-
-  build_strict:
-    runs-on: windows-latest
-    needs: [lint, test, coverage]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-          cache: npm
-
-      - name: Install dependencies
-        run: npm.cmd ci
-
-      - name: Strict build
-        run: npm.cmd run build:strict
+      # 앞 작업에서 같은 소스의 전체 검사가 통과했으므로 패키징의 사전 검사는 건너뛴다.
+      # 패키징은 검증 목적이며, 만든 ZIP을 GitHub 결과물(artifact)이나 Release로 올리지 않는다.
+      - name: Verify package pipeline
+        run: npm run package
+        env:
+          GTV_SKIP_PRETEST: '1'

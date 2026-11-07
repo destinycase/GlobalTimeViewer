@@ -10,7 +10,6 @@ import {
 } from "./source-script-list.mjs";
 
 const require = createRequire(import.meta.url);
-const { ZipFile } = require("yazl");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,7 +17,6 @@ const ROOT_DIR = path.resolve(__dirname, "..");
 const SRC_DIR = path.join(ROOT_DIR, "src");
 const DIST_DIR = path.join(ROOT_DIR, "dist");
 const DEST_DIR = path.join(ROOT_DIR, "dist_extension");
-const ZIP_FILE = path.join(ROOT_DIR, "GlobalTimeViewer_extension.zip");
 const BUNDLE_PATH = path.join(SRC_DIR, "js", "bundle.js");
 const SCRIPT_LIST_PATH = path.join(SRC_DIR, "script_list.tmp");
 const SOURCE_SCRIPT_LOADER_PATH = path.join(SRC_DIR, "js", "source-script-loader.js");
@@ -329,45 +327,6 @@ function validateArtifacts() {
     }
 }
 
-function addDirectoryToZip(zipFile, sourceDir, archiveDir = "") {
-    const entries = fs.readdirSync(sourceDir, { withFileTypes: true })
-        .sort((left, right) => left.name.localeCompare(right.name));
-
-    for (const entry of entries) {
-        const sourcePath = path.join(sourceDir, entry.name);
-        const archivePath = archiveDir
-            ? `${archiveDir}/${entry.name}`.replace(/\\/g, "/")
-            : entry.name.replace(/\\/g, "/");
-
-        if (entry.isDirectory()) {
-            addDirectoryToZip(zipFile, sourcePath, archivePath);
-            continue;
-        }
-        if (entry.isFile()) {
-            zipFile.addFile(sourcePath, archivePath);
-        }
-    }
-}
-
-async function createZipArchive() {
-    fs.rmSync(ZIP_FILE, { force: true });
-
-    const zipFile = new ZipFile();
-    const outputStream = fs.createWriteStream(ZIP_FILE);
-
-    const completion = new Promise((resolve, reject) => {
-        outputStream.on("close", resolve);
-        outputStream.on("error", reject);
-        zipFile.outputStream.on("error", reject);
-    });
-
-    zipFile.outputStream.pipe(outputStream);
-    addDirectoryToZip(zipFile, DEST_DIR);
-    zipFile.end();
-
-    await completion;
-}
-
 async function main() {
     process.chdir(ROOT_DIR);
 
@@ -388,10 +347,7 @@ async function main() {
     copyDeploymentArtifacts();
     validateArtifacts();
 
-    writeLine("Creating zip archive...");
-    await createZipArchive();
-
-    writeLine(`Done! Deployment archive created: ${path.basename(ZIP_FILE)}`);
+    writeLine(`Done! Extension build created: ${path.relative(ROOT_DIR, DEST_DIR)}`);
 }
 
 main().catch((error) => {
