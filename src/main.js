@@ -80,6 +80,22 @@ function assertBindingCreateService(bindingsModule, moduleApiName) {
         throw new Error(`Missing required module API: ${moduleApiName}.createService`);
     }
 }
+// Creates a module service and checks the methods main.js relies on. Replaces the former
+// one-module *-bindings wrappers, keeping their error messages.
+function createRequiredModuleService(moduleApi, moduleName, deps, requiredMethods, invalidMessage) {
+    if (!moduleApi || typeof moduleApi.createService !== "function") {
+        throw new Error(`Missing required module API: ${moduleName}.createService`);
+    }
+    const service = moduleApi.createService(deps);
+    if (
+        !service
+        || typeof service !== "object"
+        || requiredMethods.some((methodName) => typeof service[methodName] !== "function")
+    ) {
+        throw new Error(invalidMessage);
+    }
+    return service;
+}
 function callRuntimeCoreAccessorWithFallback(methodName, fallbackService, ...args) {
     const runtimeAccessorMethod = mainRuntimeCoreAccessorService?.[methodName];
     if (typeof runtimeAccessorMethod === "function") {
@@ -95,12 +111,13 @@ function syncCurrentLang(next) {
     return callRuntimeCoreAccessorWithFallback("syncCurrentLang", mainRuntimeLangStateService, next);
 }
 const GTV_MAIN_CONSTANTS = GTV_GLOBAL.GTVMainConstants;
-const GTV_MAIN_CONSTANTS_BINDINGS = GTV_GLOBAL.GTVMainConstantsBindings;
-assertBindingCreateService(GTV_MAIN_CONSTANTS_BINDINGS, "GTVMainConstantsBindings");
+if (!GTV_MAIN_CONSTANTS || typeof GTV_MAIN_CONSTANTS !== "object") {
+    throw new Error("Missing required module: GTVMainConstants");
+}
+const PERIOD_RESULT_IDS = new Set(GTV_MAIN_CONSTANTS.PERIOD_RESULT_IDS || []);
 const {
     COPY_FORMAT_KEYS,
     TIME_PART_KEYS,
-    PERIOD_RESULT_IDS,
     TIMELINE_TOTAL_HOURS,
     TIMELINE_TOTAL_SECONDS,
     MAIN_TABS,
@@ -121,9 +138,7 @@ const {
     DEFAULT_DISPLAY_TIME_PARTS_ENABLED,
     DEFAULT_COPY_TIME_PARTS_ENABLED,
     FORMAT_PROFILE_CONTEXT_KEYS
-} = GTV_MAIN_CONSTANTS_BINDINGS.createService({
-    constantsModule: GTV_MAIN_CONSTANTS
-});
+} = GTV_MAIN_CONSTANTS;
 const DEFAULT_REALTIME_TICK_MS = 1000;
 const requestUiFrame = (typeof requestAnimationFrame === "function")
     ? requestAnimationFrame.bind(globalThis)
@@ -132,34 +147,28 @@ const cancelUiFrame = (typeof cancelAnimationFrame === "function")
     ? cancelAnimationFrame.bind(globalThis)
     : ((id) => clearTimeout(id));
 const GTV_MAIN_RUNTIME_LANG_STATE = GTV_GLOBAL.GTVMainRuntimeLangState;
-const GTV_MAIN_RUNTIME_LANG_STATE_BINDINGS = GTV_GLOBAL.GTVMainRuntimeLangStateBindings;
-assertBindingCreateService(GTV_MAIN_RUNTIME_LANG_STATE_BINDINGS, "GTVMainRuntimeLangStateBindings");
-({
-    mainRuntimeLangStateService
-} = GTV_MAIN_RUNTIME_LANG_STATE_BINDINGS.createService({
-    runtimeLangStateModule: GTV_MAIN_RUNTIME_LANG_STATE,
-    globalRef: GTV_GLOBAL,
-    defaultLang: "ko"
-}));
+mainRuntimeLangStateService = createRequiredModuleService(
+    GTV_MAIN_RUNTIME_LANG_STATE,
+    "GTVMainRuntimeLangState",
+    { globalRef: GTV_GLOBAL, defaultLang: "ko" },
+    ["syncRealtimeFlagToGlobal", "getRuntimeCurrentLangValue", "syncCurrentLang"],
+    "Invalid main runtime lang state service"
+);
 getRuntimeCurrentLangValue();
 const GTV_MAIN_DAY_NIGHT_RANGE_UTILS = GTV_GLOBAL.GTVMainDayNightRangeUtils;
-const GTV_MAIN_DAY_NIGHT_RANGE_UTILS_BINDINGS = GTV_GLOBAL.GTVMainDayNightRangeUtilsBindings;
-assertBindingCreateService(GTV_MAIN_DAY_NIGHT_RANGE_UTILS_BINDINGS, "GTVMainDayNightRangeUtilsBindings");
-({
-    mainDayNightRangeUtilsService
-} = GTV_MAIN_DAY_NIGHT_RANGE_UTILS_BINDINGS.createService({
-    dayNightRangeUtilsModule: GTV_MAIN_DAY_NIGHT_RANGE_UTILS,
-    defaultDayStartHour: DEFAULT_DAY_START_HOUR,
-    defaultNightStartHour: DEFAULT_NIGHT_START_HOUR,
-    dayNightHourOptions: DAY_NIGHT_HOUR_OPTIONS
-}));
+mainDayNightRangeUtilsService = createRequiredModuleService(
+    GTV_MAIN_DAY_NIGHT_RANGE_UTILS,
+    "GTVMainDayNightRangeUtils",
+    {
+        defaultDayStartHour: DEFAULT_DAY_START_HOUR,
+        defaultNightStartHour: DEFAULT_NIGHT_START_HOUR,
+        dayNightHourOptions: DAY_NIGHT_HOUR_OPTIONS
+    },
+    ["sanitizeDayNightHourValue", "normalizeDayNightRangeValues"],
+    "Invalid main day night range utils service"
+);
 const GTV_MAIN_APP_STATE_VARS = GTV_GLOBAL.GTVMainAppStateVars;
-const GTV_MAIN_APP_STATE_VARS_BINDINGS = GTV_GLOBAL.GTVMainAppStateVarsBindings;
-assertBindingCreateService(GTV_MAIN_APP_STATE_VARS_BINDINGS, "GTVMainAppStateVarsBindings");
-const {
-    mainAppStateVarsService
-} = GTV_MAIN_APP_STATE_VARS_BINDINGS.createService({
-    appStateVarsModule: GTV_MAIN_APP_STATE_VARS,
+const mainAppStateVarsService = createRequiredModuleService(GTV_MAIN_APP_STATE_VARS, "GTVMainAppStateVars", {
     t: gtvT,
     copyFormatKeys: COPY_FORMAT_KEYS,
     defaultDisplayFormatEnabled: DEFAULT_DISPLAY_FORMAT_ENABLED,
@@ -169,15 +178,15 @@ const {
     defaultTimeAdjustDayStep: DEFAULT_TIME_ADJUST_DAY_STEP,
     defaultDayStartHour: DEFAULT_DAY_START_HOUR,
     defaultNightStartHour: DEFAULT_NIGHT_START_HOUR
-});
+}, ["createDirectStateSetters"], "Invalid main app state vars service");
 const GTV_MAIN_STATE_INITIALIZER = GTV_GLOBAL.GTVMainStateInitializer;
-const GTV_MAIN_STATE_INITIALIZER_BINDINGS = GTV_GLOBAL.GTVMainStateInitializerBindings;
-assertBindingCreateService(GTV_MAIN_STATE_INITIALIZER_BINDINGS, "GTVMainStateInitializerBindings");
-const {
-    mainStateInitializerService
-} = GTV_MAIN_STATE_INITIALIZER_BINDINGS.createService({
-    stateInitializerModule: GTV_MAIN_STATE_INITIALIZER
-});
+const mainStateInitializerService = createRequiredModuleService(
+    GTV_MAIN_STATE_INITIALIZER,
+    "GTVMainStateInitializer",
+    {},
+    ["deriveInitialState"],
+    "Invalid main state initializer service"
+);
 const initialMainState = (mainAppStateVarsService && typeof mainAppStateVarsService === "object")
     ? (mainAppStateVarsService.initialState || {})
     : {};
