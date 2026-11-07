@@ -43,6 +43,17 @@ function loadMainRuntimeBootstrapWiringModule() {
     );
 }
 
+function accessorWith(methods, name) {
+    return methods.reduce((acc, methodName) => {
+        acc[methodName] = () => methodName;
+        return acc;
+    }, { name });
+}
+
+const UI_METHODS = ["showFatalError","showToast","switchMainTab","refreshOptionToggleDividers","getCopyFieldLabel","getTimePartLabel","getDisplayColumns","getDisplayTimeInputMode","buildRowActionCells","renderList","renderTimelineFrame","resolveFixedTimeSlotUtcDate","getFixedTimeSlotHeaderLabel","renderFixedTimeTab"];
+const OPERATION_METHODS = ["updateClocks","resolveLocalDatePartsByTimezoneAtDate","resolveLocalDatePartsByTimezone","buildStrictUtcDateFromParts","handleTimeChange","handleMultiRangeTimeChange","formatTimeTextByParts","formatSnapshotText","initCalculators","copyText","getPersistenceSnapshot","sanitizeGroup","loadPersistence"];
+const BOOTSTRAP_METHODS = ["initApp","startBootstrapOnDomReady"];
+
 describe("GTV main runtime bootstrap wiring module", () => {
     afterEach(() => {
         while (moduleCleanupStack.length) {
@@ -57,20 +68,23 @@ describe("GTV main runtime bootstrap wiring module", () => {
 
     it("creates ui/operation/public/bootstrap services through binding and core contracts", () => {
         const moduleApi = loadMainRuntimeBootstrapWiringModule();
-        const uiCreateService = vi.fn(() => ({ name: "ui-accessor" }));
-        const operationCreateService = vi.fn(() => ({ name: "operation-accessor" }));
+        const uiAccessor = accessorWith(UI_METHODS, "ui-accessor");
+        const operationAccessor = accessorWith(OPERATION_METHODS, "operation-accessor");
+        const bootstrapAccessor = accessorWith(BOOTSTRAP_METHODS, "bootstrap-accessor");
+        const uiCreateService = vi.fn(() => uiAccessor);
+        const operationCreateService = vi.fn(() => operationAccessor);
         const publicApiCreateService = vi.fn(() => ({ name: "public-api" }));
-        const bootstrapAccessorCreateService = vi.fn(() => ({ name: "bootstrap-accessor" }));
+        const bootstrapAccessorCreateService = vi.fn(() => bootstrapAccessor);
         const createMainAppBootstrapService = vi.fn((config) => ({ config, name: "app-bootstrap-service" }));
         const getMainUiInitServiceRef = () => ({ initUI: () => "initialized" });
         const getTimezoneSearchServiceRef = () => ({ initSearchAndSelect: () => "searched" });
         const getTimerEngineServiceRef = () => ({ startRealtimeTicker: () => "started" });
 
         const service = moduleApi.createService({
-            runtimeUiBridgeAccessorBindings: { createService: uiCreateService },
-            runtimeOperationAccessorBindings: { createService: operationCreateService },
+            runtimeUiBridgeAccessorProxiesModule: { createService: uiCreateService },
+            runtimeOperationAccessorProxiesModule: { createService: operationCreateService },
             runtimePublicApiBindings: { createService: publicApiCreateService },
-            runtimeBootstrapAccessorBindings: { createService: bootstrapAccessorCreateService },
+            runtimeBootstrapAccessorProxiesModule: { createService: bootstrapAccessorCreateService },
             mainCoreServices: { createMainAppBootstrapService },
             bindFacadeMethod: (getter, methodName) => (...args) => getter()[methodName](...args),
             getMainUiInitServiceRef,
@@ -91,24 +105,28 @@ describe("GTV main runtime bootstrap wiring module", () => {
         expect(appBootstrapConfig.getCurrentMainTab()).toBe("live");
         expect(appBootstrapConfig.updateClocks()).toBe("updated");
         expect(bootstrapAccessorCreateService).toHaveBeenCalledTimes(1);
-        expect(service.mainRuntimeUiBridgeAccessorService).toEqual({ name: "ui-accessor" });
-        expect(service.mainRuntimeOperationAccessorService).toEqual({ name: "operation-accessor" });
+        expect(uiCreateService.mock.calls[0][0]).not.toHaveProperty("runtimeUiBridgeAccessorProxiesModule");
+        expect(service.mainRuntimeUiBridgeAccessorService).toEqual(uiAccessor);
+        expect(Object.isFrozen(service.mainRuntimeUiBridgeAccessorService)).toBe(true);
+        expect(service.mainRuntimeOperationAccessorService).toEqual(operationAccessor);
         expect(service.mainRuntimePublicApiService).toEqual({ name: "public-api" });
         expect(service.mainAppBootstrapService).toMatchObject({ name: "app-bootstrap-service" });
-        expect(service.mainRuntimeBootstrapAccessorService).toEqual({ name: "bootstrap-accessor" });
+        expect(service.mainRuntimeBootstrapAccessorService).toEqual(bootstrapAccessor);
         expect(Object.isFrozen(service)).toBe(true);
     });
 
     it("throws explicit dependency errors for missing bindings or builder contracts", () => {
         const moduleApi = loadMainRuntimeBootstrapWiringModule();
 
-        expect(() => moduleApi.createService({})).toThrow("Missing required dependency: runtimeUiBridgeAccessorBindings");
+        expect(() => moduleApi.createService({})).toThrow("Missing required dependency: runtimePublicApiBindings");
         expect(() => moduleApi.createService({
-            runtimeUiBridgeAccessorBindings: {},
-            runtimeOperationAccessorBindings: {},
-            runtimePublicApiBindings: {},
-            runtimeBootstrapAccessorBindings: {},
-            mainCoreServices: {}
-        })).toThrow("Missing required dependency: runtimeUiBridgeAccessorBindings.createService");
+            runtimePublicApiBindings: { createService: () => ({}) },
+            mainCoreServices: { createMainAppBootstrapService: () => ({}) }
+        })).toThrow("Missing required module API: GTVMainRuntimeUiBridgeAccessorProxies.createService");
+        expect(() => moduleApi.createService({
+            runtimePublicApiBindings: { createService: () => ({}) },
+            mainCoreServices: { createMainAppBootstrapService: () => ({}) },
+            runtimeUiBridgeAccessorProxiesModule: { createService: () => ({ showToast: () => undefined }) }
+        })).toThrow("Invalid main runtime UI bridge accessor proxies service");
     });
 });

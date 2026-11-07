@@ -30,19 +30,38 @@
             safeDeps.runtimeStateHelperAliasesBindings,
             "runtimeStateHelperAliasesBindings"
         );
-        const runtimeStateHelperAccessorBindings = requireObject(
-            safeDeps.runtimeStateHelperAccessorBindings,
-            "runtimeStateHelperAccessorBindings"
-        );
 
         const createAliasesService = requireFunction(
             runtimeStateHelperAliasesBindings.createService,
             "runtimeStateHelperAliasesBindings.createService"
         );
-        const createAccessorService = requireFunction(
-            runtimeStateHelperAccessorBindings.createService,
-            "runtimeStateHelperAccessorBindings.createService"
-        );
+        const serviceInvokeUtils = globalObj?.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils;
+        if (!serviceInvokeUtils || typeof serviceInvokeUtils.createRequiredModuleService !== "function") {
+            throw new Error("Missing required module API: GTVServiceInvokeUtils.createRequiredModuleService");
+        }
+        // Accessor proxy services are created directly (formerly one *-bindings module each) and
+        // exposed as frozen copies, as the bindings did. The proxies module key is not forwarded.
+        const ACCESSOR_SPECS = Object.freeze({
+            StateHelper: {
+                moduleKey: "runtimeStateHelperAccessorProxiesModule",
+                moduleName: "GTVMainRuntimeStateHelperAccessorProxies",
+                invalidMessage: "Invalid main runtime state helper accessor proxies service",
+                requiredMethods: ["parseDateTimeParts","getTimeAdjustDayStepBySlotSnapshot","setTimeAdjustDayStepBySlotState","updateTimeAdjustPanelSafely","getUTCRef","getCurrentGroup","getCurrentGroupZones","getCurrentGroupBaseTimezoneId","getBaseTimezoneRef","ensureBaseTimezoneSelection","formatUtcOffsetLabel","normalizeCustomAbbr","getCurrentMultiRangeStateSnapshot","getGroupsStateSnapshot","getActiveGroupIdByMainTabStateSnapshot","patchPrimaryState","setCurrentMainTabState","setActiveGroupIdState","setActiveGroupIdByMainTabState","getActiveGroupNameSnapshot"]
+            }
+        });
+        function createProxyAccessorService(kind, accessorDeps = {}) {
+            const spec = ACCESSOR_SPECS[kind];
+            const { [spec.moduleKey]: proxiesModule, ...forwardDeps } = accessorDeps;
+            return Object.freeze({
+                ...serviceInvokeUtils.createRequiredModuleService(
+                    proxiesModule,
+                    spec.moduleName,
+                    forwardDeps,
+                    spec.requiredMethods,
+                    spec.invalidMessage
+                )
+            });
+        }
 
         const {
             parseDateTimePartsViaRuntimeStateHelpers,
@@ -90,7 +109,7 @@
             ])
         });
 
-        const mainRuntimeStateHelperAccessorService = createAccessorService({
+        const mainRuntimeStateHelperAccessorService = createProxyAccessorService("StateHelper", {
             ...pickDeps([
                 "runtimeStateHelperAccessorProxiesModule"
             ]),

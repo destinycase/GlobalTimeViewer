@@ -22,12 +22,9 @@ js/modules/main-runtime-primary-state-accessor-proxies.js
 js/modules/main-runtime-service-bridge-helpers.js
 js/modules/main-runtime-service-bridge-accessor-proxies.js
 js/modules/main-runtime-ui-bridge-accessor-proxies.js
-js/modules/main-runtime-ui-bridge-accessor-bindings.js
 js/modules/main-runtime-operation-accessor-proxies.js
-js/modules/main-runtime-operation-accessor-bindings.js
 js/modules/main-runtime-public-api-bindings.js
 js/modules/main-runtime-bootstrap-accessor-proxies.js
-js/modules/main-runtime-bootstrap-accessor-bindings.js
 js/modules/main-runtime-core-accessor-proxies.js
 js/modules/main-runtime-state-patch-accessor-proxies.js
 js/modules/main-runtime-patched-state-fallback.js
@@ -38,7 +35,6 @@ js/modules/main-runtime-timezone-helpers.js
 js/modules/main-runtime-state-helpers.js
 js/modules/main-runtime-state-helper-aliases.js
 js/modules/main-runtime-state-helper-accessor-proxies.js
-js/modules/main-runtime-state-helper-accessor-bindings.js
 js/modules/main-runtime-state-helper-bootstrap.js
 js/modules/main-runtime-reference-accessors.js
 js/modules/main-state-domain-wrapper-bridge.js

@@ -70,16 +70,52 @@
             ...pickDeps("showFatalError")
         });
 
-        const createRuntimeUiBridgeAccessorService = requireDepMethod("runtimeUiBridgeAccessorBindings");
-        const createRuntimeOperationAccessorService = requireDepMethod("runtimeOperationAccessorBindings");
+        const serviceInvokeUtils = globalObj?.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils;
+        if (!serviceInvokeUtils || typeof serviceInvokeUtils.createRequiredModuleService !== "function") {
+            throw new Error("Missing required module API: GTVServiceInvokeUtils.createRequiredModuleService");
+        }
+        // Accessor proxy services are created directly (formerly one *-bindings module each) and
+        // exposed as frozen copies, as the bindings did. The proxies module key is not forwarded.
+        const ACCESSOR_SPECS = Object.freeze({
+            UiBridge: {
+                moduleKey: "runtimeUiBridgeAccessorProxiesModule",
+                moduleName: "GTVMainRuntimeUiBridgeAccessorProxies",
+                invalidMessage: "Invalid main runtime UI bridge accessor proxies service",
+                requiredMethods: ["showFatalError","showToast","switchMainTab","refreshOptionToggleDividers","getCopyFieldLabel","getTimePartLabel","getDisplayColumns","getDisplayTimeInputMode","buildRowActionCells","renderList","renderTimelineFrame","resolveFixedTimeSlotUtcDate","getFixedTimeSlotHeaderLabel","renderFixedTimeTab"]
+            },
+            Operation: {
+                moduleKey: "runtimeOperationAccessorProxiesModule",
+                moduleName: "GTVMainRuntimeOperationAccessorProxies",
+                invalidMessage: "Invalid main runtime operation accessor proxies service",
+                requiredMethods: ["updateClocks","resolveLocalDatePartsByTimezoneAtDate","resolveLocalDatePartsByTimezone","buildStrictUtcDateFromParts","handleTimeChange","handleMultiRangeTimeChange","formatTimeTextByParts","formatSnapshotText","initCalculators","copyText","getPersistenceSnapshot","sanitizeGroup","loadPersistence"]
+            },
+            Bootstrap: {
+                moduleKey: "runtimeBootstrapAccessorProxiesModule",
+                moduleName: "GTVMainRuntimeBootstrapAccessorProxies",
+                invalidMessage: "Invalid main runtime bootstrap accessor proxies service",
+                requiredMethods: ["initApp","startBootstrapOnDomReady"]
+            }
+        });
+        function createProxyAccessorService(kind, accessorDeps = {}) {
+            const spec = ACCESSOR_SPECS[kind];
+            const { [spec.moduleKey]: proxiesModule, ...forwardDeps } = accessorDeps;
+            return Object.freeze({
+                ...serviceInvokeUtils.createRequiredModuleService(
+                    proxiesModule,
+                    spec.moduleName,
+                    forwardDeps,
+                    spec.requiredMethods,
+                    spec.invalidMessage
+                )
+            });
+        }
         const createRuntimePublicApiService = requireDepMethod("runtimePublicApiBindings");
-        const createRuntimeBootstrapAccessorService = requireDepMethod("runtimeBootstrapAccessorBindings");
         const createMainAppBootstrapService = requireDepMethod(
             "mainCoreServices",
             "createMainAppBootstrapService"
         );
 
-        const mainRuntimeUiBridgeAccessorService = createRuntimeUiBridgeAccessorService(pickDeps(
+        const mainRuntimeUiBridgeAccessorService = createProxyAccessorService("UiBridge", pickDeps(
             "runtimeUiBridgeAccessorProxiesModule",
             "callServiceMethod",
             "getAppFeedbackService",
@@ -96,7 +132,7 @@
             "consoleError"
         ));
 
-        const mainRuntimeOperationAccessorService = createRuntimeOperationAccessorService(pickDeps(
+        const mainRuntimeOperationAccessorService = createProxyAccessorService("Operation", pickDeps(
             "runtimeOperationAccessorProxiesModule",
             "callServiceMethod",
             "getMainOrchestrationFlowServices",
@@ -124,7 +160,7 @@
         const mainAppBootstrapService = createMainAppBootstrapService(mainAppBootstrapConfig);
         setOptionalService("setMainAppBootstrapService", mainAppBootstrapService);
 
-        mainRuntimeBootstrapAccessorService = createRuntimeBootstrapAccessorService({
+        mainRuntimeBootstrapAccessorService = createProxyAccessorService("Bootstrap", {
             ...pickDeps("runtimeBootstrapAccessorProxiesModule", "getDocumentRefOrNull"),
             getMainAppBootstrapService: resolveOptionalGetter(
                 "getMainAppBootstrapService",

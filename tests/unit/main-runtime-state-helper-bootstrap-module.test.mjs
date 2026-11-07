@@ -83,16 +83,18 @@ describe("GTV main runtime state helper bootstrap module", () => {
     it("wires alias/accessor bindings and returns frozen accessor service container", () => {
         const moduleApi = loadMainRuntimeStateHelperBootstrapModule();
         const aliasService = buildAliasService();
-        const accessorService = { parseDateTimeParts: vi.fn(() => "ok") };
+        const accessorService = ["parseDateTimeParts","getTimeAdjustDayStepBySlotSnapshot","setTimeAdjustDayStepBySlotState","updateTimeAdjustPanelSafely","getUTCRef","getCurrentGroup","getCurrentGroupZones","getCurrentGroupBaseTimezoneId","getBaseTimezoneRef","ensureBaseTimezoneSelection","formatUtcOffsetLabel","normalizeCustomAbbr","getCurrentMultiRangeStateSnapshot","getGroupsStateSnapshot","getActiveGroupIdByMainTabStateSnapshot","patchPrimaryState","setCurrentMainTabState","setActiveGroupIdState","setActiveGroupIdByMainTabState","getActiveGroupNameSnapshot"].reduce((acc, methodName) => {
+            acc[methodName] = vi.fn(() => methodName);
+            return acc;
+        }, {});
         const aliasesCreateService = vi.fn(() => aliasService);
         const accessorCreateService = vi.fn(() => accessorService);
 
         const service = moduleApi.createService({
             runtimeStateHelperAliasesBindings: { createService: aliasesCreateService },
-            runtimeStateHelperAccessorBindings: { createService: accessorCreateService },
             runtimeStateHelperAliasesModule: { kind: "aliases-module" },
             runtimeStateHelpersModule: { kind: "helpers-module" },
-            runtimeStateHelperAccessorProxiesModule: { kind: "accessor-proxies-module" },
+            runtimeStateHelperAccessorProxiesModule: { createService: accessorCreateService },
             getMainSharedUtilsService: () => ({}),
             getPatchedTimeAdjustDayStepBySlotState: () => [],
             getPatchAppState: () => undefined,
@@ -115,12 +117,10 @@ describe("GTV main runtime state helper bootstrap module", () => {
 
         expect(aliasesCreateService).toHaveBeenCalledTimes(1);
         expect(accessorCreateService).toHaveBeenCalledTimes(1);
-        expect(accessorCreateService.mock.calls[0][0]).toEqual(
-            expect.objectContaining({
-                runtimeStateHelperAccessorProxiesModule: { kind: "accessor-proxies-module" }
-            })
-        );
-        expect(service.mainRuntimeStateHelperAccessorService).toBe(accessorService);
+        expect(accessorCreateService.mock.calls[0][0]).not.toHaveProperty("runtimeStateHelperAccessorProxiesModule");
+        expect(typeof accessorCreateService.mock.calls[0][0].getParseDateTimePartsViaRuntimeStateHelpers).toBe("function");
+        expect(service.mainRuntimeStateHelperAccessorService).toEqual(accessorService);
+        expect(Object.isFrozen(service.mainRuntimeStateHelperAccessorService)).toBe(true);
         expect(Object.isFrozen(service)).toBe(true);
     });
 
@@ -131,10 +131,13 @@ describe("GTV main runtime state helper bootstrap module", () => {
             "Missing required dependency: runtimeStateHelperAliasesBindings"
         );
         expect(() => moduleApi.createService({
-            runtimeStateHelperAliasesBindings: {},
-            runtimeStateHelperAccessorBindings: {}
+            runtimeStateHelperAliasesBindings: {}
         })).toThrow(
             "Missing required dependency: runtimeStateHelperAliasesBindings.createService"
         );
+        expect(() => moduleApi.createService({
+            runtimeStateHelperAliasesBindings: { createService: () => buildAliasService() },
+            runtimeStateHelperAccessorProxiesModule: { createService: () => ({ parseDateTimeParts: () => "x" }) }
+        })).toThrow("Invalid main runtime state helper accessor proxies service");
     });
 });
