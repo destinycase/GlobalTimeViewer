@@ -168,12 +168,15 @@ describe("GTV data transfer module", () => {
     it("shows storage save failed toast when group import cannot persist", async () => {
         const loaded = loadDataTransferModule();
         const toasts = [];
-        const service = loaded.module.createService(createBaseDeps({
+        let renderCount = 0;
+        const deps = createBaseDeps({
             savePersistence: async () => false,
+            renderList: () => { renderCount += 1; },
             showToast(message) {
                 toasts.push(message);
             }
-        }));
+        });
+        const service = loaded.module.createService(deps);
         const input = {
             value: "selected",
             files: [{
@@ -194,17 +197,20 @@ describe("GTV data transfer module", () => {
 
         expect(toasts).toContain("toast_storage_save_failed");
         expect(input.value).toBe("");
+        expect(deps.getGroups()[0].name).toBe("Group A");
+        expect(renderCount).toBeGreaterThan(0);
     });
 
     it("shows storage save failed toast when subgroup import cannot persist", async () => {
         const loaded = loadDataTransferModule();
         const toasts = [];
-        const service = loaded.module.createService(createBaseDeps({
+        const deps = createBaseDeps({
             savePersistence: async () => false,
             showToast(message) {
                 toasts.push(message);
             }
-        }));
+        });
+        const service = loaded.module.createService(deps);
         const input = {
             value: "selected",
             files: [{
@@ -229,6 +235,7 @@ describe("GTV data transfer module", () => {
 
         expect(toasts).toContain("toast_storage_save_failed");
         expect(input.value).toBe("");
+        expect(deps.getGroups()[0].multiSubgroups[0].name).toBe("Subgroup 1");
     });
 
     it("clears pending group import state when no file is selected", async () => {

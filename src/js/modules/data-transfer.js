@@ -291,12 +291,24 @@
             }
             deps.ensureGroupMultiSubgroups(sanitized);
             deps.syncCurrentMultiStateToActiveSubgroup();
+            const previousGroup = groups[safeIdx];
+            const isActiveGroup = deps.getActiveGroupId() === safeIdx;
             groups[safeIdx] = sanitized;
+            if (isActiveGroup) deps.loadCurrentMultiStateFromActiveSubgroup();
 
-            if (deps.getActiveGroupId() === safeIdx) {
-                deps.loadCurrentMultiStateFromActiveSubgroup();
+            try {
+                await ensurePersistenceSaved();
+            } catch (err) {
+                // Keep the existing group when the import cannot be saved.
+                groups[safeIdx] = previousGroup;
+                if (isActiveGroup) deps.loadCurrentMultiStateFromActiveSubgroup();
+                throw err;
+            } finally {
+                renderAfterImport();
             }
-            await ensurePersistenceSaved();
+        }
+
+        function renderAfterImport() {
             deps.renderGroups();
             deps.renderMultiSubgroups();
             if (deps.isMultiTab()) {
@@ -337,6 +349,7 @@
 
             const normalizedState = deps.sanitizeMultiStatePayload(source, null);
             deps.syncCurrentMultiStateToActiveSubgroup();
+            const previousSubgroup = { ...targetSubgroup };
             targetSubgroup.name = deps.sanitizeMultiSubgroupName(source.name, targetSubgroup.name || deps.getDefaultMultiSubgroupName(0));
             targetSubgroup.multiRangeCount = normalizedState.multiRangeCount;
             targetSubgroup.multiRanges = normalizedState.multiRanges;
@@ -344,17 +357,19 @@
             targetSubgroup.multiRangeStartEditEnabled = normalizedState.multiRangeStartEditEnabled;
             targetSubgroup.multiRangeEndEditEnabled = normalizedState.multiRangeEndEditEnabled;
 
-            if (deps.getActiveGroupId() === safeGroupIdx && targetGroup.activeMultiSubgroupId === targetSubgroup.id) {
-                deps.loadCurrentMultiStateFromActiveSubgroup();
-            }
-            await ensurePersistenceSaved();
-            deps.renderGroups();
-            deps.renderMultiSubgroups();
-            if (deps.isMultiTab()) {
-                deps.renderBaseTimeSelect();
-                deps.renderMultiRanges();
-            } else {
-                deps.renderList();
+            const isActiveSubgroup = deps.getActiveGroupId() === safeGroupIdx
+                && targetGroup.activeMultiSubgroupId === targetSubgroup.id;
+            if (isActiveSubgroup) deps.loadCurrentMultiStateFromActiveSubgroup();
+
+            try {
+                await ensurePersistenceSaved();
+            } catch (err) {
+                // Keep the existing aux group when the import cannot be saved.
+                Object.assign(targetSubgroup, previousSubgroup);
+                if (isActiveSubgroup) deps.loadCurrentMultiStateFromActiveSubgroup();
+                throw err;
+            } finally {
+                renderAfterImport();
             }
         }
 

@@ -198,11 +198,24 @@
                 : null;
             const anchorDate = isValidDate(offsetAnchor) ? offsetAnchor : tempUTC;
             const fixedOffsetMinutes = dep.getFixedOffsetForDisplayAtDate(zoneRef, anchorDate);
-            const offsetMinutes = Number.isFinite(fixedOffsetMinutes)
-                ? fixedOffsetMinutes
-                : dep.getTimezoneOffset(timezone, tempUTC);
-            if (!Number.isFinite(offsetMinutes)) return null;
-            return new Date(tempUTC.getTime() - (offsetMinutes * 60000));
+            if (Number.isFinite(fixedOffsetMinutes)) {
+                return new Date(tempUTC.getTime() - (fixedOffsetMinutes * 60000));
+            }
+            return resolveZonedWallTimeToUtc(tempUTC, timezone);
+        }
+
+        // tempUTC holds the typed wall-clock time read as UTC. The zone offset must be taken at the
+        // real instant, which differs from tempUTC by the offset itself, so a second lookup corrects
+        // inputs that fall within that distance of a DST transition.
+        function resolveZonedWallTimeToUtc(tempUTC, timezone) {
+            const firstOffset = dep.getTimezoneOffset(timezone, tempUTC);
+            if (!Number.isFinite(firstOffset)) return null;
+            const firstGuessMs = tempUTC.getTime() - (firstOffset * 60000);
+            const secondOffset = dep.getTimezoneOffset(timezone, new Date(firstGuessMs));
+            if (!Number.isFinite(secondOffset) || secondOffset === firstOffset) {
+                return new Date(firstGuessMs);
+            }
+            return new Date(tempUTC.getTime() - (secondOffset * 60000));
         }
 
         function handleTimeChange(val, timezone, slotIdx, timezoneId = null, inputMode = "datetime") {

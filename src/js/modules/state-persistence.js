@@ -599,6 +599,18 @@
             await savePersistence();
         }
 
+        function pickLegacyPersistenceCandidate(chromeSerialized, localSerialized) {
+            const candidate = choosePreferredPersistenceCandidate(
+                parseSerializedPersistencePayload(chromeSerialized, "chrome-legacy"),
+                parseSerializedPersistencePayload(localSerialized, "local-legacy")
+            );
+            if (candidate) return { serialized: candidate.serialized, candidate };
+            const rawFallback = (typeof chromeSerialized === "string" && chromeSerialized)
+                ? chromeSerialized
+                : localSerialized;
+            return rawFallback ? { serialized: rawFallback, candidate: null } : null;
+        }
+
         async function loadPersistence() {
             let serialized = null;
             let selectedCandidate = null;
@@ -633,11 +645,27 @@
                 ? explicitLegacyFallbackReadKeys
                 : legacyStorageKeys;
             const dedupedLegacyReadKeys = [...new Set(legacyReadKeys)];
+            let loadedFromLegacyKey = false;
             if (!serialized) {
+                // Versions before the current storage key saved through chrome.storage.local first
+                // and localStorage only as a fallback, so each legacy key is read from both stores.
+                // chrome.storage is awaited only when present, keeping the localStorage-only path synchronous.
+                const legacyChromeStorage = getChromeStorageLocal();
                 for (const key of dedupedLegacyReadKeys) {
-                    const legacy = safeLocalStorageGet(key);
-                    if (legacy) {
-                        serialized = legacy;
+                    let chromeSerialized = null;
+                    if (legacyChromeStorage && typeof legacyChromeStorage.get === "function") {
+                        try {
+                            const data = await legacyChromeStorage.get(key);
+                            chromeSerialized = data?.[key] ?? null;
+                        } catch (err) {
+                            logger.warn(`chrome.storage.get("${key}") failed while reading legacy data.`, err);
+                        }
+                    }
+                    const legacyCandidate = pickLegacyPersistenceCandidate(chromeSerialized, safeLocalStorageGet(key));
+                    if (legacyCandidate) {
+                        serialized = legacyCandidate.serialized;
+                        selectedCandidate = legacyCandidate.candidate;
+                        loadedFromLegacyKey = true;
                         break;
                     }
                 }
@@ -672,7 +700,10 @@
                     sanitizePersistenceRevision(selectedCandidate?.revision)
                 );
 
-                if (selectedCandidate?.source === "local" && hasChromeStorage()) {
+                if (loadedFromLegacyKey) {
+                    // Copy migrated data to the current key; the legacy key is kept as a backup.
+                    await savePersistence({ suppressToast: true });
+                } else if (selectedCandidate?.source === "local" && hasChromeStorage()) {
                     void setStorageValue(storageKey, selectedCandidate.serialized, { suppressToast: true });
                 }
             } catch (err) {

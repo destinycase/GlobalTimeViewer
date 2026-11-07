@@ -193,6 +193,32 @@ describe("GTV time input mutations module", () => {
         expect(updateCount).toBe(3);
     });
 
+    it("handleTimeChange uses the offset at the real instant right before a DST change", () => {
+        const module = loadTimeInputMutationsModule();
+        // Europe/Berlin 2026-03-29: CET (+60) until 01:00Z, CEST (+120) afterwards.
+        const transitionMs = Date.UTC(2026, 2, 29, 1, 0, 0);
+        const berlinOffset = (_zone, date) => (date.getTime() >= transitionMs ? 120 : 60);
+        const globalTimes = [new Date(Date.UTC(2026, 2, 1, 0, 0, 0))];
+        const service = module.createService({
+            isRealtime: () => false,
+            parseDateTimeParts: parsePartsByMode,
+            buildStrictUtcDateFromParts: buildUtcDateFromParts,
+            getGlobalTime: () => globalTimes[0],
+            getFixedOffsetForDisplayAtDate: () => null,
+            getTimezoneOffset: berlinOffset,
+            setGlobalTime: (_idx, value) => { globalTimes[0] = value; },
+            updateClocks: () => {},
+            t: (key) => key,
+            showToast: () => {}
+        });
+
+        service.handleTimeChange("2026-03-29 01:30:00", "Europe/Berlin", 0, null, "datetime");
+        expect(globalTimes[0].toISOString()).toBe("2026-03-29T00:30:00.000Z");
+
+        service.handleTimeChange("2026-03-29 04:00:00", "Europe/Berlin", 0, null, "datetime");
+        expect(globalTimes[0].toISOString()).toBe("2026-03-29T02:00:00.000Z");
+    });
+
     it("handleTimeChange handles custom offsets and invalid standard offsets", () => {
         const module = loadTimeInputMutationsModule();
         const zones = [{ id: "custom-1" }];

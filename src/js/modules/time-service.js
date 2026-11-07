@@ -83,11 +83,9 @@
                     const offset = getCustomOffsetMinutes(fixedOffsetMinutes);
                     return dt.toUTC().plus({ minutes: offset });
                 }
-                try {
-                    return dt.setZone(zone || "UTC");
-                } catch (_err) {
-                    return dt.setZone("UTC");
-                }
+                // Luxon returns an invalid DateTime (it does not throw) for an unsupported zone.
+                const zoned = dt.setZone(zone || "UTC");
+                return zoned.isValid ? zoned : dt.setZone("UTC");
             }
             return toFallbackDateTime(date, zone, fixedOffsetMinutes);
         }
@@ -171,8 +169,10 @@
             let m = 0;
 
             if (hasLuxonDateTime()) {
-                const start = DateTime.fromMillis(safeStartMs);
-                const end = DateTime.fromMillis(safeEndMs);
+                // Diff from the earlier to the later instant so every component is positive and
+                // flooring truncates the same way for negative spans.
+                const start = DateTime.fromMillis(Math.min(safeStartMs, safeEndMs));
+                const end = DateTime.fromMillis(Math.max(safeStartMs, safeEndMs));
                 const diff = end.diff(start, ["days", "hours", "minutes"]).toObject();
                 d = Math.abs(Math.floor(diff.days || 0));
                 h = Math.abs(Math.floor(diff.hours || 0));
@@ -318,11 +318,10 @@
                     const offset = getCustomOffsetMinutes(fixedOffsetMinutes);
                     return DateTime.fromObject(safeParts, { zone: "UTC" }).minus({ minutes: offset }).toJSDate();
                 }
-                try {
-                    return DateTime.fromObject(safeParts, { zone }).toUTC().toJSDate();
-                } catch (_err) {
-                    return DateTime.fromObject(safeParts, { zone: "UTC" }).toJSDate();
-                }
+                const zoned = DateTime.fromObject(safeParts, { zone });
+                if (zoned.isValid) return zoned.toUTC().toJSDate();
+                // Unsupported zone (Luxon does not throw): interpret the parts as UTC instead.
+                return DateTime.fromObject(safeParts, { zone: "UTC" }).toJSDate();
             }
 
             const utcMs = Date.UTC(

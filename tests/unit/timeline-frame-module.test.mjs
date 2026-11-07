@@ -828,6 +828,87 @@ describe("GTV timeline frame module", () => {
         expect(saveCalls).toBe(0);
     });
 
+    it("fixed-time drag saves moved slots when the pointer is cancelled", () => {
+        const windowEvents = createEventTarget();
+        const appliedRatios = [];
+        let saveCalls = 0;
+        const documentStub = {
+            createElement() {
+                return createMockElement(documentStub);
+            },
+            getElementById() {
+                return null;
+            }
+        };
+        const frame = createMockElement(documentStub);
+        const module = loadTimelineFrameModule({ window: windowEvents });
+        const service = module.createService({
+            requestUiFrame: (cb) => { cb(); return 1; },
+            cancelUiFrame: () => { },
+            getTimelineFrameElement: () => frame,
+            getShowTimeline: () => true,
+            getCurrentMainTab: () => "fixed-time",
+            isMultiTab: () => false,
+            isFixedTimeTab: () => true,
+            getIsRealtime: () => false,
+            getGlobalTime: () => new Date(Date.UTC(2026, 2, 26, 0, 0, 0)),
+            getFixedTimeTimelineSlots: () => [{ id: "s1" }],
+            getFixedTimeTimelineSlotCount: () => 1,
+            getFixedTimeSlotTimelineLabel: (_slot, idx) => `S${idx + 1}`,
+            getFixedTimeTimelineIndicatorToken: () => "token",
+            applyFixedTimeSlotTimelineRatio: (_slotIdx, ratio) => { appliedRatios.push(ratio); return true; },
+            renderFixedTimeTab: () => { },
+            getBaseTimezoneRef: () => ({ id: "utc", zone: "UTC", type: "standard" }),
+            getCurrentGroupZones: () => [],
+            isCurrentGroupUtcRowVisible: () => false,
+            getCurrentGroupUtcRowOrder: () => 0,
+            getUTCRef: () => ({ id: "utc", zone: "UTC", type: "standard" }),
+            getZoneDisplayName: () => "UTC",
+            getFixedOffsetForDisplayAtDate: () => 0,
+            getLocalPartsByTimezone: (dateObj) => ({
+                year: dateObj.getUTCFullYear(),
+                month: dateObj.getUTCMonth() + 1,
+                day: dateObj.getUTCDate(),
+                hour: dateObj.getUTCHours(),
+                minute: dateObj.getUTCMinutes(),
+                second: dateObj.getUTCSeconds()
+            }),
+            getUTCDateFromLocalParts: (parts) => new Date(Date.UTC(
+                Number(parts?.year || 1970),
+                Number(parts?.month || 1) - 1,
+                Number(parts?.day || 1),
+                Number(parts?.hour || 0),
+                Number(parts?.minute || 0),
+                Number(parts?.second || 0)
+            )),
+            getDayNightMarkerByHour: (hour) => (Number(hour) >= 6 && Number(hour) < 18 ? "DAY" : "NIGHT"),
+            t: (key) => key,
+            getCurrentLang: () => "en",
+            getCurrentTheme: () => "dark",
+            updateClocks: () => { },
+            savePersistence: () => { saveCalls += 1; }
+        });
+
+        service.renderTimelineFrame();
+        const indicator = frame.querySelector(".fixed-slot");
+        expect(indicator).toBeTruthy();
+
+        indicator.dispatch("pointerdown", {
+            pointerType: "touch",
+            isPrimary: true,
+            button: 0,
+            pointerId: 21,
+            clientX: 120,
+            preventDefault() { }
+        });
+        windowEvents.dispatch("pointermove", { pointerId: 21, clientX: 240, preventDefault() { } });
+        expect(appliedRatios.length).toBeGreaterThan(0);
+        expect(saveCalls).toBe(0);
+
+        windowEvents.dispatch("pointercancel", { pointerId: 21 });
+        expect(saveCalls).toBe(1);
+    });
+
     it("shouldRenderTimeline handles unsupported and fallback tab values", () => {
         const module = loadTimelineFrameModule();
         const unsupported = module.createService({

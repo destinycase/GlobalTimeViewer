@@ -568,6 +568,58 @@ describe("GTV state persistence module", () => {
         expect(appliedState.groups[0].name).toBe("Legacy Via Main Keys");
     });
 
+    it("loadPersistence migrates legacy data stored only in chrome.storage.local", async () => {
+        const legacyPayload = JSON.stringify({
+            groups: [{
+                name: "Chrome Legacy Only",
+                zones: [],
+                baseTimezoneId: "utc",
+                showUtcRow: true,
+                utcRowOrder: 0
+            }],
+            activeGroupId: 0,
+            currentMainTab: "live",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 },
+            slotCount: 1
+        });
+        const chromeData = { GTV_v323_Data: legacyPayload };
+        const localStorage = createLocalStorageStub();
+        let appliedState = null;
+        const loaded = loadStatePersistenceModule({
+            localStorage,
+            chrome: {
+                storage: {
+                    local: {
+                        async get(key) {
+                            return { [key]: chromeData[key] };
+                        },
+                        async set(payload) {
+                            Object.assign(chromeData, payload);
+                        }
+                    }
+                }
+            }
+        });
+        const service = loaded.module.createService(createBaseDeps({
+            LEGACY_STORAGE_KEYS: ["GTV_v323_Data"],
+            LEGACY_STORAGE_FALLBACK_KEYS: ["GTV_v323_Data"],
+            setState(next) {
+                appliedState = next;
+            },
+            getPersistenceSnapshot() {
+                return { groups: appliedState?.groups || [] };
+            }
+        }));
+
+        await service.loadPersistence();
+
+        expect(appliedState.groups[0].name).toBe("Chrome Legacy Only");
+        const migrated = unwrapStoredPersistencePayload(chromeData.TEST_STORAGE_KEY);
+        expect(migrated.isEnvelope).toBe(true);
+        expect(migrated.data.groups[0].name).toBe("Chrome Legacy Only");
+        expect(chromeData.GTV_v323_Data).toBe(legacyPayload);
+    });
+
     it("savePersistence serializes writes so latest snapshot wins", async () => {
         let releaseFirstWrite = null;
         const storageData = {};

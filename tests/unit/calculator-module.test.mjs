@@ -574,6 +574,34 @@ test("date shift keeps midnight output across DST boundary in timezone rules", (
     });
 });
 
+test("period swap keeps the typed dates in timezones behind UTC", () => {
+    withTimezone("America/New_York", () => {
+        const { sandbox, elements } = createCalculatorContext();
+        sandbox.GTVCalculator.initCalculators({ t: createTranslator(), copyText: async () => { } });
+
+        elements.periodStart.value = "2026-05-10";
+        elements.periodEnd.value = "2026-05-20";
+        elements.periodStart.dispatch("input");
+        elements.periodSwapBtn.click();
+
+        expect(elements.periodStart.value).toBe("2026-05-20");
+        expect(elements.periodEnd.value).toBe("2026-05-10");
+        expect(elements.periodRes.textContent).toBe("-10d");
+    });
+});
+
+test("period calculation keeps years below 100 as entered", () => {
+    const { sandbox, elements } = createCalculatorContext();
+    sandbox.GTVCalculator.initCalculators({ t: createTranslator(), copyText: async () => { } });
+
+    elements.periodStart.value = "0050-01-01";
+    elements.periodEnd.value = "0050-01-11";
+    elements.periodStart.dispatch("input");
+
+    expect(elements.periodStart.getAttribute("aria-invalid")).toBe(null);
+    expect(elements.periodRes.textContent).toBe("10d");
+});
+
 test("unix converter performs bidirectional conversion", () => {
     const { sandbox, elements } = createCalculatorContext();
     sandbox.GTVCalculator.initCalculators({

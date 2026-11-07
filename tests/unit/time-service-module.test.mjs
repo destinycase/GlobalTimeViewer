@@ -62,6 +62,36 @@ test("formatDuration renders Korean label correctly", () => {
     expect(service.formatDuration(startMs, endMs, "ko")).toBe("1일 2시간 3분");
 });
 
+test("formatDuration truncates negative spans the same way as positive spans", () => {
+    const service = createService({ luxon: { DateTime } });
+    const laterMs = Date.parse("2026-01-01T10:00:30Z");
+    const earlierMs = Date.parse("2026-01-01T10:00:00Z");
+    expect(service.formatDuration(earlierMs, laterMs, "en")).toBe("0d 0h 0m");
+    expect(service.formatDuration(laterMs, earlierMs, "en")).toBe("-0d 0h 0m");
+    expect(service.formatDuration(
+        Date.parse("2026-01-02T02:03:40Z"),
+        Date.parse("2026-01-01T00:00:00Z"),
+        "en"
+    )).toBe("-1d 2h 3m");
+});
+
+test("unsupported zones fall back to UTC instead of invalid dates", () => {
+    const service = createService({ luxon: { DateTime } });
+    const instant = new Date("2026-03-03T12:34:56Z");
+
+    const parts = service.resolveLocalDateParts(instant, "Not/AZone");
+    expect(parts).toEqual({ Y: 2026, M: 3, D: 3, H: 12, min: 34, S: 56 });
+
+    const adjusted = service.adjustDate(instant, "sharp_hour", "Not/AZone");
+    expect(adjusted.toISOString()).toBe("2026-03-03T12:00:00.000Z");
+
+    const utc = service.fromLocalPartsToUtc(
+        { year: 2026, month: 3, day: 3, hour: 1, minute: 2, second: 3 },
+        "Not/AZone"
+    );
+    expect(utc.toISOString()).toBe("2026-03-03T01:02:03.000Z");
+});
+
 test("getDaySpan returns null on invalid inputs", () => {
     const service = createService({ luxon: { DateTime } });
     expect(service.getDaySpan(null, "2026-01-01")).toBe(null);

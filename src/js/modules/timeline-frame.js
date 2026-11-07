@@ -434,6 +434,10 @@
                 state.onPointerCancel = (cancelEvent) => {
                     if (cancelEvent.pointerId !== state.pointerId) return;
                     stopTimelineDrag();
+                    // Moves already applied during the drag (persist:false) must not stay unsaved.
+                    if (state.lastRatio !== null && isFixedTimeTab()) {
+                        dep.savePersistence();
+                    }
                 };
 
                 state.onPointerUp = (upEvent) => {

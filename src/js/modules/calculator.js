@@ -189,7 +189,10 @@
         const h = Number(hour);
         const min = Number(minute);
         const sec = Number(second);
-        const built = new Date(Date.UTC(y, m - 1, d, h, min, sec, 0));
+        // Date.UTC remaps years 0–99 to 1900–1999; setUTCFullYear keeps the entered year.
+        const built = new Date(0);
+        built.setUTCFullYear(y, m - 1, d);
+        built.setUTCHours(h, min, sec, 0);
         if (Number.isNaN(built.getTime())) return null;
         if (
             built.getUTCFullYear() !== y ||
@@ -946,29 +949,8 @@
         applyPicker(offsetStart, "offset-start-trigger");
 
         // 湲곌컙 怨꾩궛?? UTC ?먯젙?쇰줈 ?뚯떛 (DST 寃쎄퀎 ?ㅻ쪟 諛⑹?)
-        const getPickerDateUtc = (el) => {
-            // The input is authoritative so manual edits are not masked by a stale picker selection.
-            const val = String(el.value || "").trim();
-            if (val) {
-                const match = val.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-                if (!match) return null;
-                const y = Number(match[1]);
-                const month = Number(match[2]) - 1;
-                const day = Number(match[3]);
-                // Date.UTC remaps years 0–99 to 1900–1999; setUTCFullYear preserves the entered year.
-                const candidate = new Date(0);
-                candidate.setUTCHours(0, 0, 0, 0);
-                candidate.setUTCFullYear(y, month, day);
-                if (
-                    !Number.isFinite(candidate.getTime())
-                    || candidate.getUTCFullYear() !== y
-                    || candidate.getUTCMonth() !== month
-                    || candidate.getUTCDate() !== day
-                ) return null;
-                return candidate;
-            }
-            return null;
-        };
+        // The input is authoritative so manual edits are not masked by a stale picker selection.
+        const getPickerDateUtc = (el) => parseUtcDateOnlyString(el.value);
 
         // 湲곌컙 怨꾩궛怨??ㅽ봽??怨꾩궛?먯꽌 ?숈씪??UTC ?좎쭨 ?뚯떛 濡쒖쭅???ъ궗?⑺븳??
         const today = new Date();
@@ -1062,23 +1044,19 @@
         }
 
         if (periodSwapBtn) {
+            // Swap the typed date text. The date picker works in local time, so it receives a
+            // local-midnight date built from the same text (never the UTC-midnight calculation date).
+            const setSwappedDateValue = (el, value) => {
+                const localDate = parseLocalDateOnlyString(value);
+                if (el._cdp && localDate) el._cdp.setDate(localDate);
+                else el.value = value;
+            };
             periodSwapBtn.addEventListener("click", () => {
-                // CDP ?곹깭源뚯? 怨좊젮??援먰솚(Swap) 濡쒖쭅??蹂댁셿
-                const startD = getPickerDateUtc(periodStart);
-                const endD = getPickerDateUtc(periodEnd);
-                if (startD && endD) {
-                    if (periodStart._cdp) periodStart._cdp.setDate(endD);
-                    else periodStart.value = formatDateOnly(endD, padFn);
-                    if (periodEnd._cdp) periodEnd._cdp.setDate(startD);
-                    else periodEnd.value = formatDateOnly(startD, padFn);
-                    updateAll();
-                } else {
-                    // ?대갚: 媛믩쭔 援먯껜
-                    const startValue = periodStart.value;
-                    periodStart.value = periodEnd.value;
-                    periodEnd.value = startValue;
-                    updateAll();
-                }
+                const startValue = String(periodStart.value || "").trim();
+                const endValue = String(periodEnd.value || "").trim();
+                setSwappedDateValue(periodStart, endValue);
+                setSwappedDateValue(periodEnd, startValue);
+                updateAll();
             });
         }
 
