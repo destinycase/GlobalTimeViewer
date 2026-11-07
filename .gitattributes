@@ -1,14 +1,27 @@
-* text=auto
-.gitattributes text eol=lf
-*.md text eol=lf
+# Keep checkout and index text independent of the user's core.autocrlf setting.
+* text=auto eol=lf
+
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
 *.json text eol=lf
 *.css text eol=lf
 *.html text eol=lf
-*.mjs text eol=lf
-*.js text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.txt text eol=lf
+*.tmp text eol=lf
+*.svg text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.editorconfig text eol=lf
+LICENSE text eol=lf
 
-# Windows build script
-*.ps1 text eol=crlf
-
-# Legacy CRLF entrypoints kept stable to avoid one-shot massive churn
-main.js text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.zip binary
