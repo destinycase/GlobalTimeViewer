@@ -39,7 +39,6 @@ js/modules/main-runtime-local-state-accessor-proxies.js
 js/modules/main-runtime-local-state-accessor-bindings.js
 js/modules/main-runtime-bridge-proxies.js
 js/modules/main-runtime-timezone-helpers.js
-js/modules/main-runtime-timezone-helper-bindings.js
 js/modules/main-runtime-state-helpers.js
 js/modules/main-runtime-state-helper-aliases.js
 js/modules/main-runtime-state-helper-accessor-proxies.js
@@ -57,9 +56,7 @@ js/modules/main-format-profile-facade-bindings.js
 js/modules/main-core-service-bindings.js
 js/modules/main-foundation-service-bindings.js
 js/modules/main-composition-config-builder.js
-js/modules/main-composition-config-builder-bindings.js
 js/modules/main-core-assembly-config-builder.js
-js/modules/main-core-assembly-config-builder-bindings.js
 js/modules/main-runtime-state-core-bootstrap.js
 js/modules/main-runtime-core-service-bootstrap.js
 js/modules/main-runtime-core-assembly-bootstrap.js
@@ -76,7 +73,6 @@ js/modules/main-app-state-services.js
 js/modules/main-app-state-bridge.js
 js/modules/main-patched-state-selectors.js
 js/modules/main-patched-state-accessor-proxies.js
-js/modules/main-patched-state-accessor-bindings.js
 js/modules/main-format-profile-facade.js
 js/modules/main-timeline-facade.js
 js/modules/main-fixed-time-facade.js

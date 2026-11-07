@@ -503,7 +503,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         GTV_MAIN_RUNTIME_BRIDGE_PROXIES: "GTVMainRuntimeBridgeProxies",
         GTV_MAIN_RUNTIME_BRIDGE_PROXY_BINDINGS: "GTVMainRuntimeBridgeProxyBindings",
         GTV_MAIN_RUNTIME_TIMEZONE_HELPERS: "GTVMainRuntimeTimezoneHelpers",
-        GTV_MAIN_RUNTIME_TIMEZONE_HELPER_BINDINGS: "GTVMainRuntimeTimezoneHelperBindings",
         GTV_MAIN_RUNTIME_STATE_HELPERS: "GTVMainRuntimeStateHelpers",
         GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES: "GTVMainRuntimeStateHelperAliases",
         GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES_BINDINGS: "GTVMainRuntimeStateHelperAliasesBindings",
@@ -523,13 +522,10 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         GTV_MAIN_FACADE_BRIDGE: "GTVMainFacadeBridge",
         GTV_MAIN_FACADE_BRIDGE_BINDINGS: "GTVMainFacadeBridgeBindings",
         GTV_MAIN_COMPOSITION_CONFIG_BUILDER: "GTVMainCompositionConfigBuilder",
-        GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS: "GTVMainCompositionConfigBuilderBindings",
         GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER: "GTVMainCoreAssemblyConfigBuilder",
-        GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS: "GTVMainCoreAssemblyConfigBuilderBindings",
         GTV_MAIN_CORE_SERVICE_BINDINGS: "GTVMainCoreServiceBindings",
         GTV_MAIN_FOUNDATION_SERVICE_BINDINGS: "GTVMainFoundationServiceBindings",
-        GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES: "GTVMainPatchedStateAccessorProxies",
-        GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS: "GTVMainPatchedStateAccessorBindings"
+        GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES: "GTVMainPatchedStateAccessorProxies"
     });
     const REQUIRED_BOOTSTRAP_SPECS = Object.freeze([
         { serviceName: "persistenceService", methodName: "loadPersistence" },

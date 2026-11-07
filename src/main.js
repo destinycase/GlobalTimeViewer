@@ -385,7 +385,7 @@ const {
     GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS, GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS,
     GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_PROXIES, GTV_MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_BINDINGS,
     GTV_MAIN_FACADE_BINDINGS, GTV_MAIN_RUNTIME_BRIDGE_PROXIES, GTV_MAIN_RUNTIME_BRIDGE_PROXY_BINDINGS,
-    GTV_MAIN_RUNTIME_TIMEZONE_HELPERS, GTV_MAIN_RUNTIME_TIMEZONE_HELPER_BINDINGS,
+    GTV_MAIN_RUNTIME_TIMEZONE_HELPERS,
     GTV_MAIN_RUNTIME_STATE_HELPERS, GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES,
     GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES_BINDINGS, GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_BINDINGS, GTV_MAIN_FORMAT_PROFILE_FACADE_BINDINGS,
@@ -395,10 +395,10 @@ const {
     GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS, GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE,
     GTV_MAIN_STATE_DOMAIN_PROXY_BINDINGS, GTV_MAIN_FACADE_METHOD_BINDER,
     GTV_MAIN_FACADE_BRIDGE, GTV_MAIN_FACADE_BRIDGE_BINDINGS,
-    GTV_MAIN_COMPOSITION_CONFIG_BUILDER, GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS,
-    GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER, GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS,
+    GTV_MAIN_COMPOSITION_CONFIG_BUILDER,
+    GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER,
     GTV_MAIN_CORE_SERVICE_BINDINGS, GTV_MAIN_FOUNDATION_SERVICE_BINDINGS,
-    GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES, GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS,
+    GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES,
     REQUIRED_BOOTSTRAP_SPECS
 } = GTV_MAIN_GLOBAL_BINDINGS.createService({
     globalRef: GTV_GLOBAL
@@ -1011,18 +1011,35 @@ mainStateDomainWrapperGlobalBindingsService.applyBindings(mainStateDomainWrapper
     excludeKeys: ["invokeStateDomainProxy"]
 });
 
-assertBindingCreateService(GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS, "GTVMainCoreAssemblyConfigBuilderBindings");
-const {
-    mainCoreAssemblyConfigBuilderService
-} = GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_BINDINGS.createService({
-    coreAssemblyConfigBuilderModule: GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER
-});
-assertBindingCreateService(GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS, "GTVMainPatchedStateAccessorBindings");
-const mainPatchedStateAccessorService = GTV_MAIN_PATCHED_STATE_ACCESSOR_BINDINGS.createService({
-    patchedStateAccessorProxiesModule: GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES,
-    getMainAppStateBridgeService: () => mainAppStateBridgeService,
-    getMainPatchedStateSelectorsService: () => mainPatchedStateSelectorsService
-});
+const mainCoreAssemblyConfigBuilderService = createRequiredModuleService(
+    GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER,
+    "GTVMainCoreAssemblyConfigBuilder",
+    {},
+    ["buildMainCoreAssemblyConfig"],
+    "Invalid main core assembly config builder service"
+);
+const mainPatchedStateAccessorService = Object.freeze({ ...createRequiredModuleService(
+    GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES,
+    "GTVMainPatchedStateAccessorProxies",
+    {
+        getMainAppStateBridgeService: () => mainAppStateBridgeService,
+        getMainPatchedStateSelectorsService: () => mainPatchedStateSelectorsService
+    },
+    [
+        "getPatchedAppStateSnapshot", "patchAppState", "getPatchedStateValue", "getPatchedIntegerStateValue",
+        "getPatchedBooleanStateValue", "getPatchedStringStateValue", "getPatchedArrayStateValue",
+        "getPatchedObjectStateValue", "getPatchedMainTabState", "getPatchedSlotCountState", "setPatchedSlotCountState",
+        "getPatchedShowCopyFormatState", "setPatchedShowCopyFormatState", "getPatchedShowTimelineState",
+        "setPatchedShowTimelineState", "getPatchedCurrentThemeState", "getPatchedDayStartHourState",
+        "getPatchedNightStartHourState", "getPatchedCurrentLangState", "getPatchedDisplayFormatOrderState",
+        "getPatchedDisplayFormatEnabledState", "getPatchedDisplayTimePartsEnabledState",
+        "getPatchedCopyFormatOrderState", "getPatchedCopyFormatEnabledState", "getPatchedCopyTimePartsEnabledState",
+        "getPatchedActiveFormatProfileContextState", "getPatchedActiveGroupIdState", "getPatchedMultiRangeCountState",
+        "getPatchedMultiRangesState", "getPatchedMultiRangeCollapsedState", "getPatchedTimeAdjustDayStepBySlotState",
+        "getPatchedMultiRangeTitleState"
+    ],
+    "Invalid main patched state accessor proxies service"
+) });
 var {
     getPatchedAppStateSnapshot,
     patchAppState,
@@ -1353,15 +1370,15 @@ var {
     getMainMultiRangeTabFacadeServiceRef
 });
 
-assertBindingCreateService(GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS, "GTVMainCompositionConfigBuilderBindings");
-const {
-    mainCompositionConfigBuilderService
-} = GTV_MAIN_COMPOSITION_CONFIG_BUILDER_BINDINGS.createService({
-    compositionConfigBuilderModule: GTV_MAIN_COMPOSITION_CONFIG_BUILDER
-});
+const mainCompositionConfigBuilderService = createRequiredModuleService(
+    GTV_MAIN_COMPOSITION_CONFIG_BUILDER,
+    "GTVMainCompositionConfigBuilder",
+    {},
+    ["buildPersistenceCompositionConfig", "buildRuntimeCompositionConfig"],
+    "Invalid main composition config builder service"
+);
 
 // --- Shared Core Utilities ---
-assertBindingCreateService(GTV_MAIN_RUNTIME_TIMEZONE_HELPER_BINDINGS, "GTVMainRuntimeTimezoneHelperBindings");
 const {
     prepareExportCanvas,
     drawExportCellText,
@@ -1375,8 +1392,7 @@ const {
     getUTCDateFromLocalParts,
     isCurrentGroupUtcRowVisible,
     getCurrentGroupUtcRowOrder
-} = GTV_MAIN_RUNTIME_TIMEZONE_HELPER_BINDINGS.createService({
-    runtimeTimezoneHelpersModule: GTV_MAIN_RUNTIME_TIMEZONE_HELPERS,
+} = createRequiredModuleService(GTV_MAIN_RUNTIME_TIMEZONE_HELPERS, "GTVMainRuntimeTimezoneHelpers", {
     getMainSharedUtilsService: () => mainSharedUtilsService,
     getTimeService: () => timeService,
     getRuntimeCurrentLangValue,
@@ -1387,7 +1403,7 @@ const {
     getConsoleWarn: () => bindConsoleMethodOrNoop("warn"),
     getNavigatorRef: getNavigatorRefOrGlobal,
     getGroupContextStateService: () => groupContextStateService
-});
+}, [], "Invalid runtime timezone helpers service");
 function getCustomOffsetMinutes(tz) {
     return getCustomOffsetMinutesViaRuntimeHelpers(tz);
 }
