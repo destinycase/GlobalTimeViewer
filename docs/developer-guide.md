@@ -87,7 +87,7 @@
 
 - 핵심 실행 상태는 조립 계층이 소유하고, 각 도메인 서비스에는 필요한 읽기/쓰기 함수가 전달됩니다. 같은 상태의 별도 사본을 UI 모듈에 장기간 보유하면 화면과 저장 데이터가 어긋날 수 있습니다.
 - 앱 상태 patching, 그룹 컨텍스트, 사용자 환경설정, 복사/표시 형식은 각각의 소유 모듈 경로를 통해 변경합니다. 이미 있는 updater/normalizer 경로를 우회해 직접 전역을 바꾸지 마세요.
-- 저장소 접근은 `state-persistence.js`를 중심으로 하며 Chrome 확장 환경에서는 `chrome.storage.local`, 가능한 실행 환경에서는 `localStorage` fallback 경로를 지원합니다. 저장 데이터는 `revision`, `updatedAt`, `data`로 감싸며 두 저장소 중 최신 것을 복원합니다.
+- 저장소 접근은 `state-persistence.js`가 맡습니다. 코드는 `chrome.storage.local`을 먼저 쓰고 `localStorage`로 대체하도록 되어 있지만, `manifest.json`에 `storage` 권한이 없어 확장 화면에서 `chrome.storage`는 정의되지 않습니다. 따라서 **실제 저장 위치는 확장 출처(origin)의 `localStorage`**입니다(실제 Chrome에서 확인). 저장 데이터는 `revision`, `updatedAt`, `data`로 감싸며, 두 저장소를 비교해 최신 것을 고르는 경로는 `storage` 권한이 생겼을 때만 의미가 있습니다.
 - 현재 핵심 데이터 키는 `GTV_v324_Data`이고 구버전 키 목록은 `app-config.js`가 선언합니다. 테마, 언어, UI 배율은 별도 키(`GTV_Theme`, `GTV_Lang`, `GTV_UIScale`)입니다. 실제 저장 구조를 바꾸려면 normalizer, 마이그레이션/legacy fallback, 설정 내보내기/가져오기, 테스트를 함께 검토합니다.
 - 설정 가져오기는 외부 JSON 입력이므로 `settings-io.js`와 `data-transfer.js`의 검증·정규화·저장 실패 경로를 건너뛰지 않습니다. 개별 그룹/보조 그룹 가져오기를 전체 설정 가져오기와 같은 payload로 가정하지 마세요.
 
