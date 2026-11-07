@@ -379,7 +379,7 @@
         return `${year}-${month}-${day} 00:00:00`;
     }
 
-    // ?? 移댁슫?몃떎????????????????????????????????????????????????????????????????
+    // ── 카운트다운 ───────────────────────────────────────────────
 
     function makeCountdownStorage(storageRef, storageKey) {
         function loadCountdownState() {
@@ -399,7 +399,7 @@
                 if (!storageRef || typeof storageRef.setItem !== "function") return;
                 storageRef.setItem(storageKey, JSON.stringify(state));
             } catch (_err) {
-                // 怨꾩궛湲??꾩슜 蹂댁“ ?곹깭 ????ㅽ뙣??臾댁떆?쒕떎.
+                // 계산기 전용 보조 상태 저장 실패는 무시한다.
             }
         }
 
@@ -506,11 +506,11 @@
     }
 
     /**
-     * initCountdown ???대줈? 湲곕컲 ??대㉧ 愿由?
-     * @param {function} t - 踰덉뿭 ?⑥닔
-     * @param {object} helpers - DOM ?ы띁 (getElementById ??
+     * initCountdown — 클로저 기반 타이머 관리
+     * @param {function} t - 번역 함수
+     * @param {object} helpers - DOM 헬퍼 (getElementById 등)
      * @param {object} cdStorage - { loadCountdownState, saveCountdownState }
-     * @param {object} timerIds - { countdownTimerId } 李몄“ 媛앹껜 (?몃??먯꽌 ?뚯쑀)
+     * @param {object} timerIds - { countdownTimerId } 참조 객체 (외부에서 소유)
      */
     function initCountdown(t, helpers, cdStorage, timerIds, runtime = {}) {
         const countdownStateUtils = runtime.countdownStateUtils;
@@ -532,7 +532,7 @@
             return { refresh: () => { } };
         }
 
-        // ?대줈? ?대? ?곹깭 ??紐⑤뱢 ?꾩뿭 ?ㅼ뿼 ?놁쓬
+        // 클로저 내부 상태 — 모듈 전역 오염 없음
         const countdownState = countdownStateUtils.normalizeState(cdStorage.loadCountdownState(), t);
         const refs = { nameButtons, nameInputs, toggleButtons, targetInputs, displayEls, statusEls };
 
@@ -645,7 +645,7 @@
             });
         });
 
-        // ?댁쟾 ??대㉧ ?뺣━ ??????대㉧ ?깅줉 (?대줈? ?대? timerIds 媛앹껜 ?ъ슜)
+        // 이전 타이머 정리 후 새 타이머 등록 (클로저 내부 timerIds 객체 사용)
         if (timerIds.countdown !== null && timerIds.countdown !== undefined) {
             clearInterval(timerIds.countdown);
         }
@@ -669,7 +669,7 @@
         };
     }
 
-    // ?? Unix ??꾩뒪?ы봽 蹂?섍린 ??????????????????????????????????????????????????
+    // ── Unix 타임스탬프 변환기 ─────────────────────────────────────
 
     function initUnixTimestampConverter(t, helpers, luxonDT, timerIds, runtime = {}) {
         const padFn = (typeof runtime.pad2 === "function") ? runtime.pad2 : defaultPad2;
@@ -854,7 +854,7 @@
         });
         if (unixSyncNowBtn) unixSyncNowBtn.addEventListener("click", syncNow);
 
-        // ?댁쟾 ??대㉧ ?뺣━ ??????대㉧ ?깅줉
+        // 이전 타이머 정리 후 새 타이머 등록
         if (timerIds.unix !== null && timerIds.unix !== undefined) {
             clearInterval(timerIds.unix);
         }
@@ -870,7 +870,7 @@
         };
     }
 
-    // ?? ?⑥쐞 蹂?섍린 ?????????????????????????????????????????????????????????????
+    // ── 단위 변환기 ───────────────────────────────────────────────
 
     function initConverter(helpers) {
         const secIn = helpers.getElementById("conv-sec");
@@ -906,7 +906,7 @@
         dayIn.oninput = (e) => updateFrom(e.target.value, "day");
     }
 
-    // ?? 湲곌컙/?좎쭨 怨꾩궛湲??????????????????????????????????????????????????????????
+    // ── 기간/날짜 계산기 ──────────────────────────────────────────
 
     function initPeriodAndDateShift(t, helpers, runtime = {}) {
         const datePickerCtor = (typeof runtime.datePickerCtor === "function") ? runtime.datePickerCtor : null;
@@ -948,11 +948,10 @@
         applyPicker(periodEnd, "period-end-trigger");
         applyPicker(offsetStart, "offset-start-trigger");
 
-        // 湲곌컙 怨꾩궛?? UTC ?먯젙?쇰줈 ?뚯떛 (DST 寃쎄퀎 ?ㅻ쪟 諛⑹?)
+        // 기간 계산은 UTC 자정 기준으로 파싱한다 (DST 경계 오류 방지).
         // The input is authoritative so manual edits are not masked by a stale picker selection.
         const getPickerDateUtc = (el) => parseUtcDateOnlyString(el.value);
 
-        // 湲곌컙 怨꾩궛怨??ㅽ봽??怨꾩궛?먯꽌 ?숈씪??UTC ?좎쭨 ?뚯떛 濡쒖쭅???ъ궗?⑺븳??
         const today = new Date();
         const todayText = formatDateOnly(today, padFn);
         if (!periodStart.value) periodStart.value = todayText;
@@ -984,7 +983,7 @@
             setDateInputFeedback(periodEnd, !endD);
 
             if (startD && endD) {
-                // Math.trunc ?ъ슜: ?쒖옉??> 醫낅즺???뚯닔) ???ㅻ갑??諛섏삱由?踰꾧렇 諛⑹?
+                // Math.trunc 사용: 시작일 > 종료일(음수)일 때 내림 방향으로 1이 더 빠지는 버그 방지
                 const diffMs = endD.getTime() - startD.getTime();
                 setPeriodResult(periodDayRes, Math.trunc(diffMs / 86400000), t("unit_days_suffix"));
                 setPeriodResult(periodHourRes, Math.trunc(diffMs / 3600000), t("unit_hours_suffix"));
@@ -1064,7 +1063,7 @@
         return { refresh: updateAll };
     }
 
-    // ?? 蹂듭궗 踰꾪듉 諛붿씤???????????????????????????????????????????????????????????
+    // ── 복사 버튼 바인딩 ──────────────────────────────────────────
 
     function bindCopyButtons(copyText, helpers, copyBindings) {
         if (!Array.isArray(copyBindings)) return;
@@ -1078,9 +1077,9 @@
 
     /**
      * createService(deps)
-     * ??대㉧ 蹂?섎? ?대줈? ?대???寃⑸━???몃? ?ㅼ뿼??諛⑹??쒕떎.
-     * destroy()濡?紐⑤뱺 ??대㉧瑜?紐낆떆?곸쑝濡??뺣━?????덈떎.
-     * 湲곗〈 initCalculators() ?명꽣?섏씠?ㅻ룄 ?좎??쒕떎.
+     * 타이머 변수를 클로저 내부에 격리해 외부 오염을 방지한다.
+     * destroy()로 모든 타이머를 명시적으로 정리할 수 있다.
+     * 기존 initCalculators() 인터페이스도 유지한다.
      */
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
@@ -1116,12 +1115,12 @@
             pad2: resolvePad2Ref(safeDeps)
         });
 
-        // ?대줈? ?대? ??대㉧ 李몄“ ???몃? ?꾩뿭 蹂???ㅼ뿼 ?놁쓬
+        // 클로저 내부 타이머 참조 — 외부 전역 변수 오염 없음
         const timerIds = { countdown: null, unix: null };
 
         /**
-         * destroy() ??紐⑤뱺 ??대㉧瑜??뺣━?쒕떎.
-         * ?ъ큹湲고솕?섍굅????쓣 ?レ쓣 ??紐낆떆?곸쑝濡??몄텧?쒕떎.
+         * destroy() — 모든 타이머를 정리한다.
+         * 재초기화하거나 탭을 닫을 때 명시적으로 호출한다.
          */
         function destroy() {
             if (timerIds.countdown !== null && timerIds.countdown !== undefined) {
@@ -1189,14 +1188,14 @@
         return Object.freeze({ initCalculators, destroy });
     }
 
-    // ?? ?섏쐞 ?명솚 吏꾩엯????湲곗〈 main.js媛 GTVCalculator.initCalculators()瑜??ъ슜?섎뒗 寃쎌슦 ??
+    // ── 하위 호환 진입점 (기존 main.js가 GTVCalculator.initCalculators()를 사용하는 경우) ──
 
     /**
-     * @deprecated createService() ?ъ슜??沅뚯옣?쒕떎.
-     * 湲곗〈 ?몄텧 肄붾뱶??臾댁쨷???좎?瑜??꾪빐 ?④꺼???섑띁.
+     * @deprecated createService() 사용을 권장한다.
+     * 기존 호출 코드를 끊김 없이 유지하기 위해 남겨 둔 래퍼.
      */
     function initCalculators(options) {
-        // 湲곕낯 ?쒕퉬???몄뒪?댁뒪瑜??앹꽦???꾩엫?쒕떎.
+        // 기본 서비스 인스턴스를 생성해 위임한다.
         const svc = createService(buildLegacyServiceDeps());
         svc.initCalculators(options);
     }
