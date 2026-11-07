@@ -58,10 +58,7 @@ describe("GTV main runtime core foundation bootstrap module", () => {
     it("builds core/foundation bindings and state-domain proxy service from deps", () => {
         const moduleApi = loadMainRuntimeCoreFoundationBootstrapModule();
         const buildMainFoundationConfig = vi.fn(() => ({ kind: "foundation-config" }));
-        const createCoreServiceAssembly = vi.fn(() => ({
-            mainCoreServices: { tag: "core-services" }
-        }));
-        const createCoreServiceBindings = vi.fn(() => ({
+        const coreServices = {
             mainServiceMethodBridgeService: { tag: "mainServiceMethodBridgeService" },
             mainDirectStatePatchService: { tag: "mainDirectStatePatchService" },
             mainAppStateBridgeService: { tag: "mainAppStateBridgeService" },
@@ -79,12 +76,19 @@ describe("GTV main runtime core foundation bootstrap module", () => {
             mainTimelineFacadeService: { tag: "mainTimelineFacadeService" },
             mainMultiRangeTabFacadeService: { tag: "mainMultiRangeTabFacadeService" },
             mainGroupLocalizationServices: { tag: "mainGroupLocalizationServices" },
-            mainOrchestrationFlowServices: { tag: "mainOrchestrationFlowServices" }
-        }));
-        const createFoundationServices = vi.fn(() => ({
-            mainFoundationServices: { tag: "foundation-services" }
-        }));
-        const createFoundationServiceBindings = vi.fn(() => ({
+            mainOrchestrationFlowServices: { tag: "mainOrchestrationFlowServices" },
+            groupContextStateService: { tag: "groupContextStateService" },
+            formatProfileStateService: { tag: "formatProfileStateService" },
+            multiRangeStateService: { tag: "multiRangeStateService" },
+            fixedTimeSlotUtilsService: { tag: "fixedTimeSlotUtilsService" },
+            fixedTimeStateService: { tag: "fixedTimeStateService" },
+            uiPreferencesStateService: { tag: "uiPreferencesStateService" },
+            timerEngineService: { tag: "timerEngineService" },
+            timeService: { tag: "timeService" },
+            unrelatedCoreService: { tag: "not-exposed" }
+        };
+        const createCoreServiceAssembly = vi.fn(() => ({ mainCoreServices: coreServices }));
+        const foundationServices = {
             appFeedbackService: { tag: "appFeedbackService" },
             calculatorActionsService: { tag: "calculatorActionsService" },
             serviceBootstrap: { tag: "serviceBootstrap" },
@@ -96,18 +100,11 @@ describe("GTV main runtime core foundation bootstrap module", () => {
             bindFloatingTooltipEvents: vi.fn(),
             clearDragGhost: vi.fn(),
             createDragGhostFromRow: vi.fn(),
-            groupContextStateService: { tag: "groupContextStateService" },
-            formatProfileStateService: { tag: "formatProfileStateService" },
-            multiRangeStateService: { tag: "multiRangeStateService" },
-            fixedTimeSlotUtilsService: { tag: "fixedTimeSlotUtilsService" },
-            fixedTimeStateService: { tag: "fixedTimeStateService" },
-            uiPreferencesStateService: { tag: "uiPreferencesStateService" },
-            timerEngineService: { tag: "timerEngineService" },
-            timeService: { tag: "timeService" }
-        }));
-        const createStateDomainProxyBindings = vi.fn(() => ({
-            mainStateDomainProxiesService: { tag: "state-domain-proxies-service" }
-        }));
+            groupContextStateService: { tag: "foundation-copy-must-not-win" }
+        };
+        const createFoundationServices = vi.fn(() => ({ mainFoundationServices: foundationServices }));
+        const stateDomainProxiesService = { tag: "state-domain-proxies-service" };
+        const createStateDomainProxies = vi.fn(() => stateDomainProxiesService);
 
         const service = moduleApi.createService({
             mainCoreAssemblyConfigBuilderService: {
@@ -115,12 +112,9 @@ describe("GTV main runtime core foundation bootstrap module", () => {
             },
             coreServiceAssemblyBindings: { createService: createCoreServiceAssembly },
             coreServiceAssemblyModule: { kind: "core-assembly-module" },
-            coreServiceBindings: { createService: createCoreServiceBindings },
             foundationServicesBindings: { createService: createFoundationServices },
             foundationServicesModule: { kind: "foundation-services-module" },
-            foundationServiceBindings: { createService: createFoundationServiceBindings },
-            stateDomainProxyBindings: { createService: createStateDomainProxyBindings },
-            mainStateDomainProxiesModule: { kind: "state-domain-proxies-module" },
+            mainStateDomainProxiesModule: { createService: createStateDomainProxies },
             mainCoreAssemblyConfig: { kind: "main-core-assembly-config" },
             getPatchedMainTabState: () => "live",
             getCurrentGroup: () => ({ id: "g1" }),
@@ -136,14 +130,22 @@ describe("GTV main runtime core foundation bootstrap module", () => {
             foundationServicesModule: { kind: "foundation-services-module" },
             mainFoundationConfig: { kind: "foundation-config" }
         });
-        expect(createStateDomainProxyBindings).toHaveBeenCalledWith(
-            expect.objectContaining({
-                stateDomainProxiesModule: { kind: "state-domain-proxies-module" }
-            })
-        );
-        expect(service.mainCoreServices).toEqual({ tag: "core-services" });
-        expect(service.mainFoundationServices).toEqual({ tag: "foundation-services" });
-        expect(service.mainStateDomainProxiesService).toEqual({ tag: "state-domain-proxies-service" });
+        const proxyDeps = createStateDomainProxies.mock.calls[0][0];
+        expect(proxyDeps).not.toHaveProperty("mainStateDomainProxiesModule");
+        expect(proxyDeps.fixedTimeSlotUtilsService).toBe(coreServices.fixedTimeSlotUtilsService);
+        expect(proxyDeps.groupContextStateService).toBe(coreServices.groupContextStateService);
+        expect(proxyDeps.mainAppStateBridgeService).toBe(coreServices.mainAppStateBridgeService);
+        expect(proxyDeps.defaultFixedTimeValue).toBe("09:00");
+        expect(proxyDeps.getCurrentGroup()).toEqual({ id: "g1" });
+        expect(service.mainCoreServices).toBe(coreServices);
+        expect(service.mainFoundationServices).toBe(foundationServices);
+        expect(service.mainStateDomainProxiesService).toBe(stateDomainProxiesService);
+        expect(service.mainTimelineFacadeService).toBe(coreServices.mainTimelineFacadeService);
+        expect(service.timeService).toBe(coreServices.timeService);
+        expect(service.groupContextStateService).toBe(coreServices.groupContextStateService);
+        expect(service.serviceBootstrap).toBe(foundationServices.serviceBootstrap);
+        expect(service.createDragGhostFromRow).toBe(foundationServices.createDragGhostFromRow);
+        expect(service).not.toHaveProperty("unrelatedCoreService");
         expect(Object.isFrozen(service)).toBe(true);
     });
 
@@ -156,12 +158,31 @@ describe("GTV main runtime core foundation bootstrap module", () => {
         expect(() => moduleApi.createService({
             mainCoreAssemblyConfigBuilderService: {},
             coreServiceAssemblyBindings: {},
-            coreServiceBindings: {},
-            foundationServicesBindings: {},
-            foundationServiceBindings: {},
-            stateDomainProxyBindings: {}
+            foundationServicesBindings: {}
         })).toThrow(
             "Missing required dependency: mainCoreAssemblyConfigBuilderService.buildMainFoundationConfig"
         );
+        const base = {
+            mainCoreAssemblyConfigBuilderService: { buildMainFoundationConfig: () => ({}) },
+            foundationServicesBindings: { createService: () => ({ mainFoundationServices: {} }) }
+        };
+        expect(() => moduleApi.createService({
+            ...base,
+            coreServiceAssemblyBindings: { createService: () => ({}) }
+        })).toThrow("Missing dependency: mainCoreServices");
+        expect(() => moduleApi.createService({
+            ...base,
+            coreServiceAssemblyBindings: { createService: () => ({ mainCoreServices: {} }) },
+            foundationServicesBindings: { createService: () => ({}) }
+        })).toThrow("Missing dependency: mainFoundationServices");
+        expect(() => moduleApi.createService({
+            ...base,
+            coreServiceAssemblyBindings: { createService: () => ({ mainCoreServices: {} }) }
+        })).toThrow("Missing required module API: GTVMainStateDomainProxies.createService");
+        expect(() => moduleApi.createService({
+            ...base,
+            coreServiceAssemblyBindings: { createService: () => ({ mainCoreServices: {} }) },
+            mainStateDomainProxiesModule: { createService: () => null }
+        })).toThrow("Invalid main state domain proxies service");
     });
 });

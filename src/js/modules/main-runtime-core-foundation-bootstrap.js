@@ -1,6 +1,59 @@
 (function initGtvMainRuntimeCoreFoundationBootstrap(globalObj) {
     "use strict";
 
+    // Services copied out of the core/foundation containers (formerly
+    // main-core-service-bindings.js and main-foundation-service-bindings.js).
+    const CORE_SERVICE_KEYS = Object.freeze([
+        "mainServiceMethodBridgeService",
+        "mainDirectStatePatchService",
+        "mainAppStateBridgeService",
+        "mainPatchedStateSelectorsService",
+        "mainSharedUtilsService",
+        "mainTimezoneRuntimeBridgeService",
+        "mainTimezoneRuntimeService",
+        "mainTimezoneFacadeService",
+        "mainBaseTimezoneService",
+        "mainTimezoneMutationService",
+        "mainTimezoneTableFacadeService",
+        "mainTimeAdjustFacadeService",
+        "mainFixedTimeTabFacadeService",
+        "mainFixedTimeFacadeService",
+        "mainTimelineFacadeService",
+        "mainMultiRangeTabFacadeService",
+        "mainGroupLocalizationServices",
+        "mainOrchestrationFlowServices"
+    ]);
+    const FOUNDATION_SERVICE_KEYS = Object.freeze([
+        "serviceBootstrap",
+        "persistenceServiceBundleFactory",
+        "mainUiUtilsService",
+        "appFeedbackService",
+        "calculatorActionsService",
+        "setCustomTooltip",
+        "upgradeNativeTitleTooltips",
+        "hideFloatingTooltip",
+        "bindFloatingTooltipEvents",
+        "clearDragGhost",
+        "createDragGhostFromRow"
+    ]);
+    const CORE_DOMAIN_SERVICE_KEYS = Object.freeze([
+        "groupContextStateService",
+        "formatProfileStateService",
+        "multiRangeStateService",
+        "fixedTimeSlotUtilsService",
+        "fixedTimeStateService",
+        "uiPreferencesStateService",
+        "timerEngineService",
+        "timeService"
+    ]);
+
+    function pickKeys(source, keyList) {
+        return keyList.reduce((acc, key) => {
+            acc[key] = source[key];
+            return acc;
+        }, {});
+    }
+
     function requireFunction(value, label) {
         if (typeof value !== "function") {
             throw new Error(`Missing required dependency: ${label}`);
@@ -26,14 +79,6 @@
             return resolved;
         }
 
-        function pickAliasedDeps(aliasMap = {}) {
-            const resolved = {};
-            Object.keys(aliasMap).forEach((targetKey) => {
-                resolved[targetKey] = safeDeps[aliasMap[targetKey]];
-            });
-            return resolved;
-        }
-
         const mainCoreAssemblyConfigBuilderService = requireObject(
             safeDeps.mainCoreAssemblyConfigBuilderService,
             "mainCoreAssemblyConfigBuilderService"
@@ -42,21 +87,9 @@
             safeDeps.coreServiceAssemblyBindings,
             "coreServiceAssemblyBindings"
         );
-        const coreServiceBindings = requireObject(
-            safeDeps.coreServiceBindings,
-            "coreServiceBindings"
-        );
         const foundationServicesBindings = requireObject(
             safeDeps.foundationServicesBindings,
             "foundationServicesBindings"
-        );
-        const foundationServiceBindings = requireObject(
-            safeDeps.foundationServiceBindings,
-            "foundationServiceBindings"
-        );
-        const stateDomainProxyBindings = requireObject(
-            safeDeps.stateDomainProxyBindings,
-            "stateDomainProxyBindings"
         );
 
         const buildMainFoundationConfig = requireFunction(
@@ -67,21 +100,13 @@
             coreServiceAssemblyBindings.createService,
             "coreServiceAssemblyBindings.createService"
         );
-        const createCoreServiceBindings = requireFunction(
-            coreServiceBindings.createService,
-            "coreServiceBindings.createService"
-        );
         const createFoundationServices = requireFunction(
             foundationServicesBindings.createService,
             "foundationServicesBindings.createService"
         );
-        const createFoundationServiceBindings = requireFunction(
-            foundationServiceBindings.createService,
-            "foundationServiceBindings.createService"
-        );
-        const createStateDomainProxyBindings = requireFunction(
-            stateDomainProxyBindings.createService,
-            "stateDomainProxyBindings.createService"
+        const serviceInvokeUtils = requireObject(
+            globalObj?.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils,
+            "GTVServiceInvokeUtils"
         );
 
         const { mainCoreServices } = createCoreServiceAssembly({
@@ -90,9 +115,10 @@
                 "mainCoreAssemblyConfig"
             ])
         });
-        const mainCoreServiceBindings = createCoreServiceBindings({
-            mainCoreServices
-        });
+        if (!mainCoreServices || typeof mainCoreServices !== "object") {
+            throw new Error("Missing dependency: mainCoreServices");
+        }
+        const mainCoreServiceBindings = pickKeys(mainCoreServices, CORE_SERVICE_KEYS);
 
         const mainFoundationConfig = buildMainFoundationConfig({
             ...pickDeps([
@@ -127,15 +153,18 @@
             ]),
             mainFoundationConfig
         });
-        const mainFoundationServiceBindings = createFoundationServiceBindings({
-            mainFoundationServices,
-            mainCoreServices
-        });
+        if (!mainFoundationServices || typeof mainFoundationServices !== "object") {
+            throw new Error("Missing dependency: mainFoundationServices");
+        }
+        const mainFoundationServiceBindings = {
+            ...pickKeys(mainFoundationServices, FOUNDATION_SERVICE_KEYS),
+            ...pickKeys(mainCoreServices, CORE_DOMAIN_SERVICE_KEYS)
+        };
 
-        const { mainStateDomainProxiesService } = createStateDomainProxyBindings({
-            ...pickAliasedDeps({
-                "stateDomainProxiesModule": "mainStateDomainProxiesModule"
-            }),
+        const mainStateDomainProxiesService = serviceInvokeUtils.createRequiredModuleService(
+            safeDeps.mainStateDomainProxiesModule,
+            "GTVMainStateDomainProxies",
+            {
             fixedTimeSlotUtilsService: mainFoundationServiceBindings.fixedTimeSlotUtilsService,
             multiRangeStateService: mainFoundationServiceBindings.multiRangeStateService,
             fixedTimeStateService: mainFoundationServiceBindings.fixedTimeStateService,
@@ -147,48 +176,16 @@
                 "getCurrentGroup",
                 "defaultFixedTimeValue"
             ])
-        });
+            },
+            [],
+            "Invalid main state domain proxies service"
+        );
 
         return Object.freeze({
             mainCoreServices,
             mainFoundationServices,
-            mainServiceMethodBridgeService: mainCoreServiceBindings.mainServiceMethodBridgeService,
-            mainDirectStatePatchService: mainCoreServiceBindings.mainDirectStatePatchService,
-            mainAppStateBridgeService: mainCoreServiceBindings.mainAppStateBridgeService,
-            mainPatchedStateSelectorsService: mainCoreServiceBindings.mainPatchedStateSelectorsService,
-            mainSharedUtilsService: mainCoreServiceBindings.mainSharedUtilsService,
-            mainTimezoneRuntimeBridgeService: mainCoreServiceBindings.mainTimezoneRuntimeBridgeService,
-            mainTimezoneRuntimeService: mainCoreServiceBindings.mainTimezoneRuntimeService,
-            mainTimezoneFacadeService: mainCoreServiceBindings.mainTimezoneFacadeService,
-            mainBaseTimezoneService: mainCoreServiceBindings.mainBaseTimezoneService,
-            mainTimezoneMutationService: mainCoreServiceBindings.mainTimezoneMutationService,
-            mainTimezoneTableFacadeService: mainCoreServiceBindings.mainTimezoneTableFacadeService,
-            mainTimeAdjustFacadeService: mainCoreServiceBindings.mainTimeAdjustFacadeService,
-            mainFixedTimeTabFacadeService: mainCoreServiceBindings.mainFixedTimeTabFacadeService,
-            mainFixedTimeFacadeService: mainCoreServiceBindings.mainFixedTimeFacadeService,
-            mainTimelineFacadeService: mainCoreServiceBindings.mainTimelineFacadeService,
-            mainMultiRangeTabFacadeService: mainCoreServiceBindings.mainMultiRangeTabFacadeService,
-            mainGroupLocalizationServices: mainCoreServiceBindings.mainGroupLocalizationServices,
-            mainOrchestrationFlowServices: mainCoreServiceBindings.mainOrchestrationFlowServices,
-            appFeedbackService: mainFoundationServiceBindings.appFeedbackService,
-            calculatorActionsService: mainFoundationServiceBindings.calculatorActionsService,
-            serviceBootstrap: mainFoundationServiceBindings.serviceBootstrap,
-            persistenceServiceBundleFactory: mainFoundationServiceBindings.persistenceServiceBundleFactory,
-            mainUiUtilsService: mainFoundationServiceBindings.mainUiUtilsService,
-            setCustomTooltip: mainFoundationServiceBindings.setCustomTooltip,
-            upgradeNativeTitleTooltips: mainFoundationServiceBindings.upgradeNativeTitleTooltips,
-            hideFloatingTooltip: mainFoundationServiceBindings.hideFloatingTooltip,
-            bindFloatingTooltipEvents: mainFoundationServiceBindings.bindFloatingTooltipEvents,
-            clearDragGhost: mainFoundationServiceBindings.clearDragGhost,
-            createDragGhostFromRow: mainFoundationServiceBindings.createDragGhostFromRow,
-            groupContextStateService: mainFoundationServiceBindings.groupContextStateService,
-            formatProfileStateService: mainFoundationServiceBindings.formatProfileStateService,
-            multiRangeStateService: mainFoundationServiceBindings.multiRangeStateService,
-            fixedTimeSlotUtilsService: mainFoundationServiceBindings.fixedTimeSlotUtilsService,
-            fixedTimeStateService: mainFoundationServiceBindings.fixedTimeStateService,
-            uiPreferencesStateService: mainFoundationServiceBindings.uiPreferencesStateService,
-            timerEngineService: mainFoundationServiceBindings.timerEngineService,
-            timeService: mainFoundationServiceBindings.timeService,
+            ...mainCoreServiceBindings,
+            ...mainFoundationServiceBindings,
             mainStateDomainProxiesService
         });
     }

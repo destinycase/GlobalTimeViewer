@@ -39,14 +39,11 @@
         GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_BINDINGS: "GTVMainStateDomainWrapperBridgeBindings",
         GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS: "GTVMainStateDomainWrapperGlobalBindings",
         GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE: "GTVMainStateDomainWrapperGlobalBindingsBridge",
-        GTV_MAIN_STATE_DOMAIN_PROXY_BINDINGS: "GTVMainStateDomainProxyBindings",
         GTV_MAIN_FACADE_METHOD_BINDER: "GTVMainFacadeMethodBinder",
         GTV_MAIN_FACADE_BRIDGE: "GTVMainFacadeBridge",
         GTV_MAIN_FACADE_BRIDGE_BINDINGS: "GTVMainFacadeBridgeBindings",
         GTV_MAIN_COMPOSITION_CONFIG_BUILDER: "GTVMainCompositionConfigBuilder",
         GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER: "GTVMainCoreAssemblyConfigBuilder",
-        GTV_MAIN_CORE_SERVICE_BINDINGS: "GTVMainCoreServiceBindings",
-        GTV_MAIN_FOUNDATION_SERVICE_BINDINGS: "GTVMainFoundationServiceBindings",
         GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES: "GTVMainPatchedStateAccessorProxies"
     });
 
