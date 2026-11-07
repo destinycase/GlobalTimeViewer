@@ -8,13 +8,13 @@ export function parseSourceScriptList(content) {
         .filter(Boolean);
 
     if (entries.length === 0) {
-        throw new Error("script_list.tmp is empty.");
+        throw new Error("runtime-script-list.txt is empty.");
     }
 
     const seen = new Set();
     for (const entry of entries) {
         if (entry.includes("\\") || entry.startsWith("/") || /^[a-z][a-z\d+.-]*:/i.test(entry)) {
-            throw new Error(`Invalid local script path in script_list.tmp: ${entry}`);
+            throw new Error(`Invalid local script path in runtime-script-list.txt: ${entry}`);
         }
 
         const normalized = path.posix.normalize(entry);
@@ -23,7 +23,7 @@ export function parseSourceScriptList(content) {
         }
 
         if (seen.has(entry)) {
-            throw new Error(`Duplicate script path in script_list.tmp: ${entry}`);
+            throw new Error(`Duplicate script path in runtime-script-list.txt: ${entry}`);
         }
         seen.add(entry);
     }
@@ -60,7 +60,7 @@ export function validateRuntimeScriptCoverage(rootDir, sourceScripts) {
         const details = [];
         if (omittedScripts.length > 0) details.push(`not listed: ${omittedScripts.join(", ")}`);
         if (unexpectedScripts.length > 0) details.push(`not runtime sources: ${unexpectedScripts.join(", ")}`);
-        throw new Error(`script_list.tmp does not cover runtime scripts (${details.join("; ")}).`);
+        throw new Error(`runtime-script-list.txt does not cover runtime scripts (${details.join("; ")}).`);
     }
 }
 

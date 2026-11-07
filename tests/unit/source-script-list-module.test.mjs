@@ -26,7 +26,7 @@ test("parses ordered local paths and ignores blank lines", () => {
 });
 
 test.each([
-    ["empty list", "\n  \n", /script_list\.tmp is empty/],
+    ["empty list", "\n  \n", /runtime-script-list\.txt is empty/],
     ["duplicate entry", "a.js\na.js", /Duplicate script path/],
     ["parent traversal", "../outside.js", /normalized and stay within/],
     ["absolute path", "/outside.js", /Invalid local script path/],

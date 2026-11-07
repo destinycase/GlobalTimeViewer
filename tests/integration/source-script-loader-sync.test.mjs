@@ -4,7 +4,7 @@ import vm from "node:vm";
 
 import { expect, test, vi } from "vitest";
 
-const SCRIPT_LIST_PATH = path.resolve(process.cwd(), "src", "script_list.tmp");
+const SCRIPT_LIST_PATH = path.resolve(process.cwd(), "src", "runtime-script-list.txt");
 const SOURCE_SCRIPT_LOADER_PATH = path.resolve(process.cwd(), "src", "js", "source-script-loader.js");
 
 function readScriptList() {
@@ -21,11 +21,11 @@ function readLoaderScriptList() {
     return JSON.parse(matched[1]);
 }
 
-test("source script loader stays in sync with script_list.tmp", () => {
+test("source script loader stays in sync with runtime-script-list.txt", () => {
     expect(readLoaderScriptList()).toEqual(readScriptList());
 });
 
-test("script_list.tmp includes every runtime script exactly once", () => {
+test("runtime-script-list.txt includes every runtime script exactly once", () => {
     const runtimeScripts = [
         "i18n.js",
         "main.js",

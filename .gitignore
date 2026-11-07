@@ -16,7 +16,6 @@ npm-debug.log*
 .env
 .env.*
 *.tmp
-!src/script_list.tmp
 *.bak
 .eslintcache
 

@@ -8,7 +8,7 @@
 
 ## 실행 흐름
 
-1. `src/script_list.tmp`가 브라우저 런타임 스크립트의 로드 순서를 정합니다.
+1. `src/runtime-script-list.txt`가 브라우저 런타임 스크립트의 로드 순서를 정합니다.
 2. `src/js/source-script-loader.js`가 그 순서대로 API 스크립트를 로드합니다.
 3. `main.js`가 `main-module-spec.js`와 `main-module-resolver.js`를 사용해 모듈 계약을 확인합니다.
 4. `main.js`가 상태 접근자, 핵심 서비스, 도메인 서비스, UI·저장 서비스를 순서대로 조립합니다.
@@ -51,6 +51,6 @@
 
 ## 구조 검증 명령
 
-- `npm run sync:source-loader`: 스크립트 목록(`src/script_list.tmp`)으로 생성 로더를 다시 만듭니다.
+- `npm run sync:source-loader`: 스크립트 목록(`src/runtime-script-list.txt`)으로 생성 로더를 다시 만듭니다.
 - `npm run docs:module-inventory:check`: 의존성 인벤토리가 현재 코드와 일치하는지 확인합니다.
 - `npm run ci:gate`: 린트, 문서 확인, 커버리지 테스트, 엄격 빌드를 순서대로 수행합니다.

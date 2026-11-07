@@ -18,7 +18,7 @@ const SRC_DIR = path.join(ROOT_DIR, "src");
 const DIST_DIR = path.join(ROOT_DIR, "dist");
 const DEST_DIR = path.join(ROOT_DIR, "dist_extension");
 const BUNDLE_PATH = path.join(SRC_DIR, "js", "bundle.js");
-const SCRIPT_LIST_PATH = path.join(SRC_DIR, "script_list.tmp");
+const SCRIPT_LIST_PATH = path.join(SRC_DIR, "runtime-script-list.txt");
 const SOURCE_SCRIPT_LOADER_PATH = path.join(SRC_DIR, "js", "source-script-loader.js");
 const SOURCE_SCRIPT_LOADER_RELATIVE_PATH = "js/source-script-loader.js";
 const MAX_BUNDLE_BYTES = 950 * 1024;
@@ -162,10 +162,10 @@ function collectBundleSources(indexHtmlContent) {
     if (listedScriptPaths.length > 0) {
         const loaderScriptPaths = readSourceScriptLoaderList();
         if (loaderScriptPaths.join("\n") !== listedScriptPaths.join("\n")) {
-            throw new Error("js/source-script-loader.js does not match script_list.tmp. Run npm run sync:source-loader.");
+            throw new Error("js/source-script-loader.js does not match runtime-script-list.txt. Run npm run sync:source-loader.");
         }
         if (htmlScriptPaths.length > 0 && htmlScriptPaths.join("\n") !== listedScriptPaths.join("\n")) {
-            throw new Error("script_list.tmp does not match index.html script order.");
+            throw new Error("runtime-script-list.txt does not match index.html script order.");
         }
         return listedScriptPaths;
     }

@@ -19,7 +19,7 @@
 
 | 위치 | 내용 | Git |
 | --- | --- | --- |
-| `src/` | 제품 코드. 확장 화면(`index.html`, `style.css`, `i18n.js`, `main.js`), 기능 모듈 `js/modules/`, 외부 라이브러리 `js/vendor/`, 생성 로더 `js/source-script-loader.js`, 로드 순서 원본 `script_list.tmp`, 서비스 워커 `background.js`. `src/` 안의 상대 경로는 배포물의 경로와 같습니다. | 포함 |
+| `src/` | 제품 코드. 확장 화면(`index.html`, `style.css`, `i18n.js`, `main.js`), 기능 모듈 `js/modules/`, 외부 라이브러리 `js/vendor/`, 생성 로더 `js/source-script-loader.js`, 로드 순서 원본 `runtime-script-list.txt`, 서비스 워커 `background.js`. `src/` 안의 상대 경로는 배포물의 경로와 같습니다. | 포함 |
 | `manifest.json`(루트) | 확장 매니페스트. 아이콘·서비스 워커 경로는 배포물(`dist_extension/`) 기준입니다. | 포함 |
 | `Asset/icons/` | 앱 아이콘 원본. 빌드가 배포물의 `icons/`로 복사합니다. | 포함 |
 | `Asset/store_assets/chrome-web-store/` | 스토어 제출 이미지. 배포 ZIP에는 들어가지 않습니다. | 포함 |
@@ -37,7 +37,7 @@
 ## 2. 런타임 흐름과 로드 순서
 
 1. `src/index.html`은 DOM과 스타일을 준비하고 `js/source-script-loader.js`를 불러옵니다.
-2. 생성 로더는 `src/script_list.tmp`에 선언된 순서대로 스크립트를 삽입합니다. 비동기 병렬 로드가 아니라 전역 등록 순서가 의미 있는 로드입니다.
+2. 생성 로더는 `src/runtime-script-list.txt`에 선언된 순서대로 스크립트를 삽입합니다. 비동기 병렬 로드가 아니라 전역 등록 순서가 의미 있는 로드입니다.
 3. 설정, 번역, vendor, 모듈 API가 등록됩니다. 각 모듈은 보통 `window.GTV...` 또는 호스트 전역 객체에 API를 등록합니다.
 4. `main.js`가 `main-module-spec` 및 resolver를 사용해 필요한 모듈 API가 준비되었는지 확인하고 상태/의존성을 조립합니다.
 5. 도메인, UI, 지속성 서비스의 `createService(deps)` 경계를 통해 필요한 의존성을 전달하고 공개 API를 연결합니다.
@@ -49,7 +49,7 @@
 
 1. 적절한 도메인 소유 모듈에 구현하고 필요한 전역 API 계약을 정합니다.
 2. `src/js/modules/main-module-spec.js`의 계약 선언 및 이에 해당하는 조립 지점을 확인합니다.
-3. `src/script_list.tmp`에서 의존 관계에 맞는 위치에 등록합니다.
+3. `src/runtime-script-list.txt`에서 의존 관계에 맞는 위치에 등록합니다.
 4. `npm run sync:source-loader`로 생성 로더를 갱신합니다. 생성 파일을 수동으로 고치지 않습니다.
 5. 모듈 API나 의존성이 바뀌었으면 `npm run docs:module-inventory`로 인벤토리를 다시 만듭니다.
 6. 로더 검사, 해당 모듈 테스트, 동작 회귀 검사 및 빌드를 실행합니다.
@@ -103,7 +103,7 @@
 ### 특히 피할 변경
 
 - 기존 전역 API를 검토 없이 삭제/이름 변경하거나 모든 파일을 ES module로 한 번에 바꾸기
-- `src/script_list.tmp`와 생성 로더 사이의 불일치 또는 로드 순서 의존성 깨뜨리기
+- `src/runtime-script-list.txt`와 생성 로더 사이의 불일치 또는 로드 순서 의존성 깨뜨리기
 - `main.js` 상태/호환 경계를 기능별 작은 파일에 중복 분산하기
 - 의미 있는 응집 없이 지나치게 작은 모듈 또는 모든 기능을 빨아들이는 공용 util 파일 만들기
 - 가져오기 데이터를 정규화기/검증기 우회해서 저장하거나 기존 저장 키 호환성을 제거하기

@@ -33,7 +33,7 @@ const FORBIDDEN_ENTRY_PATTERNS = [
     /(^|\/)(AGENTS|CLAUDE)\.md$/i,
     /(^|\/)package(-lock)?\.json$/,
     /(^|\/)source-script-loader\.js$/,
-    /(^|\/)script_list/,
+    /(^|\/)runtime-script-list/,
     /(^|\/)\.[^/]+/
 ];
 
