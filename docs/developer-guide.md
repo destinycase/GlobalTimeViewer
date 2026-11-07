@@ -154,6 +154,7 @@ npm run build
 | `npm run docs:module-inventory:check` | 체크인된 모듈 인벤토리가 소스와 일치하는지 확인 |
 | `npm run test:package` | 배포물 검사(`tests/audit`). 현재 버전의 `release/gtv-vX.Y.Z.zip`이 없으면 건너뜀(skip)으로 표시 |
 | `npm run ci:gate` | lint → 인벤토리 검사 → 커버리지 → strict build |
+| `npm run verify:chrome` | 실제 Chrome 검사(로컬 필수, CI 제외). strict build 후 `dist_extension/`과 `release/gtv-vX.Y.Z.zip` 추출본을 헤드리스 Chrome에 로드해 확인 |
 | `npm run package` | 배포 ZIP 생성과 배포물 검사(아래) |
 
 배포물 검사는 ZIP의 이름과 매니페스트·번들 버전, 필수 파일, 매니페스트와 `index.html`이 가리키는 파일의 존재, 소스·테스트·개발 파일과 숨김 파일의 미포함, LF 줄바꿈, 개발 환경 값(Git 사용자 정보, 홈·작업 폴더 경로)의 노출 여부, `dist_extension/`과의 파일 단위 일치를 확인합니다. 건너뜀이 있으면 통과로 세지 않습니다.
@@ -166,7 +167,23 @@ npm run build
 | `tests/integration/` | `main.js` 조립·전역 API·런타임 흐름·로더 동기화·i18n 무결성처럼 여러 모듈을 함께 실행하는 검사 |
 | `tests/audit/` | 배포 ZIP 검사 |
 | `tests/helpers/` | 검사 공용 도우미(`main.js` 실행 샌드박스 등) |
+| `tests/chrome/` | 실제 Chrome 검사 실행기(`verify-chrome.mjs`)와 CDP 도우미(`cdp-client.mjs`) |
 | `tests/local/` | 검수자 전용 도구(Git·자동 검사 제외) |
+
+#### 실제 Chrome 검사
+
+`npm run verify:chrome`은 외부 자동화 라이브러리 없이 Chrome DevTools Protocol을 Node 내장 WebSocket으로 직접 사용합니다. 대상마다 새 프로필의 헤드리스 Chrome을 띄워 확장을 로드합니다. Chrome 경로는 `GTV_CHROME_PATH` 환경 변수나 기본 설치 위치에서 찾습니다. 확인 항목은 아래와 같습니다.
+
+1. 확장 로드, 서비스 워커 시작, 아이콘 클릭 처리기 등록
+2. 앱 초기화(치명 오류 화면 없음, 콘솔 오류 없음, 버전 표시)
+3. 사용자 지정 시간대 추가 → 저장 → 다시 열어도 유지
+4. 시간 변경 탭 입력 → 다른 행 시각 반영
+5. 고정 시간 탭 렌더, 타임라인 슬롯 드래그 후 저장값 유지
+6. 계산기 기간 계산과 날짜 바꾸기
+7. 설정 내보내기 파일 생성과 내용
+8. `localStorage`의 옛 저장 키 이어받기
+
+결과는 `scratch/chrome/<시각>/result.json`에 남습니다. 실제 툴바 아이콘 클릭이나 화면을 보고 판단하는 항목은 자동 검사 범위 밖입니다. `GTV_CHROME_SKIP_BUILD=1`이면 이미 만든 `dist_extension/`을 그대로 검사하고, `GTV_CHROME_TARGETS=dist` 또는 `zip`으로 대상을 고를 수 있습니다.
 
 모든 검사는 명령 하나로 사람 개입 없이 끝나고 스스로 통과/실패를 판정해야 합니다. 사람이 클릭·확인해야 하는 검사나 장시간 검사는 만들지 않으며, 자동으로 확인할 수 없는 범위는 내부 보고서에 미검증 범위로 적습니다. 검사 결과·로그·임시 빌드는 `scratch/`에 둡니다.
 
