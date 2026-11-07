@@ -50,12 +50,9 @@ const MAIN_RUNTIME_STATE_HELPER_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(proc
 const MAIN_RUNTIME_STATE_HELPER_BOOTSTRAP_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-state-helper-bootstrap.js");
 const MAIN_RUNTIME_REFERENCE_ACCESSORS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-reference-accessors.js");
 const MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-state-domain-wrapper-bridge.js");
-const MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-state-domain-wrapper-global-bindings.js");
-const MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-state-domain-wrapper-global-bindings-bridge.js");
 const MAIN_FACADE_METHOD_BINDER_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-facade-method-binder.js");
 const MAIN_FACADE_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-facade-bindings.js");
 const MAIN_FACADE_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-facade-bridge.js");
-const MAIN_FORMAT_PROFILE_FACADE_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-format-profile-facade-bindings.js");
 const MAIN_COMPOSITION_CONFIG_BUILDER_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-composition-config-builder.js");
 const MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-core-assembly-config-builder.js");
 const MAIN_RUNTIME_STATE_CORE_BOOTSTRAP_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-state-core-bootstrap.js");
@@ -295,12 +292,9 @@ export function createMainContext() {
     const mainRuntimeStateHelperBootstrapCode = fs.readFileSync(MAIN_RUNTIME_STATE_HELPER_BOOTSTRAP_MODULE_PATH, "utf8");
     const mainRuntimeReferenceAccessorsCode = fs.readFileSync(MAIN_RUNTIME_REFERENCE_ACCESSORS_MODULE_PATH, "utf8");
     const mainStateDomainWrapperBridgeCode = fs.readFileSync(MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_MODULE_PATH, "utf8");
-    const mainStateDomainWrapperGlobalBindingsCode = fs.readFileSync(MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_MODULE_PATH, "utf8");
-    const mainStateDomainWrapperGlobalBindingsBridgeCode = fs.readFileSync(MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE_MODULE_PATH, "utf8");
     const mainFacadeMethodBinderCode = fs.readFileSync(MAIN_FACADE_METHOD_BINDER_MODULE_PATH, "utf8");
     const mainFacadeBindingsCode = fs.readFileSync(MAIN_FACADE_BINDINGS_MODULE_PATH, "utf8");
     const mainFacadeBridgeCode = fs.readFileSync(MAIN_FACADE_BRIDGE_MODULE_PATH, "utf8");
-    const mainFormatProfileFacadeBindingsCode = fs.readFileSync(MAIN_FORMAT_PROFILE_FACADE_BINDINGS_MODULE_PATH, "utf8");
     const mainCompositionConfigBuilderCode = fs.readFileSync(MAIN_COMPOSITION_CONFIG_BUILDER_MODULE_PATH, "utf8");
     const mainCoreAssemblyConfigBuilderCode = fs.readFileSync(MAIN_CORE_ASSEMBLY_CONFIG_BUILDER_MODULE_PATH, "utf8");
     const mainRuntimeStateCoreBootstrapCode = fs.readFileSync(MAIN_RUNTIME_STATE_CORE_BOOTSTRAP_MODULE_PATH, "utf8");
@@ -530,12 +524,9 @@ export function createMainContext() {
     vm.runInContext(mainRuntimeStateHelperBootstrapCode, sandbox, { filename: "js/modules/main-runtime-state-helper-bootstrap.js" });
     vm.runInContext(mainRuntimeReferenceAccessorsCode, sandbox, { filename: "js/modules/main-runtime-reference-accessors.js" });
     vm.runInContext(mainStateDomainWrapperBridgeCode, sandbox, { filename: "js/modules/main-state-domain-wrapper-bridge.js" });
-    vm.runInContext(mainStateDomainWrapperGlobalBindingsCode, sandbox, { filename: "js/modules/main-state-domain-wrapper-global-bindings.js" });
-    vm.runInContext(mainStateDomainWrapperGlobalBindingsBridgeCode, sandbox, { filename: "js/modules/main-state-domain-wrapper-global-bindings-bridge.js" });
     vm.runInContext(mainFacadeMethodBinderCode, sandbox, { filename: "js/modules/main-facade-method-binder.js" });
     vm.runInContext(mainFacadeBindingsCode, sandbox, { filename: "js/modules/main-facade-bindings.js" });
     vm.runInContext(mainFacadeBridgeCode, sandbox, { filename: "js/modules/main-facade-bridge.js" });
-    vm.runInContext(mainFormatProfileFacadeBindingsCode, sandbox, { filename: "js/modules/main-format-profile-facade-bindings.js" });
     vm.runInContext(mainCompositionConfigBuilderCode, sandbox, { filename: "js/modules/main-composition-config-builder.js" });
     vm.runInContext(mainCoreAssemblyConfigBuilderCode, sandbox, { filename: "js/modules/main-core-assembly-config-builder.js" });
     vm.runInContext(mainRuntimeStateCoreBootstrapCode, sandbox, { filename: "js/modules/main-runtime-state-core-bootstrap.js" });

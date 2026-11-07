@@ -43,6 +43,22 @@ function getGlobalHostRef() {
     return null;
 }
 
+// Copies values onto the global host (window) for the integration sandbox and older callers.
+// A read-only global (some test sandboxes) is skipped silently.
+function exposeOnGlobalHost(source, excludeKeys = []) {
+    const globalRef = getGlobalHostRef();
+    if (!globalRef || !source || typeof source !== "object") return;
+    const excluded = new Set(excludeKeys);
+    Object.entries(source).forEach(([key, value]) => {
+        if (excluded.has(key)) return;
+        try {
+            globalRef[key] = value;
+        } catch (_error) {
+            // read-only global context
+        }
+    });
+}
+
 function getConsoleRefOrNull() {
     const globalRef = getGlobalHostRef();
     if (!globalRef || typeof globalRef.console !== "object" || !globalRef.console) {
@@ -381,11 +397,9 @@ const {
     GTV_MAIN_RUNTIME_TIMEZONE_HELPERS,
     GTV_MAIN_RUNTIME_STATE_HELPERS, GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES,
     GTV_MAIN_RUNTIME_STATE_HELPER_ALIASES_BINDINGS, GTV_MAIN_RUNTIME_STATE_HELPER_ACCESSOR_PROXIES,
-    GTV_MAIN_FORMAT_PROFILE_FACADE_BINDINGS,
     GTV_MAIN_CORE_SERVICE_ASSEMBLY_BINDINGS, GTV_MAIN_FOUNDATION_SERVICES_BINDINGS,
     GTV_MAIN_RUNTIME_REFERENCE_ACCESSOR_BINDINGS, GTV_MAIN_RUNTIME_REFERENCE_ACCESSORS,
     GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE, GTV_MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_BINDINGS,
-    GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS, GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE,
     GTV_MAIN_FACADE_METHOD_BINDER,
     GTV_MAIN_FACADE_BRIDGE, GTV_MAIN_FACADE_BRIDGE_BINDINGS,
     GTV_MAIN_COMPOSITION_CONFIG_BUILDER,
@@ -988,16 +1002,7 @@ const {
     getCurrentGroup: () => getCurrentGroup(),
     defaultFixedTimeValue: DEFAULT_FIXED_TIME_VALUE
 });
-assertBindingCreateService(GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE, "GTVMainStateDomainWrapperGlobalBindingsBridge");
-const {
-    mainStateDomainWrapperGlobalBindingsService
-} = GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS_BRIDGE.createService({
-    stateDomainWrapperGlobalBindingsModule: GTV_MAIN_STATE_DOMAIN_WRAPPER_GLOBAL_BINDINGS,
-    getGlobalRoot: () => GTV_GLOBAL
-});
-mainStateDomainWrapperGlobalBindingsService.applyBindings(mainStateDomainWrapperBridgeService, {
-    excludeKeys: ["invokeStateDomainProxy"]
-});
+exposeOnGlobalHost(mainStateDomainWrapperBridgeService, ["invokeStateDomainProxy"]);
 
 const mainCoreAssemblyConfigBuilderService = createRequiredModuleService(
     GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER,
@@ -1513,7 +1518,39 @@ const {
     loadCurrentMultiStateFromActiveSubgroup
 } = mainOrchestrationFlowServices;
 
-assertBindingCreateService(GTV_MAIN_FORMAT_PROFILE_FACADE_BINDINGS, "GTVMainFormatProfileFacadeBindings");
+const formatProfileFacadeService = mainCoreServices.mainFormatProfileFacadeService;
+if (!formatProfileFacadeService || typeof formatProfileFacadeService !== "object") {
+    throw new Error("Missing dependency: formatProfileFacadeService");
+}
+const formatProfileFacadeBindings = Object.freeze(Object.fromEntries([
+    "getDefaultFormatEnabled",
+    "getDefaultTimePartsEnabled",
+    "normalizeCopyFormatKey",
+    "sanitizeCopyFormatOrder",
+    "sanitizeCopyFormatEnabled",
+    "sanitizeTimePartsEnabled",
+    "deriveTimePartsFromLegacyEnabled",
+    "sanitizeFormatProfileContext",
+    "getFormatProfileAllowedKeys",
+    "getFormatProfileAllowedTimePartKeys",
+    "sanitizeCopyFormatOrderForContext",
+    "getDefaultFormatEnabledForContext",
+    "sanitizeCopyFormatEnabledForContext",
+    "sanitizeTimePartsEnabledForContext",
+    "createDefaultFormatProfile",
+    "sanitizeFormatProfile",
+    "sanitizeFormatProfiles",
+    "getCurrentFormatProfileState",
+    "resolveFormatProfileContext",
+    "ensureFormatProfiles",
+    "applyFormatProfileState",
+    "syncActiveFormatProfileFromState",
+    "activateFormatProfileContext",
+    "activateFormatProfileForCurrentContext",
+    "resetDisplayFormatForActiveContext",
+    "resetCopyFormatForActiveContext"
+].map((methodName) => [methodName, formatProfileFacadeService[methodName]])));
+exposeOnGlobalHost(formatProfileFacadeBindings);
 const {
     getDefaultFormatEnabled,
     getDefaultTimePartsEnabled,
@@ -1541,9 +1578,7 @@ const {
     activateFormatProfileForCurrentContext,
     resetDisplayFormatForActiveContext,
     resetCopyFormatForActiveContext
-} = GTV_MAIN_FORMAT_PROFILE_FACADE_BINDINGS.createService({
-    formatProfileFacadeService: mainCoreServices.mainFormatProfileFacadeService
-});
+} = formatProfileFacadeBindings;
 
 const GTV_MAIN_RUNTIME_CORE_SERVICE_BOOTSTRAP = GTV_GLOBAL.GTVMainRuntimeCoreServiceBootstrap;
 assertBindingCreateService(GTV_MAIN_RUNTIME_CORE_SERVICE_BOOTSTRAP, "GTVMainRuntimeCoreServiceBootstrap");
