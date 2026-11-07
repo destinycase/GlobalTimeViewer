@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 const MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-shared-utils.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
+const TIME_CORE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "time-core.js");
+const TIME_CORE_MODULE_ID = require.resolve(TIME_CORE_MODULE_PATH);
 const moduleCleanupStack = [];
 
 function loadMainSharedUtilsModule({ withWindow = true } = {}) {
@@ -24,9 +26,14 @@ function loadMainSharedUtilsModule({ withWindow = true } = {}) {
     });
 
     delete require.cache[MODULE_ID];
+    delete require.cache[TIME_CORE_MODULE_ID];
     require(MODULE_PATH);
+    // Strict date validation is delegated to GTVTimeCore at call time.
+    require(TIME_CORE_MODULE_PATH);
     moduleCleanupStack.push(() => {
         delete require.cache[MODULE_ID];
+        delete require.cache[TIME_CORE_MODULE_ID];
+        delete globalThis.GTVTimeCore;
         keys.forEach((key) => {
             const entry = previous.get(key);
             if (!entry || !entry.exists) {

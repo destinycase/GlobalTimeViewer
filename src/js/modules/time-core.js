@@ -56,7 +56,10 @@
         if (!Number.isInteger(minute) || minute < 0 || minute > 59) return null;
         if (!Number.isInteger(second) || second < 0 || second > 59) return null;
 
-        const candidate = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+        // Date.UTC remaps years 0–99 to 1900–1999; setUTCFullYear keeps the entered year.
+        const candidate = new Date(0);
+        candidate.setUTCFullYear(year, month - 1, day);
+        candidate.setUTCHours(hour, minute, second, 0);
         if (!Number.isFinite(candidate.getTime())) return null;
         if (candidate.getUTCFullYear() !== year) return null;
         if ((candidate.getUTCMonth() + 1) !== month) return null;

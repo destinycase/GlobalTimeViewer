@@ -182,29 +182,11 @@
         return built;
     }
 
+    // Strict UTC date validation is shared with the rest of the app through GTVTimeCore.
     function buildValidatedUtcDate(year, month, day, hour = 0, minute = 0, second = 0) {
-        const y = Number(year);
-        const m = Number(month);
-        const d = Number(day);
-        const h = Number(hour);
-        const min = Number(minute);
-        const sec = Number(second);
-        // Date.UTC remaps years 0–99 to 1900–1999; setUTCFullYear keeps the entered year.
-        const built = new Date(0);
-        built.setUTCFullYear(y, m - 1, d);
-        built.setUTCHours(h, min, sec, 0);
-        if (Number.isNaN(built.getTime())) return null;
-        if (
-            built.getUTCFullYear() !== y ||
-            built.getUTCMonth() !== m - 1 ||
-            built.getUTCDate() !== d ||
-            built.getUTCHours() !== h ||
-            built.getUTCMinutes() !== min ||
-            built.getUTCSeconds() !== sec
-        ) {
-            return null;
-        }
-        return built;
+        const timeCore = globalObj?.GTVTimeCore;
+        if (!timeCore || typeof timeCore.buildStrictUtcDateFromParts !== "function") return null;
+        return timeCore.buildStrictUtcDateFromParts({ year, month, day, hour, minute, second });
     }
 
     function parseLocalDateOnlyString(raw) {

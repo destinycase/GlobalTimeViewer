@@ -62,6 +62,18 @@ test("sanitizeTimezoneId and sanitizeBaseTimezoneId normalize UTC aliases", () =
     expect(api.sanitizeBaseTimezoneId("")).toBe("utc");
 });
 
+test("buildStrictUtcDateFromParts keeps years 0-99 as entered", () => {
+    const api = createApi();
+    const lowYear = api.buildStrictUtcDateFromParts({ year: "0050", month: "01", day: "02", hour: 3, minute: 4, second: 5 });
+    expect(lowYear).toBeInstanceOf(Date);
+    expect(lowYear.getUTCFullYear()).toBe(50);
+    expect(lowYear.getUTCMonth()).toBe(0);
+    expect(lowYear.getUTCDate()).toBe(2);
+    expect(lowYear.getUTCHours()).toBe(3);
+    expect(api.buildStrictUtcDateFromParts({ year: 50, month: 2, day: 29, hour: 0, minute: 0, second: 0 })).toBe(null);
+    expect(api.buildStrictUtcDateFromParts({ year: 48, month: 2, day: 29, hour: 0, minute: 0, second: 0 })).toBeInstanceOf(Date);
+});
+
 test("buildStrictUtcDateFromParts accepts exact UTC parts and rejects overflow", () => {
     const api = createApi();
     const ok = api.buildStrictUtcDateFromParts({
