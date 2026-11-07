@@ -91,8 +91,12 @@ module.exports = [
             "dist_extension/**",
             "coverage/**",
             "node_modules/**",
-            "js/vendor/**",
-            "js/bundle.js"
+            "release/**",
+            "scratch/**",
+            "docs_dev/**",
+            "tests/local/**",
+            "src/js/vendor/**",
+            "src/js/bundle.js"
         ]
     },
     {
@@ -114,11 +118,11 @@ module.exports = [
         rules: baseRules
     },
     {
-        files: ["js/modules/**/*.js"],
+        files: ["src/js/modules/**/*.js"],
         rules: moduleUnusedVarRules
     },
     {
-        files: ["background.js", "i18n.js"],
+        files: ["src/background.js", "src/i18n.js"],
         rules: entryUnusedVarRules
     }
 ];

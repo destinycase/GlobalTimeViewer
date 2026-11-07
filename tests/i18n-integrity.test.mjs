@@ -3,8 +3,8 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const I18N_PATH = path.resolve(process.cwd(), "i18n.js");
-const INDEX_PATH = path.resolve(process.cwd(), "index.html");
+const I18N_PATH = path.resolve(process.cwd(), "src", "i18n.js");
+const INDEX_PATH = path.resolve(process.cwd(), "src", "index.html");
 
 function loadI18nData() {
     const code = fs.readFileSync(I18N_PATH, "utf8");

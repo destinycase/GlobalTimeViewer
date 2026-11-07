@@ -10,8 +10,9 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
-const SCRIPT_LIST_PATH = path.join(ROOT_DIR, "script_list.tmp");
-const SOURCE_SCRIPT_LOADER_PATH = path.join(ROOT_DIR, "js", "source-script-loader.js");
+const SRC_DIR = path.join(ROOT_DIR, "src");
+const SCRIPT_LIST_PATH = path.join(SRC_DIR, "script_list.tmp");
+const SOURCE_SCRIPT_LOADER_PATH = path.join(SRC_DIR, "js", "source-script-loader.js");
 
 function readScriptList() {
     if (!fs.existsSync(SCRIPT_LIST_PATH)) {
@@ -19,8 +20,8 @@ function readScriptList() {
     }
 
     const sourceScripts = parseSourceScriptList(fs.readFileSync(SCRIPT_LIST_PATH, "utf8"));
-    validateSourceScriptFiles(ROOT_DIR, sourceScripts);
-    validateRuntimeScriptCoverage(ROOT_DIR, sourceScripts);
+    validateSourceScriptFiles(SRC_DIR, sourceScripts);
+    validateRuntimeScriptCoverage(SRC_DIR, sourceScripts);
     return sourceScripts;
 }
 

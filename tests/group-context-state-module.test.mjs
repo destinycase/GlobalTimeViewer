@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "group-context-state.js");
+const MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "group-context-state.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
 

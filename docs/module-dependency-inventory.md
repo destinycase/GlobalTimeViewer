@@ -1,6 +1,6 @@
 # 모듈 의존성 상세 인벤토리
 
-> 생성 기준: 현재 워킹 트리의 `script_list.tmp`, `js/modules/*.js`, `main.js`, `main-module-spec.js`. `npm` 패키지의 Espree AST parser로 전역 API, 서비스 입력 키, 반환 API 및 `main.js`의 직접 서비스 조립 호출을 추출했습니다.
+> 생성 기준: 현재 워킹 트리의 `src/script_list.tmp`, `src/js/modules/*.js`, `src/main.js`, `main-module-spec.js`. `npm` 패키지의 Espree AST parser로 전역 API, 서비스 입력 키, 반환 API 및 `main.js`의 직접 서비스 조립 호출을 추출했습니다.
 > 이 문서는 소스의 정적 형태를 기록합니다. 입력 키가 실제로 어떤 제공자에 연결되는지는 이름만으로 추론하지 않았으며, 간접 설정 객체는 `사전 조립 값`으로 표시합니다.
 
 - 모듈 파일: 178개

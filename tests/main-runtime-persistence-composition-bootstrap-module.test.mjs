@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const MODULE_PATH = path.resolve(
     process.cwd(),
+    "src",
     "js",
     "modules",
     "main-runtime-persistence-composition-bootstrap.js"

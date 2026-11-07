@@ -4,9 +4,9 @@ import { createRequire } from "node:module";
 import { afterEach, expect, test } from "vitest";
 
 const require = createRequire(import.meta.url);
-const TIME_CORE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "time-core.js");
-const COUNTDOWN_STATE_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "calculator-countdown-state.js");
-const CALCULATOR_MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "calculator.js");
+const TIME_CORE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "time-core.js");
+const COUNTDOWN_STATE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "calculator-countdown-state.js");
+const CALCULATOR_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "calculator.js");
 const TIME_CORE_MODULE_ID = require.resolve(TIME_CORE_MODULE_PATH);
 const COUNTDOWN_STATE_MODULE_ID = require.resolve(COUNTDOWN_STATE_MODULE_PATH);
 const CALCULATOR_MODULE_ID = require.resolve(CALCULATOR_MODULE_PATH);

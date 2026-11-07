@@ -4,8 +4,8 @@ import vm from "node:vm";
 
 import { expect, test, vi } from "vitest";
 
-const SCRIPT_LIST_PATH = path.resolve(process.cwd(), "script_list.tmp");
-const SOURCE_SCRIPT_LOADER_PATH = path.resolve(process.cwd(), "js", "source-script-loader.js");
+const SCRIPT_LIST_PATH = path.resolve(process.cwd(), "src", "script_list.tmp");
+const SOURCE_SCRIPT_LOADER_PATH = path.resolve(process.cwd(), "src", "js", "source-script-loader.js");
 
 function readScriptList() {
     return fs.readFileSync(SCRIPT_LIST_PATH, "utf8")
@@ -29,10 +29,10 @@ test("script_list.tmp includes every runtime script exactly once", () => {
     const runtimeScripts = [
         "i18n.js",
         "main.js",
-        ...fs.readdirSync(path.resolve(process.cwd(), "js", "vendor"))
+        ...fs.readdirSync(path.resolve(process.cwd(), "src", "js", "vendor"))
             .filter((name) => name.endsWith(".js"))
             .map((name) => `js/vendor/${name}`),
-        ...fs.readdirSync(path.resolve(process.cwd(), "js", "modules"))
+        ...fs.readdirSync(path.resolve(process.cwd(), "src", "js", "modules"))
             .filter((name) => name.endsWith(".js"))
             .map((name) => `js/modules/${name}`)
     ].sort();

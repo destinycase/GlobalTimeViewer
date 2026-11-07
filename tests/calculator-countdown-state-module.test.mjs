@@ -4,7 +4,7 @@ import vm from "node:vm";
 
 import { expect, test } from "vitest";
 
-const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "calculator-countdown-state.js");
+const MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "calculator-countdown-state.js");
 
 function loadCountdownStateModule() {
     const windowRef = {};

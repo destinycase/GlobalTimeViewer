@@ -1,7 +1,7 @@
 import path from "node:path";
 import { createRequire } from "node:module";
 
-const MAIN_PATH = path.resolve(process.cwd(), "main.js");
+const MAIN_PATH = path.resolve(process.cwd(), "src", "main.js");
 const require = createRequire(import.meta.url);
 const MAIN_ID = require.resolve(MAIN_PATH);
 

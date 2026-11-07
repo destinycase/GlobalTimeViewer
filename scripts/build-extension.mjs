@@ -15,12 +15,13 @@ const { ZipFile } = require("yazl");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
+const SRC_DIR = path.join(ROOT_DIR, "src");
 const DIST_DIR = path.join(ROOT_DIR, "dist");
 const DEST_DIR = path.join(ROOT_DIR, "dist_extension");
 const ZIP_FILE = path.join(ROOT_DIR, "GlobalTimeViewer_extension.zip");
-const BUNDLE_PATH = path.join(ROOT_DIR, "js", "bundle.js");
-const SCRIPT_LIST_PATH = path.join(ROOT_DIR, "script_list.tmp");
-const SOURCE_SCRIPT_LOADER_PATH = path.join(ROOT_DIR, "js", "source-script-loader.js");
+const BUNDLE_PATH = path.join(SRC_DIR, "js", "bundle.js");
+const SCRIPT_LIST_PATH = path.join(SRC_DIR, "script_list.tmp");
+const SOURCE_SCRIPT_LOADER_PATH = path.join(SRC_DIR, "js", "source-script-loader.js");
 const SOURCE_SCRIPT_LOADER_RELATIVE_PATH = "js/source-script-loader.js";
 const MAX_BUNDLE_BYTES = 950 * 1024;
 const ENFORCE_VERSION_CONSISTENCY = process.argv.includes("--enforce-version-consistency");
@@ -68,11 +69,11 @@ function runNodeBinary(binaryPath, args, label) {
 function syncVersionMetadata() {
     const packagePath = path.join(ROOT_DIR, "package.json");
     const manifestPath = path.join(ROOT_DIR, "manifest.json");
-    const appConfigPath = path.join(ROOT_DIR, "js", "modules", "app-config.js");
+    const appConfigPath = path.join(SRC_DIR, "js", "modules", "app-config.js");
 
     ensureExists(packagePath, "package.json");
     ensureExists(manifestPath, "manifest.json");
-    ensureExists(appConfigPath, "js/modules/app-config.js");
+    ensureExists(appConfigPath, "src/js/modules/app-config.js");
 
     const packageContent = JSON.parse(readText(packagePath));
     const version = String(packageContent?.version || "").trim();
@@ -126,8 +127,8 @@ function syncVersionMetadata() {
 function readScriptList() {
     if (!fs.existsSync(SCRIPT_LIST_PATH)) return [];
     const sourceScripts = parseSourceScriptList(readText(SCRIPT_LIST_PATH));
-    validateSourceScriptFiles(ROOT_DIR, sourceScripts);
-    validateRuntimeScriptCoverage(ROOT_DIR, sourceScripts);
+    validateSourceScriptFiles(SRC_DIR, sourceScripts);
+    validateRuntimeScriptCoverage(SRC_DIR, sourceScripts);
     return sourceScripts;
 }
 
@@ -183,7 +184,7 @@ function createBundle(indexHtmlContent) {
     const bundleParts = [];
 
     for (const relativeFilePath of jsFiles) {
-        const absoluteFilePath = path.resolve(ROOT_DIR, ...relativeFilePath.split("/"));
+        const absoluteFilePath = path.resolve(SRC_DIR, ...relativeFilePath.split("/"));
         if (!fs.existsSync(absoluteFilePath)) {
             missingFiles.push(relativeFilePath);
             continue;
@@ -236,9 +237,9 @@ function createTemporaryViteEntry(originalIndexContent) {
 
 function runViteBuild(originalIndexContent) {
     const vitePath = resolvePackageBinary("vite", path.join("bin", "vite.js"));
-    const indexPath = path.join(ROOT_DIR, "index.html");
-    const backupIndexPath = path.join(ROOT_DIR, "index.html.bak");
-    const tempIndexPath = path.join(ROOT_DIR, "vite-index.html");
+    const indexPath = path.join(SRC_DIR, "index.html");
+    const backupIndexPath = path.join(SRC_DIR, "index.html.bak");
+    const tempIndexPath = path.join(SRC_DIR, "vite-index.html");
     let backupCreated = false;
 
     writeText(tempIndexPath, createTemporaryViteEntry(originalIndexContent));
@@ -252,7 +253,7 @@ function runViteBuild(originalIndexContent) {
         fs.renameSync(tempIndexPath, indexPath);
 
         writeLine("Running Vite build...");
-        runNodeBinary(vitePath, ["build"], "Vite build");
+        runNodeBinary(vitePath, ["build", "src", "--config", "vite.config.js"], "Vite build");
     } finally {
         if (backupCreated) {
             if (fs.existsSync(indexPath)) {
@@ -301,14 +302,15 @@ function copyDeploymentArtifacts() {
     copyDirectoryContents(DIST_DIR, DEST_DIR);
     writeLine("  Copied Vite build output");
 
-    for (const item of ["manifest.json", "icons", "background.js"]) {
-        const sourcePath = path.join(ROOT_DIR, item);
-        if (!fs.existsSync(sourcePath)) {
-            writeLine(`  Warning: ${item} could not be found, skipping.`);
-            continue;
-        }
-        fs.cpSync(sourcePath, path.join(DEST_DIR, item), { recursive: true, force: true });
-        writeLine(`  Copied: ${item}`);
+    const deploymentItems = [
+        { source: path.join(ROOT_DIR, "manifest.json"), target: "manifest.json" },
+        { source: path.join(ROOT_DIR, "Asset", "icons"), target: "icons" },
+        { source: path.join(SRC_DIR, "background.js"), target: "background.js" }
+    ];
+    for (const { source, target } of deploymentItems) {
+        ensureExists(source, target);
+        fs.cpSync(source, path.join(DEST_DIR, target), { recursive: true, force: true });
+        writeLine(`  Copied: ${path.relative(ROOT_DIR, source).replace(/\\/g, "/")} -> ${target}`);
     }
 }
 
@@ -376,7 +378,7 @@ async function main() {
     syncVersionMetadata();
     resetDestinationDirectory();
 
-    const originalIndexContent = readText(path.join(ROOT_DIR, "index.html"));
+    const originalIndexContent = readText(path.join(SRC_DIR, "index.html"));
 
     writeLine("Creating concatenated bundle...");
     createBundle(originalIndexContent);

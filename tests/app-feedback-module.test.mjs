@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "app-feedback.js");
+const MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "app-feedback.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
 

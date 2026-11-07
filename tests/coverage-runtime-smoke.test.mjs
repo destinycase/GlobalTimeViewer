@@ -6,7 +6,7 @@ import { afterAll, beforeAll, expect, test, vi } from "vitest";
 
 const require = createRequire(import.meta.url);
 const PROJECT_ROOT = path.resolve(process.cwd());
-const MODULES_DIR = path.join(PROJECT_ROOT, "js", "modules");
+const MODULES_DIR = path.join(PROJECT_ROOT, "src", "js", "modules");
 const MODULE_FILES = fs.readdirSync(MODULES_DIR).filter((name) => name.endsWith(".js")).sort();
 
 const NOOP = () => { };
@@ -155,9 +155,9 @@ beforeAll(() => {
     MODULE_FILES.forEach((fileName) => {
         require(path.join(MODULES_DIR, fileName));
     });
-    require(path.join(PROJECT_ROOT, "main.js"));
-    require(path.join(PROJECT_ROOT, "i18n.js"));
-    require(path.join(PROJECT_ROOT, "background.js"));
+    require(path.join(PROJECT_ROOT, "src", "main.js"));
+    require(path.join(PROJECT_ROOT, "src", "i18n.js"));
+    require(path.join(PROJECT_ROOT, "src", "background.js"));
 });
 
 afterAll(async () => {
@@ -241,7 +241,7 @@ test("coverage smoke invokes main internals through guarded test hook", () => {
         showFatalError: [new Error("sweep")]
     };
     const skipFunctions = new Set(["initApp", "prepareExportCanvas"]);
-    const mainSource = fs.readFileSync(path.join(PROJECT_ROOT, "main.js"), "utf8");
+    const mainSource = fs.readFileSync(path.join(PROJECT_ROOT, "src", "main.js"), "utf8");
     const functionNames = [...mainSource.matchAll(/^function\s+([A-Za-z0-9_]+)/gm)].map((match) => match[1]);
 
     const failed = [];

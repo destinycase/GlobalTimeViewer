@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const I18N_PATH = path.resolve(process.cwd(), "i18n.js");
+const I18N_PATH = path.resolve(process.cwd(), "src", "i18n.js");
 
 function createClassList() {
     const values = new Set();

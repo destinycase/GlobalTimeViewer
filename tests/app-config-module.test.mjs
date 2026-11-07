@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-const APP_CONFIG_PATH = path.resolve(process.cwd(), "js", "modules", "app-config.js");
+const APP_CONFIG_PATH = path.resolve(process.cwd(), "src", "js", "modules", "app-config.js");
 const PACKAGE_JSON_PATH = path.resolve(process.cwd(), "package.json");
 const MANIFEST_PATH = path.resolve(process.cwd(), "manifest.json");
 const require = createRequire(import.meta.url);

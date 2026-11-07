@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "main-group-tabs-service.js");
+const MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-group-tabs-service.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
 const moduleCleanupStack = [];

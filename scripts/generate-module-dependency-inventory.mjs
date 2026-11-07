@@ -6,10 +6,11 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const espree = require("espree");
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const MODULES_DIR = path.join(ROOT_DIR, "js", "modules");
-const SCRIPT_LIST_PATH = path.join(ROOT_DIR, "script_list.tmp");
+const SRC_DIR = path.join(ROOT_DIR, "src");
+const MODULES_DIR = path.join(SRC_DIR, "js", "modules");
+const SCRIPT_LIST_PATH = path.join(SRC_DIR, "script_list.tmp");
 const MODULE_SPEC_PATH = path.join(MODULES_DIR, "main-module-spec.js");
-const MAIN_PATH = path.join(ROOT_DIR, "main.js");
+const MAIN_PATH = path.join(SRC_DIR, "main.js");
 const OUTPUT_PATH = path.join(ROOT_DIR, "docs", "module-dependency-inventory.md");
 
 function parseSource(filePath) {
@@ -277,7 +278,7 @@ function main() {
     const lines = [
         "# 모듈 의존성 상세 인벤토리",
         "",
-        "> 생성 기준: 현재 워킹 트리의 `script_list.tmp`, `js/modules/*.js`, `main.js`, `main-module-spec.js`. `npm` 패키지의 Espree AST parser로 전역 API, 서비스 입력 키, 반환 API 및 `main.js`의 직접 서비스 조립 호출을 추출했습니다.",
+        "> 생성 기준: 현재 워킹 트리의 `src/script_list.tmp`, `src/js/modules/*.js`, `src/main.js`, `main-module-spec.js`. `npm` 패키지의 Espree AST parser로 전역 API, 서비스 입력 키, 반환 API 및 `main.js`의 직접 서비스 조립 호출을 추출했습니다.",
         "> 이 문서는 소스의 정적 형태를 기록합니다. 입력 키가 실제로 어떤 제공자에 연결되는지는 이름만으로 추론하지 않았으며, 간접 설정 객체는 `사전 조립 값`으로 표시합니다.",
         "",
         `- 모듈 파일: ${modules.length}개`,

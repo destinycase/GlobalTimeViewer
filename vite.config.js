@@ -1,4 +1,8 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createLogger, defineConfig } from 'vite';
+
+const PROJECT_ROOT = path.dirname(fileURLToPath(import.meta.url));
 
 const logger = createLogger();
 const loggerWarn = logger.warn;
@@ -10,13 +14,19 @@ logger.warn = (msg, options) => {
     loggerWarn(msg, options);
 };
 
+// The extension page lives in src/. scripts/build-extension.mjs runs
+// `vite build src --config vite.config.js`, so the build root is src/ while
+// Vitest keeps the repository root for test discovery and coverage paths.
 export default defineConfig({
     customLogger: logger,
     base: '',
     test: {
+        include: ['tests/**/*.test.{mjs,js}'],
+        exclude: ['node_modules/**', 'tests/local/**'],
         coverage: {
             provider: 'v8',
             reporter: ['text-summary', 'html'],
+            reportsDirectory: 'coverage',
             all: true,
             thresholds: {
                 statements: 83.0,
@@ -25,27 +35,24 @@ export default defineConfig({
                 functions: 70.0
             },
             include: [
-                'background.js',
-                'i18n.js',
-                'main.js',
-                'js/modules/**/*.js'
+                'src/background.js',
+                'src/i18n.js',
+                'src/main.js',
+                'src/js/modules/**/*.js'
             ],
             exclude: [
-                'dist/**',
-                'dist_extension/**',
-                'coverage/**',
-                'node_modules/**',
-                'js/vendor/**',
-                'js/bundle.js',
+                'src/js/vendor/**',
+                'src/js/bundle.js',
                 'tests/**'
             ]
         }
     },
     build: {
-        outDir: 'dist',
+        outDir: path.join(PROJECT_ROOT, 'dist'),
+        emptyOutDir: true,
         rollupOptions: {
             input: {
-                main: 'index.html'
+                main: path.join(PROJECT_ROOT, 'src', 'index.html')
             },
             output: {
                 entryFileNames: 'js/[name]-[hash].js',

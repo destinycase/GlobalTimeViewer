@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 
 import { afterEach, expect, test } from "vitest";
 
-const MODULE_PATH = path.resolve(process.cwd(), "js", "modules", "group-state.js");
+const MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "group-state.js");
 const require = createRequire(import.meta.url);
 const MODULE_ID = require.resolve(MODULE_PATH);
 const moduleCleanupStack = [];

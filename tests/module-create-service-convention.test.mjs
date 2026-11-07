@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { expect, test } from "vitest";
 
-const MODULES_DIR = path.resolve(process.cwd(), "js", "modules");
+const MODULES_DIR = path.resolve(process.cwd(), "src", "js", "modules");
 
 test("all module files expose createService entrypoint", () => {
     const files = fs.readdirSync(MODULES_DIR)
