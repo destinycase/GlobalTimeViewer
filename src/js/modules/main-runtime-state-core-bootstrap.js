@@ -69,28 +69,6 @@
         }
         // Host accessors forward to the host utils service (formerly main-runtime-host-accessor-proxies.js).
         const HOST_ACCESSOR_METHODS = Object.freeze(["applyVersionBranding","createCanvasSafely","getRandomUUIDSafely","getDocumentRefOrNull","getWindowRefOrNull","getLocationRefOrNull","getGlobalThisRefOrNull","getLuxonGlobalRef","getComputedStyleSafely","getRuntimeNowMs","setRuntimeInterval","clearRuntimeInterval","deferDynamicCall"]);
-        // Accessor proxy services are created directly (formerly one *-bindings module each) and
-        // exposed as frozen copies, as the bindings did.
-        const ACCESSOR_SPECS = Object.freeze({
-            StatePatch: {
-                moduleKey: "runtimeStatePatchAccessorProxiesModule",
-                moduleName: "GTVMainRuntimeStatePatchAccessorProxies",
-                invalidMessage: "Invalid main runtime state patch accessor proxies service",
-                requiredMethods: ["applyDirectStatePatch","buildPatchedStateFallbackSnapshot"]
-            }
-        });
-        function createAccessorService(kind, accessorDeps) {
-            const spec = ACCESSOR_SPECS[kind];
-            return Object.freeze({
-                ...serviceInvokeUtils.createRequiredModuleService(
-                    safeDeps[spec.moduleKey],
-                    spec.moduleName,
-                    accessorDeps,
-                    spec.requiredMethods,
-                    spec.invalidMessage
-                )
-            });
-        }
 
         const createRuntimeHostUtilsService = requireFunction(
             runtimeHostUtilsBindings.createService,
@@ -177,39 +155,19 @@
                 "getMultiRangeTitle",
             ]),
         });
-        const mainRuntimeStatePatchAccessorService = createAccessorService("StatePatch", {
-            ...pickDeps([
-                "getMainDirectStatePatchService",
-                "getDirectStateSetters",
-                "getNormalizeDayNightRangeValues",
-                "getDayStartHour",
-                "setDayStartHour",
-                "getNightStartHour",
-                "setNightStartHour",
-            ]),
-            getSetIsRealtimeState: () => primaryStateAccessors.setIsRealtimeState,
-            getMainRuntimePatchedStateFallbackService: () => mainRuntimePatchedStateFallbackService,
-            ...pickDeps([
-                "getRuntimeCurrentLangValue",
-                "getCurrentMainTab",
-                "getSlotCount",
-                "getShowCopyFormat",
-                "getShowTimeline",
-                "getCurrentTheme",
-                "getDisplayFormatOrder",
-                "getDisplayFormatEnabled",
-                "getDisplayTimePartsEnabled",
-                "getCopyFormatOrder",
-                "getCopyFormatEnabled",
-                "getCopyTimePartsEnabled",
-                "getActiveFormatProfileContext",
-                "getActiveGroupId",
-                "getMultiRangeCount",
-                "getMultiRanges",
-                "getMultiRangeCollapsed",
-                "getTimeAdjustDayStepBySlot",
-                "getMultiRangeTitle",
-            ]),
+        // State patch accessors (formerly main-runtime-state-patch-accessor-proxies.js). The direct
+        // state patch service is created later in main.js, so it is looked up per call. The old
+        // proxy's fallbacks only ran when a service was missing, which normal assembly never does.
+        const mainRuntimeStatePatchAccessorService = Object.freeze({
+            ...serviceInvokeUtils.createLateBoundForwarders(
+                safeDeps.getMainDirectStatePatchService,
+                "mainDirectStatePatchService",
+                ["applyDirectStatePatch"]
+            ),
+            buildPatchedStateFallbackSnapshot: requireFunction(
+                mainRuntimePatchedStateFallbackService?.buildPatchedStateFallbackSnapshot,
+                "mainRuntimePatchedStateFallbackService.buildPatchedStateFallbackSnapshot"
+            )
         });
 
         const {

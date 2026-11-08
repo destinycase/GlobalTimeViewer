@@ -387,13 +387,11 @@ const {
     GTV_MAIN_RUNTIME_HOST_UTILS, GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS,
     GTV_MAIN_RUNTIME_PRIMARY_STATE, GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS,
     GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS,
-    GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_PUBLIC_API_BINDINGS,
     GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES,
-    GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK, GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS,
     GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS, GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS,
     GTV_MAIN_FACADE_BINDINGS, GTV_MAIN_RUNTIME_BRIDGE_PROXIES, GTV_MAIN_RUNTIME_BRIDGE_PROXY_BINDINGS,
@@ -429,7 +427,14 @@ mainRuntimeServiceBridgeHelpersService = createRequiredModuleService(GTV_MAIN_RU
     getPersistenceService: () => persistenceService,
     getMainMultiRangeTabFacadeService: () => mainMultiRangeTabFacadeService,
     getTranslator: () => gtvT
-}, [], "Invalid main runtime service bridge helpers service");
+}, [
+    "warnMissingServiceMethod",
+    "showMissingFeatureToastOnce",
+    "getServiceMethod",
+    "callServiceMethod",
+    "savePersistenceSafely",
+    "renderMultiRangesSafely"
+], "Invalid main runtime service bridge helpers service");
 
 var warnMissingServiceMethod;
 var showMissingFeatureToastOnce;
@@ -444,21 +449,7 @@ var renderMultiRangesSafely;
     callServiceMethod,
     savePersistenceSafely,
     renderMultiRangesSafely
-} = createRequiredModuleService(GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES, "GTVMainRuntimeServiceBridgeAccessorProxies", {
-    getMainRuntimeServiceBridgeHelpersService: () => mainRuntimeServiceBridgeHelpersService,
-    getMainServiceMethodBridgeService: () => mainServiceMethodBridgeService,
-    getAppFeedbackService: () => appFeedbackService,
-    getPersistenceService: () => persistenceService,
-    getMainMultiRangeTabFacadeService: () => mainMultiRangeTabFacadeService,
-    getTranslator: () => gtvT
-}, [
-    "warnMissingServiceMethod",
-    "showMissingFeatureToastOnce",
-    "getServiceMethod",
-    "callServiceMethod",
-    "savePersistenceSafely",
-    "renderMultiRangesSafely"
-], "Invalid main runtime service bridge accessor proxies service"));
+} = mainRuntimeServiceBridgeHelpersService);
 
 const {
     deriveFacadeServiceName,
@@ -747,7 +738,6 @@ assertBindingCreateService(GTV_MAIN_RUNTIME_STATE_CORE_BOOTSTRAP, "GTVMainRuntim
     runtimePrimaryStateModule: GTV_MAIN_RUNTIME_PRIMARY_STATE,
     runtimePatchedStateFallbackBindings: GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS,
     runtimePatchedStateFallbackModule: GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK,
-    runtimeStatePatchAccessorProxiesModule: GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES,
     runtimeLocalStateHelpersBindings: GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS,
     runtimeLocalStateHelpersModule: GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS,
     appDisplayName: APP_DISPLAY_NAME,

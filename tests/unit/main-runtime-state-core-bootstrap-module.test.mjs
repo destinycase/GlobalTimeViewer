@@ -59,7 +59,8 @@ describe("GTV main runtime state core bootstrap module", () => {
         const moduleApi = loadMainRuntimeStateCoreBootstrapModule();
         const setIsRealtimeState = vi.fn();
         const buildPatchedStateFallbackSnapshot = vi.fn(() => ({ ok: true }));
-        let capturedStatePatchAccessorDeps = null;
+        const directStatePatch = { applyDirectStatePatch: vi.fn((next) => ({ applied: next })) };
+        let directStatePatchService = null;
 
         const hostUtils = {
             name: "host-utils",
@@ -94,6 +95,7 @@ describe("GTV main runtime state core bootstrap module", () => {
         };
 
         const deps = {
+            getMainDirectStatePatchService: () => directStatePatchService,
             runtimeHostUtilsBindings: {
                 createService: vi.fn(() => ({ mainRuntimeHostUtilsService: hostUtils }))
             },
@@ -102,17 +104,8 @@ describe("GTV main runtime state core bootstrap module", () => {
             },
             runtimePatchedStateFallbackBindings: {
                 createService: vi.fn(() => ({
-                    mainRuntimePatchedStateFallbackService: { name: "patched-fallback" }
+                    mainRuntimePatchedStateFallbackService: { name: "patched-fallback", buildPatchedStateFallbackSnapshot }
                 }))
-            },
-            runtimeStatePatchAccessorProxiesModule: {
-                createService: vi.fn((deps) => {
-                    capturedStatePatchAccessorDeps = deps;
-                    return {
-                        applyDirectStatePatch: vi.fn(),
-                        buildPatchedStateFallbackSnapshot
-                    };
-                })
             },
             runtimeLocalStateHelpersBindings: {
                 createService: vi.fn(() => ({
@@ -131,7 +124,7 @@ describe("GTV main runtime state core bootstrap module", () => {
         expect(service.mainRuntimePrimaryStateService).toBe(primaryState);
         expect(service.setIsRealtimeState).toBe(primaryState.setIsRealtimeState);
         expect(service.getIsRealtimeState()).toBe(true);
-        expect(service.mainRuntimePatchedStateFallbackService).toEqual({ name: "patched-fallback" });
+        expect(service.mainRuntimePatchedStateFallbackService.name).toBe("patched-fallback");
         expect(service.mainRuntimeLocalStateHelpersService).toBe(localStateHelpers);
         expect(service.getCurrentUiScalePercent()).toBe(100);
         expect(service.confirmRuntime).toBe(localStateHelpers.confirmRuntime);
@@ -149,7 +142,17 @@ describe("GTV main runtime state core bootstrap module", () => {
             }
         })).toThrow("Missing required dependency: mainRuntimeLocalStateHelpersService.getTimeAdjustDayStepValue");
         expect(service.buildPatchedStateFallbackSnapshot()).toEqual({ ok: true });
-        expect(capturedStatePatchAccessorDeps.getSetIsRealtimeState()).toBe(setIsRealtimeState);
+        expect(() => service.mainRuntimeStatePatchAccessorService.applyDirectStatePatch({ a: 1 })).toThrow(
+            "Missing required module API: mainDirectStatePatchService.applyDirectStatePatch"
+        );
+        directStatePatchService = directStatePatch;
+        expect(service.mainRuntimeStatePatchAccessorService.applyDirectStatePatch({ a: 1 })).toEqual({ applied: { a: 1 } });
+        expect(() => moduleApi.createService({
+            ...deps,
+            runtimePatchedStateFallbackBindings: {
+                createService: () => ({ mainRuntimePatchedStateFallbackService: {} })
+            }
+        })).toThrow("Missing required dependency: mainRuntimePatchedStateFallbackService.buildPatchedStateFallbackSnapshot");
         expect(Object.isFrozen(service)).toBe(true);
     });
 

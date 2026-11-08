@@ -78,7 +78,7 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
             bindFacadeMethod: () => () => undefined
         })
     };
-    const mainRuntimeServiceBridgeAccessorProxiesStub = {
+    const mainRuntimeServiceBridgeHelpersStub = {
         createService: () => ({
             warnMissingServiceMethod: () => undefined,
             showMissingFeatureToastOnce: () => undefined,
@@ -101,9 +101,7 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
             renderMultiRangesSafely: () => undefined
         })
     };
-    const mainRuntimeServiceBridgeHelpersStub = {
-        createService: () => ({})
-    };
+
     const mainRuntimeCoreAccessorProxiesStub = {
         createService: () => ({
             syncRealtimeFlagToGlobal: () => undefined,
@@ -478,13 +476,11 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         GTV_MAIN_RUNTIME_PRIMARY_STATE: "GTVMainRuntimePrimaryState",
         GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS: "GTVMainRuntimePrimaryStateBindings",
         GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS: "GTVMainRuntimeServiceBridgeHelpers",
-        GTV_MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES: "GTVMainRuntimeServiceBridgeAccessorProxies",
         GTV_MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES: "GTVMainRuntimeUiBridgeAccessorProxies",
         GTV_MAIN_RUNTIME_OPERATION_ACCESSOR_PROXIES: "GTVMainRuntimeOperationAccessorProxies",
         GTV_MAIN_RUNTIME_PUBLIC_API_BINDINGS: "GTVMainRuntimePublicApiBindings",
         GTV_MAIN_RUNTIME_BOOTSTRAP_ACCESSOR_PROXIES: "GTVMainRuntimeBootstrapAccessorProxies",
         GTV_MAIN_RUNTIME_CORE_ACCESSOR_PROXIES: "GTVMainRuntimeCoreAccessorProxies",
-        GTV_MAIN_RUNTIME_STATE_PATCH_ACCESSOR_PROXIES: "GTVMainRuntimeStatePatchAccessorProxies",
         GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK: "GTVMainRuntimePatchedStateFallback",
         GTV_MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS: "GTVMainRuntimePatchedStateFallbackBindings",
         GTV_MAIN_RUNTIME_LOCAL_STATE_HELPERS: "GTVMainRuntimeLocalStateHelpers",
@@ -583,7 +579,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         windowRef.GTVMainRuntimeBridgeProxyBindings = mainRuntimeBridgeProxyBindingsStub;
         windowRef.GTVMainFacadeMethodBinder = mainFacadeMethodBinderStub;
         windowRef.GTVMainRuntimeServiceBridgeHelpers = mainRuntimeServiceBridgeHelpersStub;
-        windowRef.GTVMainRuntimeServiceBridgeAccessorProxies = mainRuntimeServiceBridgeAccessorProxiesStub;
         windowRef.GTVMainRuntimeCoreAccessorProxies = mainRuntimeCoreAccessorProxiesStub;
         windowRef.GTVMainRuntimePublicApiBindings = mainRuntimePublicApiBindingsStub;
         windowRef.GTVMainRuntimeStateCoreBootstrap = mainRuntimeStateCoreBootstrapStub;
@@ -612,7 +607,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         globalPatches.GTVMainRuntimeBridgeProxyBindings = mainRuntimeBridgeProxyBindingsStub;
         globalPatches.GTVMainFacadeMethodBinder = mainFacadeMethodBinderStub;
         globalPatches.GTVMainRuntimeServiceBridgeHelpers = mainRuntimeServiceBridgeHelpersStub;
-        globalPatches.GTVMainRuntimeServiceBridgeAccessorProxies = mainRuntimeServiceBridgeAccessorProxiesStub;
         globalPatches.GTVMainRuntimeCoreAccessorProxies = mainRuntimeCoreAccessorProxiesStub;
         globalPatches.GTVMainRuntimePublicApiBindings = mainRuntimePublicApiBindingsStub;
         globalPatches.GTVMainRuntimeStateCoreBootstrap = mainRuntimeStateCoreBootstrapStub;
@@ -646,7 +640,6 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
         "GTVMainRuntimeBridgeProxyBindings",
         "GTVMainFacadeMethodBinder",
         "GTVMainRuntimeServiceBridgeHelpers",
-        "GTVMainRuntimeServiceBridgeAccessorProxies",
         "GTVMainRuntimeCoreAccessorProxies",
         "GTVMainRuntimePublicApiBindings",
         "GTVMainRuntimeStateCoreBootstrap",
