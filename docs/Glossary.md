@@ -65,7 +65,7 @@ Global Time Viewer의 화면·기능·시간 개념·배포 용어를 한곳에 
 | 배포 ZIP | 웹 스토어에 올리거나 직접 설치할 때 쓰는 압축 파일 `gtv-vX.Y.Z.zip` |
 | SHA-256 | 파일 내용으로 계산한 고유 지문. 기준판 문서의 값과 같으면 같은 파일입니다. |
 | 압축 해제 설치 | `chrome://extensions`에서 개발자 모드를 켜고 압축을 푼 폴더(`manifest.json`이 있는 폴더)를 불러오는 설치 방법 |
-| 개발 이력 | 버전별 기능 변경 기록([development-history.md](development-history.md)) |
+| 개발 이력 | 버전별 기능 변경과 구조 정리 기록([development-history.md](development-history.md)) |
 
 ## 문의 예시
 

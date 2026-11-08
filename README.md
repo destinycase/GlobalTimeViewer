@@ -49,7 +49,7 @@
 | [코드 탐색 안내](docs/code-navigation.md) | 기능별 코드 위치와 `main.js` 조립 단계 |
 | [모듈 관계도](docs/module-relationship-map.md) | 런타임 레이어와 주요 모듈 관계 |
 | [모듈 의존성 인벤토리](docs/module-dependency-inventory.md) | 소스에서 생성한 모듈 API·의존성·로드 순서 |
-| [개발 이력](docs/development-history.md) | 버전별 기능 변경 |
+| [개발 이력](docs/development-history.md) | 버전별 기능 변경과 구조 정리 |
 | [2차 안정 버전 v3.13.1](docs/master-baseline-v3.13.1.md) | 현재 기준판의 고정 배포 파일과 직전 안정 버전 이후 추가·개선된 기능 |
 | [1차 안정 버전 v3.12.10](docs/master-baseline-v3.12.10.md) | 이전 기준판의 고정 배포 파일과 처음부터 갖춘 기능 |
 
