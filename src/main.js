@@ -2358,131 +2358,41 @@ mainRuntimePublicApiService = mainRuntimeBootstrapWiringServices.mainRuntimePubl
 mainAppBootstrapService = mainRuntimeBootstrapWiringServices.mainAppBootstrapService;
 mainRuntimeBootstrapAccessorService = mainRuntimeBootstrapWiringServices.mainRuntimeBootstrapAccessorService;
 
-// Public compatibility facade: keep legacy globals as thin calls into runtime services.
+// Public compatibility facade: hoisted functions so earlier code can pass them before the runtime
+// services exist. Default arguments are applied by the public API service
+// (main-runtime-public-api-bindings.js); each function keeps its parameter list.
 function callMainRuntimePublicApi(methodName, ...args) {
     return mainRuntimePublicApiService[methodName](...args);
 }
-async function callMainRuntimePublicApiAsync(methodName, ...args) {
-    return await callMainRuntimePublicApi(methodName, ...args);
-}
-function resolveMainRuntimePublicApiArgs(args, defaultArgsByIndex = null) {
-    if (!defaultArgsByIndex || typeof defaultArgsByIndex !== "object") {
-        return args;
-    }
-    const resolvedArgs = [...args];
-    Object.keys(defaultArgsByIndex).forEach((indexKey) => {
-        const index = Number(indexKey);
-        if (Number.isNaN(index) || typeof resolvedArgs[index] !== "undefined") return;
-        const defaultValue = defaultArgsByIndex[index];
-        resolvedArgs[index] = (typeof defaultValue === "function")
-            ? defaultValue()
-            : defaultValue;
-    });
-    return resolvedArgs;
-}
-function callMainRuntimePublicApiWithDefaults(methodName, args, defaultArgsByIndex = null) {
-    return callMainRuntimePublicApi(
-        methodName,
-        ...resolveMainRuntimePublicApiArgs(args, defaultArgsByIndex)
-    );
-}
-async function callMainRuntimePublicApiAsyncWithDefaults(methodName, args, defaultArgsByIndex = null) {
-    return await callMainRuntimePublicApiAsync(
-        methodName,
-        ...resolveMainRuntimePublicApiArgs(args, defaultArgsByIndex)
-    );
-}
-function showFatalError(err) { return callMainRuntimePublicApiWithDefaults("showFatalError", [err]); }
-async function initApp() { return await callMainRuntimePublicApiAsyncWithDefaults("initApp", []); }
-function startBootstrapOnDomReady(initFn) { return callMainRuntimePublicApiWithDefaults("startBootstrapOnDomReady", [initFn]); }
-function showToast(message, options) {
-    return callMainRuntimePublicApiWithDefaults("showToast", [message, options], { 1: () => ({}) });
-}
-function switchMainTab(tab) { return callMainRuntimePublicApiWithDefaults("switchMainTab", [tab]); }
-function refreshOptionToggleDividers() { return callMainRuntimePublicApiWithDefaults("refreshOptionToggleDividers", []); }
-function getCopyFieldLabel(key) { return callMainRuntimePublicApiWithDefaults("getCopyFieldLabel", [key]); }
-function getTimePartLabel(partKey) { return callMainRuntimePublicApiWithDefaults("getTimePartLabel", [partKey]); }
-function getDisplayColumns(effectiveSlotCount) {
-    return callMainRuntimePublicApiWithDefaults("getDisplayColumns", [effectiveSlotCount]);
-}
-function getDisplayTimeInputMode() { return callMainRuntimePublicApiWithDefaults("getDisplayTimeInputMode", []); }
-function buildRowActionCells(copyButtonTitle, removeButtonText, removeButtonTitle) {
-    return callMainRuntimePublicApiWithDefaults(
-        "buildRowActionCells",
-        [copyButtonTitle, removeButtonText, removeButtonTitle],
-        { 2: "" }
-    );
-}
-function renderList() { return callMainRuntimePublicApiWithDefaults("renderList", []); }
-function renderTimelineFrame() { return callMainRuntimePublicApiWithDefaults("renderTimelineFrame", []); }
-function resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate) {
-    return callMainRuntimePublicApiWithDefaults(
-        "resolveFixedTimeSlotUtcDate",
-        [slot, baseRef, anchorDate],
-        { 2: () => getGlobalTimeState(0) }
-    );
-}
-function getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount) {
-    return callMainRuntimePublicApiWithDefaults(
-        "getFixedTimeSlotHeaderLabel",
-        [slot, slotIdx, slotCount],
-        { 2: 1 }
-    );
-}
-function renderFixedTimeTab(isTick) {
-    return callMainRuntimePublicApiWithDefaults("renderFixedTimeTab", [isTick], { 0: false });
-}
-function updateClocks() { return callMainRuntimePublicApiWithDefaults("updateClocks", []); }
-function resolveLocalDatePartsByTimezoneAtDate(timezone, utcDate, timezoneId) {
-    return callMainRuntimePublicApiWithDefaults(
-        "resolveLocalDatePartsByTimezoneAtDate",
-        [timezone, utcDate, timezoneId],
-        { 2: null }
-    );
-}
-function resolveLocalDatePartsByTimezone(timezone, slotIdx, timezoneId) {
-    return callMainRuntimePublicApiWithDefaults(
-        "resolveLocalDatePartsByTimezone",
-        [timezone, slotIdx, timezoneId],
-        { 2: null }
-    );
-}
-function buildStrictUtcDateFromParts(parts) {
-    return callMainRuntimePublicApiWithDefaults("buildStrictUtcDateFromParts", [parts]);
-}
-function handleTimeChange(val, timezone, slotIdx, timezoneId, inputMode) {
-    return callMainRuntimePublicApiWithDefaults(
-        "handleTimeChange",
-        [val, timezone, slotIdx, timezoneId, inputMode],
-        { 3: null, 4: "datetime" }
-    );
-}
-function handleMultiRangeTimeChange(rangeIdx, val, timezone, slotIdx, timezoneId, inputMode) {
-    return callMainRuntimePublicApiWithDefaults(
-        "handleMultiRangeTimeChange",
-        [rangeIdx, val, timezone, slotIdx, timezoneId, inputMode],
-        { 4: null, 5: "datetime" }
-    );
-}
-function formatTimeTextByParts(snapshot, timePartsEnabled) {
-    return callMainRuntimePublicApiWithDefaults("formatTimeTextByParts", [snapshot, timePartsEnabled]);
-}
-function formatSnapshotText(snapshot, order, enabled, timePartsEnabled) {
-    return callMainRuntimePublicApiWithDefaults(
-        "formatSnapshotText",
-        [snapshot, order, enabled, timePartsEnabled],
-        { 3: () => DEFAULT_COPY_TIME_PARTS_ENABLED }
-    );
-}
-function initCalculators() { return callMainRuntimePublicApiWithDefaults("initCalculators", []); }
-async function copyText(elementId, isInput) {
-    return await callMainRuntimePublicApiAsyncWithDefaults("copyText", [elementId, isInput], { 1: false });
-}
-function getPersistenceSnapshot() { return callMainRuntimePublicApiWithDefaults("getPersistenceSnapshot", []); }
-function sanitizeGroup(group, idx, legacyMultiState) {
-    return callMainRuntimePublicApiWithDefaults("sanitizeGroup", [group, idx, legacyMultiState], { 2: null });
-}
-async function loadPersistence() { return await callMainRuntimePublicApiAsyncWithDefaults("loadPersistence", []); }
+function showFatalError(err) { return callMainRuntimePublicApi("showFatalError", err); }
+async function initApp() { return await callMainRuntimePublicApi("initApp"); }
+function startBootstrapOnDomReady(initFn) { return callMainRuntimePublicApi("startBootstrapOnDomReady", initFn); }
+function showToast(message, options) { return callMainRuntimePublicApi("showToast", message, options); }
+function switchMainTab(tab) { return callMainRuntimePublicApi("switchMainTab", tab); }
+function refreshOptionToggleDividers() { return callMainRuntimePublicApi("refreshOptionToggleDividers"); }
+function getCopyFieldLabel(key) { return callMainRuntimePublicApi("getCopyFieldLabel", key); }
+function getTimePartLabel(partKey) { return callMainRuntimePublicApi("getTimePartLabel", partKey); }
+function getDisplayColumns(effectiveSlotCount) { return callMainRuntimePublicApi("getDisplayColumns", effectiveSlotCount); }
+function getDisplayTimeInputMode() { return callMainRuntimePublicApi("getDisplayTimeInputMode"); }
+function buildRowActionCells(copyButtonTitle, removeButtonText, removeButtonTitle) { return callMainRuntimePublicApi("buildRowActionCells", copyButtonTitle, removeButtonText, removeButtonTitle); }
+function renderList() { return callMainRuntimePublicApi("renderList"); }
+function renderTimelineFrame() { return callMainRuntimePublicApi("renderTimelineFrame"); }
+function resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate) { return callMainRuntimePublicApi("resolveFixedTimeSlotUtcDate", slot, baseRef, anchorDate); }
+function getFixedTimeSlotHeaderLabel(slot, slotIdx, slotCount) { return callMainRuntimePublicApi("getFixedTimeSlotHeaderLabel", slot, slotIdx, slotCount); }
+function renderFixedTimeTab(isTick) { return callMainRuntimePublicApi("renderFixedTimeTab", isTick); }
+function updateClocks() { return callMainRuntimePublicApi("updateClocks"); }
+function resolveLocalDatePartsByTimezoneAtDate(timezone, utcDate, timezoneId) { return callMainRuntimePublicApi("resolveLocalDatePartsByTimezoneAtDate", timezone, utcDate, timezoneId); }
+function resolveLocalDatePartsByTimezone(timezone, slotIdx, timezoneId) { return callMainRuntimePublicApi("resolveLocalDatePartsByTimezone", timezone, slotIdx, timezoneId); }
+function buildStrictUtcDateFromParts(parts) { return callMainRuntimePublicApi("buildStrictUtcDateFromParts", parts); }
+function handleTimeChange(val, timezone, slotIdx, timezoneId, inputMode) { return callMainRuntimePublicApi("handleTimeChange", val, timezone, slotIdx, timezoneId, inputMode); }
+function handleMultiRangeTimeChange(rangeIdx, val, timezone, slotIdx, timezoneId, inputMode) { return callMainRuntimePublicApi("handleMultiRangeTimeChange", rangeIdx, val, timezone, slotIdx, timezoneId, inputMode); }
+function formatTimeTextByParts(snapshot, timePartsEnabled) { return callMainRuntimePublicApi("formatTimeTextByParts", snapshot, timePartsEnabled); }
+function formatSnapshotText(snapshot, order, enabled, timePartsEnabled) { return callMainRuntimePublicApi("formatSnapshotText", snapshot, order, enabled, timePartsEnabled); }
+function initCalculators() { return callMainRuntimePublicApi("initCalculators"); }
+async function copyText(elementId, isInput) { return await callMainRuntimePublicApi("copyText", elementId, isInput); }
+function getPersistenceSnapshot() { return callMainRuntimePublicApi("getPersistenceSnapshot"); }
+function sanitizeGroup(group, idx, legacyMultiState) { return callMainRuntimePublicApi("sanitizeGroup", group, idx, legacyMultiState); }
+async function loadPersistence() { return await callMainRuntimePublicApi("loadPersistence"); }
 
 startBootstrapOnDomReady(initApp);
 
