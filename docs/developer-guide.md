@@ -94,6 +94,7 @@
 - 앱 상태 patching, 그룹 컨텍스트, 사용자 환경설정, 복사/표시 형식은 각각의 소유 모듈 경로를 통해 변경합니다. 이미 있는 updater/normalizer 경로를 우회해 직접 전역을 바꾸지 마세요.
 - 저장소 접근은 `state-persistence.js`가 맡고, **저장 위치는 확장 출처(origin)의 `localStorage` 하나**입니다. `manifest.json`에 `storage` 권한을 두지 않으므로 `chrome.storage`는 쓰지 않습니다. 저장 데이터는 `revision`, `updatedAt`, `data`로 감쌉니다. 읽기·쓰기 함수(`getStorageValue`, `setStorageValue`, `savePersistence`, `loadPersistence` 등)는 호출하는 쪽과의 약속대로 비동기(Promise) 함수로 유지합니다. 쓰기는 큐로 차례대로 처리하므로 나중에 요청한 저장이 마지막에 남습니다.
 - 현재 핵심 데이터 키는 `GTV_v324_Data`이고 구버전 키 목록은 `app-config.js`가 선언합니다. 테마, 언어, UI 배율은 별도 키(`GTV_Theme`, `GTV_Lang`, `GTV_UIScale`)입니다. 실제 저장 구조를 바꾸려면 normalizer, 마이그레이션/legacy fallback, 설정 내보내기/가져오기, 테스트를 함께 검토합니다.
+- 시간대 항목은 불러오거나 가져올 때 `group-state.js`가 정리합니다. 도시 시간대(IANA)에 그 도시의 1월 또는 7월 시차와 같은 고정 시차가 남아 있으면(v3.11.1 이전 국가-지역 목록이 저장한 "PDT 고정" 같은 항목) 고정 시차를 지워 서머타임 규칙을 따르게 합니다. 시차 목록에서 고른 항목(시간대 `UTC` + 고정 시차)과 두 계절 어느 쪽과도 다른 고정 시차는 그대로 둡니다.
 - 설정 가져오기는 외부 JSON 입력이므로 `settings-io.js`와 `data-transfer.js`의 검증·정규화·저장 실패 경로를 건너뛰지 않습니다. 개별 그룹/보조 그룹 가져오기를 전체 설정 가져오기와 같은 payload로 가정하지 마세요.
 
 ## 5. 안전한 변경 절차
@@ -189,6 +190,7 @@ npm run build
 6. 계산기 기간 계산과 날짜 바꾸기
 7. 설정 내보내기 파일 생성과 내용
 8. `localStorage`의 옛 저장 키 이어받기
+9. 예전 버전이 고정 시차로 저장한 서머타임 도시가 계절에 맞는 시차와 `[DST]` 표시로 바뀌는지
 
 결과는 `scratch/chrome/<시각>/result.json`에 남습니다. 실제 툴바 아이콘 클릭이나 화면을 보고 판단하는 항목은 자동 검사 범위 밖입니다. `GTV_CHROME_SKIP_BUILD=1`이면 이미 만든 `dist_extension/`을 그대로 검사하고, `GTV_CHROME_TARGETS=dist` 또는 `zip`으로 대상을 고를 수 있습니다.
 

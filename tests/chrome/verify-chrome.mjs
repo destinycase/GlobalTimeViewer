@@ -309,6 +309,64 @@ function buildScenarios(ctx) {
                 assert(migrated && legacyKept, "현재 키 저장 또는 옛 키 보존 실패");
                 return "옛 키 데이터 표시, 현재 키에 저장, 옛 키 보존";
             }
+        },
+        {
+            id: "9",
+            title: "옛 고정 서머타임 도시 항목 → 서머타임 규칙 따르기",
+            async run() {
+                const { api } = ctx;
+                // Saved before v3.11.1: Los Angeles fixed at UTC-07:00 "PDT".
+                const saved = {
+                    groups: [{
+                        name: "DST Legacy Group",
+                        zones: [{
+                            id: "tz-la-fixed",
+                            type: "standard",
+                            zone: "America/Los_Angeles",
+                            name_ko: "미국 - 로스앤젤레스",
+                            name_en: "USA - Los Angeles",
+                            fixedAbbr: "PDT",
+                            fixedOffsetMinutes: -420
+                        }],
+                        baseTimezoneId: "tz-la-fixed",
+                        showUtcRow: true,
+                        utcRowOrder: 0
+                    }],
+                    activeGroupId: 0,
+                    currentMainTab: "fixed",
+                    activeGroupIdByMainTab: { live: 0, fixed: 0 },
+                    slotCount: 1
+                };
+                await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))})`);
+                await api.reload();
+                await api.switchTab("fixed");
+                const readBaseRow = async (value) => {
+                    await api.ev(`(() => {
+                        const input = document.querySelector('#clocks-container .base-row .time-input[data-slot="0"]');
+                        input.value = ${JSON.stringify(value)};
+                        input.dispatchEvent(new Event("change", { bubbles: true }));
+                    })()`);
+                    return until(`기준 행 갱신 ${value}`, async () => {
+                        const row = await api.ev(`(() => {
+                            const tr = document.querySelector("#clocks-container .base-row");
+                            const cells = [...tr.querySelectorAll("td")].map((td) => td.textContent.trim());
+                            return { abbr: cells[1], name: cells[2], utc: cells[3], input: tr.querySelector('.time-input[data-slot="0"]').value };
+                        })()`);
+                        return row.input.startsWith(value.slice(0, 10)) ? row : false;
+                    });
+                };
+                const winter = await readBaseRow("2027-01-15 10:00:00");
+                assert(winter.utc === "UTC-08:00" && winter.abbr === "PST", `1월: ${winter.abbr} ${winter.utc}`);
+                assert(!winter.name.includes("[DST]"), `1월 이름에 [DST]: ${winter.name}`);
+                const summer = await readBaseRow("2026-10-31 22:33:55");
+                assert(summer.utc === "UTC-07:00" && summer.abbr === "PDT", `10월 말: ${summer.abbr} ${summer.utc}`);
+                assert(summer.name.includes("[DST]"), `10월 말 이름에 [DST] 없음: ${summer.name}`);
+                const stored = await until("변환 저장", async () => {
+                    const zone = (await api.storedData())?.groups?.[0]?.zones?.[0];
+                    return zone && zone.fixedOffsetMinutes === null ? zone : false;
+                });
+                return `1월 ${winter.abbr} ${winter.utc}, 10월 말 ${summer.abbr} ${summer.utc} "${summer.name}", 저장 fixedOffsetMinutes=${stored.fixedOffsetMinutes}`;
+            }
         }
     ];
 }

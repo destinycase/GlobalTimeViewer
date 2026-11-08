@@ -191,3 +191,57 @@ test("isValidTimeZone evicts oldest cache entries when max size is reached", () 
         Intl.DateTimeFormat = originalDateTimeFormat;
     }
 });
+
+test("sanitizeTimezoneZone turns old fixed DST-city variants back into rule-following cities", () => {
+    const service = createService(createDepsStub());
+    const city = (zone, fixedOffsetMinutes, fixedAbbr) => service.sanitizeTimezoneZone({
+        id: `tz-${zone}-${fixedOffsetMinutes}`,
+        type: "standard",
+        zone,
+        name_ko: "도시",
+        name_en: "City",
+        fixedOffsetMinutes,
+        fixedAbbr
+    });
+
+    // Saved by the old country list as "Los Angeles [PDT]" / "[PST]" (northern hemisphere).
+    expect(city("America/Los_Angeles", -420, "PDT")).toMatchObject({ zone: "America/Los_Angeles", fixedOffsetMinutes: null, fixedAbbr: "" });
+    expect(city("America/Los_Angeles", -480, "PST")).toMatchObject({ fixedOffsetMinutes: null, fixedAbbr: "" });
+    // Southern hemisphere: January is daylight time.
+    expect(city("Australia/Sydney", 660, "AEDT")).toMatchObject({ fixedOffsetMinutes: null, fixedAbbr: "" });
+    expect(city("Australia/Sydney", 600, "AEST")).toMatchObject({ fixedOffsetMinutes: null, fixedAbbr: "" });
+    // A city without DST whose fixed offset equals its only offset follows the zone as well.
+    expect(city("Asia/Seoul", 540, "KST")).toMatchObject({ fixedOffsetMinutes: null, fixedAbbr: "" });
+});
+
+test("sanitizeTimezoneZone keeps fixed offsets that are not an old city variant", () => {
+    const service = createService(createDepsStub());
+
+    // Offset-list entry ("UTC-07:00 Standard Time") is stored with zone UTC and stays fixed.
+    const offsetEntry = service.sanitizeTimezoneZone({
+        id: "tz-std",
+        type: "standard",
+        zone: "UTC",
+        name_ko: "UTC-07:00 표준시",
+        fixedOffsetMinutes: -420,
+        fixedAbbr: "UTC-07:00"
+    });
+    expect(offsetEntry.fixedOffsetMinutes).toBe(-420);
+    expect(offsetEntry.fixedAbbr).toBe("UTC-07:00");
+
+    // An offset that matches neither of the city's seasons is kept.
+    const unrelated = service.sanitizeTimezoneZone({
+        id: "tz-odd",
+        type: "standard",
+        zone: "America/Los_Angeles",
+        fixedOffsetMinutes: -300,
+        fixedAbbr: "XYZ"
+    });
+    expect(unrelated.fixedOffsetMinutes).toBe(-300);
+
+    // Rule-following entries and custom zones are unchanged.
+    expect(service.sanitizeTimezoneZone({ id: "tz-ny", type: "standard", zone: "America/New_York", fixedOffsetMinutes: null })
+        .fixedOffsetMinutes).toBe(null);
+    expect(service.sanitizeTimezoneZone({ id: "tz-c", type: "custom", abbr: "ABC", name: "Custom", offH: -7, offM: 0 }))
+        .toMatchObject({ type: "custom", offH: -7, offM: 0 });
+});

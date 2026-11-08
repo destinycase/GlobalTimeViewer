@@ -80,6 +80,45 @@
             return null;
         }
 
+        // UTC offset (minutes) of an IANA zone at a moment, or null when it cannot be computed.
+        function getZoneOffsetMinutes(zoneName, date) {
+            try {
+                const parts = new Intl.DateTimeFormat("en-US", {
+                    timeZone: zoneName,
+                    hourCycle: "h23",
+                    year: "numeric",
+                    month: "numeric",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "numeric"
+                }).formatToParts(date).reduce((acc, part) => {
+                    acc[part.type] = Number(part.value);
+                    return acc;
+                }, {});
+                const localAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute);
+                const offset = Math.round((localAsUtc - date.getTime()) / 60000);
+                return Number.isFinite(offset) ? offset : null;
+            } catch (_err) {
+                return null;
+            }
+        }
+
+        // Before v3.11.1 the country list saved cities that observe daylight saving time as a fixed
+        // standard or daylight variant (for example Los Angeles fixed at UTC-07:00 "PDT"). Such an
+        // entry never shows [DST] and keeps the wrong offset for half of the year. A city entry
+        // whose fixed offset equals the same city's January or July offset is turned back into a
+        // rule-following entry. Offset-list entries ("UTC-07:00 Standard Time", zone "UTC") and
+        // offsets that match neither season are kept as they are.
+        function isLegacyFixedCityOffset(zoneName, fixedOffsetMinutes) {
+            if (fixedOffsetMinutes === null || zoneName === "UTC") return false;
+            const year = new Date().getUTCFullYear();
+            const seasonalOffsets = [
+                getZoneOffsetMinutes(zoneName, new Date(Date.UTC(year, 0, 1, 12, 0, 0))),
+                getZoneOffsetMinutes(zoneName, new Date(Date.UTC(year, 6, 1, 12, 0, 0)))
+            ];
+            return seasonalOffsets.includes(fixedOffsetMinutes);
+        }
+
         function sanitizeTimezoneZone(zone) {
             if (!zone || typeof zone !== "object") return null;
             const zoneType = zone.type === "custom" ? "custom" : "standard";
@@ -105,8 +144,10 @@
             const timeZoneName = (typeof zone.zone === "string" && zone.zone.trim()) ? zone.zone : null;
             if (!timeZoneName || !isValidTimeZone(timeZoneName)) return null;
             const fallbackName = (typeof zone.name === "string" && zone.name.trim()) ? zone.name.trim() : timeZoneName;
-            const fixedOffsetMinutes = parseFixedOffsetMinutes(zone.fixedOffsetMinutes);
-            const fixedAbbr = String(dep.normalizeZoneAbbreviation(zone.fixedAbbr) || "");
+            const parsedFixedOffsetMinutes = parseFixedOffsetMinutes(zone.fixedOffsetMinutes);
+            const followsZoneRules = isLegacyFixedCityOffset(timeZoneName, parsedFixedOffsetMinutes);
+            const fixedOffsetMinutes = followsZoneRules ? null : parsedFixedOffsetMinutes;
+            const fixedAbbr = followsZoneRules ? "" : String(dep.normalizeZoneAbbreviation(zone.fixedAbbr) || "");
             return {
                 id,
                 type: "standard",
