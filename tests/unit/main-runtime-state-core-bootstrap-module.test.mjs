@@ -67,22 +67,38 @@ describe("GTV main runtime state core bootstrap module", () => {
             setRuntimeInterval: vi.fn((cb, ms) => `interval:${ms}`)
         };
 
-        const service = moduleApi.createService({
+        const primaryState = {
+            name: "primary-state",
+            setIsRealtimeState,
+            getIsRealtimeState: vi.fn(() => true),
+            getGlobalTimesState: vi.fn(() => []),
+            getGlobalTimeState: vi.fn(() => new Date(0)),
+            setGlobalTimeState: vi.fn(),
+            getUiScaleState: vi.fn(() => 1)
+        };
+        const localStateHelpers = {
+            name: "local-state-helpers",
+            setMultiRangeState: vi.fn(),
+            getNextFixedTimeSeed: vi.fn(() => 1),
+            setUiPreferencesState: vi.fn(),
+            getBaseTimeSnapshot: vi.fn(() => new Date(0)),
+            getFixedTimeSlotCountForGroupRef: vi.fn(() => 1),
+            confirmRuntime: vi.fn(() => true),
+            getActiveCopyFormatKeysForCurrentContext: vi.fn(() => []),
+            getActiveTimePartKeysForCurrentContext: vi.fn(() => []),
+            getCurrentUiScalePercent: vi.fn(() => 100),
+            getFixedTimeSlotCountForCurrentGroup: vi.fn(() => 1),
+            getCurrentGroupFixedTimeShowLiveNow: vi.fn(() => false),
+            shouldRunRealtimeTick: vi.fn(() => true),
+            getTimeAdjustDayStepValue: vi.fn(() => 1)
+        };
+
+        const deps = {
             runtimeHostUtilsBindings: {
                 createService: vi.fn(() => ({ mainRuntimeHostUtilsService: hostUtils }))
             },
             runtimePrimaryStateBindings: {
-                createService: vi.fn(() => ({ mainRuntimePrimaryStateService: { name: "primary-state" } }))
-            },
-            runtimePrimaryStateAccessorProxiesModule: {
-                createService: vi.fn(() => ({
-                    setIsRealtimeState,
-                    getIsRealtimeState: vi.fn(() => true),
-                    getGlobalTimesState: vi.fn(() => []),
-                    getGlobalTimeState: vi.fn(() => new Date(0)),
-                    setGlobalTimeState: vi.fn(),
-                    getUiScaleState: vi.fn(() => 1)
-                }))
+                createService: vi.fn(() => ({ mainRuntimePrimaryStateService: primaryState }))
             },
             runtimePatchedStateFallbackBindings: {
                 createService: vi.fn(() => ({
@@ -100,27 +116,11 @@ describe("GTV main runtime state core bootstrap module", () => {
             },
             runtimeLocalStateHelpersBindings: {
                 createService: vi.fn(() => ({
-                    mainRuntimeLocalStateHelpersService: { name: "local-state-helpers" }
-                }))
-            },
-            runtimeLocalStateAccessorProxiesModule: {
-                createService: vi.fn(() => ({
-                    setMultiRangeState: vi.fn(),
-                    getNextFixedTimeSeed: vi.fn(() => 1),
-                    setUiPreferencesState: vi.fn(),
-                    getBaseTimeSnapshot: vi.fn(() => new Date(0)),
-                    getFixedTimeSlotCountForGroupRef: vi.fn(() => 1),
-                    confirmRuntime: vi.fn(() => true),
-                    getActiveCopyFormatKeysForCurrentContext: vi.fn(() => []),
-                    getActiveTimePartKeysForCurrentContext: vi.fn(() => []),
-                    getCurrentUiScalePercent: vi.fn(() => 100),
-                    getFixedTimeSlotCountForCurrentGroup: vi.fn(() => 1),
-                    getCurrentGroupFixedTimeShowLiveNow: vi.fn(() => false),
-                    shouldRunRealtimeTick: vi.fn(() => true),
-                    getTimeAdjustDayStepValue: vi.fn(() => 1)
+                    mainRuntimeLocalStateHelpersService: localStateHelpers
                 }))
             }
-        });
+        };
+        const service = moduleApi.createService(deps);
 
         expect(service.mainRuntimeHostUtilsService).toBe(hostUtils);
         expect(service.getRandomUUIDSafely()).toBe("uuid");
@@ -128,9 +128,26 @@ describe("GTV main runtime state core bootstrap module", () => {
         expect(() => service.getLuxonGlobalRef()).toThrow(
             "Missing required module API: mainRuntimeHostUtilsService.getLuxonGlobalRef"
         );
-        expect(service.mainRuntimePrimaryStateService).toEqual({ name: "primary-state" });
+        expect(service.mainRuntimePrimaryStateService).toBe(primaryState);
+        expect(service.setIsRealtimeState).toBe(primaryState.setIsRealtimeState);
+        expect(service.getIsRealtimeState()).toBe(true);
         expect(service.mainRuntimePatchedStateFallbackService).toEqual({ name: "patched-fallback" });
-        expect(service.mainRuntimeLocalStateHelpersService).toEqual({ name: "local-state-helpers" });
+        expect(service.mainRuntimeLocalStateHelpersService).toBe(localStateHelpers);
+        expect(service.getCurrentUiScalePercent()).toBe(100);
+        expect(service.confirmRuntime).toBe(localStateHelpers.confirmRuntime);
+        expect(() => moduleApi.createService({
+            ...deps,
+            runtimePrimaryStateBindings: {
+                createService: () => ({ mainRuntimePrimaryStateService: { name: "no-methods" } })
+            }
+        })).toThrow("Missing required dependency: mainRuntimePrimaryStateService.setIsRealtimeState");
+        const { getTimeAdjustDayStepValue: _omitted, ...partialLocal } = localStateHelpers;
+        expect(() => moduleApi.createService({
+            ...deps,
+            runtimeLocalStateHelpersBindings: {
+                createService: () => ({ mainRuntimeLocalStateHelpersService: partialLocal })
+            }
+        })).toThrow("Missing required dependency: mainRuntimeLocalStateHelpersService.getTimeAdjustDayStepValue");
         expect(service.buildPatchedStateFallbackSnapshot()).toEqual({ ok: true });
         expect(capturedStatePatchAccessorDeps.getSetIsRealtimeState()).toBe(setIsRealtimeState);
         expect(Object.isFrozen(service)).toBe(true);

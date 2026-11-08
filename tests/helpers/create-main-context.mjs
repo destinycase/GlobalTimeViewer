@@ -27,7 +27,6 @@ const MAIN_RUNTIME_HOST_UTILS_MODULE_PATH = path.resolve(process.cwd(), "src", "
 const MAIN_RUNTIME_HOST_UTILS_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-host-utils.js");
 const MAIN_RUNTIME_PRIMARY_STATE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-primary-state.js");
 const MAIN_RUNTIME_PRIMARY_STATE_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-primary-state.js");
-const MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-primary-state-accessor-proxies.js");
 const MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-service-bridge-helpers.js");
 const MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-service-bridge-accessor-proxies.js");
 const MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-ui-bridge-accessor-proxies.js");
@@ -40,7 +39,6 @@ const MAIN_RUNTIME_PATCHED_STATE_FALLBACK_MODULE_PATH = path.resolve(process.cwd
 const MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-patched-state-fallback.js");
 const MAIN_RUNTIME_LOCAL_STATE_HELPERS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-local-state-helpers.js");
 const MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-local-state-helpers.js");
-const MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-local-state-accessor-proxies.js");
 const MAIN_RUNTIME_BRIDGE_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-bridge-proxies.js");
 const MAIN_RUNTIME_TIMEZONE_HELPERS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-timezone-helpers.js");
 const MAIN_RUNTIME_STATE_HELPERS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-state-helpers.js");
@@ -267,7 +265,6 @@ export function createMainContext() {
     const mainRuntimeHostUtilsBindingsCode = fs.readFileSync(MAIN_RUNTIME_HOST_UTILS_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimePrimaryStateCode = fs.readFileSync(MAIN_RUNTIME_PRIMARY_STATE_MODULE_PATH, "utf8");
     const mainRuntimePrimaryStateBindingsCode = fs.readFileSync(MAIN_RUNTIME_PRIMARY_STATE_BINDINGS_MODULE_PATH, "utf8");
-    const mainRuntimePrimaryStateAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
     const mainRuntimeServiceBridgeHelpersCode = fs.readFileSync(MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS_MODULE_PATH, "utf8");
     const mainRuntimeServiceBridgeAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_SERVICE_BRIDGE_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
     const mainRuntimeUiBridgeAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_UI_BRIDGE_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
@@ -280,7 +277,6 @@ export function createMainContext() {
     const mainRuntimePatchedStateFallbackBindingsCode = fs.readFileSync(MAIN_RUNTIME_PATCHED_STATE_FALLBACK_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimeLocalStateHelpersCode = fs.readFileSync(MAIN_RUNTIME_LOCAL_STATE_HELPERS_MODULE_PATH, "utf8");
     const mainRuntimeLocalStateHelpersBindingsCode = fs.readFileSync(MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS_MODULE_PATH, "utf8");
-    const mainRuntimeLocalStateAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_LOCAL_STATE_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
     const mainRuntimeBridgeProxiesCode = fs.readFileSync(MAIN_RUNTIME_BRIDGE_PROXIES_MODULE_PATH, "utf8");
     const mainRuntimeTimezoneHelpersCode = fs.readFileSync(MAIN_RUNTIME_TIMEZONE_HELPERS_MODULE_PATH, "utf8");
     const mainRuntimeStateHelpersCode = fs.readFileSync(MAIN_RUNTIME_STATE_HELPERS_MODULE_PATH, "utf8");
@@ -497,7 +493,6 @@ export function createMainContext() {
     vm.runInContext(mainRuntimeHostUtilsBindingsCode, sandbox, { filename: "js/modules/main-runtime-host-utils.js" });
     vm.runInContext(mainRuntimePrimaryStateCode, sandbox, { filename: "js/modules/main-runtime-primary-state.js" });
     vm.runInContext(mainRuntimePrimaryStateBindingsCode, sandbox, { filename: "js/modules/main-runtime-primary-state.js" });
-    vm.runInContext(mainRuntimePrimaryStateAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-primary-state-accessor-proxies.js" });
     vm.runInContext(mainRuntimeServiceBridgeHelpersCode, sandbox, { filename: "js/modules/main-runtime-service-bridge-helpers.js" });
     vm.runInContext(mainRuntimeServiceBridgeAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-service-bridge-accessor-proxies.js" });
     vm.runInContext(mainRuntimeUiBridgeAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-ui-bridge-accessor-proxies.js" });
@@ -510,7 +505,6 @@ export function createMainContext() {
     vm.runInContext(mainRuntimePatchedStateFallbackBindingsCode, sandbox, { filename: "js/modules/main-runtime-patched-state-fallback.js" });
     vm.runInContext(mainRuntimeLocalStateHelpersCode, sandbox, { filename: "js/modules/main-runtime-local-state-helpers.js" });
     vm.runInContext(mainRuntimeLocalStateHelpersBindingsCode, sandbox, { filename: "js/modules/main-runtime-local-state-helpers.js" });
-    vm.runInContext(mainRuntimeLocalStateAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-local-state-accessor-proxies.js" });
     vm.runInContext(mainRuntimeBridgeProxiesCode, sandbox, { filename: "js/modules/main-runtime-bridge-proxies.js" });
     vm.runInContext(mainRuntimeTimezoneHelpersCode, sandbox, { filename: "js/modules/main-runtime-timezone-helpers.js" });
     vm.runInContext(mainRuntimeStateHelpersCode, sandbox, { filename: "js/modules/main-runtime-state-helpers.js" });

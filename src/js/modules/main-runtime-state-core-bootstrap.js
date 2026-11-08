@@ -56,28 +56,27 @@
         if (!serviceInvokeUtils || typeof serviceInvokeUtils.createRequiredModuleService !== "function") {
             throw new Error("Missing required module API: GTVServiceInvokeUtils.createRequiredModuleService");
         }
+        // Primary state and local state accessors are the services' own methods. The former
+        // *-accessor-proxies modules repeated the same logic as a fallback for a missing service,
+        // which cannot happen because both services are created and checked here.
+        const PRIMARY_STATE_ACCESSOR_METHODS = Object.freeze(["setIsRealtimeState","getIsRealtimeState","getGlobalTimesState","getGlobalTimeState","setGlobalTimeState","getUiScaleState"]);
+        const LOCAL_STATE_ACCESSOR_METHODS = Object.freeze(["setMultiRangeState","getNextFixedTimeSeed","setUiPreferencesState","getBaseTimeSnapshot","getFixedTimeSlotCountForGroupRef","confirmRuntime","getActiveCopyFormatKeysForCurrentContext","getActiveTimePartKeysForCurrentContext","getCurrentUiScalePercent","getFixedTimeSlotCountForCurrentGroup","getCurrentGroupFixedTimeShowLiveNow","shouldRunRealtimeTick","getTimeAdjustDayStepValue"]);
+        function pickRequiredMethods(service, serviceLabel, methodNames) {
+            return Object.freeze(Object.fromEntries(methodNames.map((methodName) => [
+                methodName,
+                requireFunction(service?.[methodName], `${serviceLabel}.${methodName}`)
+            ])));
+        }
         // Host accessors forward to the host utils service (formerly main-runtime-host-accessor-proxies.js).
         const HOST_ACCESSOR_METHODS = Object.freeze(["applyVersionBranding","createCanvasSafely","getRandomUUIDSafely","getDocumentRefOrNull","getWindowRefOrNull","getLocationRefOrNull","getGlobalThisRefOrNull","getLuxonGlobalRef","getComputedStyleSafely","getRuntimeNowMs","setRuntimeInterval","clearRuntimeInterval","deferDynamicCall"]);
         // Accessor proxy services are created directly (formerly one *-bindings module each) and
         // exposed as frozen copies, as the bindings did.
         const ACCESSOR_SPECS = Object.freeze({
-            PrimaryState: {
-                moduleKey: "runtimePrimaryStateAccessorProxiesModule",
-                moduleName: "GTVMainRuntimePrimaryStateAccessorProxies",
-                invalidMessage: "Invalid main runtime primary state accessor proxies service",
-                requiredMethods: ["setIsRealtimeState","getIsRealtimeState","getGlobalTimesState","getGlobalTimeState","setGlobalTimeState","getUiScaleState"]
-            },
             StatePatch: {
                 moduleKey: "runtimeStatePatchAccessorProxiesModule",
                 moduleName: "GTVMainRuntimeStatePatchAccessorProxies",
                 invalidMessage: "Invalid main runtime state patch accessor proxies service",
                 requiredMethods: ["applyDirectStatePatch","buildPatchedStateFallbackSnapshot"]
-            },
-            LocalState: {
-                moduleKey: "runtimeLocalStateAccessorProxiesModule",
-                moduleName: "GTVMainRuntimeLocalStateAccessorProxies",
-                invalidMessage: "Invalid main runtime local state accessor proxies service",
-                requiredMethods: ["setMultiRangeState","getNextFixedTimeSeed","setUiPreferencesState","getBaseTimeSnapshot","getFixedTimeSlotCountForGroupRef","confirmRuntime","getActiveCopyFormatKeysForCurrentContext","getActiveTimePartKeysForCurrentContext","getCurrentUiScalePercent","getFixedTimeSlotCountForCurrentGroup","getCurrentGroupFixedTimeShowLiveNow","shouldRunRealtimeTick","getTimeAdjustDayStepValue"]
             }
         });
         function createAccessorService(kind, accessorDeps) {
@@ -139,19 +138,11 @@
                 "getUiScale",
             ]),
         });
-        const primaryStateAccessors = createAccessorService("PrimaryState", {
-            ...pickDeps([
-            ]),
-            getMainRuntimePrimaryStateService: () => mainRuntimePrimaryStateService,
-            ...pickDeps([
-                "getIsRealtime",
-                "setIsRealtime",
-                "syncRealtimeFlagToGlobal",
-                "getGlobalTimes",
-                "setGlobalTimes",
-                "getUiScale",
-            ]),
-        });
+        const primaryStateAccessors = pickRequiredMethods(
+            mainRuntimePrimaryStateService,
+            "mainRuntimePrimaryStateService",
+            PRIMARY_STATE_ACCESSOR_METHODS
+        );
 
         const {
             mainRuntimePatchedStateFallbackService
@@ -260,45 +251,11 @@
                 "getTimeAdjustDayStepBySlotSnapshot",
             ]),
         });
-        const localStateAccessors = createAccessorService("LocalState", {
-            ...pickDeps([
-            ]),
-            getMainRuntimeLocalStateHelpersService: () => mainRuntimeLocalStateHelpersService,
-            ...pickDeps([
-                "getPatchAppState",
-                "getFixedTimeIdSeed",
-                "setFixedTimeIdSeed",
-                "getUiScale",
-                "setUiScale",
-                "getCurrentTheme",
-                "setCurrentTheme",
-                "getDayStartHour",
-                "setDayStartHour",
-                "getNightStartHour",
-                "setNightStartHour",
-                "sanitizeDayNightHourValue",
-                "normalizeDayNightRangeValues",
-                "syncCurrentLang",
-            ]),
-            getGlobalTimeState: primaryStateAccessors.getGlobalTimeState,
-            ...pickDeps([
-                "getFixedTimeSlotCount",
-                "getConfirm",
-                "getFormatProfileAllowedKeys",
-                "getFormatProfileAllowedTimePartKeys",
-                "getPatchedActiveFormatProfileContextState",
-            ]),
-            getUiScaleState: primaryStateAccessors.getUiScaleState,
-            ...pickDeps([
-                "getCurrentGroup",
-                "getFixedTimeStateService",
-            ]),
-            getIsRealtimeState: primaryStateAccessors.getIsRealtimeState,
-            ...pickDeps([
-                "isFixedTimeTab",
-                "getTimeAdjustDayStepBySlotSnapshot",
-            ]),
-        });
+        const localStateAccessors = pickRequiredMethods(
+            mainRuntimeLocalStateHelpersService,
+            "mainRuntimeLocalStateHelpersService",
+            LOCAL_STATE_ACCESSOR_METHODS
+        );
 
         return Object.freeze({
             mainRuntimeHostUtilsService,
