@@ -29,7 +29,9 @@
 | 도메인 기능 조립 | `mainRuntimeDomainServices` | 시간대, 고정 시간, 다중 범위 등 연결 |
 | 저장·앱 구성 | `mainPersistenceCompositionServices`, `mainRuntimeCompositionServices` | 영속성 및 사용자 기능 서비스 조합 |
 | 초기화 순서와 브리지 연결 | `mainRuntimeBootstrapWiringServices` | 공개 서비스와 앱 시작 절차 연결 |
-| 이전 전역 함수 호출 경로 | `callMainRuntimePublicApi`, `Public compatibility facade` | 호환 전역 호출을 공개 서비스로 전달 |
+| 이전 전역 함수 호출 경로 | `callMainRuntimePublicApi`, `Public compatibility facade` | 호환 전역 호출을 공개 서비스로 전달(인수 기본값은 `main-runtime-public-api-bindings.js`가 적용) |
+| 전역 객체에 올리는 호환 함수 | `exposeOnGlobalHost` | state-domain 함수와 표시 형식 함수를 `window`에 복사 |
+| 나중에 만들어지는 서비스 호출 | `createLateBoundForwarders`, `createRequiredModuleService` | `GTVServiceInvokeUtils` 공용 도우미로 서비스 생성·확인과 늦은 호출 연결 |
 
 새 기능을 추가할 때는 도메인 서비스에 구현하고, 이 파일에는 필요한 의존성 전달과 공개 함수 연결만 추가합니다. 기존 조립 단계를 통째로 바꾸기보다 영향을 받는 단계와 그 단계의 모듈 테스트를 함께 확인합니다.
 
@@ -41,13 +43,15 @@
 | 그룹·탭 상태 | `group-state.js` | `group-context-state.js`, `group-tabs.js`, `app-state-patcher.js` |
 | 계산기 입력·표시 | `calculator.js`(단위 변환·기간/날짜 이동·조립) | `calculator-date-format.js`(날짜 파싱·형식), `calculator-countdown.js`, `calculator-countdown-state.js`, `calculator-format-converter.js`(시간 포맷 변환기), `calculator-actions.js`, `date-picker.js` |
 | 저장 데이터 정규화 | `persistence-state-normalizer.js` | `state-persistence.js`, `format-profile-state.js`, `multi-state.js` |
-| 브라우저 저장소·설정 초기화 | `state-persistence.js` | `persistence-service-bundle.js`, `settings-io.js`, `data-transfer.js` |
+| 브라우저 저장소(`localStorage`)·설정 초기화 | `state-persistence.js` | `persistence-service-bundle.js`, `settings-io.js`, `data-transfer.js` |
+| 늦게 정해지는 서비스·상태 참조 | `main-runtime-reference-accessors.js` | 표(`PASS_THROUGH_REFS`)와 로직이 있는 함수 8개 |
+| 화면 스타일 | `style.css` | 맨 위 목차에서 `§번호`로 구역을 찾음(테마 변수, 컨트롤 패널, 시간 표, 타임라인, 계산기, 모달, DatePicker 등) |
 | 핵심·표·이미지 서비스 의존성 구성 | `main-runtime-core-service-bootstrap.js`, `main-runtime-table-image-bootstrap.js` | 각 조립부가 생성할 서비스의 설정을 함께 구성 |
 | 도메인 서비스 조립·의존성 구성 | `main-runtime-domain-service-bootstrap.js`, `main-runtime-ui-services-bootstrap.js` | 도메인 서비스를 만드는 데 필요한 설정과 생성 순서를 함께 확인 |
 | 최종 앱 시작 wiring | `main-runtime-bootstrap-wiring.js` | 앱 bootstrap 설정과 공개 API 연결을 한 곳에서 확인 |
 | 모듈 필수 API 계약 | `main-module-spec.js` | `main-module-resolver.js`, `module-create-service-convention.test.mjs` |
 
-저장 영역은 저장소 읽기·쓰기와 앱 상태 복구를 `state-persistence.js`가 맡고, 들어오는 데이터의 기본값·형태 정규화는 `persistence-state-normalizer.js`가 맡습니다. 공개 진입점은 기존처럼 `GTVStatePersistence.createService()`로 유지합니다.
+저장 영역은 `localStorage` 읽기·쓰기와 앱 상태 복구를 `state-persistence.js`가 맡고(확장에 `storage` 권한이 없어 `chrome.storage`는 쓰지 않음), 들어오는 데이터의 기본값·형태 정규화는 `persistence-state-normalizer.js`가 맡습니다. 공개 진입점은 기존처럼 `GTVStatePersistence.createService()`로 유지합니다.
 
 ## 구조 검증 명령
 

@@ -1,3 +1,33 @@
+/* Global Time Viewer styles
+   Sections (search for the § number to jump):
+     §01  Theme variables
+     §02  Base elements
+     §03  Loading overlay
+     §04  App layout and sidebar navigation
+     §05  Shared controls
+     §06  Main content wrapper
+     §07  Control panel
+     §08  Time adjust and format settings
+     §09  Group tabs and multi-range subgroups
+     §10  Tab sections layout
+     §11  Timeline
+     §12  Continuous time (multi-range) blocks
+     §13  Time tables
+     §14  Calculator
+     §15  Native date input icons
+     §16  Sidebar footer settings
+     §17  Overlays and modals
+     §18  Tab animations
+     §19  Toast notifications
+     §20  DatePicker
+     §21  Fatal error banner
+     §22  Responsive adjustments
+   Theme overrides use :root[data-theme="light"] next to the rule they change. */
+
+/* ========================================================================
+   §01 Theme variables
+   Color and size tokens for dark (default) and light themes
+   ======================================================================== */
 :root {
     --bg: #0f172a;
     --panel-bg: rgba(30, 41, 59, 0.7);
@@ -80,6 +110,10 @@
     font-family: "Inter", "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Helvetica Neue", Arial, sans-serif;
 }
 
+/* ========================================================================
+   §02 Base elements
+   body, fonts and equal-width numerals
+   ======================================================================== */
 body {
     background-color: var(--bg);
     color: var(--text);
@@ -111,9 +145,12 @@ td {
         radial-gradient(circle at 82% 72%, rgba(56, 189, 248, 0.08) 0%, transparent 44%);
 }
 
-/* ?? 遺?몄뒪?몃옪 濡쒕뵫 ?ㅻ쾭?덉씠 ???????????????????????????????????????????? */
-/* JS媛 ?ㅽ뻾?섍린 ?꾩뿉??CSS留뚯쑝濡??붾㈃ ?꾩껜瑜???뼱 鍮??붾㈃??諛⑹??쒕떎.      */
-/* 遺?몄뒪?몃옪 ?깃났 ??.hidden ?대옒?ㅻ? 異붽???fade-out ???쒓굅?쒕떎.         */
+/* ========================================================================
+   §03 Loading overlay
+   Covers the page with CSS alone until the scripts finish loading
+   ======================================================================== */
+/* Shown before the scripts run so the window is never blank;
+   the bootstrap adds .hidden on success, fades it out and removes it. */
 .app-loading-overlay {
     position: fixed;
     inset: 0;
@@ -160,6 +197,10 @@ td {
     letter-spacing: 0.04em;
 }
 
+/* ========================================================================
+   §04 App layout and sidebar navigation
+   Two-column layout, logo, version badge, tab menu
+   ======================================================================== */
 .app-layout {
     display: flex;
     width: 100%;
@@ -250,7 +291,10 @@ td {
     border-color: rgba(56, 189, 248, 0.2);
 }
 
-/* Unified Button & Input Style */
+/* ========================================================================
+   §05 Shared controls
+   Buttons, inputs, selects, focus rings, number spinners
+   ======================================================================== */
 .sm-btn,
 .icon-btn,
 .form-input,
@@ -578,7 +622,10 @@ input[type=number] {
     padding-right: 14px;
 }
 
-/* Main Content Wrapper */
+/* ========================================================================
+   §06 Main content wrapper
+   Right-hand content area
+   ======================================================================== */
 .main-content {
     flex: 1;
     overflow: hidden;
@@ -599,7 +646,10 @@ input[type=number] {
         inset 0 1px 0 var(--border-light);
 }
 
-/* In-Content Controls */
+/* ========================================================================
+   §07 Control panel
+   Control bar rows, multi-range tools, slot count, labels, tooltips
+   ======================================================================== */
 .control-bar {
     display: flex;
     flex-wrap: wrap;
@@ -951,6 +1001,10 @@ input[type=number] {
     background: rgba(248, 250, 252, 0.98);
 }
 
+/* ========================================================================
+   §08 Time adjust and format settings
+   Time adjust frame, display/copy format rows, time parts dropdown
+   ======================================================================== */
 .time-adjust-frame {
     background: var(--panel-bg);
     border: 1px solid var(--border-light);
@@ -1621,7 +1675,10 @@ input[type=number] {
     /* Increased from 10px */
 }
 
-/* Group Tabs */
+/* ========================================================================
+   §09 Group tabs and multi-range subgroups
+   Group tab strip, subgroup tabs and their buttons
+   ======================================================================== */
 .group-tabs {
     display: flex;
     flex-wrap: nowrap;
@@ -1852,7 +1909,10 @@ input[type=number] {
     box-shadow: none;
 }
 
-/* Table Section - Fill Width & Action Right */
+/* ========================================================================
+   §10 Tab sections layout
+   Live/fixed time table sections filling the width
+   ======================================================================== */
 .timezone-section {
     display: flex;
     flex-direction: column;
@@ -1893,6 +1953,10 @@ input[type=number] {
         inset 0 1px 0 var(--border-light);
 }
 
+/* ========================================================================
+   §11 Timeline
+   Timeline frame, panels, hour boxes, indicator and drag handles
+   ======================================================================== */
 .timeline-frame {
     border: 1px solid var(--border-light);
     border-radius: 12px;
@@ -2183,6 +2247,10 @@ input[type=number] {
     }
 }
 
+/* ========================================================================
+   §12 Continuous time (multi-range) blocks
+   Range blocks and their table wrappers
+   ======================================================================== */
 #multi-range-section.tab-content {
     padding-left: 0;
     padding-right: 0;
@@ -2330,6 +2398,10 @@ input[type=number] {
     display: none;
 }
 
+/* ========================================================================
+   §13 Time tables
+   Shared table for live, fixed, fixed-time and multi-range rows: cells, drag, inputs, badges, period cells
+   ======================================================================== */
 .table-wrapper {
     overflow-y: auto;
     border: 1px solid var(--border-light);
@@ -2738,7 +2810,10 @@ input[type=number] {
     /* Fixed from right-leaning */
 }
 
-/* Calculator Section */
+/* ========================================================================
+   §14 Calculator
+   Date format, period, shift, converter and countdown cards
+   ======================================================================== */
 .calc-grid {
     --calc-title-size: 16px;
     --calc-label-size: 13px;
@@ -3262,7 +3337,10 @@ input[type=number] {
     background: rgba(15, 23, 42, 0.03);
 }
 
-/* Date Input Calendar Icon Visibility */
+/* ========================================================================
+   §15 Native date input icons
+   Calendar picker icon visibility
+   ======================================================================== */
 input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(0.8) sepia(1) saturate(5) hue-rotate(175deg);
     cursor: pointer;
@@ -3309,7 +3387,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     }
 }
 
-/* Scale & Status (Sidebar Bottom) */
+/* ========================================================================
+   §16 Sidebar footer settings
+   Language, theme, day/night hours and UI scale controls
+   ======================================================================== */
 .sidebar-footer {
     margin-top: auto;
     padding-top: 8px;
@@ -3418,7 +3499,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     font-size: 16px;
 }
 
-/* Overlays */
+/* ========================================================================
+   §17 Overlays and modals
+   Timezone picker overlay and prompt dialog
+   ======================================================================== */
 .overlay-content {
     background: var(--bg);
     width: 90%;
@@ -3602,7 +3686,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     padding: 0 20px 20px;
 }
 
-/* Animations */
+/* ========================================================================
+   §18 Tab animations
+   Tab content fade-in
+   ======================================================================== */
 .tab-content {
     display: none;
     flex: 1;
@@ -3628,7 +3715,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     }
 }
 
-/* Toast Notification */
+/* ========================================================================
+   §19 Toast notifications
+   Toast container, variants and enter/leave animation
+   ======================================================================== */
 .toast-container {
     position: fixed;
     right: 24px;
@@ -3744,7 +3834,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     }
 }
 
-/* Custom Date Picker module */
+/* ========================================================================
+   §20 DatePicker
+   Custom date/time picker popup
+   ======================================================================== */
 .custom-date-picker-popup {
     position: absolute;
     z-index: 10000;
@@ -3906,7 +3999,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
 }
 
-/* Fatal bootstrap error UI */
+/* ========================================================================
+   §21 Fatal error banner
+   Shown when startup fails
+   ======================================================================== */
 .fatal-error-banner {
     position: fixed;
     inset: 0;
@@ -4004,7 +4100,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     flex: 1 1 0;
 }
 
-/* --- Responsiveness Enhancements --- */
+/* ========================================================================
+   §22 Responsive adjustments
+   Narrow-window overrides
+   ======================================================================== */
 
 @media (max-width: 920px) {
     .main-content {

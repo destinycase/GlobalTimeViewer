@@ -2,7 +2,7 @@
 
 이 문서는 현재 소스 트리의 구조와 실행 계약, 검증·배포·문서 관리 절차를 설명합니다. 프로그램은 단순한 정적 HTML 페이지가 아닙니다. 일반적인 ES 모듈 import 대신 전역 `GTV...` API와 순서가 지정된 스크립트 로더를 사용하는 브라우저 확장이므로, 파일 분리나 로드 순서를 바꾸기 전에 관련 경계를 먼저 이해해야 합니다.
 
-**기준:** 1차 안정 버전 v3.12.10. 모듈별 실제 API와 전역 의존성은 [생성 인벤토리](module-dependency-inventory.md), 전체 연결은 [모듈 관계도](module-relationship-map.md), 기능별 탐색은 [코드 탐색 안내](code-navigation.md), 용어는 [용어 사전](Glossary.md)을 함께 참고하세요.
+**기준:** 소스 구조는 v3.12.29, 현재 안정 버전은 1차 안정 버전 v3.12.10입니다. 모듈별 실제 API와 전역 의존성은 [생성 인벤토리](module-dependency-inventory.md), 전체 연결은 [모듈 관계도](module-relationship-map.md), 기능별 탐색은 [코드 탐색 안내](code-navigation.md), 용어는 [용어 사전](Glossary.md)을 함께 참고하세요.
 
 ## 목차
 
@@ -66,7 +66,12 @@
 
 `main.js`는 규모가 크더라도 단순히 줄 수를 줄이기 위해 분해하면 안 됩니다. 여러 초기 상태, 호스트/브라우저 접근, 공개 전역 호환 함수 및 조립 순서가 모여 있는 곳입니다. 비슷한 코드라는 이유만으로 상태 소유권이나 호출 순서를 작은 파일들에 복제하면 추적해야 할 연결 지점이 늘어납니다.
 
-기능별 책임은 도메인 모듈에 둡니다. `main-runtime-*-bootstrap.js`, `*-composition.js`, `*-bindings.js` 계열은 이미 존재하는 조립 책임을 따릅니다. 변경 전 [코드 탐색 안내](code-navigation.md)의 `main.js` 연결 지점과 [관계도](module-relationship-map.md)를 보고, 새 파일이 실제로 응집도나 테스트 경계를 높이는지 확인하세요. 크기만 작은 공용 util 모듈을 추가하지 않습니다.
+기능별 책임은 도메인 모듈에 둡니다. 조립은 `main-runtime-*-bootstrap.js`와 config builder·composition 계열이 맡습니다. 예전에는 모듈 하나를 만들어 형태만 확인하는 `*-bindings.js` 파일이 모듈마다 있었지만 지금은 두 공용 도우미로 대신합니다.
+
+- `GTVServiceInvokeUtils.createRequiredModuleService(모듈, 이름, deps, 필수 메서드, 오류 문구)`: 모듈 API를 확인하고 서비스를 만든 뒤 필요한 메서드가 있는지 검사합니다.
+- `GTVServiceInvokeUtils.createLateBoundForwarders(getService, 이름, 메서드 목록)`: 나중에 만들어지는 서비스를 호출할 때 찾아 부르는 함수 묶음을 만듭니다. 서비스가 없으면 `Missing required module API: <이름>.<메서드>` 오류를 냅니다.
+
+남은 `*-bindings.js`(`main-global-bindings`, `main-facade-bindings`, `main-runtime-public-api-bindings`)와 accessor proxy 4개(`bootstrap`, `core`, `operation`, `ui-bridge`)는 인수 기본값, 대체 처리, 여러 서비스 조합 같은 실제 동작을 가집니다. `main-runtime-reference-accessors.js`는 나중에 정해지는 서비스·상태를 읽는 함수 80개를 표 하나로 정의합니다. 변경 전 [코드 탐색 안내](code-navigation.md)의 `main.js` 연결 지점과 [관계도](module-relationship-map.md)를 보고, 새 파일이 실제로 응집도나 테스트 경계를 높이는지 확인하세요. 크기만 작은 공용 util 모듈을 추가하지 않습니다.
 
 ### 주요 도메인 소유권
 
@@ -79,7 +84,7 @@
 | 고정 시간/타임라인 | fixed-time-core, fixed-time-state, fixed-time-actions, fixed-time-table, fixed-time-timeline | 고정 날짜, 슬롯 상태, 표시 여부가 같이 움직이는 경로를 추적합니다. |
 | 다중 연속 시간 범위 | multi-state, multi-range-state, multi-range-render, multi-range-copy, multi-bulk-tools | 그룹/보조 그룹별 범위, 개수, 편집 옵션을 함께 유지합니다. |
 | 계산기/날짜 입력 | calculator, calculator-date-format, calculator-countdown, calculator-countdown-state, calculator-format-converter, calculator-actions, date-picker, time-adjust-* | 계산 결과 의미를 바꾸지 않고 DOM 입력 검증/피드백과 핵심 연산을 구분합니다. |
-| 저장/설정 가져오기 | persistence-state-normalizer, state-persistence, persistence-service-bundle, settings-io, data-transfer | 정규화, 저장소 fallback, 구버전 읽기, 전체/그룹/보조 그룹 payload는 다른 책임입니다. |
+| 저장/설정 가져오기 | persistence-state-normalizer, state-persistence, persistence-service-bundle, settings-io, data-transfer | 정규화, `localStorage` 읽기·쓰기, 구버전 읽기, 전체/그룹/보조 그룹 payload는 다른 책임입니다. |
 
 이 표는 탐색용 요약입니다. 정확한 파일별 전역 API/입력 계약은 생성 인벤토리를 기준으로 합니다.
 
@@ -87,7 +92,7 @@
 
 - 핵심 실행 상태는 조립 계층이 소유하고, 각 도메인 서비스에는 필요한 읽기/쓰기 함수가 전달됩니다. 같은 상태의 별도 사본을 UI 모듈에 장기간 보유하면 화면과 저장 데이터가 어긋날 수 있습니다.
 - 앱 상태 patching, 그룹 컨텍스트, 사용자 환경설정, 복사/표시 형식은 각각의 소유 모듈 경로를 통해 변경합니다. 이미 있는 updater/normalizer 경로를 우회해 직접 전역을 바꾸지 마세요.
-- 저장소 접근은 `state-persistence.js`가 맡습니다. 코드는 `chrome.storage.local`을 먼저 쓰고 `localStorage`로 대체하도록 되어 있지만, `manifest.json`에 `storage` 권한이 없어 확장 화면에서 `chrome.storage`는 정의되지 않습니다. 따라서 **실제 저장 위치는 확장 출처(origin)의 `localStorage`**입니다(실제 Chrome에서 확인). 저장 데이터는 `revision`, `updatedAt`, `data`로 감싸며, 두 저장소를 비교해 최신 것을 고르는 경로는 `storage` 권한이 생겼을 때만 의미가 있습니다.
+- 저장소 접근은 `state-persistence.js`가 맡고, **저장 위치는 확장 출처(origin)의 `localStorage` 하나**입니다. `manifest.json`에 `storage` 권한을 두지 않으므로 `chrome.storage`는 쓰지 않습니다. 저장 데이터는 `revision`, `updatedAt`, `data`로 감쌉니다. 읽기·쓰기 함수(`getStorageValue`, `setStorageValue`, `savePersistence`, `loadPersistence` 등)는 호출하는 쪽과의 약속대로 비동기(Promise) 함수로 유지합니다. 쓰기는 큐로 차례대로 처리하므로 나중에 요청한 저장이 마지막에 남습니다.
 - 현재 핵심 데이터 키는 `GTV_v324_Data`이고 구버전 키 목록은 `app-config.js`가 선언합니다. 테마, 언어, UI 배율은 별도 키(`GTV_Theme`, `GTV_Lang`, `GTV_UIScale`)입니다. 실제 저장 구조를 바꾸려면 normalizer, 마이그레이션/legacy fallback, 설정 내보내기/가져오기, 테스트를 함께 검토합니다.
 - 설정 가져오기는 외부 JSON 입력이므로 `settings-io.js`와 `data-transfer.js`의 검증·정규화·저장 실패 경로를 건너뛰지 않습니다. 개별 그룹/보조 그룹 가져오기를 전체 설정 가져오기와 같은 payload로 가정하지 마세요.
 
@@ -120,10 +125,11 @@
 - `console.log`는 금지되어 있습니다. 필요한 진단은 목적이 명확한 `console.warn` 또는 `console.error`로 남깁니다.
 - `src/js/modules/`에서는 사용하지 않는 변수 검사가 적용됩니다. 의도적으로 사용하지 않는 매개변수는 기존 명명 규칙(`_` 접두사)을 따릅니다.
 - 모듈은 의존성을 인자로 받고 가능한 경우 DOM/브라우저 전역을 직접 참조하지 않아 테스트에서 대체 가능하게 합니다. 다만 기존 소유권 패턴과 충돌하는 신규 추상화를 만들지는 않습니다.
-- 의존성 함수를 감싸는 공통 코드는 모듈마다 새로 쓰지 않고 `service-invoke-utils.js`(`GTVServiceInvokeUtils`)의 함수를 씁니다. `createDependencyLogger(deps, "warn"|"error", globalObj)`는 주입된 로거와 콘솔 순서로 기록하고, `createSafeCallableFactory("GTV모듈명", log)`는 없는 의존성을 빈 함수로, 예외는 `[GTV모듈명] Dependency "이름" threw.`로 기록합니다. `pickSafeCallables(deps, keys, toSafeCallable)`는 의존성 목록을 한꺼번에 감쌉니다. 단위 검사는 `tests/helpers/install-runtime-globals.mjs`(Vitest 설정)가 이 도우미를 설치합니다.
+- 의존성 함수를 감싸는 공통 코드는 모듈마다 새로 쓰지 않고 `service-invoke-utils.js`(`GTVServiceInvokeUtils`)의 함수를 씁니다. `createDependencyLogger(deps, "warn"|"error", globalObj)`는 주입된 로거와 콘솔 순서로 기록하고, `createSafeCallableFactory("GTV모듈명", log)`는 없는 의존성을 빈 함수로, 예외는 `[GTV모듈명] Dependency "이름" threw.`로 기록합니다. `pickSafeCallables(deps, keys, toSafeCallable)`는 의존성 목록을 한꺼번에 감쌉니다. 모듈 생성·확인과 나중에 만들어지는 서비스 호출은 3장의 `createRequiredModuleService`, `createLateBoundForwarders`를 씁니다. 단위 검사는 `tests/helpers/install-runtime-globals.mjs`(Vitest 설정)가 이 도우미를 설치합니다.
 - 사용자 입력/가져오기 입력은 정규화와 검증 경로를 사용합니다. 생성 HTML에 사용자 값을 넣을 때는 기존 escaping 패턴을 따르고, 단순 텍스트는 DOM `textContent`를 우선합니다.
 - 새 화면 문구는 한국어/영어 번역 키를 함께 추가하고 버튼/툴팁은 키 연결(`data-i18n`, `data-i18n-title`)을 확인합니다.
 - 저장 실패/선택 기능 fallback과 필수 초기화 오류는 서로 다른 상황입니다. 전자는 기존 fallback과 사용자 피드백을 보존하고, 후자는 fatal error 흐름을 숨기지 않습니다.
+- `src/style.css`는 맨 위 목차와 `§01`~`§22` 구역 머리 주석으로 나뉩니다(테마 변수, 컨트롤 패널, 시간 표, 타임라인, 계산기, 모달, DatePicker 등). 새 규칙은 해당 구역에 넣고, 밝은 테마 덮어쓰기(`:root[data-theme="light"]`)는 바꾸는 규칙 바로 옆에 둡니다. 구역을 새로 만들면 목차도 함께 고칩니다.
 - 텍스트 파일은 UTF-8, LF 줄바꿈으로 고정합니다(`.gitattributes`, `.editorconfig`). 포맷 변경 diff가 실제 코드 변경과 섞이지 않도록 주의합니다.
 
 ## 7. 개발 환경·검증·배포

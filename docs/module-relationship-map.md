@@ -1,6 +1,6 @@
 # Global Time Viewer 모듈 관계도
 
-> 기준: 1차 안정 버전 v3.12.10 소스 트리. `src/runtime-script-list.txt`, `src/main.js`, `src/js/modules/main-module-spec.js` 및 각 서비스의 `createService(deps)` 배선을 기준으로 정리했습니다. 아래 경로는 특별한 표시가 없으면 `src/` 기준입니다. 파일 수는 소스 트리에서 계산한 값이며, 관계도는 모든 개별 의존성을 나열한 그래프가 아니라 런타임 레이어와 주요 연결을 보여줍니다.
+> 기준: v3.12.29 소스 트리(현재 안정 버전은 1차 v3.12.10). `src/runtime-script-list.txt`, `src/main.js`, `src/js/modules/main-module-spec.js` 및 각 서비스의 `createService(deps)` 배선을 기준으로 정리했습니다. 아래 경로는 특별한 표시가 없으면 `src/` 기준입니다. 파일 수는 소스 트리에서 계산한 값이며, 관계도는 모든 개별 의존성을 나열한 그래프가 아니라 런타임 레이어와 주요 연결을 보여줍니다.
 
 모듈 파일별 전역 API, 입력 의존성 키, 반환 서비스 API, 모듈 등록 경로 및 `main.js` 조립 호출 목록은 [상세 인벤토리](module-dependency-inventory.md)를 참고하세요. 이 인벤토리는 [generate-module-dependency-inventory.mjs](../scripts/generate-module-dependency-inventory.mjs)로 현재 소스에서 다시 생성할 수 있습니다.
 
@@ -52,13 +52,26 @@ flowchart LR
 
 | 단계 | 모듈 | 역할 |
 | --- | --- | --- |
-| 명세와 검사 | `main-module-spec.js`, `main-module-resolver.js`, `main-module-resolution-bindings.js` | 전역 API 이름, 필수 `createService`, 선택 모듈 및 데이터 형식 검증 |
-| 기본 상태/호스트 | `main-state-initializer.js`, `main-runtime-host-utils.js`, `main-runtime-primary-state.js`, 관련 `*-bindings.js` | 브라우저 API와 앱 기본 상태를 안전한 서비스 의존성으로 제공 |
-| 핵심/상태 조립 | `main-runtime-state-core-bootstrap.js`, `main-runtime-core-assembly-bootstrap.js`, `main-runtime-core-foundation-bootstrap.js`, `main-runtime-state-helper-bootstrap.js`, `main-runtime-core-service-bootstrap.js` | 상태 접근, 공통 서비스, 핵심 의존성 조립 |
+| 명세와 검사 | `main-module-spec.js`, `main-module-resolver.js`(`main.js`가 직접 호출) | 전역 API 이름, 필수 `createService`, 선택 모듈 및 데이터 형식 검증 |
+| 전역 이름 연결 | `main-global-bindings.js` | `main.js`가 쓰는 모듈 전역 이름 목록(`BINDING_MAP`) |
+| 기본 상태/호스트 | `main-state-initializer.js`, `main-runtime-host-utils.js`, `main-runtime-primary-state.js`, `main-runtime-local-state-helpers.js` | 브라우저 API와 앱 기본 상태를 서비스로 제공. state-core bootstrap이 만들고 함수를 그대로 내보냄 |
+| 핵심/상태 조립 | `main-runtime-state-core-bootstrap.js`, `main-runtime-core-assembly-bootstrap.js`, `main-runtime-core-foundation-bootstrap.js`, `main-runtime-state-helper-bootstrap.js`, `main-runtime-core-service-bootstrap.js` | 상태 접근, 공통 서비스, 핵심 의존성 조립. state-helper bootstrap은 `main-runtime-state-helpers` 서비스의 함수 20개를 그대로 내보냄 |
+| 늦게 정해지는 참조 | `main-runtime-reference-accessors.js` | 조립 중 나중에 만들어지는 서비스·상태를 읽는 함수 80개(대부분 표 하나로 정의) |
 | UI/도메인 서비스 조립 | `main-runtime-table-image-bootstrap.js`, `main-runtime-domain-service-bootstrap.js`, `main-runtime-ui-services-bootstrap.js`, `main-runtime-persistence-composition-bootstrap.js`, `main-runtime-composition-bootstrap.js` | 표/이미지, 도메인, 저장, 화면 관련 서비스를 구성 |
 | 외부 연결 | `main-runtime-bootstrap-wiring.js`, `main-runtime-public-api-bindings.js`, `main-app-bootstrap.js` | UI·작업·부트스트랩 호출 연결, 앱 시작 순서 실행 |
 
 `main.js`는 아직 이 조립 단계들을 직접 호출하고, 상태 변수를 클로저로 보유하며, 다수의 호환 전역 함수를 공개합니다. 따라서 현재의 주요 변경 위험 지점은 순수 기능 모듈보다는 이 파일의 배선과 전역 호환 경계입니다.
+
+조립에서 반복되는 일은 공용 도우미가 맡습니다.
+
+| 하는 일 | 위치 |
+| --- | --- |
+| 모듈 API 확인 후 서비스 생성, 필수 메서드 검사 | `GTVServiceInvokeUtils.createRequiredModuleService` |
+| 나중에 만들어지는 서비스를 호출할 때 찾아 부르기 | `GTVServiceInvokeUtils.createLateBoundForwarders`(host 접근 함수, patched state 접근 함수, direct state patch) |
+| state-domain 함수·표시 형식 함수를 전역 객체에 올리기 | `main.js`의 `exposeOnGlobalHost` |
+| 앞쪽 조립 코드에 미리 넘기는 공개 호환 함수 | `main.js` 끝의 `Public compatibility facade`(인수 기본값은 `main-runtime-public-api-bindings`가 적용) |
+
+남은 accessor proxy 4개(`main-runtime-bootstrap-accessor-proxies`, `-core-`, `-operation-`, `-ui-bridge-`)는 단순 전달이 아니라 인수 정리, 기본값, 없는 기능 알림 같은 동작을 가집니다.
 
 ## 기능별 도메인 모듈
 
@@ -91,11 +104,11 @@ flowchart LR
 | 연속 시간 변경 | `multi-state.js`, `multi-range-state.js`, `multi-range-render.js`, `multi-range-copy.js`, `multi-range-image-render.js`, `multi-bulk-tools.js` |
 | 렌더·복사·이미지 | `table-render.js`, `table-image-render.js`, `copy-actions.js`, `image-export.js`, `image-export-actions.js`, `image-export-bridge.js`, `image-export-naming.js`, `image-clone.js`, `image-foreign-render.js` |
 | 계산기·사용자 작업 | `calculator-countdown-state.js`(상태 정규화/표시), `calculator-date-format.js`(날짜 파싱·형식), `calculator-countdown.js`(카운트다운), `calculator-format-converter.js`(시간 포맷 변환기), `calculator.js`(단위 변환·기간/날짜 이동·기능 조립), `calculator-actions.js`, `date-picker.js`, `time-adjust-ui.js`, `time-adjust-actions.js`, `format-controls.js`, `ui-settings-actions.js` |
-| 저장·설정 이동 | `persistence-state-normalizer.js`(저장 payload 정규화), `state-persistence.js`(저장소 동기화·로드·초기화), `persistence-service-bundle.js`, `settings-io.js`, `data-transfer.js` |
+| 저장·설정 이동 | `persistence-state-normalizer.js`(저장 payload 정규화), `state-persistence.js`(`localStorage` 읽기·쓰기·로드·초기화), `persistence-service-bundle.js`, `settings-io.js`, `data-transfer.js` |
 
 ## 모듈 경계와 변경 시 확인 사항
 
-- `js/modules/`에는 기능 모듈, `main-...-bindings`, accessor/proxy, bootstrap/config-builder 계열이 함께 있습니다. 이름이 유사해도 일부는 API 검증 또는 fallback 동작을 제공하므로 내용과 테스트를 확인하기 전에는 중복 모듈로 간주하지 않습니다.
+- `js/modules/`에는 기능 모듈(약 58개)과 `main-*` 조립 모듈(86개)이 함께 있습니다. `main-*`에는 bootstrap, config builder, facade, 서비스 묶음, 남은 accessor proxy와 `*-bindings`가 있습니다. 이름이 비슷해도 기본값·대체 처리·여러 서비스 조합 같은 동작을 가진 경우가 있으므로, 내용과 테스트를 확인하기 전에는 중복 모듈로 간주하지 않습니다.
 - 공통 도메인 서비스는 대체로 `createService(deps)` 형태이고, 의존성을 명시적으로 전달합니다. 반면 `main.js`는 레거시 호환과 전역 상태 연결을 담당하므로 새 도메인 로직을 이 파일에 추가하기보다 기능 모듈에 두고 조립부에서 연결하는 것이 현재 패턴에 맞습니다.
 - 새 런타임 모듈을 추가하거나 제거할 때는 `src/runtime-script-list.txt`를 갱신한 뒤 `npm run sync:source-loader`를 실행합니다. 이 명령과 빌드는 목록 중복·경로·파일 누락·전체 런타임 파일 포함 여부를 검사합니다.
 - 변경 확인은 영향 모듈 테스트, `npm run lint`, `npm run test:coverage`, 배포 전 `npm run package`(엄격 빌드, 배포 ZIP 생성, 배포물 검사) 순으로 수행합니다. 빠른 전체 확인은 `npm run ci:gate`입니다.

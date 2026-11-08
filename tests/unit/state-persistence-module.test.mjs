@@ -43,6 +43,18 @@ function createFailingLocalStorageStub() {
     };
 }
 
+function createUnusedChromeStorage() {
+    const calls = [];
+    const record = (method) => async (...args) => {
+        calls.push([method, ...args]);
+        return {};
+    };
+    return {
+        calls,
+        chrome: { storage: { local: { get: record("get"), set: record("set"), remove: record("remove") } } }
+    };
+}
+
 function createStoredPersistenceEnvelope(data, revision = 1, updatedAt = "2026-01-01T00:00:00.000Z") {
     return JSON.stringify({
         __gtvStorageEnvelope: 1,
@@ -252,62 +264,29 @@ describe("GTV state persistence module", () => {
         expect(toastKeys).toHaveLength(0);
     });
 
-    it("setStorageValue falls back to localStorage when chrome.storage.set fails", async () => {
-        const chromeSetError = new Error("chrome storage write failed");
-        const loaded = loadStatePersistenceModule({
-            chrome: {
-                storage: {
-                    local: {
-                        async set() {
-                            throw chromeSetError;
-                        }
-                    }
-                }
-            }
-        });
-        const service = loaded.module.createService(createBaseDeps());
+    it("setStorageValue and getStorageValue use localStorage only and stay async", async () => {
+        const localStorage = createLocalStorageStub();
+        const unusedChrome = createUnusedChromeStorage();
+        const loaded = loadStatePersistenceModule({ localStorage, chrome: unusedChrome.chrome });
+        const service = loaded.module.createService(createBaseDeps({ chromeRef: unusedChrome.chrome }));
 
-        const result = await service.setStorageValue("KEY_A", "VALUE_A");
-        const stored = await service.getStorageValue("KEY_A", null);
+        const writePromise = service.setStorageValue("KEY_A", "VALUE_A");
+        const readPromise = service.getStorageValue("KEY_A", null);
+        expect(writePromise).toBeInstanceOf(Promise);
+        expect(readPromise).toBeInstanceOf(Promise);
 
-        expect(result.ok).toBe(true);
-        expect(result.error).toBe(null);
-        expect(stored).toBe("VALUE_A");
-        expect(loaded.logs.warn.length).toBeGreaterThan(0);
+        expect(await writePromise).toEqual({ ok: true, error: null });
+        expect(await readPromise).toBe("VALUE_A");
+        expect(localStorage.getItem("KEY_A")).toBe("VALUE_A");
+        expect(await service.getStorageValue("MISSING", "fallback")).toBe("fallback");
+        expect(unusedChrome.calls).toEqual([]);
+        expect(loaded.logs.warn).toHaveLength(0);
         expect(loaded.logs.error).toHaveLength(0);
     });
 
-    it("ignores invalid chrome.storage.local references without storage methods", async () => {
-        const localStorage = createLocalStorageStub();
+    it("setStorageValue returns failure with a save-failed toast when localStorage write fails", async () => {
         const loaded = loadStatePersistenceModule({
-            localStorage,
-            chrome: {
-                storage: {
-                    local: {}
-                }
-            }
-        });
-        const service = loaded.module.createService(createBaseDeps());
-
-        const result = await service.setStorageValue("KEY_INVALID_CHROME", "VALUE_OK");
-
-        expect(result.ok).toBe(true);
-        expect(localStorage.getItem("KEY_INVALID_CHROME")).toBe("VALUE_OK");
-        expect(loaded.logs.warn).toHaveLength(0);
-    });
-
-    it("setStorageValue returns failure when both chrome and localStorage writes fail", async () => {
-        const loaded = loadStatePersistenceModule({
-            localStorage: createFailingLocalStorageStub(),
-            chrome: {
-                storage: {
-                    local: {
-                        async set() {
-                            throw new Error("chrome storage write failed");
-                        }
-                    }
-                }
-            }
+            localStorage: createFailingLocalStorageStub()
         });
         const toastKeys = [];
         const service = loaded.module.createService(createBaseDeps({
@@ -319,9 +298,25 @@ describe("GTV state persistence module", () => {
         const result = await service.setStorageValue("KEY_B", "VALUE_B");
 
         expect(result.ok).toBe(false);
-        expect(result.error).toBeTruthy();
-        expect(toastKeys).toContain("toast_storage_save_failed");
+        expect(result.error.message).toBe('Failed to write localStorage key "KEY_B".');
+        expect(toastKeys).toEqual(["toast_storage_save_failed"]);
+        expect(loaded.logs.warn.length).toBeGreaterThan(0);
         expect(loaded.logs.error.length).toBeGreaterThan(0);
+    });
+
+    it("setStorageValue can suppress the failure toast", async () => {
+        const loaded = loadStatePersistenceModule({ localStorage: createFailingLocalStorageStub() });
+        const toastKeys = [];
+        const service = loaded.module.createService(createBaseDeps({
+            showToast(message) {
+                toastKeys.push(message);
+            }
+        }));
+
+        const result = await service.setStorageValue("KEY_S", "VALUE_S", { suppressToast: true });
+
+        expect(result.ok).toBe(false);
+        expect(toastKeys).toEqual([]);
     });
 
     it("isQuotaExceededError matches known quota signatures", () => {
@@ -335,22 +330,10 @@ describe("GTV state persistence module", () => {
         expect(service.isQuotaExceededError({ code: 99, name: "OtherError" })).toBe(false);
     });
 
-    it("setStorageValue surfaces quota toast key and throttles repeated toasts", async () => {
+    it("setStorageValue throttles repeated failure toasts", async () => {
         const toastKeys = [];
         const loaded = loadStatePersistenceModule({
-            localStorage: createFailingLocalStorageStub(),
-            chrome: {
-                storage: {
-                    local: {
-                        async set() {
-                            const error = new Error("quota exceeded");
-                            error.name = "QuotaExceededError";
-                            error.code = 22;
-                            throw error;
-                        }
-                    }
-                }
-            }
+            localStorage: createFailingLocalStorageStub()
         });
         const service = loaded.module.createService(createBaseDeps({
             showToast(message) {
@@ -363,8 +346,7 @@ describe("GTV state persistence module", () => {
 
         expect(first.ok).toBe(false);
         expect(second.ok).toBe(false);
-        expect(toastKeys[0]).toBe("toast_storage_quota_exceeded");
-        expect(toastKeys.length).toBe(1);
+        expect(toastKeys).toEqual(["toast_storage_save_failed"]);
     });
 
     it("persistStorageSnapshot handles JSON stringify failure", async () => {
@@ -385,48 +367,30 @@ describe("GTV state persistence module", () => {
         expect(loaded.logs.error.length).toBeGreaterThan(0);
     });
 
-    it("getStorageValue prefers chrome storage when available", async () => {
+    it("getStorageValue reads localStorage even when chrome.storage exists", async () => {
         const localStorage = createLocalStorageStub();
         localStorage.setItem("KEY_PREF", "local-value");
-        const loaded = loadStatePersistenceModule({
-            localStorage,
-            chrome: {
-                storage: {
-                    local: {
-                        async get(key) {
-                            return { [key]: "chrome-value" };
-                        }
-                    }
-                }
-            }
-        });
+        const unusedChrome = createUnusedChromeStorage();
+        const loaded = loadStatePersistenceModule({ localStorage, chrome: unusedChrome.chrome });
         const service = loaded.module.createService(createBaseDeps());
 
-        const value = await service.getStorageValue("KEY_PREF", null);
-
-        expect(value).toBe("chrome-value");
+        expect(await service.getStorageValue("KEY_PREF", null)).toBe("local-value");
+        expect(unusedChrome.calls).toEqual([]);
     });
 
-    it("getStorageValue falls back to localStorage when chrome storage read fails", async () => {
-        const localStorage = createLocalStorageStub();
-        localStorage.setItem("KEY_FALLBACK", "fallback-value");
+    it("getStorageValue returns the fallback when localStorage read throws", async () => {
         const loaded = loadStatePersistenceModule({
-            localStorage,
-            chrome: {
-                storage: {
-                    local: {
-                        async get() {
-                            throw new Error("chrome get failed");
-                        }
-                    }
-                }
+            localStorage: {
+                getItem() {
+                    throw new Error("read blocked");
+                },
+                setItem() {},
+                removeItem() {}
             }
         });
         const service = loaded.module.createService(createBaseDeps());
 
-        const value = await service.getStorageValue("KEY_FALLBACK", null);
-
-        expect(value).toBe("fallback-value");
+        expect(await service.getStorageValue("KEY_FALLBACK", "fallback-value")).toBe("fallback-value");
         expect(loaded.logs.warn.length).toBeGreaterThan(0);
     });
 
@@ -568,83 +532,15 @@ describe("GTV state persistence module", () => {
         expect(appliedState.groups[0].name).toBe("Legacy Via Main Keys");
     });
 
-    it("loadPersistence migrates legacy data stored only in chrome.storage.local", async () => {
-        const legacyPayload = JSON.stringify({
-            groups: [{
-                name: "Chrome Legacy Only",
-                zones: [],
-                baseTimezoneId: "utc",
-                showUtcRow: true,
-                utcRowOrder: 0
-            }],
-            activeGroupId: 0,
-            currentMainTab: "live",
-            activeGroupIdByMainTab: { live: 0, fixed: 0 },
-            slotCount: 1
-        });
-        const chromeData = { GTV_v323_Data: legacyPayload };
-        const localStorage = createLocalStorageStub();
-        let appliedState = null;
-        const loaded = loadStatePersistenceModule({
-            localStorage,
-            chrome: {
-                storage: {
-                    local: {
-                        async get(key) {
-                            return { [key]: chromeData[key] };
-                        },
-                        async set(payload) {
-                            Object.assign(chromeData, payload);
-                        }
-                    }
-                }
-            }
-        });
-        const service = loaded.module.createService(createBaseDeps({
-            LEGACY_STORAGE_KEYS: ["GTV_v323_Data"],
-            LEGACY_STORAGE_FALLBACK_KEYS: ["GTV_v323_Data"],
-            setState(next) {
-                appliedState = next;
-            },
-            getPersistenceSnapshot() {
-                return { groups: appliedState?.groups || [] };
-            }
-        }));
-
-        await service.loadPersistence();
-
-        expect(appliedState.groups[0].name).toBe("Chrome Legacy Only");
-        const migrated = unwrapStoredPersistencePayload(chromeData.TEST_STORAGE_KEY);
-        expect(migrated.isEnvelope).toBe(true);
-        expect(migrated.data.groups[0].name).toBe("Chrome Legacy Only");
-        expect(chromeData.GTV_v323_Data).toBe(legacyPayload);
-    });
-
     it("savePersistence serializes writes so latest snapshot wins", async () => {
-        let releaseFirstWrite = null;
-        const storageData = {};
-        const loaded = loadStatePersistenceModule({
-            chrome: {
-                storage: {
-                    local: {
-                        async set(payload) {
-                            const raw = payload.TEST_STORAGE_KEY;
-                            const stored = unwrapStoredPersistencePayload(raw);
-                            const payloadData = stored.data || {};
-                            if (payloadData.version === 1) {
-                                await new Promise((resolve) => {
-                                    releaseFirstWrite = resolve;
-                                });
-                            }
-                            Object.assign(storageData, payload);
-                        },
-                        async get(key) {
-                            return { [key]: storageData[key] };
-                        }
-                    }
-                }
-            }
-        });
+        const writes = [];
+        const localStorage = createLocalStorageStub();
+        const baseSetItem = localStorage.setItem.bind(localStorage);
+        localStorage.setItem = (key, value) => {
+            writes.push(unwrapStoredPersistencePayload(value));
+            baseSetItem(key, value);
+        };
+        const loaded = loadStatePersistenceModule({ localStorage });
 
         let snapshotCallCount = 0;
         const service = loaded.module.createService(createBaseDeps({
@@ -654,86 +550,39 @@ describe("GTV state persistence module", () => {
             }
         }));
 
-        const first = service.savePersistence();
-        const second = service.savePersistence();
+        const results = await Promise.all([service.savePersistence(), service.savePersistence()]);
 
-        for (let i = 0; i < 10 && typeof releaseFirstWrite !== "function"; i++) {
-            await Promise.resolve();
-        }
-        expect(typeof releaseFirstWrite).toBe("function");
-        releaseFirstWrite();
-        await Promise.all([first, second]);
-
-        const storedRaw = await service.getStorageValue("TEST_STORAGE_KEY", null);
-        const stored = unwrapStoredPersistencePayload(storedRaw);
+        expect(results).toEqual([true, true]);
+        expect(writes.map((w) => [w.data.version, Number(w.meta.revision)])).toEqual([[1, 1], [2, 2]]);
+        const stored = unwrapStoredPersistencePayload(await service.getStorageValue("TEST_STORAGE_KEY", null));
         expect(stored.isEnvelope).toBe(true);
         expect(stored.data.version).toBe(2);
-        expect(Number(stored.meta?.revision)).toBeGreaterThanOrEqual(2);
     });
 
     it("persistStorageSnapshot serializes direct writes so later payload wins", async () => {
-        let releaseFirstWrite = null;
-        const storageData = {};
-        const loaded = loadStatePersistenceModule({
-            chrome: {
-                storage: {
-                    local: {
-                        async set(payload) {
-                            const raw = payload.TEST_STORAGE_KEY;
-                            const stored = unwrapStoredPersistencePayload(raw);
-                            const payloadData = stored.data || {};
-                            if (payloadData.version === 1) {
-                                await new Promise((resolve) => {
-                                    releaseFirstWrite = resolve;
-                                });
-                            }
-                            Object.assign(storageData, payload);
-                        },
-                        async get(key) {
-                            return { [key]: storageData[key] };
-                        }
-                    }
-                }
-            }
-        });
+        const writes = [];
+        const localStorage = createLocalStorageStub();
+        const baseSetItem = localStorage.setItem.bind(localStorage);
+        localStorage.setItem = (key, value) => {
+            writes.push(unwrapStoredPersistencePayload(value));
+            baseSetItem(key, value);
+        };
+        const loaded = loadStatePersistenceModule({ localStorage });
         const service = loaded.module.createService(createBaseDeps());
 
-        const first = service.persistStorageSnapshot({ version: 1 });
-        const second = service.persistStorageSnapshot({ version: 2 });
+        const [firstResult, secondResult] = await Promise.all([
+            service.persistStorageSnapshot({ version: 1 }),
+            service.persistStorageSnapshot({ version: 2 })
+        ]);
 
-        for (let i = 0; i < 10 && typeof releaseFirstWrite !== "function"; i++) {
-            await Promise.resolve();
-        }
-        expect(typeof releaseFirstWrite).toBe("function");
-        releaseFirstWrite();
-
-        const [firstResult, secondResult] = await Promise.all([first, second]);
         expect(firstResult.ok).toBe(true);
         expect(secondResult.ok).toBe(true);
-
-        const storedRaw = await service.getStorageValue("TEST_STORAGE_KEY", null);
-        const stored = unwrapStoredPersistencePayload(storedRaw);
-        expect(stored.isEnvelope).toBe(true);
+        expect(writes.map((w) => [w.data.version, Number(w.meta.revision)])).toEqual([[1, 1], [2, 2]]);
+        const stored = unwrapStoredPersistencePayload(localStorage.getItem("TEST_STORAGE_KEY"));
         expect(stored.data.version).toBe(2);
-        expect(Number(stored.meta?.revision)).toBeGreaterThanOrEqual(2);
     });
 
-    it("loadPersistence prefers newer local envelope when chrome has stale legacy payload", async () => {
-        const staleChromePayload = JSON.stringify({
-            groups: [{
-                name: "Chrome Legacy Group",
-                zones: [],
-                baseTimezoneId: "utc",
-                showUtcRow: true,
-                utcRowOrder: 0
-            }],
-            activeGroupId: 0,
-            currentMainTab: "fixed",
-            activeGroupIdByMainTab: { live: 0, fixed: 0 },
-            slotCount: 1,
-            showCopyFormat: false,
-            showTimeline: false
-        });
+    it("loadPersistence reads the current localStorage envelope and ignores chrome.storage", async () => {
         const freshLocalPayload = {
             groups: [{
                 name: "Local Fresh Group",
@@ -754,34 +603,24 @@ describe("GTV state persistence module", () => {
             "TEST_STORAGE_KEY",
             createStoredPersistenceEnvelope(freshLocalPayload, 7, "2026-03-26T00:00:00.000Z")
         );
+        const unusedChrome = createUnusedChromeStorage();
 
         let appliedState = null;
-        const loaded = loadStatePersistenceModule({
-            localStorage,
-            chrome: {
-                storage: {
-                    local: {
-                        async get(key) {
-                            return { [key]: staleChromePayload };
-                        },
-                        async set() {
-                            return undefined;
-                        }
-                    }
-                }
-            }
-        });
+        const loaded = loadStatePersistenceModule({ localStorage, chrome: unusedChrome.chrome });
         const service = loaded.module.createService(createBaseDeps({
             setState(next) {
                 appliedState = next;
-            }
+            },
+            getPersistenceSnapshot: () => ({ version: "next" })
         }));
 
         await service.loadPersistence();
+        await service.savePersistence();
 
-        expect(appliedState).toBeTruthy();
         expect(appliedState.groups[0].name).toBe("Local Fresh Group");
         expect(appliedState.currentMainTab).toBe("live");
+        expect(Number(unwrapStoredPersistencePayload(localStorage.getItem("TEST_STORAGE_KEY")).meta.revision)).toBe(8);
+        expect(unusedChrome.calls).toEqual([]);
     });
 
     it("resetExceptGroupsAndTimezones aborts early when confirmFn denies", async () => {
@@ -903,13 +742,13 @@ describe("GTV state persistence module", () => {
         expect(groupsState.slotCount).toBe(1);
     });
 
-    it("supports explicit *Ref dependency keys for document, localStorage, and chrome storage", async () => {
+    it("supports explicit *Ref dependency keys for document and localStorage", async () => {
         const globalStorage = createLocalStorageStub();
         globalStorage.setItem("GLOBAL_ONLY", "keep");
         const localStorageRef = createLocalStorageStub();
         localStorageRef.setItem("TEST_LANG", "en");
-        const chromeStore = new Map();
-        const removedKeys = [];
+        localStorageRef.setItem("TEST_THEME", "dark");
+        localStorageRef.setItem("TEST_UI_SCALE", "110");
         const langSelect = { value: "" };
         const themeSelect = { value: "" };
         const uiScaleSelect = { value: "" };
@@ -940,27 +779,6 @@ describe("GTV state persistence module", () => {
                 }
             },
             localStorageRef,
-            chromeRef: {
-                storage: {
-                    local: {
-                        async get(key) {
-                            return chromeStore.has(key) ? { [key]: chromeStore.get(key) } : {};
-                        },
-                        async set(payload) {
-                            Object.entries(payload || {}).forEach(([key, value]) => {
-                                chromeStore.set(key, value);
-                            });
-                        },
-                        async remove(keys) {
-                            const normalizedKeys = Array.isArray(keys) ? keys : [keys];
-                            normalizedKeys.forEach((key) => {
-                                removedKeys.push(key);
-                                chromeStore.delete(key);
-                            });
-                        }
-                    }
-                }
-            },
             loadThemePreference: async () => "light",
             loadUiScalePreference: async () => 125,
             getCurrentUiScalePercent: () => 125,
@@ -973,12 +791,9 @@ describe("GTV state persistence module", () => {
         await service.resetAllSettings();
 
         expect(confirmCount).toBe(1);
-        expect(removedKeys).toEqual(expect.arrayContaining([
-            "TEST_STORAGE_KEY",
-            "TEST_THEME",
-            "TEST_LANG",
-            "TEST_UI_SCALE"
-        ]));
+        expect(localStorageRef.getItem("TEST_THEME")).toBe(null);
+        expect(localStorageRef.getItem("TEST_LANG")).toBe(null);
+        expect(localStorageRef.getItem("TEST_UI_SCALE")).toBe(null);
         expect(langSelect.value).toBe("ko");
         expect(themeSelect.value).toBe("light");
         expect(uiScaleSelect.value).toBe("125");
@@ -987,7 +802,7 @@ describe("GTV state persistence module", () => {
         expect(populateUiScaleCount).toBe(1);
         expect(globalStorage.getItem("GLOBAL_ONLY")).toBe("keep");
 
-        const storedRaw = chromeStore.get("TEST_STORAGE_KEY");
+        const storedRaw = localStorageRef.getItem("TEST_STORAGE_KEY");
         const stored = unwrapStoredPersistencePayload(storedRaw);
         expect(stored.isEnvelope).toBe(true);
         expect(stored.data).toEqual({ reset: true });

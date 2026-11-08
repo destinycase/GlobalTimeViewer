@@ -188,41 +188,6 @@
             return null;
         }
 
-        function isChromeStorageLocalRef(value) {
-            return !!(
-                value
-                && typeof value === "object"
-                && (
-                    typeof value.get === "function"
-                    || typeof value.set === "function"
-                    || typeof value.remove === "function"
-                )
-            );
-        }
-
-        function getChromeStorageLocal() {
-            if (isChromeStorageLocalRef(safeDeps.chromeStorageLocalRef)) {
-                return safeDeps.chromeStorageLocalRef;
-            }
-            if (isChromeStorageLocalRef(safeDeps.chromeStorageRef?.local)) {
-                return safeDeps.chromeStorageRef.local;
-            }
-            if (isChromeStorageLocalRef(safeDeps.chromeRef?.storage?.local)) {
-                return safeDeps.chromeRef.storage.local;
-            }
-            if (isChromeStorageLocalRef(globalObj?.chrome?.storage?.local)) {
-                return globalObj.chrome.storage.local;
-            }
-            if (isChromeStorageLocalRef(globalThis?.chrome?.storage?.local)) {
-                return globalThis.chrome.storage.local;
-            }
-            return null;
-        }
-
-        function hasChromeStorage() {
-            return !!getChromeStorageLocal();
-        }
-
         const stateNormalizerModule = safeDeps.stateNormalizerModule || globalObj?.GTVPersistenceStateNormalizer;
         if (!stateNormalizerModule || typeof stateNormalizerModule.createService !== "function") {
             throw new Error("Missing required module API: GTVPersistenceStateNormalizer.createService");
@@ -367,26 +332,6 @@
             }
         }
 
-        function choosePreferredPersistenceCandidate(primaryCandidate, secondaryCandidate) {
-            if (primaryCandidate && secondaryCandidate) {
-                if (primaryCandidate.revision !== secondaryCandidate.revision) {
-                    return primaryCandidate.revision > secondaryCandidate.revision
-                        ? primaryCandidate
-                        : secondaryCandidate;
-                }
-                if (primaryCandidate.updatedAtMs !== secondaryCandidate.updatedAtMs) {
-                    return primaryCandidate.updatedAtMs > secondaryCandidate.updatedAtMs
-                        ? primaryCandidate
-                        : secondaryCandidate;
-                }
-                if (primaryCandidate.hasEnvelope !== secondaryCandidate.hasEnvelope) {
-                    return primaryCandidate.hasEnvelope ? primaryCandidate : secondaryCandidate;
-                }
-                return primaryCandidate;
-            }
-            return primaryCandidate || secondaryCandidate || null;
-        }
-
         function safeLocalStorageGet(key, fallback = null) {
             const localStorageRef = getLocalStorageRef();
             if (!localStorageRef) return fallback;
@@ -422,43 +367,19 @@
             }
         }
 
+        // Settings live in localStorage only: the extension has no "storage" permission, so
+        // chrome.storage is not available. Both functions stay async for existing callers.
         async function setStorageValue(key, value, options = {}) {
             const { suppressToast = false } = options;
-            let lastError = null;
-            try {
-                const storage = getChromeStorageLocal();
-                if (storage && typeof storage.set === "function") {
-                    try {
-                        await storage.set({ [key]: value });
-                        return { ok: true, error: null };
-                    } catch (err) {
-                        lastError = err;
-                        logger.warn(`chrome.storage.set("${key}") failed. Falling back to localStorage.`, err);
-                    }
-                }
-                const ok = safeLocalStorageSet(key, value);
-                if (!ok) throw (lastError || new Error(`Failed to write localStorage key "${key}".`));
-                return { ok: true, error: null };
-            } catch (err) {
-                const finalError = lastError || err;
-                logger.error(`Failed to write storage key "${key}".`, finalError);
-                if (!suppressToast) showPersistenceErrorToast(finalError);
-                return { ok: false, error: finalError };
-            }
+            if (safeLocalStorageSet(key, value)) return { ok: true, error: null };
+            const error = new Error(`Failed to write localStorage key "${key}".`);
+            logger.error(`Failed to write storage key "${key}".`, error);
+            if (!suppressToast) showPersistenceErrorToast(error);
+            return { ok: false, error };
         }
 
         async function getStorageValue(key, fallback = null) {
-            try {
-                const storage = getChromeStorageLocal();
-                if (storage && typeof storage.get === "function") {
-                    const data = await storage.get(key);
-                    if (data && data[key] !== undefined) return data[key];
-                }
-                return safeLocalStorageGet(key, fallback);
-            } catch (err) {
-                logger.warn(`Failed to read storage key "${key}". Falling back to safeLocalStorageGet.`, err);
-                return safeLocalStorageGet(key, fallback);
-            }
+            return safeLocalStorageGet(key, fallback);
         }
 
         async function persistStorageSnapshotNow(snapshot, options = {}) {
@@ -585,47 +506,15 @@
             await savePersistence();
         }
 
-        function pickLegacyPersistenceCandidate(chromeSerialized, localSerialized) {
-            const candidate = choosePreferredPersistenceCandidate(
-                parseSerializedPersistencePayload(chromeSerialized, "chrome-legacy"),
-                parseSerializedPersistencePayload(localSerialized, "local-legacy")
-            );
+        function pickLegacyPersistenceCandidate(localSerialized) {
+            const candidate = parseSerializedPersistencePayload(localSerialized, "local-legacy");
             if (candidate) return { serialized: candidate.serialized, candidate };
-            const rawFallback = (typeof chromeSerialized === "string" && chromeSerialized)
-                ? chromeSerialized
-                : localSerialized;
-            return rawFallback ? { serialized: rawFallback, candidate: null } : null;
+            return localSerialized ? { serialized: localSerialized, candidate: null } : null;
         }
 
         async function loadPersistence() {
-            let serialized = null;
-            let selectedCandidate = null;
-
-            try {
-                const storage = getChromeStorageLocal();
-                if (storage && typeof storage.get === "function") {
-                    const data = await storage.get(storageKey);
-                    const chromeSerialized = data[storageKey];
-                    const localSerialized = safeLocalStorageGet(storageKey);
-                    const chromeCandidate = parseSerializedPersistencePayload(chromeSerialized, "chrome");
-                    const localCandidate = parseSerializedPersistencePayload(localSerialized, "local");
-                    selectedCandidate = choosePreferredPersistenceCandidate(chromeCandidate, localCandidate);
-                    if (selectedCandidate?.serialized) {
-                        serialized = selectedCandidate.serialized;
-                    } else if (chromeSerialized) {
-                        serialized = chromeSerialized;
-                    } else if (localSerialized) {
-                        serialized = localSerialized;
-                    }
-                }
-            } catch (err) {
-                logger.warn("Chrome storage error during loadPersistence. Falling back to localStorage.", err);
-            }
-
-            if (!serialized) {
-                serialized = safeLocalStorageGet(storageKey);
-                selectedCandidate = parseSerializedPersistencePayload(serialized, "local");
-            }
+            let serialized = safeLocalStorageGet(storageKey);
+            let selectedCandidate = parseSerializedPersistencePayload(serialized, "local");
 
             const legacyReadKeys = explicitLegacyFallbackReadKeys.length
                 ? explicitLegacyFallbackReadKeys
@@ -633,21 +522,8 @@
             const dedupedLegacyReadKeys = [...new Set(legacyReadKeys)];
             let loadedFromLegacyKey = false;
             if (!serialized) {
-                // Versions before the current storage key saved through chrome.storage.local first
-                // and localStorage only as a fallback, so each legacy key is read from both stores.
-                // chrome.storage is awaited only when present, keeping the localStorage-only path synchronous.
-                const legacyChromeStorage = getChromeStorageLocal();
                 for (const key of dedupedLegacyReadKeys) {
-                    let chromeSerialized = null;
-                    if (legacyChromeStorage && typeof legacyChromeStorage.get === "function") {
-                        try {
-                            const data = await legacyChromeStorage.get(key);
-                            chromeSerialized = data?.[key] ?? null;
-                        } catch (err) {
-                            logger.warn(`chrome.storage.get("${key}") failed while reading legacy data.`, err);
-                        }
-                    }
-                    const legacyCandidate = pickLegacyPersistenceCandidate(chromeSerialized, safeLocalStorageGet(key));
+                    const legacyCandidate = pickLegacyPersistenceCandidate(safeLocalStorageGet(key));
                     if (legacyCandidate) {
                         serialized = legacyCandidate.serialized;
                         selectedCandidate = legacyCandidate.candidate;
@@ -689,8 +565,6 @@
                 if (loadedFromLegacyKey) {
                     // Copy migrated data to the current key; the legacy key is kept as a backup.
                     await savePersistence({ suppressToast: true });
-                } else if (selectedCandidate?.source === "local" && hasChromeStorage()) {
-                    void setStorageValue(storageKey, selectedCandidate.serialized, { suppressToast: true });
                 }
             } catch (err) {
                 logger.warn("Failed to parse persisted data. Falling back to defaults.", err);
@@ -710,14 +584,6 @@
                 ...legacyStorageKeys
             ];
 
-            try {
-                const storage = getChromeStorageLocal();
-                if (storage && typeof storage.remove === "function") {
-                    await storage.remove(keysToRemove);
-                }
-            } catch (err) {
-                logger.warn("Chrome storage remove error.", err);
-            }
             keysToRemove.forEach((key) => safeLocalStorageRemove(key));
             applyDefaultPersistenceState({ includeMultiState: true });
             await syncUiAfterSettingsReset();
@@ -794,15 +660,6 @@
                 ...legacyStorageKeys
             ];
 
-            try {
-                const storage = getChromeStorageLocal();
-                if (storage && typeof storage.remove === "function") {
-                    await storage.remove(keysToRemove);
-                    await storage.remove([storageKey]);
-                }
-            } catch (err) {
-                logger.warn("Chrome storage remove error.", err);
-            }
             keysToRemove.forEach((key) => safeLocalStorageRemove(key));
             safeLocalStorageRemove(storageKey);
             await syncUiAfterSettingsReset();
