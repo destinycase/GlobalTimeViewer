@@ -375,6 +375,58 @@ function buildScenarios(ctx) {
                 });
                 return `1월 ${winter.abbr} ${winter.utc}(DST 표시 없음), 10월 말 ${summer.abbr} ${summer.utc}(시각 옆 DST 표시, 이름 "${summer.name}"), 저장 fixedOffsetMinutes=${stored.fixedOffsetMinutes}`;
             }
+        },
+        {
+            id: "10",
+            title: "고정 시간 탭: 고정 날짜 기준 DST 표시·시간대 약어",
+            async run() {
+                const { api } = ctx;
+                const readFixedTable = async (fixedDate) => {
+                    const saved = {
+                        groups: [{
+                            name: "Fixed DST Group",
+                            zones: [
+                                { id: "tz-la", type: "standard", zone: "America/Los_Angeles", name_ko: "미국 - 로스앤젤레스", name_en: "USA - Los Angeles", fixedAbbr: "", fixedOffsetMinutes: null },
+                                { id: "tz-seoul", type: "standard", zone: "Asia/Seoul", name_ko: "대한민국 - 서울", name_en: "Korea - Seoul", fixedAbbr: "", fixedOffsetMinutes: null }
+                            ],
+                            baseTimezoneId: "tz-la",
+                            showUtcRow: true,
+                            utcRowOrder: 0,
+                            fixedDate,
+                            fixedTimeShowLiveNow: false,
+                            fixedTimes: [
+                                { id: "ft-1", name: "A", time: "09:00" },
+                                { id: "ft-2", name: "B", time: "00:30" }
+                            ]
+                        }],
+                        activeGroupId: 0,
+                        currentMainTab: "fixed-time",
+                        activeGroupIdByMainTab: { live: 0, fixed: 0 },
+                        slotCount: 1
+                    };
+                    await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))})`);
+                    await api.reload();
+                    await api.switchTab("fixed-time");
+                    return until(`고정 시간 표 ${fixedDate}`, async () => {
+                        const rows = await api.ev(`[...document.querySelectorAll("#fixed-time-body tr")].map((tr) => ({
+                            abbr: (tr.querySelector(".zone-code")?.textContent || "").trim(),
+                            utc: (tr.querySelector(".offset-text")?.textContent || "").trim(),
+                            dst: [...tr.querySelectorAll(".fixed-time-time .dst-badge")].map((b) => !b.classList.contains("is-hidden") && getComputedStyle(b).display !== "none")
+                        }))`);
+                        return rows.length >= 3 && rows[0].dst.length === 2 ? rows : false;
+                    });
+                };
+                const inDst = await readFixedTable("2026-10-31");
+                const [laDst, , seoulDst] = inDst;
+                assert(laDst.abbr === "PDT" && laDst.utc === "UTC-07:00", `10-31 LA: ${laDst.abbr} ${laDst.utc}`);
+                assert(laDst.dst.every(Boolean), `10-31 LA 슬롯 DST 표시: ${JSON.stringify(laDst.dst)}`);
+                assert(!seoulDst.dst.some(Boolean), "서울에 DST 표시");
+                const afterDst = await readFixedTable("2026-11-02");
+                const laStd = afterDst[0];
+                assert(laStd.abbr === "PST" && laStd.utc === "UTC-08:00", `11-02 LA: ${laStd.abbr} ${laStd.utc}`);
+                assert(!laStd.dst.some(Boolean), `11-02 LA 슬롯 DST 표시: ${JSON.stringify(laStd.dst)}`);
+                return `10-31 LA ${laDst.abbr} ${laDst.utc} 슬롯 DST ${laDst.dst.length}/2, 11-02 LA ${laStd.abbr} ${laStd.utc} DST 없음, 서울 표시 없음`;
+            }
         }
     ];
 }

@@ -192,6 +192,7 @@ npm run build
 7. 설정 내보내기 파일 생성과 내용
 8. `localStorage`의 옛 저장 키 이어받기
 9. 예전 버전이 고정 시차로 저장한 서머타임 도시가 계절에 맞는 시차로 바뀌고, 서머타임인 시각 옆에만 `DST` 표시가 나오는지
+10. 고정 시간 탭에서 고정 날짜 기준으로 각 슬롯 시각의 `DST` 표시와 시간대 약어·UTC 시차가 맞는지
 
 결과는 `scratch/chrome/<시각>/result.json`에 남습니다. 실제 툴바 아이콘 클릭이나 화면을 보고 판단하는 항목은 자동 검사 범위 밖입니다. `GTV_CHROME_SKIP_BUILD=1`이면 이미 만든 `dist_extension/`을 그대로 검사하고, `GTV_CHROME_TARGETS=dist` 또는 `zip`으로 대상을 고를 수 있습니다.
 

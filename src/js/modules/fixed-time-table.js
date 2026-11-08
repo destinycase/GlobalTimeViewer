@@ -503,7 +503,8 @@
                         abbrWrap.className = "abbr-cell";
                         const zoneCode = documentRef.createElement("span");
                         zoneCode.className = "zone-code";
-                        zoneCode.textContent = dep.getZoneAbbreviation(tz, anchorDate) || "";
+                        // Abbreviation, name and UTC offset all follow the fixed date (first slot), not today.
+                        zoneCode.textContent = dep.getZoneAbbreviation(tz, offsetAnchorDate) || "";
                         applyZoneCodeKindClass(zoneCode, tz);
                         rowRef.zoneCodeEl = zoneCode;
                         abbrWrap.appendChild(zoneCode);
@@ -709,7 +710,7 @@
             });
             const offsetAnchorDate = isValidDate(slotUtcDates[0]) ? slotUtcDates[0] : anchorDate;
             plan.forEach(({ tz, rowRef, cells }) => {
-                if (rowRef.zoneCodeEl) rowRef.zoneCodeEl.textContent = dep.getZoneAbbreviation(tz, anchorDate) || "";
+                if (rowRef.zoneCodeEl) rowRef.zoneCodeEl.textContent = dep.getZoneAbbreviation(tz, offsetAnchorDate) || "";
                 if (rowRef.zoneNameEl) rowRef.zoneNameEl.textContent = getZoneDisplayNameForUiAtDate(tz, offsetAnchorDate) || "";
                 if (rowRef.offsetEl) rowRef.offsetEl.textContent = getFixedTimeOffsetTextAtDate(tz, offsetAnchorDate);
                 cells.forEach(({ cellRef, utcDate, payload }) => {
