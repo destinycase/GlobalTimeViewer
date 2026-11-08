@@ -5,7 +5,6 @@
         GTV_MAIN_BOOTSTRAP_GUARD: "GTVMainBootstrapGuard",
         GTV_MAIN_RUNTIME_HOST_UTILS: "GTVMainRuntimeHostUtils",
         GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS: "GTVMainRuntimeHostUtilsBindings",
-        GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES: "GTVMainRuntimeHostAccessorProxies",
         GTV_MAIN_RUNTIME_PRIMARY_STATE: "GTVMainRuntimePrimaryState",
         GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS: "GTVMainRuntimePrimaryStateBindings",
         GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES: "GTVMainRuntimePrimaryStateAccessorProxies",
@@ -40,8 +39,7 @@
         GTV_MAIN_FACADE_BRIDGE: "GTVMainFacadeBridge",
         GTV_MAIN_FACADE_BRIDGE_BINDINGS: "GTVMainFacadeBridgeBindings",
         GTV_MAIN_COMPOSITION_CONFIG_BUILDER: "GTVMainCompositionConfigBuilder",
-        GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER: "GTVMainCoreAssemblyConfigBuilder",
-        GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES: "GTVMainPatchedStateAccessorProxies"
+        GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER: "GTVMainCoreAssemblyConfigBuilder"
     });
 
     const REQUIRED_BOOTSTRAP_SPECS = Object.freeze([

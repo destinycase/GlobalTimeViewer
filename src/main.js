@@ -98,12 +98,18 @@ function assertBindingCreateService(bindingsModule, moduleApiName) {
 }
 // Single-module services are created through GTVServiceInvokeUtils.createRequiredModuleService
 // (replaces the former *-bindings wrappers, same error messages).
-function createRequiredModuleService(moduleApi, moduleName, deps, requiredMethods, invalidMessage) {
+function getServiceInvokeUtilsMethod(methodName) {
     const serviceInvokeUtils = GTV_GLOBAL.GTVServiceInvokeUtils || globalThis.GTVServiceInvokeUtils;
-    if (!serviceInvokeUtils || typeof serviceInvokeUtils.createRequiredModuleService !== "function") {
-        throw new Error("Missing required module API: GTVServiceInvokeUtils.createRequiredModuleService");
+    if (!serviceInvokeUtils || typeof serviceInvokeUtils[methodName] !== "function") {
+        throw new Error(`Missing required module API: GTVServiceInvokeUtils.${methodName}`);
     }
-    return serviceInvokeUtils.createRequiredModuleService(moduleApi, moduleName, deps, requiredMethods, invalidMessage);
+    return serviceInvokeUtils[methodName];
+}
+function createRequiredModuleService(moduleApi, moduleName, deps, requiredMethods, invalidMessage) {
+    return getServiceInvokeUtilsMethod("createRequiredModuleService")(moduleApi, moduleName, deps, requiredMethods, invalidMessage);
+}
+function createLateBoundForwarders(getService, serviceLabel, methodNames) {
+    return getServiceInvokeUtilsMethod("createLateBoundForwarders")(getService, serviceLabel, methodNames);
 }
 function callRuntimeCoreAccessorWithFallback(methodName, fallbackService, ...args) {
     const runtimeAccessorMethod = mainRuntimeCoreAccessorService?.[methodName];
@@ -379,7 +385,6 @@ assertBindingCreateService(GTV_MAIN_GLOBAL_BINDINGS, "GTVMainGlobalBindings");
 const {
     GTV_MAIN_BOOTSTRAP_GUARD,
     GTV_MAIN_RUNTIME_HOST_UTILS, GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS,
-    GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_PRIMARY_STATE, GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS,
     GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES,
     GTV_MAIN_RUNTIME_SERVICE_BRIDGE_HELPERS,
@@ -404,7 +409,6 @@ const {
     GTV_MAIN_FACADE_BRIDGE, GTV_MAIN_FACADE_BRIDGE_BINDINGS,
     GTV_MAIN_COMPOSITION_CONFIG_BUILDER,
     GTV_MAIN_CORE_ASSEMBLY_CONFIG_BUILDER,
-    GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES,
     REQUIRED_BOOTSTRAP_SPECS
 } = GTV_MAIN_GLOBAL_BINDINGS.createService({
     globalRef: GTV_GLOBAL
@@ -741,7 +745,6 @@ assertBindingCreateService(GTV_MAIN_RUNTIME_STATE_CORE_BOOTSTRAP, "GTVMainRuntim
 } = GTV_MAIN_RUNTIME_STATE_CORE_BOOTSTRAP.createService({
     runtimeHostUtilsBindings: GTV_MAIN_RUNTIME_HOST_UTILS_BINDINGS,
     runtimeHostUtilsModule: GTV_MAIN_RUNTIME_HOST_UTILS,
-    runtimeHostAccessorProxiesModule: GTV_MAIN_RUNTIME_HOST_ACCESSOR_PROXIES,
     runtimePrimaryStateBindings: GTV_MAIN_RUNTIME_PRIMARY_STATE_BINDINGS,
     runtimePrimaryStateModule: GTV_MAIN_RUNTIME_PRIMARY_STATE,
     runtimePrimaryStateAccessorProxiesModule: GTV_MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES,
@@ -1011,28 +1014,46 @@ const mainCoreAssemblyConfigBuilderService = createRequiredModuleService(
     ["buildMainCoreAssemblyConfig"],
     "Invalid main core assembly config builder service"
 );
-const mainPatchedStateAccessorService = Object.freeze({ ...createRequiredModuleService(
-    GTV_MAIN_PATCHED_STATE_ACCESSOR_PROXIES,
-    "GTVMainPatchedStateAccessorProxies",
-    {
-        getMainAppStateBridgeService: () => mainAppStateBridgeService,
-        getMainPatchedStateSelectorsService: () => mainPatchedStateSelectorsService
-    },
-    [
-        "getPatchedAppStateSnapshot", "patchAppState", "getPatchedStateValue", "getPatchedIntegerStateValue",
-        "getPatchedBooleanStateValue", "getPatchedStringStateValue", "getPatchedArrayStateValue",
-        "getPatchedObjectStateValue", "getPatchedMainTabState", "getPatchedSlotCountState", "setPatchedSlotCountState",
-        "getPatchedShowCopyFormatState", "setPatchedShowCopyFormatState", "getPatchedShowTimelineState",
-        "setPatchedShowTimelineState", "getPatchedCurrentThemeState", "getPatchedDayStartHourState",
-        "getPatchedNightStartHourState", "getPatchedCurrentLangState", "getPatchedDisplayFormatOrderState",
-        "getPatchedDisplayFormatEnabledState", "getPatchedDisplayTimePartsEnabledState",
-        "getPatchedCopyFormatOrderState", "getPatchedCopyFormatEnabledState", "getPatchedCopyTimePartsEnabledState",
-        "getPatchedActiveFormatProfileContextState", "getPatchedActiveGroupIdState", "getPatchedMultiRangeCountState",
-        "getPatchedMultiRangesState", "getPatchedMultiRangeCollapsedState", "getPatchedTimeAdjustDayStepBySlotState",
+// Patched state accessors forward to services created later in this file
+// (formerly main-patched-state-accessor-proxies.js).
+const mainPatchedStateAccessorService = Object.freeze({
+    ...createLateBoundForwarders(() => mainAppStateBridgeService, "mainAppStateBridgeService", [
+        "getPatchedAppStateSnapshot",
+        "patchAppState",
+        "getPatchedStateValue",
+        "getPatchedIntegerStateValue",
+        "getPatchedBooleanStateValue",
+        "getPatchedStringStateValue",
+        "getPatchedArrayStateValue",
+        "getPatchedObjectStateValue"
+    ]),
+    ...createLateBoundForwarders(() => mainPatchedStateSelectorsService, "mainPatchedStateSelectorsService", [
+        "getPatchedMainTabState",
+        "getPatchedSlotCountState",
+        "setPatchedSlotCountState",
+        "getPatchedShowCopyFormatState",
+        "setPatchedShowCopyFormatState",
+        "getPatchedShowTimelineState",
+        "setPatchedShowTimelineState",
+        "getPatchedCurrentThemeState",
+        "getPatchedDayStartHourState",
+        "getPatchedNightStartHourState",
+        "getPatchedCurrentLangState",
+        "getPatchedDisplayFormatOrderState",
+        "getPatchedDisplayFormatEnabledState",
+        "getPatchedDisplayTimePartsEnabledState",
+        "getPatchedCopyFormatOrderState",
+        "getPatchedCopyFormatEnabledState",
+        "getPatchedCopyTimePartsEnabledState",
+        "getPatchedActiveFormatProfileContextState",
+        "getPatchedActiveGroupIdState",
+        "getPatchedMultiRangeCountState",
+        "getPatchedMultiRangesState",
+        "getPatchedMultiRangeCollapsedState",
+        "getPatchedTimeAdjustDayStepBySlotState",
         "getPatchedMultiRangeTitleState"
-    ],
-    "Invalid main patched state accessor proxies service"
-) });
+    ])
+});
 var {
     getPatchedAppStateSnapshot,
     patchAppState,

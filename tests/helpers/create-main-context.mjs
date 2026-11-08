@@ -25,7 +25,6 @@ const MAIN_SERVICE_METHOD_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "src"
 const MAIN_BOOTSTRAP_GUARD_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-bootstrap-guard.js");
 const MAIN_RUNTIME_HOST_UTILS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-host-utils.js");
 const MAIN_RUNTIME_HOST_UTILS_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-host-utils.js");
-const MAIN_RUNTIME_HOST_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-host-accessor-proxies.js");
 const MAIN_RUNTIME_PRIMARY_STATE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-primary-state.js");
 const MAIN_RUNTIME_PRIMARY_STATE_BINDINGS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-primary-state.js");
 const MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-primary-state-accessor-proxies.js");
@@ -70,7 +69,6 @@ const MAIN_DIRECT_STATE_PATCH_MODULE_PATH = path.resolve(process.cwd(), "src", "
 const MAIN_APP_STATE_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-app-state-services.js");
 const MAIN_APP_STATE_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-app-state-bridge.js");
 const MAIN_PATCHED_STATE_SELECTORS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-patched-state-selectors.js");
-const MAIN_PATCHED_STATE_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-patched-state-accessor-proxies.js");
 const MAIN_FORMAT_PROFILE_FACADE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-format-profile-facade.js");
 const MAIN_TIMELINE_FACADE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-timeline-facade.js");
 const MAIN_FIXED_TIME_FACADE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-fixed-time-facade.js");
@@ -267,7 +265,6 @@ export function createMainContext() {
     const mainBootstrapGuardCode = fs.readFileSync(MAIN_BOOTSTRAP_GUARD_MODULE_PATH, "utf8");
     const mainRuntimeHostUtilsCode = fs.readFileSync(MAIN_RUNTIME_HOST_UTILS_MODULE_PATH, "utf8");
     const mainRuntimeHostUtilsBindingsCode = fs.readFileSync(MAIN_RUNTIME_HOST_UTILS_BINDINGS_MODULE_PATH, "utf8");
-    const mainRuntimeHostAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_HOST_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
     const mainRuntimePrimaryStateCode = fs.readFileSync(MAIN_RUNTIME_PRIMARY_STATE_MODULE_PATH, "utf8");
     const mainRuntimePrimaryStateBindingsCode = fs.readFileSync(MAIN_RUNTIME_PRIMARY_STATE_BINDINGS_MODULE_PATH, "utf8");
     const mainRuntimePrimaryStateAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_PRIMARY_STATE_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
@@ -318,7 +315,6 @@ export function createMainContext() {
     const mainAppStateServicesCode = fs.readFileSync(MAIN_APP_STATE_SERVICES_MODULE_PATH, "utf8");
     const mainAppStateBridgeCode = fs.readFileSync(MAIN_APP_STATE_BRIDGE_MODULE_PATH, "utf8");
     const mainPatchedStateSelectorsCode = fs.readFileSync(MAIN_PATCHED_STATE_SELECTORS_MODULE_PATH, "utf8");
-    const mainPatchedStateAccessorProxiesCode = fs.readFileSync(MAIN_PATCHED_STATE_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
     const mainFormatProfileFacadeCode = fs.readFileSync(MAIN_FORMAT_PROFILE_FACADE_MODULE_PATH, "utf8");
     const mainTimelineFacadeCode = fs.readFileSync(MAIN_TIMELINE_FACADE_MODULE_PATH, "utf8");
     const mainFixedTimeFacadeCode = fs.readFileSync(MAIN_FIXED_TIME_FACADE_MODULE_PATH, "utf8");
@@ -499,7 +495,6 @@ export function createMainContext() {
     vm.runInContext(mainBootstrapGuardCode, sandbox, { filename: "js/modules/main-bootstrap-guard.js" });
     vm.runInContext(mainRuntimeHostUtilsCode, sandbox, { filename: "js/modules/main-runtime-host-utils.js" });
     vm.runInContext(mainRuntimeHostUtilsBindingsCode, sandbox, { filename: "js/modules/main-runtime-host-utils.js" });
-    vm.runInContext(mainRuntimeHostAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-host-accessor-proxies.js" });
     vm.runInContext(mainRuntimePrimaryStateCode, sandbox, { filename: "js/modules/main-runtime-primary-state.js" });
     vm.runInContext(mainRuntimePrimaryStateBindingsCode, sandbox, { filename: "js/modules/main-runtime-primary-state.js" });
     vm.runInContext(mainRuntimePrimaryStateAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-primary-state-accessor-proxies.js" });
@@ -552,7 +547,6 @@ export function createMainContext() {
     vm.runInContext(mainAppStateServicesCode, sandbox, { filename: "js/modules/main-app-state-services.js" });
     vm.runInContext(mainAppStateBridgeCode, sandbox, { filename: "js/modules/main-app-state-bridge.js" });
     vm.runInContext(mainPatchedStateSelectorsCode, sandbox, { filename: "js/modules/main-patched-state-selectors.js" });
-    vm.runInContext(mainPatchedStateAccessorProxiesCode, sandbox, { filename: "js/modules/main-patched-state-accessor-proxies.js" });
     vm.runInContext(mainFormatProfileFacadeCode, sandbox, { filename: "js/modules/main-format-profile-facade.js" });
     vm.runInContext(mainTimelineFacadeCode, sandbox, { filename: "js/modules/main-timeline-facade.js" });
     vm.runInContext(mainFixedTimeFacadeCode, sandbox, { filename: "js/modules/main-fixed-time-facade.js" });

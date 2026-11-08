@@ -61,26 +61,15 @@ describe("GTV main runtime state core bootstrap module", () => {
         const buildPatchedStateFallbackSnapshot = vi.fn(() => ({ ok: true }));
         let capturedStatePatchAccessorDeps = null;
 
+        const hostUtils = {
+            name: "host-utils",
+            getRandomUUIDSafely: vi.fn(() => "uuid"),
+            setRuntimeInterval: vi.fn((cb, ms) => `interval:${ms}`)
+        };
+
         const service = moduleApi.createService({
             runtimeHostUtilsBindings: {
-                createService: vi.fn(() => ({ mainRuntimeHostUtilsService: { name: "host-utils" } }))
-            },
-            runtimeHostAccessorProxiesModule: {
-                createService: vi.fn(() => ({
-                    applyVersionBranding: vi.fn(),
-                    createCanvasSafely: vi.fn(() => null),
-                    getRandomUUIDSafely: vi.fn(() => "uuid"),
-                    getDocumentRefOrNull: vi.fn(() => null),
-                    getWindowRefOrNull: vi.fn(() => null),
-                    getLocationRefOrNull: vi.fn(() => null),
-                    getGlobalThisRefOrNull: vi.fn(() => globalThis),
-                    getLuxonGlobalRef: vi.fn(() => null),
-                    getComputedStyleSafely: vi.fn(() => null),
-                    getRuntimeNowMs: vi.fn(() => 0),
-                    setRuntimeInterval: vi.fn(() => 0),
-                    clearRuntimeInterval: vi.fn(),
-                    deferDynamicCall: vi.fn()
-                }))
+                createService: vi.fn(() => ({ mainRuntimeHostUtilsService: hostUtils }))
             },
             runtimePrimaryStateBindings: {
                 createService: vi.fn(() => ({ mainRuntimePrimaryStateService: { name: "primary-state" } }))
@@ -133,7 +122,12 @@ describe("GTV main runtime state core bootstrap module", () => {
             }
         });
 
-        expect(service.mainRuntimeHostUtilsService).toEqual({ name: "host-utils" });
+        expect(service.mainRuntimeHostUtilsService).toBe(hostUtils);
+        expect(service.getRandomUUIDSafely()).toBe("uuid");
+        expect(service.setRuntimeInterval(() => {}, 50)).toBe("interval:50");
+        expect(() => service.getLuxonGlobalRef()).toThrow(
+            "Missing required module API: mainRuntimeHostUtilsService.getLuxonGlobalRef"
+        );
         expect(service.mainRuntimePrimaryStateService).toEqual({ name: "primary-state" });
         expect(service.mainRuntimePatchedStateFallbackService).toEqual({ name: "patched-fallback" });
         expect(service.mainRuntimeLocalStateHelpersService).toEqual({ name: "local-state-helpers" });

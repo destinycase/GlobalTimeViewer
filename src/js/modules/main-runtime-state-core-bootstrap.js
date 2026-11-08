@@ -56,15 +56,11 @@
         if (!serviceInvokeUtils || typeof serviceInvokeUtils.createRequiredModuleService !== "function") {
             throw new Error("Missing required module API: GTVServiceInvokeUtils.createRequiredModuleService");
         }
+        // Host accessors forward to the host utils service (formerly main-runtime-host-accessor-proxies.js).
+        const HOST_ACCESSOR_METHODS = Object.freeze(["applyVersionBranding","createCanvasSafely","getRandomUUIDSafely","getDocumentRefOrNull","getWindowRefOrNull","getLocationRefOrNull","getGlobalThisRefOrNull","getLuxonGlobalRef","getComputedStyleSafely","getRuntimeNowMs","setRuntimeInterval","clearRuntimeInterval","deferDynamicCall"]);
         // Accessor proxy services are created directly (formerly one *-bindings module each) and
         // exposed as frozen copies, as the bindings did.
         const ACCESSOR_SPECS = Object.freeze({
-            Host: {
-                moduleKey: "runtimeHostAccessorProxiesModule",
-                moduleName: "GTVMainRuntimeHostAccessorProxies",
-                invalidMessage: "Invalid main runtime host accessor proxies service",
-                requiredMethods: ["applyVersionBranding","createCanvasSafely","getRandomUUIDSafely","getDocumentRefOrNull","getWindowRefOrNull","getLocationRefOrNull","getGlobalThisRefOrNull","getLuxonGlobalRef","getComputedStyleSafely","getRuntimeNowMs","setRuntimeInterval","clearRuntimeInterval","deferDynamicCall"]
-            },
             PrimaryState: {
                 moduleKey: "runtimePrimaryStateAccessorProxiesModule",
                 moduleName: "GTVMainRuntimePrimaryStateAccessorProxies",
@@ -124,11 +120,11 @@
                 "getGlobalRef",
             ]),
         });
-        const hostAccessors = createAccessorService("Host", {
-            ...pickDeps([
-            ]),
-            getMainRuntimeHostUtilsService: () => mainRuntimeHostUtilsService
-        });
+        const hostAccessors = serviceInvokeUtils.createLateBoundForwarders(
+            () => mainRuntimeHostUtilsService,
+            "mainRuntimeHostUtilsService",
+            HOST_ACCESSOR_METHODS
+        );
 
         const {
             mainRuntimePrimaryStateService

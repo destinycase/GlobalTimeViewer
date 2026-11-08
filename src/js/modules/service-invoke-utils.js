@@ -107,6 +107,27 @@
         return service;
     }
 
+    /**
+     * Returns a frozen object with one function per method name. Each call looks the service up
+     * through getService at call time (the service may be created later) and throws
+     * `Missing required module API: <serviceLabel>.<methodName>` when the method is missing.
+     * Replaces the former single-service *-accessor-proxies modules.
+     */
+    function createLateBoundForwarders(getService, serviceLabel, methodNames = []) {
+        const resolve = (typeof getService === "function") ? getService : (() => null);
+        const forwarders = {};
+        (Array.isArray(methodNames) ? methodNames : []).forEach((methodName) => {
+            forwarders[methodName] = (...args) => {
+                const service = resolve();
+                if (!service || typeof service[methodName] !== "function") {
+                    throw new Error(`Missing required module API: ${serviceLabel}.${methodName}`);
+                }
+                return service[methodName](...args);
+            };
+        });
+        return Object.freeze(forwarders);
+    }
+
     function createService(_deps = {}) {
         return Object.freeze({
             resolveService,
@@ -116,7 +137,8 @@
             createDependencyLogger,
             createSafeCallableFactory,
             pickSafeCallables,
-            createRequiredModuleService
+            createRequiredModuleService,
+            createLateBoundForwarders
         });
     }
 
@@ -131,6 +153,7 @@
         createDependencyLogger: defaultService.createDependencyLogger,
         createSafeCallableFactory: defaultService.createSafeCallableFactory,
         pickSafeCallables: defaultService.pickSafeCallables,
-        createRequiredModuleService: defaultService.createRequiredModuleService
+        createRequiredModuleService: defaultService.createRequiredModuleService,
+        createLateBoundForwarders: defaultService.createLateBoundForwarders
     });
 })(typeof window !== "undefined" ? window : globalThis);

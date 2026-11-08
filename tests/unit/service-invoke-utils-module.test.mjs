@@ -123,6 +123,25 @@ describe("GTV service invoke utils module", () => {
             .toThrow("Invalid GTVNull service");
     });
 
+    it("late-bound forwarders resolve the service per call and name the missing method", () => {
+        const moduleApi = loadServiceInvokeUtilsModule();
+        let service = null;
+        const forwarders = moduleApi.createLateBoundForwarders(() => service, "exampleService", ["sum", "echo"]);
+        expect(Object.isFrozen(forwarders)).toBe(true);
+        expect(Object.keys(forwarders)).toEqual(["sum", "echo"]);
+        expect(() => forwarders.sum(1, 2)).toThrow("Missing required module API: exampleService.sum");
+        service = { sum: (a, b = 10) => a + b, echo: (...args) => args };
+        expect(forwarders.sum(1, 2)).toBe(3);
+        expect(forwarders.sum(1)).toBe(11);
+        expect(forwarders.echo("a", "b")).toEqual(["a", "b"]);
+        service = { sum: 3 };
+        expect(() => forwarders.echo()).toThrow("Missing required module API: exampleService.echo");
+        expect(() => forwarders.sum()).toThrow("Missing required module API: exampleService.sum");
+        expect(() => moduleApi.createLateBoundForwarders(null, "noGetter", ["x"]).x())
+            .toThrow("Missing required module API: noGetter.x");
+        expect(moduleApi.createLateBoundForwarders(() => service, "empty")).toEqual({});
+    });
+
     it("safe callables no-op for missing deps and log thrown errors with the module tag", () => {
         const moduleApi = loadServiceInvokeUtilsModule();
         const logs = [];
