@@ -298,7 +298,7 @@ describe("GTV state persistence module", () => {
         const result = await service.setStorageValue("KEY_B", "VALUE_B");
 
         expect(result.ok).toBe(false);
-        expect(result.error.message).toBe('Failed to write localStorage key "KEY_B".');
+        expect(result.error.message).toBe("localStorage unavailable");
         expect(toastKeys).toEqual(["toast_storage_save_failed"]);
         expect(loaded.logs.warn.length).toBeGreaterThan(0);
         expect(loaded.logs.error.length).toBeGreaterThan(0);
@@ -328,6 +328,76 @@ describe("GTV state persistence module", () => {
         expect(service.isQuotaExceededError({ name: "QuotaExceededError" })).toBe(true);
         expect(service.isQuotaExceededError({ name: "NS_ERROR_DOM_QUOTA_REACHED" })).toBe(true);
         expect(service.isQuotaExceededError({ code: 99, name: "OtherError" })).toBe(false);
+    });
+
+    it("setStorageValue shows the storage-full toast when localStorage reports a quota error", async () => {
+        const quotaError = new Error("quota exceeded");
+        quotaError.name = "QuotaExceededError";
+        quotaError.code = 22;
+        const loaded = loadStatePersistenceModule({
+            localStorage: {
+                getItem() {
+                    return null;
+                },
+                setItem() {
+                    throw quotaError;
+                },
+                removeItem() {}
+            }
+        });
+        const toastKeys = [];
+        const service = loaded.module.createService(createBaseDeps({
+            showToast(message) {
+                toastKeys.push(message);
+            }
+        }));
+
+        const result = await service.setStorageValue("KEY_FULL", "VALUE");
+
+        expect(result).toEqual({ ok: false, error: quotaError });
+        expect(toastKeys).toEqual(["toast_storage_quota_exceeded"]);
+    });
+
+    it("savePersistence returns false with the storage-full toast on a quota error", async () => {
+        const loaded = loadStatePersistenceModule({
+            localStorage: {
+                getItem() {
+                    return null;
+                },
+                setItem() {
+                    const error = new Error("full");
+                    error.name = "NS_ERROR_DOM_QUOTA_REACHED";
+                    throw error;
+                },
+                removeItem() {}
+            }
+        });
+        const toastKeys = [];
+        const service = loaded.module.createService(createBaseDeps({
+            showToast(message) {
+                toastKeys.push(message);
+            },
+            getPersistenceSnapshot: () => ({ groups: [] })
+        }));
+
+        expect(await service.savePersistence()).toBe(false);
+        expect(toastKeys).toEqual(["toast_storage_quota_exceeded"]);
+    });
+
+    it("setStorageValue reports a save failure when no usable localStorage exists", async () => {
+        const loaded = loadStatePersistenceModule({ localStorage: {} });
+        const toastKeys = [];
+        const service = loaded.module.createService(createBaseDeps({
+            showToast(message) {
+                toastKeys.push(message);
+            }
+        }));
+
+        const result = await service.setStorageValue("KEY_NONE", "VALUE");
+
+        expect(result.ok).toBe(false);
+        expect(result.error.message).toBe('localStorage is unavailable for key "KEY_NONE".');
+        expect(toastKeys).toEqual(["toast_storage_save_failed"]);
     });
 
     it("setStorageValue throttles repeated failure toasts", async () => {

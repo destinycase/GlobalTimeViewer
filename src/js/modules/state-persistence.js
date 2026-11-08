@@ -343,15 +343,17 @@
             }
         }
 
-        function safeLocalStorageSet(key, value) {
+        // Returns null on success, otherwise the error, so callers can tell a full storage
+        // (QuotaExceededError) from other failures.
+        function writeLocalStorage(key, value) {
             const localStorageRef = getLocalStorageRef();
-            if (!localStorageRef) return false;
+            if (!localStorageRef) return new Error(`localStorage is unavailable for key "${key}".`);
             try {
                 localStorageRef.setItem(key, value);
-                return true;
+                return null;
             } catch (err) {
                 logger.warn(`localStorage.setItem("${key}") failed.`, err);
-                return false;
+                return err || new Error(`Failed to write localStorage key "${key}".`);
             }
         }
 
@@ -371,8 +373,8 @@
         // chrome.storage is not available. Both functions stay async for existing callers.
         async function setStorageValue(key, value, options = {}) {
             const { suppressToast = false } = options;
-            if (safeLocalStorageSet(key, value)) return { ok: true, error: null };
-            const error = new Error(`Failed to write localStorage key "${key}".`);
+            const error = writeLocalStorage(key, value);
+            if (!error) return { ok: true, error: null };
             logger.error(`Failed to write storage key "${key}".`, error);
             if (!suppressToast) showPersistenceErrorToast(error);
             return { ok: false, error };
