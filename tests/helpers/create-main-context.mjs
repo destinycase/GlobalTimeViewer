@@ -40,8 +40,6 @@ const MAIN_RUNTIME_LOCAL_STATE_HELPERS_BINDINGS_MODULE_PATH = path.resolve(proce
 const MAIN_RUNTIME_BRIDGE_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-bridge-proxies.js");
 const MAIN_RUNTIME_TIMEZONE_HELPERS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-timezone-helpers.js");
 const MAIN_RUNTIME_STATE_HELPERS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-state-helpers.js");
-const MAIN_RUNTIME_STATE_HELPER_ALIASES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-state-helper-aliases.js");
-const MAIN_RUNTIME_STATE_HELPER_ACCESSOR_PROXIES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-state-helper-accessor-proxies.js");
 const MAIN_RUNTIME_STATE_HELPER_BOOTSTRAP_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-state-helper-bootstrap.js");
 const MAIN_RUNTIME_REFERENCE_ACCESSORS_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-runtime-reference-accessors.js");
 const MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-state-domain-wrapper-bridge.js");
@@ -276,8 +274,6 @@ export function createMainContext() {
     const mainRuntimeBridgeProxiesCode = fs.readFileSync(MAIN_RUNTIME_BRIDGE_PROXIES_MODULE_PATH, "utf8");
     const mainRuntimeTimezoneHelpersCode = fs.readFileSync(MAIN_RUNTIME_TIMEZONE_HELPERS_MODULE_PATH, "utf8");
     const mainRuntimeStateHelpersCode = fs.readFileSync(MAIN_RUNTIME_STATE_HELPERS_MODULE_PATH, "utf8");
-    const mainRuntimeStateHelperAliasesCode = fs.readFileSync(MAIN_RUNTIME_STATE_HELPER_ALIASES_MODULE_PATH, "utf8");
-    const mainRuntimeStateHelperAccessorProxiesCode = fs.readFileSync(MAIN_RUNTIME_STATE_HELPER_ACCESSOR_PROXIES_MODULE_PATH, "utf8");
     const mainRuntimeStateHelperBootstrapCode = fs.readFileSync(MAIN_RUNTIME_STATE_HELPER_BOOTSTRAP_MODULE_PATH, "utf8");
     const mainRuntimeReferenceAccessorsCode = fs.readFileSync(MAIN_RUNTIME_REFERENCE_ACCESSORS_MODULE_PATH, "utf8");
     const mainStateDomainWrapperBridgeCode = fs.readFileSync(MAIN_STATE_DOMAIN_WRAPPER_BRIDGE_MODULE_PATH, "utf8");
@@ -502,8 +498,6 @@ export function createMainContext() {
     vm.runInContext(mainRuntimeBridgeProxiesCode, sandbox, { filename: "js/modules/main-runtime-bridge-proxies.js" });
     vm.runInContext(mainRuntimeTimezoneHelpersCode, sandbox, { filename: "js/modules/main-runtime-timezone-helpers.js" });
     vm.runInContext(mainRuntimeStateHelpersCode, sandbox, { filename: "js/modules/main-runtime-state-helpers.js" });
-    vm.runInContext(mainRuntimeStateHelperAliasesCode, sandbox, { filename: "js/modules/main-runtime-state-helper-aliases.js" });
-    vm.runInContext(mainRuntimeStateHelperAccessorProxiesCode, sandbox, { filename: "js/modules/main-runtime-state-helper-accessor-proxies.js" });
     vm.runInContext(mainRuntimeStateHelperBootstrapCode, sandbox, { filename: "js/modules/main-runtime-state-helper-bootstrap.js" });
     vm.runInContext(mainRuntimeReferenceAccessorsCode, sandbox, { filename: "js/modules/main-runtime-reference-accessors.js" });
     vm.runInContext(mainStateDomainWrapperBridgeCode, sandbox, { filename: "js/modules/main-state-domain-wrapper-bridge.js" });

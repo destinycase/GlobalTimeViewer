@@ -43,29 +43,22 @@ function loadMainRuntimeStateHelperBootstrapModule() {
     );
 }
 
-function buildAliasService() {
-    return {
-        parseDateTimePartsViaRuntimeStateHelpers: () => "parse",
-        getTimeAdjustDayStepBySlotSnapshotViaRuntimeStateHelpers: () => [],
-        setTimeAdjustDayStepBySlotStateViaRuntimeStateHelpers: () => undefined,
-        updateTimeAdjustPanelSafelyViaRuntimeStateHelpers: () => undefined,
-        getUTCRefViaRuntimeStateHelpers: () => "utc",
-        getCurrentGroupViaRuntimeStateHelpers: () => ({ id: "g1" }),
-        getCurrentGroupZonesViaRuntimeStateHelpers: () => [],
-        getCurrentGroupBaseTimezoneIdViaRuntimeStateHelpers: () => "UTC",
-        getBaseTimezoneRefViaRuntimeStateHelpers: () => "UTC",
-        ensureBaseTimezoneSelectionViaRuntimeStateHelpers: () => undefined,
-        formatUtcOffsetLabelViaRuntimeStateHelpers: () => "+00:00",
-        normalizeCustomAbbrViaRuntimeStateHelpers: (value) => value,
-        getCurrentMultiRangeStateSnapshotViaRuntimeStateHelpers: () => [],
-        getGroupsStateSnapshotViaRuntimeStateHelpers: () => [],
-        getActiveGroupIdByMainTabStateSnapshotViaRuntimeStateHelpers: () => ({ live: "g1" }),
-        patchPrimaryStateViaRuntimeStateHelpers: () => undefined,
-        setCurrentMainTabStateViaRuntimeStateHelpers: () => undefined,
-        setActiveGroupIdStateViaRuntimeStateHelpers: () => undefined,
-        setActiveGroupIdByMainTabStateViaRuntimeStateHelpers: () => undefined,
-        getActiveGroupNameSnapshotViaRuntimeStateHelpers: () => "Group"
-    };
+const STATE_HELPER_METHODS = [
+    "parseDateTimeParts", "getTimeAdjustDayStepBySlotSnapshot", "setTimeAdjustDayStepBySlotState",
+    "updateTimeAdjustPanelSafely", "getUTCRef", "getCurrentGroup", "getCurrentGroupZones",
+    "getCurrentGroupBaseTimezoneId", "getBaseTimezoneRef", "ensureBaseTimezoneSelection",
+    "formatUtcOffsetLabel", "normalizeCustomAbbr", "getCurrentMultiRangeStateSnapshot",
+    "getGroupsStateSnapshot", "getActiveGroupIdByMainTabStateSnapshot", "patchPrimaryState",
+    "setCurrentMainTabState", "setActiveGroupIdState", "setActiveGroupIdByMainTabState",
+    "getActiveGroupNameSnapshot"
+];
+
+function buildHelpersService(overrides = {}) {
+    const service = STATE_HELPER_METHODS.reduce((acc, methodName) => {
+        acc[methodName] = vi.fn(() => methodName);
+        return acc;
+    }, {});
+    return { ...service, extraHelper: vi.fn(), ...overrides };
 }
 
 describe("GTV main runtime state helper bootstrap module", () => {
@@ -80,64 +73,42 @@ describe("GTV main runtime state helper bootstrap module", () => {
         }
     });
 
-    it("wires alias/accessor bindings and returns frozen accessor service container", () => {
+    it("creates the runtime state helpers service and exposes its methods", () => {
         const moduleApi = loadMainRuntimeStateHelperBootstrapModule();
-        const aliasService = buildAliasService();
-        const accessorService = ["parseDateTimeParts","getTimeAdjustDayStepBySlotSnapshot","setTimeAdjustDayStepBySlotState","updateTimeAdjustPanelSafely","getUTCRef","getCurrentGroup","getCurrentGroupZones","getCurrentGroupBaseTimezoneId","getBaseTimezoneRef","ensureBaseTimezoneSelection","formatUtcOffsetLabel","normalizeCustomAbbr","getCurrentMultiRangeStateSnapshot","getGroupsStateSnapshot","getActiveGroupIdByMainTabStateSnapshot","patchPrimaryState","setCurrentMainTabState","setActiveGroupIdState","setActiveGroupIdByMainTabState","getActiveGroupNameSnapshot"].reduce((acc, methodName) => {
-            acc[methodName] = vi.fn(() => methodName);
-            return acc;
-        }, {});
-        const aliasesCreateService = vi.fn(() => aliasService);
-        const accessorCreateService = vi.fn(() => accessorService);
+        const helpersService = buildHelpersService({ formatUtcOffsetLabel: vi.fn((minutes = 0) => `UTC+${minutes}`) });
+        const helpersCreateService = vi.fn(() => helpersService);
+        const getPatchAppState = () => "patch";
 
-        const service = moduleApi.createService({
-            runtimeStateHelperAliasesBindings: { createService: aliasesCreateService },
-            runtimeStateHelperAliasesModule: { kind: "aliases-module" },
-            runtimeStateHelpersModule: { kind: "helpers-module" },
-            runtimeStateHelperAccessorProxiesModule: { createService: accessorCreateService },
-            getMainSharedUtilsService: () => ({}),
-            getPatchedTimeAdjustDayStepBySlotState: () => [],
-            getPatchAppState: () => undefined,
-            getUpdateTimeAdjustPanel: () => undefined,
-            getTranslator: () => ((key) => String(key ?? "")),
-            getGroupContextStateService: () => ({}),
-            getTimezoneSearchService: () => ({}),
-            getPatchedMultiRangeCountState: () => 1,
-            getPatchedMultiRangesState: () => [],
-            getPatchedMultiRangeCollapsedState: () => [],
-            getPatchedArrayStateValue: () => [],
-            getMultiRangeStartEditEnabledState: () => [],
-            getMultiRangeEndEditEnabledState: () => [],
-            getPatchedMultiRangeTitleState: () => "",
-            getPersistenceState: () => ({}),
+        const { mainRuntimeStateHelperAccessorService: accessors } = moduleApi.createService({
+            runtimeStateHelpersModule: { createService: helpersCreateService },
+            getPatchAppState,
             getGroupsState: () => [],
-            getActiveGroupIdByMainTabState: () => ({ live: 0 }),
-            getPatchedActiveGroupIdState: () => 0
+            unrelatedDep: "not forwarded"
         });
 
-        expect(aliasesCreateService).toHaveBeenCalledTimes(1);
-        expect(accessorCreateService).toHaveBeenCalledTimes(1);
-        expect(accessorCreateService.mock.calls[0][0]).not.toHaveProperty("runtimeStateHelperAccessorProxiesModule");
-        expect(typeof accessorCreateService.mock.calls[0][0].getParseDateTimePartsViaRuntimeStateHelpers).toBe("function");
-        expect(service.mainRuntimeStateHelperAccessorService).toEqual(accessorService);
-        expect(Object.isFrozen(service.mainRuntimeStateHelperAccessorService)).toBe(true);
-        expect(Object.isFrozen(service)).toBe(true);
+        const helperDeps = helpersCreateService.mock.calls[0][0];
+        expect(helperDeps.getPatchAppState).toBe(getPatchAppState);
+        expect(typeof helperDeps.getGroupsState).toBe("function");
+        expect(helperDeps).not.toHaveProperty("unrelatedDep");
+        expect(helperDeps).not.toHaveProperty("runtimeStateHelpersModule");
+        expect(Object.keys(accessors)).toEqual(STATE_HELPER_METHODS);
+        expect(Object.isFrozen(accessors)).toBe(true);
+        expect(accessors.getCurrentGroup()).toBe("getCurrentGroup");
+        expect(accessors.formatUtcOffsetLabel()).toBe("UTC+0");
+        expect(accessors).not.toHaveProperty("extraHelper");
     });
 
-    it("throws explicit dependency errors for missing bindings modules", () => {
+    it("throws explicit errors for a missing module or a missing helper method", () => {
         const moduleApi = loadMainRuntimeStateHelperBootstrapModule();
-
         expect(() => moduleApi.createService({})).toThrow(
-            "Missing required dependency: runtimeStateHelperAliasesBindings"
+            "Missing required module API: GTVMainRuntimeStateHelpers.createService"
         );
+        const { getActiveGroupNameSnapshot: _omitted, ...partial } = buildHelpersService();
         expect(() => moduleApi.createService({
-            runtimeStateHelperAliasesBindings: {}
-        })).toThrow(
-            "Missing required dependency: runtimeStateHelperAliasesBindings.createService"
-        );
+            runtimeStateHelpersModule: { createService: () => partial }
+        })).toThrow("Invalid runtime state helpers service");
         expect(() => moduleApi.createService({
-            runtimeStateHelperAliasesBindings: { createService: () => buildAliasService() },
-            runtimeStateHelperAccessorProxiesModule: { createService: () => ({ parseDateTimeParts: () => "x" }) }
-        })).toThrow("Invalid main runtime state helper accessor proxies service");
+            runtimeStateHelpersModule: { createService: () => null }
+        })).toThrow("Invalid runtime state helpers service");
     });
 });
