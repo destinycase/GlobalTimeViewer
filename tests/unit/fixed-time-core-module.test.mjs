@@ -135,17 +135,35 @@ describe("GTV fixed time core module", () => {
         expect(payload.dayName).toBe("Sat");
     });
 
+    it("marks DST per slot time only for rule-following city zones", () => {
+        const module = loadFixedTimeCoreModule();
+        const service = module.createService({
+            I18N_DATA: { en: { days: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] } },
+            getCurrentLang: () => "en",
+            pad: (value) => String(value).padStart(2, "0"),
+            ...buildTimezoneDeps(),
+            getFixedOffsetForDisplayAtDate: (tz) => (tz?.fixedOffsetMinutes ?? null)
+        });
+        const la = { type: "standard", zone: "America/Los_Angeles", fixedOffsetMinutes: null };
+        expect(service.buildFixedTimeDisplayPayloadAtUtc(new Date("2026-07-01T19:00:00Z"), la).isDst).toBe(true);
+        expect(service.buildFixedTimeDisplayPayloadAtUtc(new Date("2026-12-01T19:00:00Z"), la).isDst).toBe(false);
+        expect(service.buildFixedTimeDisplayPayloadAtUtc(new Date("2026-07-01T19:00:00Z"), { ...la, fixedOffsetMinutes: -420 }).isDst).toBe(false);
+        expect(service.buildFixedTimeDisplayPayloadAtUtc(new Date("2026-07-01T19:00:00Z"), { type: "custom", offH: -7, fixedOffsetMinutes: -420 }).isDst).toBe(false);
+        expect(service.buildFixedTimeDisplayPayloadAtUtc(new Date("2026-07-01T19:00:00Z"), { type: "standard", zone: "UTC" }).isDst).toBe(false);
+    });
+
     it("computes fixed-time display part flags from context sanitization", () => {
         const module = loadFixedTimeCoreModule();
         const service = module.createService({
-            getDisplayTimePartsEnabled: () => ({ dn: true, date: true, time: false, weekday: true }),
+            getDisplayTimePartsEnabled: () => ({ dn: true, date: true, time: false, weekday: true, dst: false }),
             sanitizeTimePartsEnabledForContext: (enabled) => enabled
         });
 
         expect(service.getFixedTimeDisplayPartsEnabled()).toEqual({
             dn: true,
             time: false,
-            weekday: true
+            weekday: true,
+            dst: false
         });
     });
 
@@ -313,7 +331,8 @@ describe("GTV fixed time core module", () => {
         expect(service.getFixedTimeDisplayPartsEnabled()).toEqual({
             dn: false,
             time: false,
-            weekday: false
+            weekday: false,
+            dst: false
         });
     });
 });

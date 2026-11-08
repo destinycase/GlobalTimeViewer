@@ -322,3 +322,42 @@ test("missing pad and logger fall back to built-in padding and console", () => {
     expect(snapshot.offset).toBe("UTC+09:00");
     expect(snapshot.times).toEqual(["2026-01-01 09:00:00"]);
 });
+
+test("each time gets its own DST flag and copy text marks DST times", () => {
+    const deps = createDepsStub();
+    const realTime = {
+        resolveLocalDateParts(date, zone) {
+            const fmt = new Intl.DateTimeFormat("en-US", { timeZone: zone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
+            const p = Object.fromEntries(fmt.formatToParts(date).map((x) => [x.type, Number(x.value)]));
+            return { Y: p.year, M: p.month, D: p.day, H: p.hour, min: p.minute, S: p.second };
+        },
+        toDateTime: () => ({ offset: -420 })
+    };
+    const service = createService({
+        ...deps,
+        timeService: realTime,
+        sanitizeTimePartsEnabled: (parts) => parts
+    });
+    const la = { id: "la", type: "standard", zone: "America/Los_Angeles", name_en: "Los Angeles" };
+    // Start before and end after DST ends (2026-11-01 09:00 UTC).
+    const snapshot = service.buildTimezoneComputedSnapshotForDates(la, [
+        new Date("2026-11-01T05:33:55Z"),
+        new Date("2026-11-02T18:00:00Z")
+    ], { fixedDisplayOffsetMinutes: null });
+    expect(snapshot.dstFlags).toEqual([true, false]);
+    expect(snapshot.times).toEqual(["2026-10-31 22:33:55", "2026-11-02 10:00:00"]);
+
+    const allParts = { dn: false, date: true, time: true, weekday: true, dst: true };
+    expect(service.formatTimeTextByParts(snapshot, allParts))
+        .toBe("2026-10-31 22:33:55 (Sat) DST ~ 2026-11-02 10:00:00 (Mon)");
+    expect(service.formatTimeTextByParts(snapshot, { ...allParts, dst: false }))
+        .toBe("2026-10-31 22:33:55 (Sat) ~ 2026-11-02 10:00:00 (Mon)");
+
+    // Fixed-offset, custom and UTC rows are never marked.
+    const fixed = service.buildTimezoneComputedSnapshotForDates(la, [new Date("2026-07-01T12:00:00Z")], { fixedDisplayOffsetMinutes: -420 });
+    expect(fixed.dstFlags).toEqual([false]);
+    const custom = service.buildTimezoneComputedSnapshotForDates({ id: "c", type: "custom", abbr: "X", offH: -7, offM: 0 }, [new Date("2026-07-01T12:00:00Z")]);
+    expect(custom.dstFlags.includes(true)).toBe(false);
+    const utc = service.buildTimezoneComputedSnapshotForDates({ id: "utc", type: "standard", zone: "UTC" }, [new Date("2026-07-01T12:00:00Z")], { fixedDisplayOffsetMinutes: null });
+    expect(utc.dstFlags).toEqual([false]);
+});

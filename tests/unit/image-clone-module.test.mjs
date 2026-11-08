@@ -102,7 +102,7 @@ describe("GTV image clone module", () => {
         const module = loadImageCloneModule();
         const { source, clonedInputs, removableNodes } = createMockSourceElement(
             ["09:00", "10:30"],
-            ".export-exclude, .move-col, .move-cell"
+            ".export-exclude, .move-col, .move-cell, .dst-badge.is-hidden"
         );
         const service = module.createService({});
 
@@ -119,7 +119,7 @@ describe("GTV image clone module", () => {
         const module = loadImageCloneModule();
         const { source, clone, clonedInputs, removableNodes } = createMockSourceElement(
             ["08:00"],
-            ".multi-range-header-actions, .multi-range-adjust-row, .export-exclude, .move-col, .move-cell",
+            ".multi-range-header-actions, .multi-range-adjust-row, .export-exclude, .move-col, .move-cell, .dst-badge.is-hidden",
             true
         );
         const service = module.createService({});
@@ -152,7 +152,7 @@ describe("GTV image clone module", () => {
                     querySelectorAll(selector) {
                         if (selector === ".time-input") return [];
                         if (selector === ".zone-name") return [zoneNameNode];
-                        if (selector === ".export-exclude, .move-col, .move-cell") return [];
+                        if (selector === ".export-exclude, .move-col, .move-cell, .dst-badge.is-hidden") return [];
                         return [];
                     }
                 };
@@ -179,7 +179,7 @@ describe("GTV image clone module", () => {
         const module = loadImageCloneModule({ document: globalDoc });
         const { source, clonedInputs } = createMockSourceElement(
             ["09:00"],
-            ".export-exclude, .move-col, .move-cell"
+            ".export-exclude, .move-col, .move-cell, .dst-badge.is-hidden"
         );
         const service = module.createService({
             documentRef: injectedDoc
@@ -206,7 +206,7 @@ describe("GTV image clone module", () => {
         const module = loadImageCloneModule({ document: globalDoc });
         const { source, clonedInputs } = createMockSourceElement(
             ["09:00"],
-            ".export-exclude, .move-col, .move-cell"
+            ".export-exclude, .move-col, .move-cell, .dst-badge.is-hidden"
         );
         const service = module.createService({
             getDocumentRefOrNull: () => injectedDoc

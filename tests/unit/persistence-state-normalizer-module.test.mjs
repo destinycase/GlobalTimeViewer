@@ -26,9 +26,9 @@ describe("GTV persistence state normalizer", () => {
         expect(n.sanitizeCopyFormatOrder("bad")).toEqual(["iso", "rfc"]);
         expect(n.sanitizeCopyFormatEnabled({ rfc: false })).toEqual({ iso: true, rfc: false });
         expect(n.sanitizeCopyFormatEnabled(null)).toEqual({ iso: true, rfc: true });
-        expect(n.sanitizeTimePartsEnabled({ dn: true })).toEqual({ dn: true, date: true, time: true, weekday: false });
-        expect(n.sanitizeTimePartsEnabled("x")).toEqual({ dn: false, date: true, time: true, weekday: false });
-        expect(n.deriveTimePartsFromLegacyEnabled({})).toEqual({ dn: false, date: true, time: true, weekday: false });
+        expect(n.sanitizeTimePartsEnabled({ dn: true })).toEqual({ dn: true, date: true, time: true, weekday: false, dst: true });
+        expect(n.sanitizeTimePartsEnabled("x")).toEqual({ dn: false, date: true, time: true, weekday: false, dst: true });
+        expect(n.deriveTimePartsFromLegacyEnabled({})).toEqual({ dn: false, date: true, time: true, weekday: false, dst: true });
         expect(n.sanitizeMultiStatePayload({})).toEqual({
             multiRangeCount: 1,
             multiRangeTitle: "",
@@ -186,7 +186,7 @@ describe("GTV persistence state normalizer", () => {
         expect(state.displayFormatOrder).toEqual(["rfc"]);
         expect(state.displayFormatEnabled).toEqual({ iso: true, rfc: false });
         expect(state.copyFormatEnabled).toEqual({ iso: true, rfc: false });
-        expect(state.displayTimePartsEnabled).toEqual({ dn: false, date: true, time: true, weekday: false });
+        expect(state.displayTimePartsEnabled).toEqual({ dn: false, date: true, time: true, weekday: false, dst: true });
         expect(state.multiRangeCount).toBe(2);
         expect(state).not.toHaveProperty("formatProfiles");
         expect(state).not.toHaveProperty("activeFormatProfileContext");

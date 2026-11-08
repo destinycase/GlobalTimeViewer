@@ -112,6 +112,8 @@ const EN_I18N = {
     copy_time_part_date: "Date",
     copy_time_part_time: "Time",
     copy_time_part_weekday: "Day",
+    copy_time_part_dst: "DST",
+    dst_badge_title: "Daylight saving time is in effect at this time.",
     copy_field_period: "Days",
     copy_field_period_time: "Period",
 
@@ -363,6 +365,8 @@ const KO_OVERRIDES = {
     copy_time_part_date: "날짜",
     copy_time_part_time: "시간",
     copy_time_part_weekday: "요일",
+    copy_time_part_dst: "서머타임",
+    dst_badge_title: "이 시각에는 서머타임이 적용됩니다.",
     copy_field_period: "일수",
     copy_field_period_time: "기간",
 

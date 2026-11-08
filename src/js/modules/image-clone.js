@@ -63,7 +63,7 @@
             const clone = tableEl.cloneNode(true);
             replaceTimeInputsWithText(tableEl, clone, docRef);
             sanitizeZoneNameLabels(clone);
-            removeBySelector(clone, ".export-exclude, .move-col, .move-cell");
+            removeBySelector(clone, ".export-exclude, .move-col, .move-cell, .dst-badge.is-hidden");
             return clone;
         }
 
@@ -76,7 +76,7 @@
             sanitizeZoneNameLabels(clone);
             removeBySelector(
                 clone,
-                ".multi-range-header-actions, .multi-range-adjust-row, .export-exclude, .move-col, .move-cell"
+                ".multi-range-header-actions, .multi-range-adjust-row, .export-exclude, .move-col, .move-cell, .dst-badge.is-hidden"
             );
             return clone;
         }

@@ -70,6 +70,13 @@
             return String(value || "").replace(/\s*\[DST\]\s*$/i, "").trim();
         }
 
+        // "DST" when the cell shows a visible daylight saving time badge.
+        function getVisibleDstText(cell) {
+            const dstBadge = cell?.querySelector?.(".dst-badge");
+            if (!dstBadge || dstBadge.classList?.contains?.("is-hidden")) return "";
+            return (dstBadge.textContent || "").trim();
+        }
+
         function extractTableCellText(cell) {
             if (!cell) return "";
             const timeInput = cell.querySelector?.(".time-input");
@@ -79,14 +86,14 @@
                 const dayBadge = cell.querySelector?.(".day-badge");
                 const timeText = (timeInput.value || "").trim();
                 const dayText = (dayBadge?.textContent || "").trim();
-                return [dnText, timeText, dayText].filter(Boolean).join(" ").trim();
+                return [dnText, timeText, dayText, getVisibleDstText(cell)].filter(Boolean).join(" ").trim();
             }
             if (exportTimeText) {
                 const dnText = (cell.querySelector?.(".dn-icon")?.textContent || "").trim();
                 const dayBadge = cell.querySelector?.(".day-badge");
                 const timeText = (exportTimeText.textContent || "").trim();
                 const dayText = (dayBadge?.textContent || "").trim();
-                return [dnText, timeText, dayText].filter(Boolean).join(" ").trim();
+                return [dnText, timeText, dayText, getVisibleDstText(cell)].filter(Boolean).join(" ").trim();
             }
 
             const zoneCode = (cell.querySelector?.(".zone-code")?.textContent || "").trim();
@@ -104,7 +111,7 @@
             if (fixedTimeClock) {
                 const dnText = (cell.querySelector?.(".dn-icon")?.textContent || "").trim();
                 const dayText = (cell.querySelector?.(".day-badge")?.textContent || "").trim();
-                return [dnText, fixedTimeClock, dayText].filter(Boolean).join(" ").trim();
+                return [dnText, fixedTimeClock, dayText, getVisibleDstText(cell)].filter(Boolean).join(" ").trim();
             }
             const buttonText = (cell.querySelector?.("button")?.textContent || "").trim();
             if (buttonText) return buttonText;

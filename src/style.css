@@ -2734,6 +2734,25 @@ input[type=number] {
     background: rgba(56, 189, 248, 0.1);
 }
 
+/* Daylight saving time marker next to each time (hidden with .is-hidden outside DST). */
+.dst-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    white-space: nowrap;
+}
+
+:root[data-theme="light"] .dst-badge {
+    color: #b45309;
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(180, 83, 9, 0.4);
+}
+
 .period-days-cell {
     min-width: 90px;
     max-width: 90px;

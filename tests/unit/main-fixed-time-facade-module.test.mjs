@@ -156,7 +156,7 @@ describe("GTV main fixed-time facade module", () => {
             });
             const input = { value: "", _cdp: null };
 
-            expect(service.getFixedTimeDisplayPartsEnabled()).toEqual({ dn: true, time: true, weekday: true });
+            expect(service.getFixedTimeDisplayPartsEnabled()).toEqual({ dn: true, time: true, weekday: true, dst: true });
             expect(service.formatFixedTimePayloadText(null, null)).toBe("-");
             expect(service.getFixedTimeCopyState()).toEqual({
                 order: [],

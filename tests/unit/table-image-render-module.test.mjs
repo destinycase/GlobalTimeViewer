@@ -103,6 +103,30 @@ describe("GTV table image render module", () => {
         expect(service.extractTableCellText(exportTextCell)).toBe("D 11:45:00 Tue");
     });
 
+    it("adds DST to time text only when the DST badge is visible", () => {
+        const module = loadTableImageRenderModule();
+        const service = module.createService({});
+        const badge = (hidden) => ({ textContent: "DST", classList: { contains: (name) => hidden && name === "is-hidden" } });
+        const visible = createQueryCell({
+            ".time-input": { value: "2026-10-31 22:33:55" },
+            ".day-badge": { textContent: "Sat" },
+            ".dst-badge": badge(false)
+        });
+        const hidden = createQueryCell({
+            ".export-time-text": { textContent: "2026-11-02 10:00:00" },
+            ".day-badge": { textContent: "Mon" },
+            ".dst-badge": badge(true)
+        });
+        const fixedClock = createQueryCell({
+            ".fixed-time-clock": { textContent: "09:00:00" },
+            ".dst-badge": badge(false)
+        });
+
+        expect(service.extractTableCellText(visible)).toBe("2026-10-31 22:33:55 Sat DST");
+        expect(service.extractTableCellText(hidden)).toBe("2026-11-02 10:00:00 Mon");
+        expect(service.extractTableCellText(fixedClock)).toBe("09:00:00 DST");
+    });
+
     it("strips [DST] suffix from zone-name for export text", () => {
         const module = loadTableImageRenderModule();
         const service = module.createService({});

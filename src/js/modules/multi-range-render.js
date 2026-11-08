@@ -215,6 +215,11 @@
                     else if (dayIndex === 6) badge.classList?.add?.("day-sat");
                 });
 
+                const isDst = Array.isArray(snapshot.dstFlags) && snapshot.dstFlags[slotIdx] === true;
+                asArray(row.querySelectorAll?.(`.dst-slot-${slotIdx}`)).forEach((dstBadge) => {
+                    dstBadge.classList?.toggle?.("is-hidden", !isDst);
+                });
+
                 const dnElements = asArray(row.querySelectorAll?.(`.dn-slot-${slotIdx}`));
                 dnElements.forEach((dnEl) => {
                     dnEl.textContent = dnGlyph;

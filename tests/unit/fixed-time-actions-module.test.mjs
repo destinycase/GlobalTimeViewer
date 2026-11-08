@@ -72,6 +72,15 @@ describe("GTV fixed time actions module", () => {
         expect(text).toBe("AM 09:30:00");
     });
 
+    it("adds DST to fixed-time copy text when the part is on and the time is DST", () => {
+        const module = loadFixedTimeActionsModule();
+        const service = module.createService({});
+        const payload = { clock: "09:30:00", dayName: "Mon", isDst: true };
+        expect(service.formatFixedTimePayloadText(payload, { time: true, weekday: true, dst: true })).toBe("09:30:00 Mon DST");
+        expect(service.formatFixedTimePayloadText(payload, { time: true, weekday: true, dst: false })).toBe("09:30:00 Mon");
+        expect(service.formatFixedTimePayloadText({ ...payload, isDst: false }, { time: true, dst: true })).toBe("09:30:00");
+    });
+
     it("builds aggregated copy text per slot", () => {
         const module = loadFixedTimeActionsModule();
         const baseRef = { id: "utc", zone: "UTC" };

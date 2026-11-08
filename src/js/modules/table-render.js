@@ -168,6 +168,7 @@
             const enabled = getDisplayTimePartsEnabledMap();
             const showDn = !!enabled.dn;
             const showWeekday = !!enabled.weekday;
+            const showDst = !!enabled.dst;
             const inputMode = getDisplayTimeInputMode();
             const hideInput = inputMode === "none";
             return `
@@ -185,6 +186,7 @@
                         >
                         ${isReadonly || hideInput ? "" : ""}
                         ${showWeekday ? `<span class="day-badge day-slot-${slotIdx}">-</span>` : ""}
+                        ${showDst ? `<span class="dst-badge dst-slot-${slotIdx} is-hidden" title="${translate("dst_badge_title")}">DST</span>` : ""}
                         ${hideInput || isReadonly ? "" : `<button type="button" class="calendar-btn trigger-slot-${slotIdx}" tabindex="-1" title="달력(Date Picker) 열기">📅</button>`}
                     </div>
                 </td>

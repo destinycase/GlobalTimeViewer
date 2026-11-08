@@ -5,7 +5,8 @@
         dn: false,
         date: true,
         time: true,
-        weekday: false
+        weekday: false,
+        dst: true
     });
 
     function createService(deps = {}) {

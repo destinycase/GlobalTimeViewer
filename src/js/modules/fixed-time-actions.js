@@ -83,11 +83,12 @@
         function formatFixedTimePayloadText(payload, partsEnabled) {
             const safeParts = (partsEnabled && typeof partsEnabled === "object")
                 ? partsEnabled
-                : { dn: true, time: true, weekday: true };
+                : { dn: true, time: true, weekday: true, dst: true };
             const tokens = [];
             if (safeParts.dn && payload?.dayNightGlyph) tokens.push(payload.dayNightGlyph);
             if (safeParts.time) tokens.push(payload?.clock || "--:--:--");
             if (safeParts.weekday && payload?.dayName) tokens.push(payload.dayName);
+            if (safeParts.dst && payload?.isDst === true) tokens.push("DST");
             if (!tokens.length) return "-";
             return tokens.join(" ");
         }

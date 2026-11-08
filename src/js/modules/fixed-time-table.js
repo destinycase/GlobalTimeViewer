@@ -125,13 +125,14 @@
             const inputWidthPx = showTime ? 85 : 0;
             const dayNightWidthPx = showDn ? 20 : 0;
             const weekdayWidthPx = showWeekday ? 28 : 0;
+            const dstWidthPx = safeParts.dst === true ? 34 : 0;
             const calendarBtnWidthPx = showTime ? 22 : 0;
             const copyBtnWidthPx = 24;
             const paddingAndGapPx = 16;
             const minimumWidthPx = showTime ? 152 : 72;
             const columnMinWidthPx = Math.max(
                 minimumWidthPx,
-                inputWidthPx + dayNightWidthPx + weekdayWidthPx + calendarBtnWidthPx + copyBtnWidthPx + paddingAndGapPx
+                inputWidthPx + dayNightWidthPx + weekdayWidthPx + dstWidthPx + calendarBtnWidthPx + copyBtnWidthPx + paddingAndGapPx
             );
 
             return {
@@ -187,6 +188,21 @@
             zoneCodeEl.classList.toggle("zone-code-standard", !isCustom);
         }
 
+        // Always created when the DST part is on, hidden unless the time is in daylight saving time,
+        // so in-place updates only toggle it.
+        function createDstBadge(documentRef, isDst) {
+            const dstEl = documentRef.createElement("span");
+            dstEl.className = `dst-badge${isDst ? "" : " is-hidden"}`;
+            dstEl.textContent = "DST";
+            dstEl.title = translate("dst_badge_title");
+            return dstEl;
+        }
+
+        function setDstBadge(dstEl, payload) {
+            if (!dstEl?.classList || typeof dstEl.classList.toggle !== "function") return;
+            dstEl.classList.toggle("is-hidden", payload?.isDst !== true);
+        }
+
         function appendReadonlyTimeDisplay(targetCell, payload, displayPartsEnabled) {
             if (!targetCell) return;
             const documentRef = getDocumentRef();
@@ -225,6 +241,10 @@
                 wrapper.appendChild(dayEl);
             }
 
+            if (safeParts.dst) {
+                wrapper.appendChild(createDstBadge(documentRef, payload?.isDst === true));
+            }
+
             if (!wrapper.children.length) {
                 const emptyEl = documentRef.createElement("span");
                 emptyEl.className = "fixed-time-empty";
@@ -260,7 +280,8 @@
                             cell,
                             dnEl: cell.querySelector(".dn-icon"),
                             clockEl: cell.querySelector(".fixed-time-clock"),
-                            dayEl: cell.querySelector(".day-badge")
+                            dayEl: cell.querySelector(".day-badge"),
+                            dstEl: cell.querySelector(".dst-badge")
                         };
                         liveNowElementMap.set(cacheKey, cached);
                     }
@@ -286,6 +307,8 @@
                         cached.dayEl.className = `day-badge${isSun ? " day-sun" : (isSat ? " day-sat" : "")}`;
                         cached.dayEl.textContent = payload.dayName;
                     }
+
+                    if (displayPartsEnabled.dst && cached.dstEl) setDstBadge(cached.dstEl, payload);
                 });
                 return;
             }
@@ -531,7 +554,7 @@
                         const payload = dep.buildFixedTimeDisplayPayloadAtUtc(utcDate, tz);
                         // Handlers read the cell's current slot time, which in-place updates keep fresh.
                         const cellState = { utcDate, tz };
-                        const cellRef = { state: cellState, dnEl: null, timeInput: null, dayEl: null };
+                        const cellRef = { state: cellState, dnEl: null, timeInput: null, dayEl: null, dstEl: null };
                         rowRef.cells.push(cellRef);
                         const cellWrap = documentRef.createElement("div");
                         cellWrap.className = "fixed-time-cell-wrap";
@@ -571,6 +594,13 @@
                             dayEl.textContent = payload.dayName;
                             timeGroup.appendChild(dayEl);
                             cellRef.dayEl = dayEl;
+                            hasTimeGroupContent = true;
+                        }
+
+                        if (displayPartsEnabled.dst) {
+                            const dstEl = createDstBadge(documentRef, payload?.isDst === true);
+                            timeGroup.appendChild(dstEl);
+                            cellRef.dstEl = dstEl;
                             hasTimeGroupContent = true;
                         }
 
@@ -693,6 +723,7 @@
                         cellRef.timeInput.value = dep.buildFixedTimeCellInputValue(utcDate, tz) || "";
                     }
                     if (cellRef.dayEl) setDayBadge(cellRef.dayEl, payload);
+                    if (cellRef.dstEl) setDstBadge(cellRef.dstEl, payload);
                 });
             });
             return true;

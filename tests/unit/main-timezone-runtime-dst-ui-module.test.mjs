@@ -51,7 +51,7 @@ describe("GTV main timezone runtime services DST ui label", () => {
             }
         }
     });
-    it("appends [DST] for dynamic IANA standard zone during daylight period", () => {
+    it("keeps the zone name without [DST] even during daylight time (DST is marked next to each time)", () => {
         const moduleApi = loadMainTimezoneRuntimeServicesModule();
         let offsetCallCount = 0;
         const service = moduleApi.createService({
@@ -80,7 +80,8 @@ describe("GTV main timezone runtime services DST ui label", () => {
         });
 
         const tz = { type: "standard", zone: "America/New_York" };
-        expect(service.getZoneDisplayNameForUiAtDate(tz)).toBe("USA - New York [DST]");
+        expect(service.getZoneDisplayNameForUiAtDate(tz, new Date("2026-07-01T12:00:00Z"))).toBe("USA - New York");
+        expect(service.isTimeZoneInDST("America/New_York", new Date("2026-07-01T12:00:00Z"))).toBe(true);
     });
 
     it("does not append [DST] for fixed/custom/utc zones", () => {

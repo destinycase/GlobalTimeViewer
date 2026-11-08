@@ -253,7 +253,8 @@
                 dn: "copy_time_part_dn",
                 date: "copy_time_part_date",
                 time: "copy_time_part_time",
-                weekday: "copy_time_part_weekday"
+                weekday: "copy_time_part_weekday",
+                dst: "copy_time_part_dst"
             };
             return translate(map[partKey] || partKey);
         }

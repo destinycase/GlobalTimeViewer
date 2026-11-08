@@ -266,32 +266,10 @@
             return tz.name_ko || tz.name || tz.name_en || tz.zone || "";
         }
 
-        function hasFixedOffsetMinutes(tz) {
-            return parseFixedOffsetMinutes(tz?.fixedOffsetMinutes) !== null;
-        }
-
-        function canDisplayDstBadge(tz) {
-            if (!tz || typeof tz !== "object") return false;
-            if (tz.type !== "standard") return false;
-            if (hasFixedOffsetMinutes(tz)) return false;
-            const zone = (typeof tz.zone === "string") ? tz.zone.trim() : "";
-            if (!zone || zone === "UTC") return false;
-            return true;
-        }
-
-        function getZoneDisplayNameForUiAtDate(tz, anchorDate = getBaseTime()) {
-            const baseName = String(getZoneDisplayName(tz) || "").trim();
-            if (!baseName) return "";
-            if (!canDisplayDstBadge(tz)) return baseName;
-
-            const safeDate = (anchorDate instanceof Date && Number.isFinite(anchorDate.getTime()))
-                ? anchorDate
-                : getBaseTime();
-            const inDst = isTimeZoneInDST(tz.zone, safeDate);
-            if (!inDst) return baseName.replace(/\s*\[DST\]\s*$/i, "").trim();
-
-            const normalizedBaseName = baseName.replace(/\s*\[DST\]\s*$/i, "").trim();
-            return `${normalizedBaseName} [DST]`;
+        // The zone name no longer carries a [DST] label: daylight saving time is marked next to each
+        // time (DST badge / "DST" copy token), because one row can show several times.
+        function getZoneDisplayNameForUiAtDate(tz, _anchorDate) {
+            return String(getZoneDisplayName(tz) || "").replace(/\s*\[DST\]\s*$/i, "").trim();
         }
 
         return Object.freeze({

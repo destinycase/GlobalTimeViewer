@@ -105,7 +105,14 @@
                 rowViewState.slotDnIcons.set(slotIdx, dnIcons);
             }
 
-            return { inputs, dayBadges, dnIcons };
+            if (!rowViewState.slotDstBadges) rowViewState.slotDstBadges = new Map();
+            let dstBadges = rowViewState.slotDstBadges.get(slotIdx);
+            if (!dstBadges) {
+                dstBadges = [...rowViewState.row.querySelectorAll(`.dst-slot-${slotIdx}`)];
+                rowViewState.slotDstBadges.set(slotIdx, dstBadges);
+            }
+
+            return { inputs, dayBadges, dnIcons, dstBadges };
         }
 
         function applyZoneCodeKindClass(zoneCodeEl, timezoneRef = null) {
@@ -160,7 +167,13 @@
                 const dayNightStatus = snapshot.dayNightIcons[i] || "DAY";
                 const dayNightMarker = normalizeDayNightMarker(dayNightStatus);
                 const dayNightGlyph = getDayNightGlyph(dayNightStatus);
-                const { inputs, dayBadges, dnIcons } = getSlotElementsForRow(rowViewState, i);
+                const { inputs, dayBadges, dnIcons, dstBadges } = getSlotElementsForRow(rowViewState, i);
+                const isDst = Array.isArray(snapshot.dstFlags) && snapshot.dstFlags[i] === true;
+                dstBadges.forEach((dstBadge) => {
+                    if (dstBadge.classList && typeof dstBadge.classList.toggle === "function") {
+                        dstBadge.classList.toggle("is-hidden", !isDst);
+                    }
+                });
 
                 inputs.forEach((input) => {
                     const inputMode = input.dataset.inputMode || "datetime";

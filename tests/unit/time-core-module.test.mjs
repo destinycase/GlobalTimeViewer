@@ -139,3 +139,28 @@ test("time core module exposes createService with frozen api", () => {
     expect(serviceApi.sanitizeTimezoneId(" UTC ")).toBe("");
     expect(serviceApi.clampNumber(11, 0, 10)).toBe(10);
 });
+
+test("zone offsets and daylight time follow each zone's own seasons", () => {
+    const api = createApi();
+    const summer = new Date("2026-07-15T12:00:00Z");
+    const winter = new Date("2026-01-15T12:00:00Z");
+    expect(api.getZoneOffsetMinutes("America/Los_Angeles", summer)).toBe(-420);
+    expect(api.getZoneOffsetMinutes("America/Los_Angeles", winter)).toBe(-480);
+    expect(api.getZoneOffsetMinutes("Asia/Kolkata", summer)).toBe(330);
+    expect(api.getZoneSeasonalOffsets("Australia/Sydney", summer)).toEqual([660, 600]);
+
+    expect(api.isZoneInDaylightTime("America/Los_Angeles", summer)).toBe(true);
+    expect(api.isZoneInDaylightTime("America/Los_Angeles", winter)).toBe(false);
+    // DST ends 2026-11-01 09:00 UTC in Los Angeles.
+    expect(api.isZoneInDaylightTime("America/Los_Angeles", new Date("2026-11-01T08:59:00Z"))).toBe(true);
+    expect(api.isZoneInDaylightTime("America/Los_Angeles", new Date("2026-11-01T09:00:00Z"))).toBe(false);
+    // Southern hemisphere: January is daylight time.
+    expect(api.isZoneInDaylightTime("Australia/Sydney", winter)).toBe(true);
+    expect(api.isZoneInDaylightTime("Australia/Sydney", summer)).toBe(false);
+    // No DST, UTC and invalid input.
+    expect(api.isZoneInDaylightTime("Asia/Seoul", summer)).toBe(false);
+    expect(api.isZoneInDaylightTime("UTC", summer)).toBe(false);
+    expect(api.isZoneInDaylightTime("Not/AZone", summer)).toBe(false);
+    expect(api.getZoneOffsetMinutes("Not/AZone", summer)).toBe(null);
+    expect(api.getZoneOffsetMinutes("America/Los_Angeles", new Date("bad"))).toBe(null);
+});

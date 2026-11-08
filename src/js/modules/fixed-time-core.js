@@ -113,6 +113,16 @@
             }
         }
 
+        // DST is marked only for rule-following city zones (not custom/UTC, no fixed offset).
+        function isFixedTimeDaylightTime(tz, fixedOffsetMinutes, utcDate) {
+            if (!tz || tz.type === "custom" || Number.isFinite(fixedOffsetMinutes)) return false;
+            const zone = (typeof tz.zone === "string") ? tz.zone.trim() : "";
+            if (!zone || zone === "UTC") return false;
+            const timeCore = globalObj?.GTVTimeCore || globalThis.GTVTimeCore;
+            if (!timeCore || typeof timeCore.isZoneInDaylightTime !== "function") return false;
+            return timeCore.isZoneInDaylightTime(zone, utcDate) === true;
+        }
+
         function buildFixedTimeDisplayPayloadAtUtc(utcDate, tz) {
             if (!isValidDate(utcDate) || !tz) return null;
             try {
@@ -129,7 +139,8 @@
                     dayNightMarker,
                     dayNightGlyph: getDayNightGlyph(dayNightMarker),
                     dayName: getLocalizedWeekdayNameByIndex(weekdayIndex),
-                    weekdayIndex
+                    weekdayIndex,
+                    isDst: isFixedTimeDaylightTime(tz, fixedOffsetMinutes, utcDate)
                 };
             } catch (_err) {
                 return null;
@@ -150,7 +161,8 @@
             return {
                 dn: !!safe?.dn,
                 time: !!safe?.time,
-                weekday: !!safe?.weekday
+                weekday: !!safe?.weekday,
+                dst: !!safe?.dst
             };
         }
 

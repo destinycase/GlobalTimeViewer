@@ -5,7 +5,7 @@
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         const defaultCopyTimePartsEnabled = (safeDeps.DEFAULT_COPY_TIME_PARTS_ENABLED && typeof safeDeps.DEFAULT_COPY_TIME_PARTS_ENABLED === "object")
             ? safeDeps.DEFAULT_COPY_TIME_PARTS_ENABLED
-            : Object.freeze({ dn: true, date: true, time: true, weekday: true });
+            : Object.freeze({ dn: true, date: true, time: true, weekday: true, dst: true });
 
         function logWarn(...args) {
             if (typeof safeDeps.logWarn === "function") {
@@ -127,6 +127,16 @@
             return (weekday + 7) % 7;
         }
 
+        // A time is marked DST only for rule-following city zones (not custom, not UTC, no fixed
+        // offset) whose offset at that moment is above the zone's standard offset.
+        function isDaylightTimeForSnapshot(tz, zone, effectiveOffset, date) {
+            if (!tz || tz.type === "custom" || !zone || zone === "UTC" || zone === "CUSTOM") return false;
+            if (Number.isFinite(effectiveOffset)) return false;
+            const timeCore = globalObj?.GTVTimeCore || globalThis.GTVTimeCore;
+            if (!timeCore || typeof timeCore.isZoneInDaylightTime !== "function") return false;
+            return timeCore.isZoneInDaylightTime(zone, date) === true;
+        }
+
         function getTimezoneRefById(id) {
             if (!id) return null;
             if (id === "utc") return dep.getUTCRef() || null;
@@ -195,6 +205,7 @@
             const dayNameValues = [];
             const dayIndexes = [];
             const dayNightIconValues = [];
+            const dstFlags = [];
 
             safeDates.forEach((slotDate) => {
                 const validDate = toValidDate(slotDate, fallbackDate) || fallbackDate;
@@ -224,6 +235,7 @@
                 dayIndexes.push(weekdayIndex);
                 dayNameValues.push(dayNamesByLang[weekdayIndex] || "");
                 dayNightIconValues.push(resolveDayNightMarkerByHour(hour));
+                dstFlags.push(isDaylightTimeForSnapshot(tz, zone, effectiveOffset, validDate));
             });
 
             let periodDaysText = "";
@@ -246,6 +258,7 @@
                 dayNames: dayNameValues,
                 dayIndexes,
                 dayNightIcons: dayNightIconValues,
+                dstFlags,
                 periodDays: periodDaysText,
                 periodTime: periodTimeText
             };
@@ -276,6 +289,7 @@
             const clocks = Array.isArray(snapshot.clocks) ? snapshot.clocks : [];
             const dayNames = Array.isArray(snapshot.dayNames) ? snapshot.dayNames : [];
             const dayNightIcons = Array.isArray(snapshot.dayNightIcons) ? snapshot.dayNightIcons : [];
+            const dstFlags = Array.isArray(snapshot.dstFlags) ? snapshot.dstFlags : [];
             const slotSize = Math.max(dates.length, clocks.length, dayNames.length, dayNightIcons.length);
             const rendered = [];
 
@@ -285,6 +299,7 @@
                 if (safeParts.date && dates[i]) tokens.push(dates[i]);
                 if (safeParts.time && clocks[i]) tokens.push(clocks[i]);
                 if (safeParts.weekday && dayNames[i]) tokens.push(`(${dayNames[i]})`);
+                if (safeParts.dst && dstFlags[i] === true) tokens.push("DST");
                 const merged = tokens.join(" ").trim();
                 if (merged) rendered.push(merged);
             }

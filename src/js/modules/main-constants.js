@@ -2,7 +2,7 @@
     "use strict";
 
     const COPY_FORMAT_KEYS = Object.freeze(["timezone", "region", "offset", "time", "period_days", "period_time"]);
-    const TIME_PART_KEYS = Object.freeze(["dn", "date", "time", "weekday"]);
+    const TIME_PART_KEYS = Object.freeze(["dn", "date", "time", "weekday", "dst"]);
     const PERIOD_RESULT_IDS = Object.freeze(["period-res", "period-hour-res", "period-min-res", "period-sec-res"]);
     const TIMELINE_TOTAL_HOURS = 24;
     const TIMELINE_TOTAL_SECONDS = 24 * 60 * 60;
@@ -39,13 +39,15 @@
         dn: true,
         date: true,
         time: true,
-        weekday: true
+        weekday: true,
+        dst: true
     });
     const DEFAULT_COPY_TIME_PARTS_ENABLED = Object.freeze({
         dn: false,
         date: true,
         time: true,
-        weekday: false
+        weekday: false,
+        dst: true
     });
     const FORMAT_PROFILE_CONTEXT_KEYS = Object.freeze(["live", "fixed", "fixed-extra", "multi", "fixed-time"]);
 

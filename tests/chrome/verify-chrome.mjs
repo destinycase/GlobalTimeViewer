@@ -312,7 +312,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "9",
-            title: "옛 고정 서머타임 도시 항목 → 서머타임 규칙 따르기",
+            title: "옛 고정 서머타임 도시 항목 변환·시각 옆 DST 표시",
             async run() {
                 const { api } = ctx;
                 // Saved before v3.11.1: Los Angeles fixed at UTC-07:00 "PDT".
@@ -350,22 +350,30 @@ function buildScenarios(ctx) {
                         const row = await api.ev(`(() => {
                             const tr = document.querySelector("#clocks-container .base-row");
                             const cells = [...tr.querySelectorAll("td")].map((td) => td.textContent.trim());
-                            return { abbr: cells[1], name: cells[2], utc: cells[3], input: tr.querySelector('.time-input[data-slot="0"]').value };
+                            const dstBadge = tr.querySelector(".dst-slot-0");
+                            return {
+                                abbr: cells[1],
+                                name: cells[2],
+                                utc: cells[3],
+                                input: tr.querySelector('.time-input[data-slot="0"]').value,
+                                dstVisible: !!dstBadge && !dstBadge.classList.contains("is-hidden") && getComputedStyle(dstBadge).display !== "none"
+                            };
                         })()`);
                         return row.input.startsWith(value.slice(0, 10)) ? row : false;
                     });
                 };
                 const winter = await readBaseRow("2027-01-15 10:00:00");
                 assert(winter.utc === "UTC-08:00" && winter.abbr === "PST", `1월: ${winter.abbr} ${winter.utc}`);
-                assert(!winter.name.includes("[DST]"), `1월 이름에 [DST]: ${winter.name}`);
+                assert(!winter.name.includes("[DST]") && !winter.dstVisible, `1월 DST 표시: 이름 "${winter.name}", 시각 옆 ${winter.dstVisible}`);
                 const summer = await readBaseRow("2026-10-31 22:33:55");
                 assert(summer.utc === "UTC-07:00" && summer.abbr === "PDT", `10월 말: ${summer.abbr} ${summer.utc}`);
-                assert(summer.name.includes("[DST]"), `10월 말 이름에 [DST] 없음: ${summer.name}`);
+                assert(summer.dstVisible, "10월 말 시각 옆 DST 표시 없음");
+                assert(!summer.name.includes("[DST]"), `이름에 [DST]가 남아 있음: ${summer.name}`);
                 const stored = await until("변환 저장", async () => {
                     const zone = (await api.storedData())?.groups?.[0]?.zones?.[0];
                     return zone && zone.fixedOffsetMinutes === null ? zone : false;
                 });
-                return `1월 ${winter.abbr} ${winter.utc}, 10월 말 ${summer.abbr} ${summer.utc} "${summer.name}", 저장 fixedOffsetMinutes=${stored.fixedOffsetMinutes}`;
+                return `1월 ${winter.abbr} ${winter.utc}(DST 표시 없음), 10월 말 ${summer.abbr} ${summer.utc}(시각 옆 DST 표시, 이름 "${summer.name}"), 저장 fixedOffsetMinutes=${stored.fixedOffsetMinutes}`;
             }
         }
     ];

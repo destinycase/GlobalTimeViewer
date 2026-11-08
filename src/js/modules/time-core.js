@@ -85,6 +85,50 @@
         return (offH * 60) + (minuteSign * offM);
     }
 
+    // UTC offset (minutes) of an IANA zone at a moment, or null when it cannot be computed.
+    function getZoneOffsetMinutes(zoneName, date) {
+        if (typeof zoneName !== "string" || !zoneName.trim()) return null;
+        if (!(date instanceof Date) || !Number.isFinite(date.getTime())) return null;
+        try {
+            const parts = new Intl.DateTimeFormat("en-US", {
+                timeZone: zoneName,
+                hourCycle: "h23",
+                year: "numeric",
+                month: "numeric",
+                day: "numeric",
+                hour: "numeric",
+                minute: "numeric"
+            }).formatToParts(date).reduce((acc, part) => {
+                acc[part.type] = Number(part.value);
+                return acc;
+            }, {});
+            const minuteStartMs = date.getTime() - (date.getTime() % 60000);
+            const localAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute);
+            const offset = Math.round((localAsUtc - minuteStartMs) / 60000);
+            return Number.isFinite(offset) ? offset : null;
+        } catch (_err) {
+            return null;
+        }
+    }
+
+    // January and July offsets of the date's year; the smaller one is standard time.
+    function getZoneSeasonalOffsets(zoneName, date) {
+        const year = (date instanceof Date && Number.isFinite(date.getTime())) ? date.getUTCFullYear() : new Date().getUTCFullYear();
+        return [
+            getZoneOffsetMinutes(zoneName, new Date(Date.UTC(year, 0, 1, 12, 0, 0))),
+            getZoneOffsetMinutes(zoneName, new Date(Date.UTC(year, 6, 1, 12, 0, 0)))
+        ];
+    }
+
+    // True when the zone is on daylight saving time at the moment (offset above its standard offset).
+    function isZoneInDaylightTime(zoneName, date) {
+        if (zoneName === "UTC") return false;
+        const current = getZoneOffsetMinutes(zoneName, date);
+        const [jan, jul] = getZoneSeasonalOffsets(zoneName, date);
+        if (current === null || jan === null || jul === null || jan === jul) return false;
+        return current !== Math.min(jan, jul);
+    }
+
     function createService(_deps = {}) {
         return Object.freeze({
             sanitizeTimezoneId,
@@ -94,7 +138,10 @@
             buildStrictUtcDateFromParts,
             pad,
             getCustomOffsetMinutes,
-            clampNumber
+            clampNumber,
+            getZoneOffsetMinutes,
+            getZoneSeasonalOffsets,
+            isZoneInDaylightTime
         });
     }
 
@@ -109,6 +156,9 @@
         buildStrictUtcDateFromParts: defaultService.buildStrictUtcDateFromParts,
         pad: defaultService.pad,
         getCustomOffsetMinutes: defaultService.getCustomOffsetMinutes,
-        clampNumber: defaultService.clampNumber
+        clampNumber: defaultService.clampNumber,
+        getZoneOffsetMinutes: defaultService.getZoneOffsetMinutes,
+        getZoneSeasonalOffsets: defaultService.getZoneSeasonalOffsets,
+        isZoneInDaylightTime: defaultService.isZoneInDaylightTime
     });
 })(typeof window !== "undefined" ? window : globalThis);

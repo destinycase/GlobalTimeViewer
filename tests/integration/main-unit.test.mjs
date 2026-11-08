@@ -1222,7 +1222,7 @@ test("fixed-time cell input value renders time-only text", () => {
 test("fixed-time context excludes date time-part option", () => {
     const { run, sandbox } = createMainContext();
     run(`currentMainTab = "fixed-time"; activateFormatProfileForCurrentContext({ syncCurrent: false });`);
-    expect(sandbox.getFormatProfileAllowedTimePartKeys("fixed-time")).toEqual(["dn", "time", "weekday"]);
+    expect(sandbox.getFormatProfileAllowedTimePartKeys("fixed-time")).toEqual(["dn", "time", "weekday", "dst"]);
 });
 
 test("fixed-time context honors time field visibility", () => {

@@ -103,7 +103,7 @@
                 getFixedTimeCoreService(),
                 "getFixedTimeDisplayPartsEnabled",
                 [],
-                { fallback: { dn: true, time: true, weekday: true } }
+                { fallback: { dn: true, time: true, weekday: true, dst: true } }
             );
         }
 
