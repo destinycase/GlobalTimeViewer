@@ -176,3 +176,149 @@ test("buildTimezoneComputedSnapshotForDates honors injected day/night marker res
 
     expect(snapshot.dayNightIcons[0]).toBe("NIGHT");
 });
+
+test("getTimezoneRefById resolves utc, base and group zones", () => {
+    const service = createService(createDepsStub());
+    expect(service.getTimezoneRefById("")).toBe(null);
+    expect(service.getTimezoneRefById("utc").zone).toBe("UTC");
+    expect(service.getTimezoneRefById("base").zone).toBe("Asia/Seoul");
+    expect(service.getTimezoneRefById("team").zone).toBe("Asia/Tokyo");
+    expect(service.getTimezoneRefById("missing")).toBe(null);
+
+    const noZones = createService({ ...createDepsStub(), getCurrentGroupZones: () => "bad", getUTCRef: () => undefined });
+    expect(noZones.getTimezoneRefById("team")).toBe(null);
+    expect(noZones.getTimezoneRefById("utc")).toBe(null);
+});
+
+test("buildTimezoneComputedSnapshot uses one slot in realtime and the slot count otherwise", () => {
+    const fixed = createService(createDepsStub()).buildTimezoneComputedSnapshot("base");
+    expect(fixed.times).toEqual(["2026-01-01 09:00:00", "2026-01-02 09:00:00"]);
+    expect(fixed.offset).toBe("UTC+09:00");
+    expect(fixed.periodDays).toBe("2d");
+    expect(fixed.periodTime).toBe("1d 0h 0m");
+    expect(fixed.dayNames).toEqual(["Thu", "Fri"]);
+
+    const realtime = createService({ ...createDepsStub(), isRealtime: () => true }).buildTimezoneComputedSnapshot("base");
+    expect(realtime.times).toHaveLength(1);
+    expect(realtime.periodDays).toBe("");
+
+    const fillsMissingSlot = createService({
+        ...createDepsStub(),
+        getGlobalTimes: () => [new Date("2026-03-01T00:00:00Z"), "not a date"],
+        getSlotCount: () => "x"
+    }).buildTimezoneComputedSnapshot("utc");
+    expect(fillsMissingSlot.times).toEqual(["2026-03-01 00:00:00"]);
+    expect(createService(createDepsStub()).buildTimezoneComputedSnapshot("nope")).toBe(null);
+});
+
+test("snapshot offsets honor fixed display offsets, negative offsets and missing parts", () => {
+    const deps = createDepsStub();
+    const service = createService(deps);
+    const tz = { id: "ny", type: "standard", zone: "America/New_York", name_en: "New York" };
+    const snapshot = service.buildTimezoneComputedSnapshotForDates(tz, [new Date("2026-01-01T12:00:00Z")], {
+        fixedDisplayOffsetMinutes: -330
+    });
+    expect(snapshot.offset).toBe("UTC-05:30");
+    expect(snapshot.clocks).toEqual(["06:30:00"]);
+    expect(snapshot.dayNightIcons).toEqual(["DAY"]);
+
+    const noParts = createService({
+        ...deps,
+        timeService: { resolveLocalDateParts: () => null, toDateTime: () => ({ offset: "bad" }) }
+    }).buildTimezoneComputedSnapshotForDates(tz, ["bad date"]);
+    expect(noParts.offset).toBe("UTC+00:00");
+    expect(noParts.times).toEqual([]);
+    expect(service.buildTimezoneComputedSnapshotForDates(null)).toBe(null);
+});
+
+test("day/night falls back to hour ranges and weekday handles defaults", () => {
+    const service = createService({
+        ...createDepsStub(),
+        getDayNightMarkerByHour: (hour) => (hour === 3 ? "moon" : "?"),
+        getCurrentLang: () => "  ",
+        timeService: {
+            resolveLocalDateParts: (date) => ({ H: date.getUTCHours(), Y: 2024, M: 2, D: 29 }),
+            toDateTime: () => ({ offset: 0 })
+        }
+    });
+    const tz = { id: "utc", type: "standard", zone: "UTC" };
+    const snapshot = service.buildTimezoneComputedSnapshotForDates(tz, [
+        new Date("2024-02-29T03:00:00Z"),
+        new Date("2024-02-29T07:00:00Z"),
+        new Date("2024-02-29T20:00:00Z")
+    ]);
+    expect(snapshot.dayNightIcons).toEqual(["NIGHT", "DAY", "NIGHT"]);
+    expect(snapshot.clocks).toEqual(["03:00:00", "07:00:00", "20:00:00"]);
+    expect(snapshot.dayNames[0]).toBe("Thu");
+});
+
+test("copy field text wraps, trims and skips empty or placeholder values", () => {
+    const service = createService(createDepsStub());
+    const snapshot = {
+        timezone: " KST ",
+        region: " Seoul ",
+        offset: "[UTC+09:00]",
+        dates: ["2026-01-01"],
+        clocks: ["09:00:00"],
+        dayNames: ["Thu"],
+        dayNightIcons: ["DAY"],
+        periodDays: "-",
+        periodTime: " 1d 0h 0m "
+    };
+    expect(service.getCopyFieldText(snapshot, "timezone")).toBe("[KST]");
+    expect(service.getCopyFieldText({ timezone: "[UTC]" }, "timezone")).toBe("[UTC]");
+    expect(service.getCopyFieldText({ timezone: " " }, "timezone")).toBe("");
+    expect(service.getCopyFieldText(snapshot, "region")).toBe("Seoul");
+    expect(service.getCopyFieldText(snapshot, "offset")).toBe("[UTC+09:00]");
+    expect(service.getCopyFieldText({ offset: "UTC" }, "offset")).toBe("[UTC]");
+    expect(service.getCopyFieldText({}, "offset")).toBe("");
+    expect(service.getCopyFieldText(snapshot, "period_days")).toBe("");
+    expect(service.getCopyFieldText({ periodDays: "3d" }, "period_days")).toBe("[3d]");
+    expect(service.getCopyFieldText(snapshot, "period_time")).toBe("[1d 0h 0m]");
+    expect(service.getCopyFieldText({ periodTime: "-" }, "period_time")).toBe("");
+    expect(service.getCopyFieldText(snapshot, "time")).toBe("DAY 2026-01-01 09:00:00");
+    expect(service.getCopyFieldText(snapshot, "unknown")).toBe("");
+    expect(service.getCopyFieldText(null, "time")).toBe("");
+});
+
+test("time text uses default parts when the sanitizer fails and joins slots", () => {
+    const warnings = [];
+    const service = createService({
+        ...createDepsStub(),
+        sanitizeTimePartsEnabled: () => { throw new Error("bad parts"); },
+        logWarn: (...args) => warnings.push(args[0])
+    });
+    const text = service.formatTimeTextByParts({
+        dates: ["2026-01-01", "2026-01-02"],
+        clocks: ["09:00:00"],
+        dayNames: ["Thu", "Fri"],
+        dayNightIcons: "bad"
+    });
+    expect(text).toBe("2026-01-01 09:00:00 (Thu) ~ 2026-01-02 (Fri)");
+    expect(warnings).toEqual(['[GTVSnapshotFormat] Dependency "sanitizeTimePartsEnabled" threw.']);
+});
+
+test("row copy text resolves rows by element id and skips disabled fields", () => {
+    const service = createService(createDepsStub());
+    const options = { order: ["timezone", "region", "offset"], enabled: { timezone: true, offset: true } };
+    expect(service.getRowCopyText({ id: "tz-row-base" }, options)).toBe("[KST] [UTC+09:00]");
+    expect(service.getRowCopyText("team", { ...options, enabled: { region: true } })).toBe("Tokyo");
+    expect(service.getRowCopyText({ id: "" }, options)).toBe("");
+    expect(service.getRowCopyText("missing", options)).toBe("");
+    expect(service.formatSnapshotText(null, [], {})).toBe("");
+
+    const badOrder = createService({ ...createDepsStub(), sanitizeCopyFormatOrder: () => "nope" });
+    expect(badOrder.formatSnapshotText({ timezone: "KST" }, ["timezone"], { timezone: true })).toBe("");
+});
+
+test("missing pad and logger fall back to built-in padding and console", () => {
+    const { pad: _pad, ...deps } = createDepsStub();
+    const service = createService({ ...deps, consoleWarn: undefined });
+    const snapshot = service.buildTimezoneComputedSnapshotForDates(
+        { id: "c", type: "custom", abbr: " jst ", offset: 540 },
+        [new Date("2026-01-01T00:00:00Z")]
+    );
+    expect(snapshot.timezone).toBe("JST");
+    expect(snapshot.offset).toBe("UTC+09:00");
+    expect(snapshot.times).toEqual(["2026-01-01 09:00:00"]);
+});
