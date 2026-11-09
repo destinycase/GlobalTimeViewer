@@ -96,7 +96,8 @@
                 "sanitizeFixedTimeValue",
                 "getFixedTimeSlotCount",
                 "setFixedTimeSlotCount",
-                "refreshFixedTimeSlotCountControls"
+                "refreshFixedTimeSlotCountControls",
+                "promptFn"
             ])
         });
 

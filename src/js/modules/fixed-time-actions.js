@@ -303,7 +303,21 @@
             }
         }
 
-        function renameFixedTimeSlot(slotIdx) {
+        // Slot names are asked in the app's in-page prompt (like group names); the browser prompt
+        // is only a fallback when the app prompt is not wired.
+        async function requestSlotName(message, defaultValue) {
+            const promptFn = (typeof safeDeps.promptFn === "function")
+                ? safeDeps.promptFn
+                : ((typeof globalObj.prompt === "function") ? globalObj.prompt.bind(globalObj) : null);
+            if (typeof promptFn !== "function") return null;
+            try {
+                return await promptFn(message, defaultValue);
+            } catch (_error) {
+                return null;
+            }
+        }
+
+        async function renameFixedTimeSlot(slotIdx) {
             if (!Number.isInteger(slotIdx) || slotIdx < 0) return;
             const group = dep.getCurrentGroup();
             if (!group) return;
@@ -313,11 +327,17 @@
             const defaultName = dep.getDefaultFixedTimeName();
             const currentName = dep.sanitizeFixedTimeName(slot.name, defaultName);
             const promptText = `${translate("btn_rename")} ${translate("th_fixed_time")}:`;
-            const promptFn = (typeof globalObj.prompt === "function") ? globalObj.prompt.bind(globalObj) : null;
-            if (typeof promptFn !== "function") return;
-            const nextRaw = promptFn(promptText, currentName);
-            if (nextRaw === null) return;
-            slot.name = dep.sanitizeFixedTimeName(nextRaw, defaultName);
+            const slotId = slot.id;
+            const nextRaw = await requestSlotName(promptText, currentName);
+            if (typeof nextRaw !== "string") return;
+            // The slot list can be rebuilt while the prompt is open, so find the slot again by id.
+            const currentGroup = dep.getCurrentGroup();
+            if (!currentGroup) return;
+            dep.ensureGroupFixedTimes(currentGroup);
+            const slots = Array.isArray(currentGroup.fixedTimes) ? currentGroup.fixedTimes : [];
+            const target = slots.find((item) => item && item.id === slotId) || (slotId ? null : slots[slotIdx]);
+            if (!target) return;
+            target.name = dep.sanitizeFixedTimeName(nextRaw, defaultName);
             dep.renderFixedTimeTab();
             dep.renderTimelineFrame();
             dep.savePersistence();

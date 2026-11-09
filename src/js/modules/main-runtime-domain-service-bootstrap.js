@@ -112,7 +112,10 @@
                 renderTimelineFrame: deferDynamic(d, d.getRenderTimelineFrameRef),
                 savePersistence: deferDynamic(d, d.getSavePersistenceSafelyRef),
                 ...pickDeps(d, "setFixedTimeSlotCount"),
-                refreshFixedTimeSlotCountControls: deferDynamic(d, d.getRefreshFixedTimeSlotCountControlsRef)
+                refreshFixedTimeSlotCountControls: deferDynamic(d, d.getRefreshFixedTimeSlotCountControlsRef),
+                ...pickAliasedDeps(d, {
+                    "promptFn": "promptFnViaMainFoundation",
+                })
             };
         }
 
@@ -424,6 +427,7 @@
                 "getSavePersistenceSafelyRef",
                 "setFixedTimeSlotCount",
                 "getRefreshFixedTimeSlotCountControlsRef",
+                "promptFnViaMainFoundation",
             ]),
         });
         const mainFixedTimeServices = createMainFixedTimeServices(mainFixedTimeServicesConfig);

@@ -443,10 +443,33 @@ describe("GTV data transfer module", () => {
             }]
         };
 
-        await service.handleSettingsImportFile({ target: input });
+        const result = await service.handleSettingsImportFile({ target: input });
 
         expect(toasts).toContain("toast_invalid_format");
         expect(input.value).toBe("");
+        expect(result).not.toBe(true);
+    });
+
+    it("handleSettingsImportFile returns true only after a successful import", async () => {
+        const loaded = loadDataTransferModule();
+        const applied = [];
+        const service = loaded.module.createService(createBaseDeps({
+            applyImportedSettings: async (payload) => { applied.push(payload); }
+        }));
+        const input = {
+            value: "selected",
+            files: [{
+                name: "settings.json",
+                async text() {
+                    return JSON.stringify({ groups: [{ name: "G", zones: [] }] });
+                }
+            }]
+        };
+
+        const result = await service.handleSettingsImportFile({ target: input });
+
+        expect(applied).toHaveLength(1);
+        expect(result).toBe(true);
     });
 
     it("handleGroupImportFile rejects oversized file before reading contents", async () => {

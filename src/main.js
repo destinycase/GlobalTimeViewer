@@ -1831,6 +1831,7 @@ const mainRuntimeDomainServiceDeps = {
     getSavePersistenceSafelyRef,
     setFixedTimeSlotCount,
     getRefreshFixedTimeSlotCountControlsRef,
+    promptFnViaMainFoundation,
     GTV_MULTI_RANGE_RENDER,
     GTV_MULTI_RANGE_COPY,
     GTV_COPY_ACTIONS,

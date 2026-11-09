@@ -234,11 +234,6 @@
             const markup = serializer.serializeToString(renderElement);
             const cssText = collectDocumentCssText();
 
-            const dayBox = doc.querySelector?.(".timeline-hour-box.day");
-            const liveDayBg = dayBox ? getComputedStyleSafe(dayBox).backgroundColor : "#caeefb";
-            const nightBox = doc.querySelector?.(".timeline-hour-box.night");
-            const liveNightBg = nightBox ? getComputedStyleSafe(nightBox).backgroundColor : "#616161";
-            const liveBorder = dayBox ? getComputedStyleSafe(dayBox).borderTopColor : "#8795aa";
             const liveText = getComputedStyleSafe(doc.body).color || "#f8fafc";
             const liveBg = getComputedStyleSafe(doc.body).backgroundColor || "#0f172a";
 
@@ -279,57 +274,7 @@
                     margin-bottom: 20px !important;
                     background-color: transparent !important;
                 }
-                .timeline-panels.dual {
-                    display: grid !important;
-                    grid-template-columns: 1fr 1fr !important;
-                    gap: 30px !important;
-                    width: 100% !important;
-                    margin: 0 auto !important;
-                }
-                .timeline-frame .time-adjust-row,
-                .timeline-frame .time-adjust-set-container {
-                    display: flex !important;
-                    flex-direction: row !important;
-                    justify-content: center !important;
-                    gap: 25px !important;
-                }
-                .timeline-axis-row, .timeline-timezone-row {
-                    display: grid !important;
-                    grid-template-columns: var(--timeline-label-w, 150px) 1fr !important;
-                    width: 100% !important;
-                    height: var(--timeline-box-h, 28px) !important;
-                    margin-bottom: 2px !important;
-                    color: ${liveText} !important;
-                }
-                .timeline-label {
-                    display: flex !important;
-                    align-items: center !important;
-                    padding-right: 20px !important;
-                    font-size: 13px !important;
-                    color: ${liveText} !important;
-                }
-                .timeline-box-row {
-                    display: flex !important;
-                    width: 100% !important;
-                    height: 100% !important;
-                    border: 0.5px solid ${liveBorder} !important;
-                }
-                .timeline-hour-box {
-                    flex: 1 !important;
-                    height: 100% !important;
-                    border-right: 0.5px solid ${liveBorder} !important;
-                }
-                .timeline-hour-box.day { background-color: ${liveDayBg} !important; }
-                .timeline-hour-box.night { background-color: ${liveNightBg} !important; }
                 .calendar-btn { display: none !important; }
-                .timeline-indicator {
-                    position: absolute !important;
-                    top: 0 !important;
-                    bottom: 0 !important;
-                    background-color: #ef4444 !important;
-                    width: 2px !important;
-                    z-index: 10 !important;
-                }
                 .multi-range-title {
                     font-size: 22px !important;
                     margin-bottom: 20px !important;

@@ -483,7 +483,7 @@ describe("GTV fixed time actions module", () => {
         expect(failToasts.some((toast) => toast.message === "toast_copy_failed")).toBe(true);
     });
 
-    it("renames slot and handles prompt cancellation", () => {
+    it("renames slot and handles prompt cancellation", async () => {
         const module = loadFixedTimeActionsModule({
             prompt: () => "  Renamed  "
         });
@@ -502,7 +502,7 @@ describe("GTV fixed time actions module", () => {
             savePersistence: () => { saveCount += 1; }
         });
 
-        service.renameFixedTimeSlot(0);
+        await service.renameFixedTimeSlot(0);
         expect(group.fixedTimes[0].name).toBe("Renamed");
         expect(renderFixedCount).toBe(1);
         expect(renderTimelineCount).toBe(1);
@@ -520,8 +520,66 @@ describe("GTV fixed time actions module", () => {
             sanitizeFixedTimeName: (value, fallback) => (String(value || "").trim() || fallback),
             renderFixedTimeTab: () => { throw new Error("should not render on cancel"); }
         });
-        cancelService.renameFixedTimeSlot(0);
+        await cancelService.renameFixedTimeSlot(0);
         expect(cancelGroup.fixedTimes[0].name).toBe("Original");
+    });
+
+    it("renames slot through the injected in-page prompt instead of the browser prompt", async () => {
+        const browserPrompts = [];
+        const module = loadFixedTimeActionsModule({
+            prompt: (message) => { browserPrompts.push(message); return "Browser"; }
+        });
+        const group = { fixedTimes: [{ id: "ft-1", name: "Slot", time: "09:00" }] };
+        const asked = [];
+        let saveCount = 0;
+        const service = module.createService({
+            t: (key) => key,
+            getCurrentGroup: () => group,
+            ensureGroupFixedTimes: () => { },
+            getDefaultFixedTimeName: () => "Fixed Time",
+            sanitizeFixedTimeName: (value, fallback) => (String(value || "").trim() || fallback),
+            renderFixedTimeTab: () => { },
+            renderTimelineFrame: () => { },
+            savePersistence: () => { saveCount += 1; },
+            promptFn: async (message, defaultValue) => { asked.push([message, defaultValue]); return "Meeting"; }
+        });
+
+        await service.renameFixedTimeSlot(0);
+        expect(group.fixedTimes[0].name).toBe("Meeting");
+        expect(asked).toEqual([["btn_rename th_fixed_time:", "Slot"]]);
+        expect(browserPrompts).toEqual([]);
+        expect(saveCount).toBe(1);
+
+        // The slot list may be rebuilt (new objects) while the prompt is open: the slot is found again by id.
+        const rebuildService = module.createService({
+            t: (key) => key,
+            getCurrentGroup: () => group,
+            ensureGroupFixedTimes: () => { },
+            getDefaultFixedTimeName: () => "Fixed Time",
+            sanitizeFixedTimeName: (value, fallback) => (String(value || "").trim() || fallback),
+            renderFixedTimeTab: () => { },
+            renderTimelineFrame: () => { },
+            savePersistence: () => { },
+            promptFn: async () => {
+                group.fixedTimes = group.fixedTimes.map((item) => ({ ...item }));
+                return "Standup";
+            }
+        });
+        await rebuildService.renameFixedTimeSlot(0);
+        expect(group.fixedTimes[0].name).toBe("Standup");
+
+        // Cancelling the in-page prompt (null) keeps the name and does not save.
+        const cancelService = module.createService({
+            t: (key) => key,
+            getCurrentGroup: () => group,
+            ensureGroupFixedTimes: () => { },
+            getDefaultFixedTimeName: () => "Fixed Time",
+            sanitizeFixedTimeName: (value, fallback) => (String(value || "").trim() || fallback),
+            savePersistence: () => { throw new Error("should not save on cancel"); },
+            promptFn: async () => null
+        });
+        await cancelService.renameFixedTimeSlot(0);
+        expect(group.fixedTimes[0].name).toBe("Standup");
     });
 
     it("add/remove slot behaviors cover no-op and successful mutation paths", () => {

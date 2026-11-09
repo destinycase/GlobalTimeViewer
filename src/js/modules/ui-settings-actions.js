@@ -57,8 +57,9 @@
                     settingsImportFile.value = "";
                     settingsImportFile.click?.();
                 });
-                settingsImportFile.addEventListener?.("change", (event) => {
-                    dep.handleSettingsImportFile(event);
+                settingsImportFile.addEventListener?.("change", async (event) => {
+                    const imported = await dep.handleSettingsImportFile(event);
+                    if (imported === true) closeSettingsDialog();
                 });
             }
 
@@ -89,15 +90,17 @@
 
             const resetExceptGroupTzBtn = doc.getElementById("reset-except-group-tz-btn");
             if (resetExceptGroupTzBtn?.addEventListener) {
-                resetExceptGroupTzBtn.addEventListener("click", () => {
-                    dep.resetExceptGroupsAndTimezones();
+                resetExceptGroupTzBtn.addEventListener("click", async () => {
+                    const done = await dep.resetExceptGroupsAndTimezones();
+                    if (done === true) closeSettingsDialog();
                 });
             }
 
             const resetAllSettingsBtn = doc.getElementById("reset-all-settings-btn");
             if (resetAllSettingsBtn?.addEventListener) {
-                resetAllSettingsBtn.addEventListener("click", () => {
-                    dep.resetAllSettings();
+                resetAllSettingsBtn.addEventListener("click", async () => {
+                    const done = await dep.resetAllSettings();
+                    if (done === true) closeSettingsDialog();
                 });
             }
         }
@@ -110,29 +113,36 @@
             { openId: "open-help-btn", overlayId: "help-overlay", closeId: "close-help-btn" }
         ];
 
+        let lastDialogOpener = null;
+
         function isOverlayOpen(overlay) {
             return !!overlay && overlay.style?.display === "flex";
+        }
+
+        function closeDialog(overlay) {
+            if (!isOverlayOpen(overlay)) return;
+            overlay.style.display = "none";
+            const opener = lastDialogOpener;
+            lastDialogOpener = null;
+            if (typeof opener?.focus === "function") opener.focus();
+        }
+
+        // Called after a confirmed reset or a successful import so the result is visible.
+        function closeSettingsDialog() {
+            const doc = getDocumentRef();
+            closeDialog(doc?.getElementById?.("settings-overlay"));
         }
 
         function bindDialogControls() {
             const doc = getDocumentRef();
             if (!doc?.getElementById) return;
-            let lastOpener = null;
-
-            const closeDialog = (overlay) => {
-                if (!isOverlayOpen(overlay)) return;
-                overlay.style.display = "none";
-                const opener = lastOpener;
-                lastOpener = null;
-                if (typeof opener?.focus === "function") opener.focus();
-            };
 
             const openDialog = (overlay, opener) => {
                 APP_DIALOGS.forEach(({ overlayId }) => {
                     const other = doc.getElementById(overlayId);
                     if (other && other !== overlay && other.style) other.style.display = "none";
                 });
-                lastOpener = opener || null;
+                lastDialogOpener = opener || null;
                 overlay.style.display = "flex";
                 // Focus the panel itself so keyboard users start inside the popup without the
                 // close button's tooltip popping up.

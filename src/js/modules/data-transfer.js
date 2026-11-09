@@ -665,6 +665,8 @@
                 }
                 await deps.applyImportedSettings(parsed);
                 deps.showToast(deps.tFormat("toast_settings_import_success", { filename: file.name || getSettingsExportFileName() }));
+                // true only after a successful import, so the settings popup can close.
+                return true;
             } catch (err) {
                 logError("handleSettingsImportFile failed:", err);
                 if (err.message === "Invalid settings payload" || err.message === "Invalid settings payload: groups is required") {

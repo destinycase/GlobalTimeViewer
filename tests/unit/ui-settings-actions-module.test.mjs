@@ -278,4 +278,60 @@ it("opens and closes the settings and help popups", () => {
         expect(settings.style.display).toBe("none");
     });
 
+    it("closes the settings popup only after a confirmed reset or a successful import", async () => {
+        const module = loadUiSettingsActionsModule();
+        const makeElement = (extra = {}) => {
+            const listeners = {};
+            return {
+                style: {},
+                value: "",
+                addEventListener(type, handler) { listeners[type] = handler; },
+                trigger(type, event = {}) { return listeners[type] ? listeners[type](event) : undefined; },
+                focus() { },
+                click() { },
+                ...extra
+            };
+        };
+        const elements = {
+            "open-settings-btn": makeElement(),
+            "settings-overlay": makeElement({ querySelector: () => makeElement() }),
+            "close-settings-btn": makeElement(),
+            "reset-except-group-tz-btn": makeElement(),
+            "reset-all-settings-btn": makeElement(),
+            "import-settings-btn": makeElement(),
+            "settings-import-file": makeElement()
+        };
+        const results = { resetAll: false, resetExcept: true, imported: undefined };
+        const service = module.createService({
+            document: {
+                getElementById: (id) => elements[id] || null,
+                querySelectorAll: () => [],
+                addEventListener: () => { }
+            },
+            resetAllSettings: async () => results.resetAll,
+            resetExceptGroupsAndTimezones: async () => results.resetExcept,
+            handleSettingsImportFile: async () => results.imported
+        });
+        service.bindAllControls();
+        const settings = elements["settings-overlay"];
+        const open = () => elements["open-settings-btn"].trigger("click");
+
+        // Cancelled reset (false) keeps the popup open.
+        open();
+        await elements["reset-all-settings-btn"].trigger("click");
+        expect(settings.style.display).toBe("flex");
+
+        // Confirmed reset (true) closes it.
+        await elements["reset-except-group-tz-btn"].trigger("click");
+        expect(settings.style.display).toBe("none");
+
+        // A failed or cancelled import keeps it open; a successful one closes it.
+        open();
+        await elements["settings-import-file"].trigger("change", {});
+        expect(settings.style.display).toBe("flex");
+        results.imported = true;
+        await elements["settings-import-file"].trigger("change", {});
+        expect(settings.style.display).toBe("none");
+    });
+
 });

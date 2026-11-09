@@ -616,23 +616,24 @@ function buildScenarios(ctx) {
                 // The group name must be asked in the in-page dialog, filled with real clicks and typing.
                 // A browser prompt would block the page, so it is still answered from the CDP event and
                 // then reported as a failure instead of hanging the run.
-                const nativeDialogs = [];
-                let nativeAnswer = null;
+                // Browser dialogs are answered from ctx so later scenarios can accept or dismiss them.
+                ctx.nativeDialogs = ctx.nativeDialogs || [];
+                ctx.nativeAnswer = null;
                 if (!ctx.dialogHandlerInstalled) {
                     ctx.dialogHandlerInstalled = true;
                     ctx.page.client.on("Page.javascriptDialogOpening", (params) => {
-                        nativeDialogs.push({ type: params.type, message: params.message });
-                        ctx.page.client.send("Page.handleJavaScriptDialog", nativeAnswer === null
+                        ctx.nativeDialogs.push({ type: params.type, message: params.message });
+                        ctx.page.client.send("Page.handleJavaScriptDialog", ctx.nativeAnswer === null
                             ? { accept: false }
-                            : { accept: true, promptText: nativeAnswer }).catch(() => {});
+                            : { accept: true, promptText: ctx.nativeAnswer }).catch(() => {});
                     });
                 }
                 const answerGroupName = async (name) => {
-                    const before = nativeDialogs.length;
-                    nativeAnswer = name;
+                    const before = ctx.nativeDialogs.length;
+                    ctx.nativeAnswer = name;
                     await clickAt("#add-group-btn");
-                    if (nativeDialogs.length > before) {
-                        const dialog = nativeDialogs[nativeDialogs.length - 1];
+                    if (ctx.nativeDialogs.length > before) {
+                        const dialog = ctx.nativeDialogs[ctx.nativeDialogs.length - 1];
                         assert(dialog.type === "prompt", `예상 밖 브라우저 창: ${JSON.stringify(dialog)}`);
                         return { kind: "browser", title: dialog.message.trim() };
                     }
@@ -970,7 +971,50 @@ function buildScenarios(ctx) {
                 await sleep(200);
                 assert(!(await shown("help-overlay")), "바깥 클릭으로 도움말이 닫히지 않음");
 
-                return `하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘`;
+                // Browser confirm dialogs (reset) are answered from ctx: null dismisses, text accepts.
+                ctx.nativeDialogs = ctx.nativeDialogs || [];
+                if (!ctx.dialogHandlerInstalled) {
+                    ctx.dialogHandlerInstalled = true;
+                    ctx.page.client.on("Page.javascriptDialogOpening", (params) => {
+                        ctx.nativeDialogs.push({ type: params.type, message: params.message });
+                        ctx.page.client.send("Page.handleJavaScriptDialog", ctx.nativeAnswer === null || ctx.nativeAnswer === undefined
+                            ? { accept: false }
+                            : { accept: true, promptText: ctx.nativeAnswer }).catch(() => {});
+                    });
+                }
+
+                // A cancelled reset keeps the settings popup open; a confirmed one closes it.
+                await clickAt("#open-settings-btn");
+                assert(await shown("settings-overlay"), "설정 팝업이 다시 열리지 않음");
+                ctx.nativeAnswer = null;
+                await clickAt("#reset-except-group-tz-btn");
+                await sleep(300);
+                assert(await shown("settings-overlay"), "취소한 초기화 뒤 설정 팝업이 닫힘");
+                ctx.nativeAnswer = "ok";
+                await clickAt("#reset-except-group-tz-btn");
+                await until("초기화 뒤 설정 팝업 닫힘", async () => !(await shown("settings-overlay")));
+                ctx.nativeAnswer = null;
+                const confirmCount = ctx.nativeDialogs.filter((d) => d.type === "confirm").length;
+
+                // Fixed-time slot rename asks in the in-page prompt, not the browser prompt.
+                await api.switchTab("fixed-time");
+                await until("고정 시간 슬롯 이름 버튼", () => api.ev(`!!document.querySelector(".fixed-time-slot-rename-btn")`));
+                const dialogsBefore = ctx.nativeDialogs.length;
+                await clickAt(".fixed-time-slot-rename-btn");
+                assert(ctx.nativeDialogs.length === dialogsBefore, "슬롯 이름을 브라우저 기본 입력 창으로 물음");
+                await until("슬롯 이름 입력 창", () => shown("app-prompt-overlay"));
+                await clickAt("#app-prompt-input");
+                await api.ev(`document.getElementById("app-prompt-input").select()`);
+                await ctx.page.client.send("Input.insertText", { text: "회의" });
+                await clickAt("#app-prompt-confirm");
+                const slotTitle = await until("슬롯 이름 변경", async () => {
+                    const title = await api.ev(`document.querySelector(".fixed-time-slot-title")?.textContent || ""`);
+                    return title.includes("회의") ? title : false;
+                });
+                const storedName = (await api.storedData())?.groups?.[0]?.fixedTimes?.[0]?.name;
+                assert(storedName === "회의", `슬롯 이름 저장: ${storedName}`);
+
+                return `하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘, 초기화 취소 시 유지·확인 시 닫힘(확인 창 ${confirmCount}회), 슬롯 이름 화면 안 입력 창으로 "${slotTitle.trim()}"`;
             }
         }
     ];
