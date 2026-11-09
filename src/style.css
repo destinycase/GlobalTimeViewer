@@ -15,8 +15,8 @@
      §13  Time tables
      §14  Calculator
      §15  Native date input icons
-     §16  Sidebar footer settings
-     §17  Overlays and modals
+     §16  Sidebar footer (help and settings buttons)
+     §17  Overlays and modals (timezone list, prompt, settings, help)
      §18  Tab animations
      §19  Toast notifications
      §20  DatePicker
@@ -3430,8 +3430,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 /* ========================================================================
-   §16 Sidebar footer settings
-   Language, theme, day/night hours and UI scale controls
+   §16 Sidebar footer
+   Help and settings icon buttons (the settings themselves are in the settings popup, §17)
    ======================================================================== */
 .sidebar-footer {
     margin-top: auto;
@@ -3451,65 +3451,24 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.16);
 }
 
-.sidebar-group {
-    padding: 0 10px;
-}
-
-.sidebar-group-inline {
+.sidebar-footer-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 8px;
+    padding: 4px 10px 2px;
 }
 
-.sidebar-group-inline .sm-btn {
-    flex: 1 1 auto;
-    width: auto;
-}
-
-.sidebar-group-reset-only {
-    margin-bottom: 8px;
-}
-
-.sidebar-group-select+.sidebar-group-select {
-    margin-top: 8px;
-}
-
-.sidebar-control-row {
-    display: flex;
+.sidebar-icon-btn {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-}
-
-.sidebar-control-row .sidebar-select {
-    flex: 1 1 auto;
-}
-
-.sidebar-control-row .info-tip {
-    flex: 0 0 16px;
-    min-width: 16px;
-    min-height: 16px;
-}
-
-.sidebar-control-label {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-dim);
-}
-
-.sidebar-group .sm-btn {
-    width: 100%;
-    padding: 6px 8px;
-    font-size: 13px;
-}
-
-.sidebar-group-inline .info-tip {
-    flex: 0 0 auto;
-}
-
-.sidebar-group-export {
-    margin-bottom: 8px;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+    border-radius: 10px;
 }
 
 .widget-title {
@@ -3726,6 +3685,120 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     justify-content: flex-end;
     gap: 8px;
     padding: 0 20px 20px;
+}
+
+/* Settings and help popups */
+.app-dialog {
+    max-width: 560px;
+}
+
+.app-dialog:focus {
+    outline: none;
+}
+
+.app-dialog-wide {
+    max-width: 680px;
+}
+
+.app-dialog .overlay-header h3 {
+    font-size: 18px;
+}
+
+.app-dialog-body {
+    padding: 16px 20px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.settings-section h4,
+.help-section h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0 0 10px;
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-section + .settings-section {
+    padding-top: 16px;
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+:root[data-theme="light"] .settings-section + .settings-section {
+    border-top-color: rgba(15, 23, 42, 0.1);
+}
+
+.settings-row {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 4px;
+}
+
+.settings-row .settings-desc {
+    grid-column: 2;
+}
+
+.settings-row-action {
+    grid-template-columns: 180px minmax(0, 1fr);
+}
+
+.settings-row-action .settings-desc {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.settings-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.settings-row .sidebar-select {
+    width: 100%;
+    max-width: 260px;
+}
+
+.settings-row-action .sm-btn {
+    width: 100%;
+    padding: 7px 10px;
+    font-size: 13px;
+}
+
+.settings-desc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-dim);
+}
+
+.help-body p,
+.help-list li {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+}
+
+.help-list {
+    margin: 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.help-list strong {
+    margin-right: 6px;
+    color: var(--text);
 }
 
 /* ========================================================================

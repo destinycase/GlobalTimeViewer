@@ -905,6 +905,73 @@ function buildScenarios(ctx) {
                 }
                 return `겹침·잘림 없음: ${results.join(", ")}`;
             }
+        },
+        {
+            id: "15",
+            title: "사이드바 도움말·설정 아이콘과 설정·도움말 팝업",
+            async run() {
+                const { api } = ctx;
+                await api.reload();
+                const clickAt = async (selector) => {
+                    const rect = await api.ev(`(() => {
+                        const el = document.querySelector(${JSON.stringify(selector)});
+                        if (!el) return null;
+                        const r = el.getBoundingClientRect();
+                        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+                    })()`);
+                    assert(rect, `클릭 대상 없음: ${selector}`);
+                    await api.mouse("mousePressed", rect.x, rect.y);
+                    await api.mouse("mouseReleased", rect.x, rect.y);
+                    await sleep(200);
+                };
+                const shown = (id) => api.ev(`getComputedStyle(document.getElementById(${JSON.stringify(id)})).display !== "none"`);
+                const pressEscape = async () => {
+                    await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+                    await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+                    await sleep(200);
+                };
+
+                // The sidebar footer holds only the help and settings icon buttons, left aligned.
+                const footer = await api.ev(`(() => {
+                    const footer = document.querySelector(".sidebar-footer");
+                    const buttons = [...footer.querySelectorAll("button")];
+                    const footerLeft = footer.getBoundingClientRect().left;
+                    return {
+                        ids: buttons.map((b) => b.id),
+                        labels: buttons.map((b) => b.getAttribute("aria-label")),
+                        firstOffset: Math.round(buttons[0].getBoundingClientRect().left - footerLeft),
+                        selects: footer.querySelectorAll("select").length
+                    };
+                })()`);
+                assert(JSON.stringify(footer.ids) === JSON.stringify(["open-help-btn", "open-settings-btn"]) && footer.selects === 0, `사이드바 하단: ${JSON.stringify(footer)}`);
+                assert(footer.firstOffset <= 24 && footer.labels.every(Boolean), `아이콘 정렬·이름: ${JSON.stringify(footer)}`);
+
+                // Settings: open with a real click, change the theme inside, close with Esc.
+                await clickAt("#open-settings-btn");
+                assert(await shown("settings-overlay"), "설정 팝업이 열리지 않음");
+                const inside = await api.ev(`["ui-scale-select", "theme-select", "lang-select", "export-settings-btn", "import-settings-btn", "reset-except-group-tz-btn", "reset-all-settings-btn"].every((id) => document.getElementById(id)?.closest("#settings-overlay"))`);
+                assert(inside, "설정 항목이 팝업 안에 없음");
+                const before = await api.ev(`document.documentElement.getAttribute("data-theme") || "dark"`);
+                const next = before === "light" ? "dark" : "light";
+                await api.ev(`(() => { const s = document.getElementById("theme-select"); s.value = "${next}"; s.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+                await until("테마 변경", async () => (await api.ev(`document.documentElement.getAttribute("data-theme") || "dark"`)) === next);
+                await api.ev(`(() => { const s = document.getElementById("theme-select"); s.value = "${before}"; s.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+                await pressEscape();
+                assert(!(await shown("settings-overlay")), "Esc로 설정 팝업이 닫히지 않음");
+                const focusBack = await api.ev(`document.activeElement?.id`);
+
+                // Help: open, close by clicking the dimmed background.
+                await clickAt("#open-help-btn");
+                assert(await shown("help-overlay"), "도움말 팝업이 열리지 않음");
+                const helpText = await api.ev(`document.querySelector("#help-overlay .help-body").innerText.trim().length`);
+                assert(helpText > 200, `도움말 내용이 비어 있음(${helpText}자)`);
+                await api.mouse("mousePressed", 30, 500);
+                await api.mouse("mouseReleased", 30, 500);
+                await sleep(200);
+                assert(!(await shown("help-overlay")), "바깥 클릭으로 도움말이 닫히지 않음");
+
+                return `하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘`;
+            }
         }
     ];
 }

@@ -71,50 +71,15 @@
 
             <div class="sidebar-footer">
                 <div class="sidebar-separator"></div>
-                <div class="sidebar-group sidebar-group-select">
-                    <div class="sidebar-control-row">
-                        <select id="ui-scale-select" class="form-select sidebar-select"></select>
-                        <span class="info-tip" data-i18n-title="tooltip_ui_scale_desc" aria-label="Info">i</span>
-                    </div>
-                </div>
-                <div class="sidebar-group sidebar-group-select">
-                    <div class="sidebar-control-row">
-                        <select id="theme-select" class="form-select sidebar-select">
-                            <option value="dark" data-i18n="theme_dark">Dark</option>
-                            <option value="light" data-i18n="theme_light">Light</option>
-                        </select>
-                        <span class="info-tip" data-i18n-title="tooltip_theme_desc" aria-label="Info">i</span>
-                    </div>
-                </div>
-                <div class="sidebar-group sidebar-group-select">
-                    <div class="sidebar-control-row">
-                        <select id="lang-select" class="form-select sidebar-select">
-                            <option value="en">English(EN)</option>
-                            <option value="ko" selected>Korean(KO)</option>
-                        </select>
-                        <span class="info-tip" data-i18n-title="tooltip_language_desc" aria-label="Info">i</span>
-                    </div>
-                </div>
-                <div class="sidebar-separator"></div>
-                <div class="sidebar-group sidebar-group-inline sidebar-group-export">
-                    <button id="export-settings-btn" class="sm-btn" data-i18n="btn_export_settings">Export All</button>
-                    <span class="info-tip" data-i18n-title="tooltip_export_settings_desc" aria-label="Info">i</span>
-                </div>
-                <div class="sidebar-group sidebar-group-inline">
-                    <button id="import-settings-btn" class="sm-btn" data-i18n="btn_import_settings">Import All</button>
-                    <span class="info-tip" data-i18n-title="tooltip_import_settings_desc" aria-label="Info">i</span>
-                </div>
-                <div class="sidebar-separator"></div>
-                <div class="sidebar-group sidebar-group-inline sidebar-group-reset-only">
-                    <button id="reset-except-group-tz-btn" class="sm-btn" data-i18n="btn_reset_except_group_tz">Reset
-                        Settings Only</button>
-                    <span class="info-tip" data-i18n-title="tooltip_reset_except_group_tz_desc"
-                        aria-label="Info">i</span>
-                </div>
-                <div class="sidebar-group sidebar-group-inline">
-                    <button id="reset-all-settings-btn" class="sm-btn danger" data-i18n="btn_reset_all_settings">Reset
-                        All</button>
-                    <span class="info-tip" data-i18n-title="tooltip_reset_all_settings_desc" aria-label="Info">i</span>
+                <div class="sidebar-footer-actions">
+                    <button id="open-help-btn" class="icon-btn sidebar-icon-btn" type="button"
+                        data-i18n-title="btn_help" aria-haspopup="dialog" aria-controls="help-overlay">
+                        <span aria-hidden="true">&#10067;</span>
+                    </button>
+                    <button id="open-settings-btn" class="icon-btn sidebar-icon-btn" type="button"
+                        data-i18n-title="btn_settings" aria-haspopup="dialog" aria-controls="settings-overlay">
+                        <span aria-hidden="true">&#9881;&#65039;</span>
+                    </button>
                 </div>
             </div>
         </aside>
@@ -660,6 +625,110 @@
     </div>
 
     <!-- Overlay -->
+    <div id="settings-overlay" class="overlay app-dialog-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="settings-title">
+        <div class="overlay-content app-dialog" tabindex="-1">
+            <div class="overlay-header">
+                <h3 id="settings-title" data-i18n="settings_title">Settings</h3>
+                <button id="close-settings-btn" class="icon-btn app-dialog-close" type="button"
+                    data-i18n-title="btn_close">&times;</button>
+            </div>
+            <div class="app-dialog-body">
+                <section class="settings-section" aria-labelledby="settings-section-display">
+                    <h4 id="settings-section-display" data-i18n="settings_section_display">Display</h4>
+                    <div class="settings-row">
+                        <label class="settings-label" for="ui-scale-select" data-i18n="label_ui_scale"></label>
+                        <select id="ui-scale-select" class="form-select sidebar-select"></select>
+                        <p class="settings-desc" data-i18n="tooltip_ui_scale_desc"></p>
+                    </div>
+                    <div class="settings-row">
+                        <label class="settings-label" for="theme-select" data-i18n="label_theme"></label>
+                        <select id="theme-select" class="form-select sidebar-select">
+                            <option value="dark" data-i18n="theme_dark">Dark</option>
+                            <option value="light" data-i18n="theme_light">Light</option>
+                        </select>
+                        <p class="settings-desc" data-i18n="tooltip_theme_desc"></p>
+                    </div>
+                    <div class="settings-row">
+                        <label class="settings-label" for="lang-select" data-i18n="label_language"></label>
+                        <select id="lang-select" class="form-select sidebar-select">
+                            <option value="en">English(EN)</option>
+                            <option value="ko" selected>Korean(KO)</option>
+                        </select>
+                        <p class="settings-desc" data-i18n="tooltip_language_desc"></p>
+                    </div>
+                </section>
+                <section class="settings-section" aria-labelledby="settings-section-data">
+                    <h4 id="settings-section-data" data-i18n="settings_section_data">Settings File</h4>
+                    <div class="settings-row settings-row-action">
+                        <button id="export-settings-btn" class="sm-btn" type="button" data-i18n="btn_export_settings">Export All</button>
+                        <p class="settings-desc" data-i18n="tooltip_export_settings_desc"></p>
+                    </div>
+                    <div class="settings-row settings-row-action">
+                        <button id="import-settings-btn" class="sm-btn" type="button" data-i18n="btn_import_settings">Import All</button>
+                        <p class="settings-desc" data-i18n="tooltip_import_settings_desc"></p>
+                    </div>
+                </section>
+                <section class="settings-section" aria-labelledby="settings-section-reset">
+                    <h4 id="settings-section-reset" data-i18n="settings_section_reset">Reset</h4>
+                    <div class="settings-row settings-row-action">
+                        <button id="reset-except-group-tz-btn" class="sm-btn" type="button" data-i18n="btn_reset_except_group_tz">Reset Settings Only</button>
+                        <p class="settings-desc" data-i18n="tooltip_reset_except_group_tz_desc"></p>
+                    </div>
+                    <div class="settings-row settings-row-action">
+                        <button id="reset-all-settings-btn" class="sm-btn danger" type="button" data-i18n="btn_reset_all_settings">Reset All</button>
+                        <p class="settings-desc" data-i18n="tooltip_reset_all_settings_desc"></p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+    <div id="help-overlay" class="overlay app-dialog-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="help-title">
+        <div class="overlay-content app-dialog app-dialog-wide" tabindex="-1">
+            <div class="overlay-header">
+                <h3 id="help-title" data-i18n="help_title">Help</h3>
+                <button id="close-help-btn" class="icon-btn app-dialog-close" type="button"
+                    data-i18n-title="btn_close">&times;</button>
+            </div>
+            <div class="app-dialog-body help-body">
+                <section class="help-section">
+                    <h4 data-i18n="help_add_title"></h4>
+                    <p data-i18n="help_add_body"></p>
+                </section>
+                <section class="help-section">
+                    <h4 data-i18n="help_groups_title"></h4>
+                    <p data-i18n="help_groups_body"></p>
+                </section>
+                <section class="help-section">
+                    <h4 data-i18n="help_tabs_title"></h4>
+                    <ul class="help-list">
+                        <li><strong data-i18n="nav_live"></strong><span data-i18n="help_tab_live"></span></li>
+                        <li><strong data-i18n="nav_fixed"></strong><span data-i18n="help_tab_fixed"></span></li>
+                        <li><strong data-i18n="nav_multi"></strong><span data-i18n="help_tab_multi"></span></li>
+                        <li><strong data-i18n="nav_fixed_time"></strong><span data-i18n="help_tab_fixed_time"></span></li>
+                        <li><strong data-i18n="nav_calc"></strong><span data-i18n="help_tab_calc"></span></li>
+                    </ul>
+                </section>
+                <section class="help-section">
+                    <h4 data-i18n="help_input_title"></h4>
+                    <p data-i18n="help_input_body"></p>
+                </section>
+                <section class="help-section">
+                    <h4 data-i18n="help_dst_title"></h4>
+                    <p data-i18n="help_dst_body"></p>
+                </section>
+                <section class="help-section">
+                    <h4 data-i18n="help_copy_title"></h4>
+                    <p data-i18n="help_copy_body"></p>
+                </section>
+                <section class="help-section">
+                    <h4 data-i18n="help_settings_title"></h4>
+                    <p data-i18n="help_settings_body"></p>
+                </section>
+            </div>
+        </div>
+    </div>
     <div id="full-tz-overlay" class="overlay">
         <div class="overlay-content">
             <div class="overlay-header">

@@ -197,6 +197,11 @@
                 if (!uiSettingsActionsService || typeof uiSettingsActionsService.bindResetControls !== "function") return;
                 uiSettingsActionsService.bindResetControls();
             },
+            bindDialogControls: () => {
+                const uiSettingsActionsService = getUiSettingsActionsService();
+                if (!uiSettingsActionsService || typeof uiSettingsActionsService.bindDialogControls !== "function") return;
+                uiSettingsActionsService.bindDialogControls();
+            },
             ...pickDeps([
                 "renderBaseTimeSelect",
                 "updateOptionRowVisibility",

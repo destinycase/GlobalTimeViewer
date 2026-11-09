@@ -555,6 +555,9 @@ describe("GTV main ui init module", () => {
             bindResetControls: () => {
                 calls.bindResetControls += 1;
             },
+            bindDialogControls: () => {
+                calls.bindDialogControls = (calls.bindDialogControls || 0) + 1;
+            },
             renderBaseTimeSelect: () => {
                 calls.renderBaseTimeSelect += 1;
             },
@@ -572,6 +575,7 @@ describe("GTV main ui init module", () => {
         expect(calls.refreshFixedTimeSlotCountControls).toBe(1);
         expect(calls.bindTransferControls).toBe(1);
         expect(calls.bindResetControls).toBe(1);
+        expect(calls.bindDialogControls).toBe(1);
         expect(calls.renderBaseTimeSelect).toBe(1);
         expect(calls.upgradeNativeTitleTooltips).toBe(1);
         expect(customOffH.children.length).toBe(27);

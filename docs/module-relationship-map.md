@@ -93,7 +93,7 @@ flowchart LR
     CALCTOOLS --> CALCUI["계산기 UI 조립\ncalculator · calculator-actions"]
     CALCUI --> DATEPICKER["date-picker"]
     CALCUI --> TIME
-    UI["초기화/알림/설정 UI\nmain-ui-init · app-feedback · ui-settings-actions"] --> TABLE
+    UI["초기화/알림/설정·도움말 팝업\nmain-ui-init · app-feedback · ui-settings-actions"] --> TABLE
 ```
 
 | 책임 | 관련 모듈 |

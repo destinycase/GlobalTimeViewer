@@ -64,6 +64,7 @@
         const updateTimeAdjustPanel = deps.updateTimeAdjustPanel;
         const refreshSelectWidths = deps.refreshSelectWidths;
         const bindResetControls = deps.bindResetControls;
+        const bindDialogControls = deps.bindDialogControls;
         const renderBaseTimeSelect = deps.renderBaseTimeSelect;
         const updateOptionRowVisibility = deps.updateOptionRowVisibility;
         const upgradeNativeTitleTooltips = deps.upgradeNativeTitleTooltips;
@@ -460,6 +461,8 @@
             }
 
             bindResetControls();
+            // Settings and help popups opened from the sidebar icon buttons.
+            if (typeof bindDialogControls === "function") bindDialogControls();
 
             document.querySelectorAll(".info-tip").forEach((tip) => {
                 tip.addEventListener("click", (e) => {

@@ -102,14 +102,79 @@
             }
         }
 
+        // Settings and help popups opened from the sidebar icon buttons. A popup closes with its
+        // close button, a click on the dimmed background or Esc, and focus returns to the button
+        // that opened it. Esc is left to a confirm/prompt dialog shown above the popup.
+        const APP_DIALOGS = [
+            { openId: "open-settings-btn", overlayId: "settings-overlay", closeId: "close-settings-btn" },
+            { openId: "open-help-btn", overlayId: "help-overlay", closeId: "close-help-btn" }
+        ];
+
+        function isOverlayOpen(overlay) {
+            return !!overlay && overlay.style?.display === "flex";
+        }
+
+        function bindDialogControls() {
+            const doc = getDocumentRef();
+            if (!doc?.getElementById) return;
+            let lastOpener = null;
+
+            const closeDialog = (overlay) => {
+                if (!isOverlayOpen(overlay)) return;
+                overlay.style.display = "none";
+                const opener = lastOpener;
+                lastOpener = null;
+                if (typeof opener?.focus === "function") opener.focus();
+            };
+
+            const openDialog = (overlay, opener) => {
+                APP_DIALOGS.forEach(({ overlayId }) => {
+                    const other = doc.getElementById(overlayId);
+                    if (other && other !== overlay && other.style) other.style.display = "none";
+                });
+                lastOpener = opener || null;
+                overlay.style.display = "flex";
+                // Focus the panel itself so keyboard users start inside the popup without the
+                // close button's tooltip popping up.
+                const panel = overlay.querySelector?.(".app-dialog");
+                if (typeof panel?.focus === "function") panel.focus({ preventScroll: true });
+            };
+
+            const entries = APP_DIALOGS.map(({ openId, overlayId, closeId }) => ({
+                openButton: doc.getElementById(openId),
+                overlay: doc.getElementById(overlayId),
+                closeButton: doc.getElementById(closeId)
+            })).filter((entry) => entry.overlay && entry.overlay.style);
+
+            entries.forEach(({ openButton, overlay, closeButton }) => {
+                openButton?.addEventListener?.("click", () => openDialog(overlay, openButton));
+                closeButton?.addEventListener?.("click", () => closeDialog(overlay));
+                overlay.addEventListener?.("click", (event) => {
+                    if (event?.target === overlay) closeDialog(overlay);
+                });
+            });
+
+            if (!entries.length) return;
+            doc.addEventListener?.("keydown", (event) => {
+                if (event?.key !== "Escape") return;
+                const open = entries.find(({ overlay }) => isOverlayOpen(overlay));
+                if (!open) return;
+                const otherOverlays = Array.from(doc.querySelectorAll?.(".overlay:not(.app-dialog-overlay)") || []);
+                if (otherOverlays.some((overlay) => isOverlayOpen(overlay))) return;
+                closeDialog(open.overlay);
+            });
+        }
+
         function bindAllControls() {
             bindTransferControls();
             bindResetControls();
+            bindDialogControls();
         }
 
         return Object.freeze({
             bindTransferControls,
             bindResetControls,
+            bindDialogControls,
             bindAllControls
         });
     }

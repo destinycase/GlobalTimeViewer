@@ -207,4 +207,75 @@ describe("GTV UI settings actions module", () => {
         expect(() => service.bindResetControls()).not.toThrow();
         expect(() => service.bindAllControls()).not.toThrow();
     });
+it("opens and closes the settings and help popups", () => {
+        const module = loadUiSettingsActionsModule();
+        const makeElement = (extra = {}) => {
+            const listeners = {};
+            return {
+                style: {},
+                focused: 0,
+                addEventListener(type, handler) { listeners[type] = handler; },
+                trigger(type, event = {}) { if (listeners[type]) listeners[type](event); },
+                focus() { this.focused += 1; },
+                ...extra
+            };
+        };
+        const docListeners = {};
+        const settingsClose = makeElement();
+        const helpClose = makeElement();
+        const settingsPanel = makeElement();
+        const helpPanel = makeElement();
+        const confirmOverlay = makeElement();
+        const elements = {
+            "open-settings-btn": makeElement(),
+            "open-help-btn": makeElement(),
+            "settings-overlay": makeElement({ querySelector: () => settingsPanel }),
+            "help-overlay": makeElement({ querySelector: () => helpPanel }),
+            "close-settings-btn": settingsClose,
+            "close-help-btn": helpClose
+        };
+        const doc = {
+            getElementById: (id) => elements[id] || null,
+            querySelectorAll: () => [confirmOverlay],
+            addEventListener: (type, handler) => { docListeners[type] = handler; }
+        };
+        const service = module.createService({ document: doc });
+        service.bindDialogControls();
+        const settings = elements["settings-overlay"];
+        const help = elements["help-overlay"];
+
+        // Open settings: shown, focus moves into the popup panel.
+        elements["open-settings-btn"].trigger("click");
+        expect(settings.style.display).toBe("flex");
+        expect(settingsPanel.focused).toBe(1);
+
+        // Opening help hides settings.
+        elements["open-help-btn"].trigger("click");
+        expect(help.style.display).toBe("flex");
+        expect(settings.style.display).toBe("none");
+
+        // Close button closes and returns focus to the opener.
+        helpClose.trigger("click");
+        expect(help.style.display).toBe("none");
+        expect(elements["open-help-btn"].focused).toBe(1);
+
+        // A click inside the popup keeps it; a click on the background closes it.
+        elements["open-settings-btn"].trigger("click");
+        settings.trigger("click", { target: settingsClose });
+        expect(settings.style.display).toBe("flex");
+        settings.trigger("click", { target: settings });
+        expect(settings.style.display).toBe("none");
+
+        // Esc closes, except while a confirm/prompt dialog is open above it.
+        elements["open-settings-btn"].trigger("click");
+        confirmOverlay.style.display = "flex";
+        docListeners.keydown({ key: "Escape" });
+        expect(settings.style.display).toBe("flex");
+        confirmOverlay.style.display = "none";
+        docListeners.keydown({ key: "Enter" });
+        expect(settings.style.display).toBe("flex");
+        docListeners.keydown({ key: "Escape" });
+        expect(settings.style.display).toBe("none");
+    });
+
 });

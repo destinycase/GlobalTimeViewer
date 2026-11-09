@@ -58,6 +58,7 @@ describe("GTV main ui runtime services module", () => {
         let uiInitConfig = null;
         let transferBound = 0;
         let resetBound = 0;
+        let dialogBound = 0;
 
         const services = moduleApi.createService({
             GTV_TIMELINE_FRAME: {
@@ -174,7 +175,8 @@ describe("GTV main ui runtime services module", () => {
             saveMultiRangeTitlesImage: () => {},
             getUiSettingsActionsService: () => ({
                 bindTransferControls: () => { transferBound += 1; },
-                bindResetControls: () => { resetBound += 1; }
+                bindResetControls: () => { resetBound += 1; },
+                bindDialogControls: () => { dialogBound += 1; }
             }),
             getCurrentThemeState: () => "dark",
             applyTheme: () => {},
@@ -203,8 +205,10 @@ describe("GTV main ui runtime services module", () => {
 
         uiInitConfig.bindTransferControls();
         uiInitConfig.bindResetControls();
+        uiInitConfig.bindDialogControls();
         expect(transferBound).toBe(1);
         expect(resetBound).toBe(1);
+        expect(dialogBound).toBe(1);
     });
 
     it("throws when required module APIs are missing", () => {
