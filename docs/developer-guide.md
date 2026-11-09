@@ -2,7 +2,7 @@
 
 이 문서는 현재 소스 트리의 구조와 실행 계약, 검증·배포·문서 관리 절차를 설명합니다. 프로그램은 단순한 정적 HTML 페이지가 아닙니다. 일반적인 ES 모듈 import 대신 전역 `GTV...` API와 순서가 지정된 스크립트 로더를 사용하는 브라우저 확장이므로, 파일 분리나 로드 순서를 바꾸기 전에 관련 경계를 먼저 이해해야 합니다.
 
-**기준:** 소스 구조와 현재 안정 버전 모두 v3.15.1(4차 안정 버전)입니다. 모듈별 실제 API와 전역 의존성은 [생성 인벤토리](module-dependency-inventory.md), 전체 연결은 [모듈 관계도](module-relationship-map.md), 기능별 탐색은 [코드 탐색 안내](code-navigation.md), 용어는 [용어 사전](Glossary.md)을 함께 참고하세요.
+**기준:** 소스 구조와 현재 안정 버전 모두 v3.16.1(5차 안정 버전)입니다. 모듈별 실제 API와 전역 의존성은 [생성 인벤토리](module-dependency-inventory.md), 전체 연결은 [모듈 관계도](module-relationship-map.md), 기능별 탐색은 [코드 탐색 안내](code-navigation.md), 용어는 [용어 사전](Glossary.md)을 함께 참고하세요.
 
 ## 목차
 
