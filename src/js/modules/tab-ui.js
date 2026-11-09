@@ -193,16 +193,13 @@
                     : {})
             };
 
-            if (currentMainTab === "live" || currentMainTab === "fixed") {
-                activeGroupIdByMainTab[currentMainTab] = clampGroupIndex(activeGroupId);
-            }
+            // The selected group stays the same on every tab. The per-tab map (kept in saved data
+            // for compatibility) is pointed at that group so realtime and time edit follow it too.
+            activeGroupId = clampGroupIndex(activeGroupId);
+            activeGroupIdByMainTab.live = activeGroupId;
+            activeGroupIdByMainTab.fixed = activeGroupId;
 
             currentMainTab = nextTab;
-            if (currentMainTab === "live" || currentMainTab === "fixed") {
-                activeGroupId = clampGroupIndex(activeGroupIdByMainTab[currentMainTab]);
-            } else {
-                activeGroupId = clampGroupIndex(activeGroupId);
-            }
 
             dep.setCurrentMainTab(currentMainTab);
             dep.setActiveGroupId(activeGroupId);

@@ -62,7 +62,7 @@ test("core/time-change: converts custom timezone datetime input to UTC using sel
     expect(updateCalls).toBe(1);
 });
 
-test("core/group-tab: switching tabs restores active group per tab and toggles realtime", () => {
+test("core/group-tab: switching tabs keeps the selected group and toggles realtime", () => {
     const { sandbox, run } = createMainContext();
 
     run(`
@@ -79,16 +79,21 @@ test("core/group-tab: switching tabs restores active group per tab and toggles r
 
     sandbox.switchMainTab("fixed");
 
+    // The selected group stays when switching tabs.
     expect(run("currentMainTab")).toBe("fixed");
-    expect(run("activeGroupId")).toBe(0);
+    expect(run("activeGroupId")).toBe(1);
+    expect(run("activeGroupIdByMainTab.fixed")).toBe(1);
+    expect(sandbox.getCurrentGroup().name).toBe("Fixed Group");
     expect(run("isRealtime")).toBe(false);
 
-    run("activeGroupId = 0;");
-    sandbox.switchMainTab("live");
-
+    run("activeGroupId = 0; activeGroupIdByMainTab.fixed = 0;");
+    for (const tab of ["multi", "fixed-time", "live"]) {
+        sandbox.switchMainTab(tab);
+        expect(run("activeGroupId")).toBe(0);
+        expect(sandbox.getCurrentGroup().name).toBe("Live Group");
+    }
     expect(run("currentMainTab")).toBe("live");
-    expect(run("activeGroupId")).toBe(1);
-    expect(run("activeGroupIdByMainTab.fixed")).toBe(0);
+    expect(run("activeGroupIdByMainTab.live")).toBe(0);
     expect(run("isRealtime")).toBe(true);
 });
 

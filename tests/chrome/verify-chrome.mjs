@@ -736,8 +736,19 @@ function buildScenarios(ctx) {
                 assert(namesFinal.filter((name) => name.includes("서울")).length === 1 && await zoneCount() === 2, `서울 중복 추가됨: ${JSON.stringify(namesFinal)}`);
                 assert(((await api.storedData())?.groups?.[1]?.zones || []).length === 0, "새 그룹에 시간대가 들어감");
 
+                // d) The selected group stays the same when moving between the left tabs.
+                await clickAt("#group-tabs-container .group-tab:nth-child(2) .group-name-label");
+                await until("새 그룹 선택", async () => (await groupTabs())[1].active);
+                const keptOn = [];
+                for (const tab of ["fixed", "live", "multi", "fixed-time", "fixed"]) {
+                    await api.switchTab(tab);
+                    const active = (await groupTabs()).find((t) => t.active)?.name;
+                    assert(active === "QA 새 그룹", `${tab} 탭에서 그룹이 바뀜: ${active}`);
+                    keptOn.push(tab);
+                }
+
                 const promptKind = named.kind === "browser" ? "브라우저 기본 입력 창" : "화면 안 입력 창";
-                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}`;
+                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")})`;
             }
         },
         {

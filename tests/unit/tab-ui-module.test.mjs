@@ -403,7 +403,7 @@ describe("GTV tab UI module", () => {
 
         expect(currentMainTab).toBe("multi");
         expect(activeGroupId).toBe(2);
-        expect(activeGroupIdByMainTab).toMatchObject({ live: 2, fixed: 3 });
+        expect(activeGroupIdByMainTab).toMatchObject({ live: 2, fixed: 2 });
         expect(extraToggle.disabled).toBe(true);
         expect(extraToggle.checked).toBe(true);
         expect(copyToggle.checked).toBe(true);
