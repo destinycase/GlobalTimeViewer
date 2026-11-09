@@ -70,7 +70,8 @@
         const timeDep = Object.freeze({
             ...pickSafeCallables([
                 "toDateTime",
-                "resolveLocalDateParts"
+                "resolveLocalDateParts",
+                "formatDuration"
             ], {
                 source: safeDeps?.timeService,
                 prefix: "timeService"
@@ -206,6 +207,7 @@
             const dayIndexes = [];
             const dayNightIconValues = [];
             const dstFlags = [];
+            const slotInstantsMs = [];
 
             safeDates.forEach((slotDate) => {
                 const validDate = toValidDate(slotDate, fallbackDate) || fallbackDate;
@@ -236,13 +238,19 @@
                 dayNameValues.push(dayNamesByLang[weekdayIndex] || "");
                 dayNightIconValues.push(resolveDayNightMarkerByHour(hour));
                 dstFlags.push(isDaylightTimeForSnapshot(tz, zone, effectiveOffset, validDate));
+                slotInstantsMs.push(validDate.getTime());
             });
 
             let periodDaysText = "";
             let periodTimeText = "";
             if (timeValues.length > 1) {
                 const spanDays = dep.getSignedInclusiveDaySpan(timeValues[0], timeValues[1]);
-                const spanTime = dep.getSignedDurationDayHourMinute(timeValues[0], timeValues[1]);
+                // Elapsed time is the same for every row: use the real instants, not the row's local
+                // wall-clock strings (those differ by the DST hour across a DST change).
+                const hasDurationFormatter = typeof safeDeps?.timeService?.formatDuration === "function";
+                const spanTime = hasDurationFormatter
+                    ? timeDep.formatDuration(slotInstantsMs[0], slotInstantsMs[1], dep.getCurrentLang() || "en")
+                    : dep.getSignedDurationDayHourMinute(timeValues[0], timeValues[1]);
                 const daySuffix = String(dep.t("unit_days_suffix") || "d");
                 periodDaysText = spanDays === null || spanDays === undefined ? "" : `${spanDays}${daySuffix}`;
                 periodTimeText = spanTime === null ? "" : spanTime;

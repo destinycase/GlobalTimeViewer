@@ -111,3 +111,20 @@ test("formatters write local and UTC fields with the pad function", () => {
     expect(f.isValidDateObject(date)).toBe(true);
     expect(f.isValidDateObject("2026-03-07")).toBe(false);
 });
+
+for (const [label, luxonDT] of [["luxon", DateTime], ["fallback", null]]) {
+    test(`ISO and RFC 2822 parsers reject impossible calendar dates instead of rolling over (${label})`, () => {
+        const f = loadDateFormat();
+        expect(f.parseIsoUtcDateString("2023-02-29T00:00:00Z", luxonDT)).toBe(null);
+        expect(f.parseIsoUtcDateString("2023-04-31T00:00:00Z", luxonDT)).toBe(null);
+        expect(f.parseIsoLocalDateString("2023-02-29T10:00:00+09:00", luxonDT)).toBe(null);
+        expect(f.parseRfc2822DateWithLuxon("Wed, 29 Feb 2023 00:00:00 GMT", luxonDT)).toBe(null);
+        expect(f.parseRfc2822DateWithLuxon("Mon, 31 Apr 2023 10:00:00 +0900", luxonDT)).toBe(null);
+        expect(f.parseRfc2822DateWithLuxon("Wed, 01 Xyz 2023 00:00:00 GMT", luxonDT)).toBe(null);
+
+        expect(iso(f.parseIsoUtcDateString("2024-02-29T00:00:00Z", luxonDT))).toBe("2024-02-29T00:00:00.000Z");
+        expect(iso(f.parseIsoLocalDateString("2023-03-01T10:00:00+09:00", luxonDT))).toBe("2023-03-01T01:00:00.000Z");
+        expect(iso(f.parseRfc2822DateWithLuxon("Thu, 29 Feb 2024 00:00:00 GMT", luxonDT))).toBe("2024-02-29T00:00:00.000Z");
+        expect(iso(f.parseZonedIsoString("2026-03-07T00:00:00.250Z"))).toBe("2026-03-07T00:00:00.250Z");
+    });
+}

@@ -191,3 +191,13 @@ for (const [label, deps] of [["luxon", () => ({ luxon: { DateTime } })], ["fallb
         expect(service.formatDuration("x", start)).toBe("");
     });
 }
+
+test("formatDuration is real elapsed time with 24-hour days, whatever the viewer's zone", () => {
+    const service = createService({ luxon: { DateTime } });
+    // 2 minutes across the New York DST end (05:59Z -> 06:01Z on 2026-11-01).
+    expect(service.formatDuration(Date.UTC(2026, 10, 1, 5, 59), Date.UTC(2026, 10, 1, 6, 1), "en")).toBe("0d 0h 2m");
+    // 25 real hours stay 1 day 1 hour (no calendar-day shortcut in any local zone).
+    expect(service.formatDuration(Date.UTC(2026, 10, 1, 4, 0), Date.UTC(2026, 10, 2, 5, 0), "en")).toBe("1d 1h 0m");
+    expect(service.formatDuration(Date.UTC(2026, 10, 1, 6, 1), Date.UTC(2026, 10, 1, 5, 59), "ko")).toBe("-0일 0시간 2분");
+    expect(service.formatDuration("x", 0, "en")).toBe("");
+});

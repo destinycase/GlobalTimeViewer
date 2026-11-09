@@ -361,3 +361,37 @@ test("each time gets its own DST flag and copy text marks DST times", () => {
     const utc = service.buildTimezoneComputedSnapshotForDates({ id: "utc", type: "standard", zone: "UTC" }, [new Date("2026-07-01T12:00:00Z")], { fixedDisplayOffsetMinutes: null });
     expect(utc.dstFlags).toEqual([false]);
 });
+
+test("period time is the real elapsed time for every row, also across a DST change", () => {
+    const deps = createDepsStub();
+    const intlParts = (date, zone) => {
+        const fmt = new Intl.DateTimeFormat("en-US", { timeZone: zone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
+        const p = Object.fromEntries(fmt.formatToParts(date).map((x) => [x.type, Number(x.value)]));
+        return { Y: p.year, M: p.month, D: p.day, H: p.hour, min: p.minute, S: p.second };
+    };
+    const service = createService({
+        ...deps,
+        getCurrentLang: () => "ko",
+        // Wall-clock based formatter (old path) must not be used when the time service can format.
+        getSignedDurationDayHourMinute: () => "WRONG",
+        timeService: {
+            resolveLocalDateParts: (date, zone) => intlParts(date, zone),
+            toDateTime: () => ({ offset: -240 }),
+            formatDuration: (startMs, endMs, lang) => `${lang}:${(endMs - startMs) / 60000}m`
+        }
+    });
+    const ny = { id: "ny", type: "standard", zone: "America/New_York" };
+    const dstEnd = service.buildTimezoneComputedSnapshotForDates(ny, [
+        new Date("2026-11-01T05:59:00Z"),
+        new Date("2026-11-01T06:01:00Z")
+    ], { fixedDisplayOffsetMinutes: null });
+    expect(dstEnd.times).toEqual(["2026-11-01 01:59:00", "2026-11-01 01:01:00"]);
+    expect(dstEnd.periodTime).toBe("ko:2m");
+
+    const dstStart = service.buildTimezoneComputedSnapshotForDates(ny, [
+        new Date("2026-03-08T06:59:00Z"),
+        new Date("2026-03-08T07:01:00Z")
+    ], { fixedDisplayOffsetMinutes: null });
+    expect(dstStart.times).toEqual(["2026-03-08 01:59:00", "2026-03-08 03:01:00"]);
+    expect(dstStart.periodTime).toBe("ko:2m");
+});

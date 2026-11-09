@@ -427,6 +427,79 @@ function buildScenarios(ctx) {
                 assert(!laStd.dst.some(Boolean), `11-02 LA 슬롯 DST 표시: ${JSON.stringify(laStd.dst)}`);
                 return `10-31 LA ${laDst.abbr} ${laDst.utc} 슬롯 DST ${laDst.dst.length}/2, 11-02 LA ${laStd.abbr} ${laStd.utc} DST 없음, 서울 표시 없음`;
             }
+        },
+        {
+            id: "11",
+            title: "QA 결함 회귀: DST 경계 기간·없는 날짜·소수 이동량",
+            async run() {
+                const { api } = ctx;
+                // 1) Period across the New York DST end is the real 2 minutes on every row.
+                const saved = {
+                    groups: [{
+                        name: "QA Period Group",
+                        zones: [
+                            { id: "tz-seoul", type: "standard", zone: "Asia/Seoul", name_ko: "대한민국 - 서울", name_en: "Korea - Seoul", fixedAbbr: "", fixedOffsetMinutes: null },
+                            { id: "tz-ny", type: "standard", zone: "America/New_York", name_ko: "미국 - 뉴욕", name_en: "USA - New York", fixedAbbr: "", fixedOffsetMinutes: null }
+                        ],
+                        baseTimezoneId: "tz-seoul",
+                        showUtcRow: true,
+                        utcRowOrder: 0
+                    }],
+                    activeGroupId: 0,
+                    currentMainTab: "fixed",
+                    activeGroupIdByMainTab: { live: 0, fixed: 0 },
+                    slotCount: 2
+                };
+                await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))})`);
+                await api.reload();
+                await api.switchTab("fixed");
+                const setSlot = (slot, value) => api.ev(`(() => {
+                    const input = document.querySelector('#clocks-container .base-row .time-input[data-slot="${slot}"]');
+                    input.value = ${JSON.stringify(value)};
+                    input.dispatchEvent(new Event("change", { bubbles: true }));
+                })()`);
+                await setSlot(0, "2026-11-01 14:59:00");
+                await setSlot(1, "2026-11-01 15:01:00");
+                const periods = await until("기간 갱신", async () => {
+                    const rows = await api.ev(`[...document.querySelectorAll("#clocks-container tr.time-row")].map((tr) => ({
+                        name: (tr.querySelector(".zone-name")?.textContent || "").trim(),
+                        start: tr.querySelector('.time-input[data-slot="0"]')?.value || "",
+                        period: (tr.querySelector(".period-time-text")?.textContent || "").trim()
+                    }))`);
+                    const ny = rows.find((row) => row.name.includes("뉴욕") || row.name.includes("New York"));
+                    return ny && ny.start.startsWith("2026-11-01 01:59") ? rows : false;
+                });
+                const nyRow = periods.find((row) => row.name.includes("뉴욕") || row.name.includes("New York"));
+                assert(periods.every((row) => row.period === periods[0].period), `행별 기간이 다름: ${JSON.stringify(periods.map((row) => row.period))}`);
+                assert(/^0\D+0\D+2\D/.test(nyRow.period), `뉴욕 기간 ${nyRow.period}`);
+
+                // 2) ISO converter refuses an impossible date instead of rolling it to March 1.
+                await api.switchTab("calc");
+                const invalidText = await api.ev(`(() => {
+                    const iso = document.getElementById("unix-iso-utc-input");
+                    iso.value = "2023-02-29T00:00:00Z";
+                    iso.dispatchEvent(new Event("input", { bubbles: true }));
+                    return document.getElementById("unix-ts-input").value;
+                })()`);
+                assert(invalidText !== "1677628800" && !/^\d+$/.test(invalidText), `없는 날짜가 변환됨: ${invalidText}`);
+
+                // 3) A fractional shift is rejected with a message instead of being cut to 2.
+                const shift = await api.ev(`(() => {
+                    const base = document.getElementById("offset-start");
+                    base.value = "2024-02-29";
+                    base.dispatchEvent(new Event("input", { bubbles: true }));
+                    document.getElementById("off-unit").value = "year";
+                    const amount = document.getElementById("off-val");
+                    amount.value = "2.5";
+                    amount.dispatchEvent(new Event("input", { bubbles: true }));
+                    return {
+                        result: document.getElementById("offset-res").value,
+                        message: document.getElementById("off-val-error").textContent.trim()
+                    };
+                })()`);
+                assert(shift.result === "-" && shift.message, `소수 이동량: 결과 ${shift.result}, 안내 "${shift.message}"`);
+                return `뉴욕·서울·UTC 기간 ${nyRow.period}, ISO 2023-02-29 → "${invalidText}", 이동량 2.5 → "${shift.result}"(${shift.message})`;
+            }
         }
     ];
 }

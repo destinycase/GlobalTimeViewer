@@ -462,7 +462,8 @@
                                 <div class="calc-shift-controls">
                                     <button type="button" class="sm-btn" id="off-val-minus" aria-label="Decrease"
                                         title="Decrease">-</button>
-                                    <input type="number" id="off-val" class="form-input" value="1" min="1">
+                                    <input type="number" id="off-val" class="form-input" value="1" min="1" step="1"
+                                        aria-describedby="date-offset-help off-val-error">
                                     <button type="button" class="sm-btn" id="off-val-plus" aria-label="Increase"
                                         title="Increase">+</button>
                                     <select id="off-unit" class="form-select">
@@ -476,6 +477,7 @@
                                         <option value="before" data-i18n="calc_label_before">before</option>
                                     </select>
                                 </div>
+                                <span id="off-val-error" class="field-error" role="status" aria-live="polite"></span>
                             </div>
 
                             <!-- Row 3: Result Date -->

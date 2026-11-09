@@ -251,11 +251,11 @@
             el.textContent = `${value}${suffix || ""}`;
         };
 
-        const setDateInputFeedback = (input, isInvalid) => {
+        const setDateInputFeedback = (input, isInvalid, messageKey = "calc_invalid_date_help") => {
             const errorEl = helpers.getElementById(`${input.id}-error`);
             if (isInvalid) {
                 input.setAttribute("aria-invalid", "true");
-                if (errorEl) errorEl.textContent = t("calc_invalid_date_help");
+                if (errorEl) errorEl.textContent = t(messageKey);
             } else {
                 input.removeAttribute("aria-invalid");
                 if (errorEl) errorEl.textContent = "";
@@ -286,8 +286,15 @@
             setDateInputFeedback(offsetStart, !offStartD);
             if (!offStartD) { offsetResult.value = "-"; return; }
 
+            // The shift is a whole number of 1 or more. A fraction ("2.5"), zero or an empty box is
+            // rejected with a message instead of being cut down to its integer part.
+            const offsetRaw = String(offsetValueInput.value ?? "").trim();
+            const offsetValue = /^\d+$/.test(offsetRaw) ? Number(offsetRaw) : NaN;
+            const isOffsetValid = Number.isSafeInteger(offsetValue) && offsetValue >= 1;
+            setDateInputFeedback(offsetValueInput, !isOffsetValid, "calc_offset_invalid");
+            if (!isOffsetValid) { offsetResult.value = "-"; return; }
+
             const resultDate = new Date(offStartD.getTime());
-            const offsetValue = parseInt(offsetValueInput.value, 10) || 0;
             const directionMultiplier = offsetDirection.value === "before" ? -1 : 1;
             const actualShift = offsetValue * directionMultiplier;
 

@@ -164,25 +164,13 @@
             if (!Number.isFinite(safeStartMs) || !Number.isFinite(safeEndMs)) return "";
 
             const sign = safeEndMs < safeStartMs ? "-" : "";
-            let d = 0;
-            let h = 0;
-            let m = 0;
 
-            if (hasLuxonDateTime()) {
-                // Diff from the earlier to the later instant so every component is positive and
-                // flooring truncates the same way for negative spans.
-                const start = DateTime.fromMillis(Math.min(safeStartMs, safeEndMs));
-                const end = DateTime.fromMillis(Math.max(safeStartMs, safeEndMs));
-                const diff = end.diff(start, ["days", "hours", "minutes"]).toObject();
-                d = Math.abs(Math.floor(diff.days || 0));
-                h = Math.abs(Math.floor(diff.hours || 0));
-                m = Math.abs(Math.floor(diff.minutes || 0));
-            } else {
-                const totalMinutes = Math.floor(Math.abs(safeEndMs - safeStartMs) / 60000);
-                d = Math.floor(totalMinutes / (24 * 60));
-                h = Math.floor((totalMinutes % (24 * 60)) / 60);
-                m = totalMinutes % 60;
-            }
+            // Real elapsed time between the two instants, with fixed 24-hour days. (A calendar diff
+            // in the viewer's local zone would count a day across the viewer's DST change as 23/25h.)
+            const totalMinutes = Math.floor(Math.abs(safeEndMs - safeStartMs) / 60000);
+            const d = Math.floor(totalMinutes / (24 * 60));
+            const h = Math.floor((totalMinutes % (24 * 60)) / 60);
+            const m = totalMinutes % 60;
 
             if (lang === "ko") {
                 return `${sign}${d}\uC77C ${h}\uC2DC\uAC04 ${m}\uBD84`;

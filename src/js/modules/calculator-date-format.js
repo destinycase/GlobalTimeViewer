@@ -10,8 +10,9 @@
     const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
     const LOCAL_DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
     const SQL_DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/;
-    const ISO_WITH_EXPLICIT_ZONE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/i;
-    const RFC2822_PATTERN = /^(?:[A-Za-z]{3},\s*)?\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\s+\d{2}:\d{2}(?::\d{2})?\s+(?:[A-Za-z]{1,5}|[+-]\d{4})$/;
+    const ISO_WITH_EXPLICIT_ZONE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/i;
+    const RFC2822_PATTERN = /^(?:[A-Za-z]{3},\s*)?(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?\s+(?:[A-Za-z]{1,5}|[+-]\d{4})$/;
+    const RFC2822_MONTHS = Object.freeze(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]);
 
     function isValidDateObject(value) {
         return value instanceof Date && !Number.isNaN(value.getTime());
@@ -85,16 +86,24 @@
         );
     }
 
+    // Date.parse rolls impossible dates over (2023-02-29 -> 2023-03-01), so the written calendar
+    // date and clock fields are checked strictly before the parsed instant is trusted.
     function parseZonedIsoString(raw) {
         const normalized = String(raw || "").trim();
-        if (!ISO_WITH_EXPLICIT_ZONE_PATTERN.test(normalized)) return null;
+        const matched = normalized.match(ISO_WITH_EXPLICIT_ZONE_PATTERN);
+        if (!matched) return null;
+        if (!buildValidatedUtcDate(matched[1], matched[2], matched[3], matched[4], matched[5], matched[6] || 0)) return null;
         const epochMs = Date.parse(normalized);
         return Number.isFinite(epochMs) ? new Date(epochMs) : null;
     }
 
     function parseRfc2822String(raw) {
         const normalized = String(raw || "").trim();
-        if (!RFC2822_PATTERN.test(normalized)) return null;
+        const matched = normalized.match(RFC2822_PATTERN);
+        if (!matched) return null;
+        const monthIndex = RFC2822_MONTHS.indexOf(matched[2].toLowerCase());
+        if (monthIndex < 0) return null;
+        if (!buildValidatedUtcDate(matched[3], monthIndex + 1, matched[1], matched[4], matched[5], matched[6] || 0)) return null;
         const epochMs = Date.parse(normalized);
         return Number.isFinite(epochMs) ? new Date(epochMs) : null;
     }

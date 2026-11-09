@@ -232,7 +232,8 @@ function createCalculatorContext() {
 
     const offsetStart = register(createElement({ id: "offset-start", type: "date", value: "2026-03-07" }));
     const offsetStartError = register(createElement({ id: "offset-start-error" }));
-    const offVal = register(createElement({ id: "off-val", type: "number", value: "0" }));
+    const offVal = register(createElement({ id: "off-val", type: "number", value: "1" }));
+    const offValError = register(createElement({ id: "off-val-error" }));
     const offUnit = register(createElement({ id: "off-unit", type: "select-one", value: "day" }));
     const offDir = register(createElement({ id: "off-dir", type: "select-one", value: "after" }));
     const offsetRes = register(createElement({ id: "offset-res", type: "text", value: "-" }));
@@ -431,6 +432,7 @@ function createCalculatorContext() {
             offsetStart,
             offsetStartError,
             offVal,
+            offValError,
             offUnit,
             offDir,
             offsetRes,
@@ -523,7 +525,7 @@ test("date calculators reject overflow dates, report the field, and recover on v
 
     elements.offsetStart.value = "2024-02-29";
     elements.offsetStart.dispatch("input");
-    expect(elements.offsetRes.value).toBe("2024-02-29 00:00:00");
+    expect(elements.offsetRes.value).toBe("2024-03-01 00:00:00");
     expect(elements.offsetStart.getAttribute("aria-invalid")).toBe(null);
     expect(elements.offsetStartError.textContent).toBe("");
 
@@ -877,4 +879,32 @@ test("legacy initCalculators resolves global refs at call time instead of module
 
     expect(swappedStorage.getItem("GTV_CalcCountdown_v1")).not.toBe(null);
     expect(storage.getItem("GTV_CalcCountdown_v1")).toBe(null);
+});
+
+test("date shift rejects fractions, zero and empty amounts with a message instead of truncating", () => {
+    const { sandbox, elements } = createCalculatorContext();
+    sandbox.GTVCalculator.initCalculators({ t: createTranslator(), copyText: async () => { } });
+    elements.offsetStart._cdp = { selectedDate: new Date("2024-02-29T00:00:00Z") };
+    elements.offsetStart.value = "2024-02-29";
+    elements.offUnit.value = "year";
+    elements.offDir.value = "after";
+
+    const shiftWith = (value) => {
+        elements.offVal.value = value;
+        elements.offVal.dispatch("input");
+        return elements.offsetRes.value;
+    };
+
+    expect(shiftWith("2.5")).toBe("-");
+    expect(elements.offVal.getAttribute("aria-invalid")).toBe("true");
+    expect(elements.offValError.textContent).toBe("calc_offset_invalid");
+    expect(shiftWith("0.5")).toBe("-");
+    expect(shiftWith("")).toBe("-");
+    expect(shiftWith("1e3")).toBe("-");
+
+    expect(shiftWith("2")).toBe("2026-02-28 00:00:00");
+    expect(elements.offVal.getAttribute("aria-invalid")).toBe(null);
+    expect(elements.offValError.textContent).toBe("");
+    elements.offUnit.value = "day";
+    expect(shiftWith("3")).toBe("2024-03-03 00:00:00");
 });
