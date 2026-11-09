@@ -983,18 +983,28 @@ function buildScenarios(ctx) {
                     });
                 }
 
-                // A cancelled reset keeps the settings popup open; a confirmed one closes it.
+                // Reset asks in the in-page confirm dialog (a browser dialog fails the check). Cancel and
+                // Esc keep the settings popup open; Confirm runs the reset and closes it.
                 await clickAt("#open-settings-btn");
                 assert(await shown("settings-overlay"), "설정 팝업이 다시 열리지 않음");
                 ctx.nativeAnswer = null;
+                const nativeBeforeReset = ctx.nativeDialogs.length;
                 await clickAt("#reset-except-group-tz-btn");
-                await sleep(300);
-                assert(await shown("settings-overlay"), "취소한 초기화 뒤 설정 팝업이 닫힘");
-                ctx.nativeAnswer = "ok";
+                await until("초기화 확인 창", () => shown("app-confirm-overlay"));
+                const confirmMessage = await api.ev(`document.getElementById("app-confirm-message").textContent.trim()`);
+                await clickAt("#app-confirm-cancel");
+                await sleep(200);
+                assert(!(await shown("app-confirm-overlay")) && await shown("settings-overlay"), "취소한 초기화 뒤 상태가 다름");
                 await clickAt("#reset-except-group-tz-btn");
+                await until("초기화 확인 창(Esc)", () => shown("app-confirm-overlay"));
+                await pressEscape();
+                assert(!(await shown("app-confirm-overlay")) && await shown("settings-overlay"), "확인 창의 Esc가 설정 팝업까지 닫음");
+                await clickAt("#reset-except-group-tz-btn");
+                await until("초기화 확인 창(확인)", () => shown("app-confirm-overlay"));
+                await clickAt("#app-confirm-ok");
                 await until("초기화 뒤 설정 팝업 닫힘", async () => !(await shown("settings-overlay")));
-                ctx.nativeAnswer = null;
-                const confirmCount = ctx.nativeDialogs.filter((d) => d.type === "confirm").length;
+                assert(ctx.nativeDialogs.length === nativeBeforeReset, "초기화 확인을 브라우저 기본 창으로 물음");
+                const confirmCount = 3;
 
                 // Fixed-time slot rename asks in the in-page prompt, not the browser prompt.
                 await api.switchTab("fixed-time");
@@ -1014,7 +1024,7 @@ function buildScenarios(ctx) {
                 const storedName = (await api.storedData())?.groups?.[0]?.fixedTimes?.[0]?.name;
                 assert(storedName === "회의", `슬롯 이름 저장: ${storedName}`);
 
-                return `하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘, 초기화 취소 시 유지·확인 시 닫힘(확인 창 ${confirmCount}회), 슬롯 이름 화면 안 입력 창으로 "${slotTitle.trim()}"`;
+                return `하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘, 초기화 확인 창 "${confirmMessage}" 화면 안 창·취소/Esc 유지·확인 시 닫힘(${confirmCount}회), 슬롯 이름 화면 안 입력 창으로 "${slotTitle.trim()}"`;
             }
         }
     ];

@@ -576,7 +576,7 @@
         }
 
         async function resetAllSettings() {
-            if (!confirmFn(translate("confirm_reset_all_settings"))) return false;
+            if (!(await confirmFn(translate("confirm_reset_all_settings")))) return false;
 
             const keysToRemove = [
                 storageKey,
@@ -593,7 +593,7 @@
         }
 
         async function resetExceptGroupsAndTimezones() {
-            if (!confirmFn(translate("confirm_reset_except_group_tz"))) return false;
+            if (!(await confirmFn(translate("confirm_reset_except_group_tz")))) return false;
 
             dep.syncCurrentMultiStateToActiveSubgroup();
             const currentState = getStateSnapshot();

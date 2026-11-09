@@ -238,14 +238,14 @@
             dep.showToast(translate("toast_name_changed"));
         }
 
-        function deleteGroup(idx) {
+        async function deleteGroup(idx) {
             const state = getState();
             const groups = getStateGroups(state);
             if (groups.length <= 1) {
                 dep.showToast(translate("toast_group_min"));
                 return;
             }
-            if (!confirmFn(translate("confirm_delete_group"))) return;
+            if (!(await confirmFn(translate("confirm_delete_group")))) return;
 
             const safeIdx = clampGroupIndexByLength(idx, groups.length);
             const currentActiveGroupId = clampGroupIndexByLength(state.activeGroupId, groups.length);
@@ -325,7 +325,7 @@
             dep.showToast(translate("toast_subgroup_name_changed"));
         }
 
-        function deleteMultiSubgroup(subgroupId) {
+        async function deleteMultiSubgroup(subgroupId) {
             const group = getCurrentGroup();
             if (!group) return;
             ensureGroupMultiSubgroupsSafe(group);
@@ -333,7 +333,7 @@
                 dep.showToast(translate("toast_subgroup_min"));
                 return;
             }
-            if (!confirmFn(translate("confirm_delete_subgroup"))) return;
+            if (!(await confirmFn(translate("confirm_delete_subgroup")))) return;
 
             dep.syncCurrentMultiStateToActiveSubgroup();
             const removeIdx = group.multiSubgroups.findIndex((item) => item.id === subgroupId);

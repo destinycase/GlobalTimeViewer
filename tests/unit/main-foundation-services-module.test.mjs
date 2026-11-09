@@ -278,7 +278,7 @@ describe("GTV main foundation services module", () => {
 
             expect(feedbackConfig.document).toBe(globalThis.document);
             expect(feedbackConfig.location).toBe(globalThis.location);
-            expect(feedbackConfig.confirmFn("confirm?")).toBe(true);
+            expect(await feedbackConfig.confirmFn("confirm?")).toBe(true);
             expect(confirmCalls).toEqual(["confirm?"]);
             await expect(service.promptFn("rename?", "group")).resolves.toBe("group-from-global");
             expect(promptCalls).toEqual([["rename?", "group"]]);
@@ -359,7 +359,7 @@ describe("GTV main foundation services module", () => {
 
         expect(feedbackConfig.document).toBe(windowRef.document);
         expect(feedbackConfig.location).toBe(windowRef.location);
-        expect(feedbackConfig.confirmFn("confirm?")).toBe(true);
+        expect(await feedbackConfig.confirmFn("confirm?")).toBe(true);
         expect(confirmCalls).toEqual(["confirm?"]);
         await expect(service.promptFn("rename?", "group")).resolves.toBe("group-from-window");
         expect(promptCalls).toEqual([["rename?", "group"]]);
@@ -434,7 +434,7 @@ describe("GTV main foundation services module", () => {
 
         expect(feedbackConfig.document).toBe(getterDocumentRef);
         expect(feedbackConfig.location).toBe(getterLocationRef);
-        expect(feedbackConfig.confirmFn("confirm?")).toBe(true);
+        expect(await feedbackConfig.confirmFn("confirm?")).toBe(true);
         expect(confirmCalls).toEqual(["confirm?"]);
         await expect(service.promptFn("rename?", "group")).resolves.toBe("group-from-getter-window");
         expect(promptCalls).toEqual([["rename?", "group"]]);
@@ -539,6 +539,88 @@ describe("GTV main foundation services module", () => {
 
         await expect(pending).resolves.toBe("Updated");
         expect(overlay.style.display).toBe("none");
+    });
+
+    it("asks for confirmation in the app confirm dialog and falls back when it is missing", async () => {
+        const moduleApi = loadMainFoundationServicesModule();
+        const overlay = createEventNode();
+        const message = createEventNode();
+        const okBtn = createEventNode();
+        const cancelBtn = createEventNode();
+        const closeBtn = createEventNode();
+        let cancelFocused = 0;
+        cancelBtn.focus = () => { cancelFocused += 1; };
+        const elementsById = {
+            "app-confirm-overlay": overlay,
+            "app-confirm-message": message,
+            "app-confirm-ok": okBtn,
+            "app-confirm-cancel": cancelBtn,
+            "app-confirm-close": closeBtn
+        };
+        const browserConfirms = [];
+        const baseDeps = {
+            GTV_SERVICE_BOOTSTRAP: { createService: () => ({}) },
+            GTV_PERSISTENCE_SERVICE_BUNDLE: { createService: () => ({}) },
+            GTV_MAIN_UI_UTILS: {
+                createService: () => ({
+                    setCustomTooltip: () => {},
+                    upgradeNativeTitleTooltips: () => {},
+                    hideFloatingTooltip: () => {},
+                    bindFloatingTooltipEvents: () => {},
+                    clearDragGhost: () => {},
+                    createDragGhostFromRow: () => {}
+                })
+            },
+            GTV_APP_FEEDBACK: { createService: () => ({}) },
+            GTV_CALCULATOR_ACTIONS: { createService: () => ({}) },
+            t: (key) => key,
+            confirmFn: (text) => { browserConfirms.push(text); return true; }
+        };
+        const service = moduleApi.createService({
+            ...baseDeps,
+            documentRef: { getElementById: (id) => elementsById[id] || null }
+        });
+
+        // Confirm resolves true; the dialog shows the message and focuses Cancel.
+        let pending = service.confirmFn("Reset all?");
+        expect(overlay.style.display).toBe("flex");
+        expect(message.textContent).toBe("Reset all?");
+        expect(cancelFocused).toBe(1);
+        okBtn.dispatch("click");
+        await expect(pending).resolves.toBe(true);
+        expect(overlay.style.display).toBe("none");
+
+        // Cancel, the close button, a background click and Esc all resolve false.
+        pending = service.confirmFn("Delete?");
+        cancelBtn.dispatch("click");
+        await expect(pending).resolves.toBe(false);
+        pending = service.confirmFn("Delete?");
+        closeBtn.dispatch("click");
+        await expect(pending).resolves.toBe(false);
+        pending = service.confirmFn("Delete?");
+        overlay.dispatch("click", { target: message });
+        expect(overlay.style.display).toBe("flex");
+        overlay.dispatch("click", { target: overlay });
+        await expect(pending).resolves.toBe(false);
+        pending = service.confirmFn("Delete?");
+        overlay.dispatch("keydown", { key: "Escape" });
+        await expect(pending).resolves.toBe(false);
+
+        // A second request cancels the first one.
+        const first = service.confirmFn("First?");
+        const second = service.confirmFn("Second?");
+        await expect(first).resolves.toBe(false);
+        okBtn.dispatch("click");
+        await expect(second).resolves.toBe(true);
+        expect(browserConfirms).toEqual([]);
+
+        // Without the dialog markup the injected (browser) confirm is used.
+        const fallbackService = moduleApi.createService({
+            ...baseDeps,
+            documentRef: { getElementById: () => null }
+        });
+        await expect(fallbackService.confirmFn("Fallback?")).resolves.toBe(true);
+        expect(browserConfirms).toEqual(["Fallback?"]);
     });
 
     it("cancels previous prompt request when promptFn is called concurrently", async () => {

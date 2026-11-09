@@ -3680,6 +3680,14 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     font-size: 16px;
 }
 
+.confirm-overlay-message {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text);
+    white-space: pre-line;
+}
+
 .prompt-overlay-actions {
     display: flex;
     justify-content: flex-end;

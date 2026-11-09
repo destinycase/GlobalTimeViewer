@@ -335,7 +335,7 @@ describe("GTV group tabs module", () => {
         expect(timelineRenderCount).toBe(1);
     });
 
-    it("deleteMultiSubgroup uses injected confirmFn and aborts when denied", () => {
+    it("deleteMultiSubgroup uses injected confirmFn and aborts when denied", async () => {
         const module = loadGroupTabsModule({
             confirm: () => {
                 throw new Error("global confirm should not be called");
@@ -367,7 +367,7 @@ describe("GTV group tabs module", () => {
             }
         }));
 
-        service.deleteMultiSubgroup("sg-2");
+        await service.deleteMultiSubgroup("sg-2");
 
         expect(confirmCalls).toBe(1);
         expect(saveCalls).toBe(0);
@@ -427,7 +427,7 @@ describe("GTV group tabs module", () => {
         expect(state.groups[0].name).toBe("Deps Prompt Group");
     });
 
-    it("deleteMultiSubgroup falls back to deps.confirm when confirmFn is absent", () => {
+    it("deleteMultiSubgroup falls back to deps.confirm when confirmFn is absent", async () => {
         const module = loadGroupTabsModule({
             confirm: () => {
                 throw new Error("global confirm should not be called");
@@ -456,7 +456,7 @@ describe("GTV group tabs module", () => {
             }
         }));
 
-        service.deleteMultiSubgroup("sg-2");
+        await service.deleteMultiSubgroup("sg-2");
 
         expect(confirmCalls).toBe(1);
         expect(state.groups[0].multiSubgroups).toHaveLength(1);
@@ -486,7 +486,7 @@ describe("GTV group tabs module", () => {
         expect(toastKey).toBe("toast_name_changed");
     });
 
-    it("renderGroups delete button removes target group and updates state", () => {
+    it("renderGroups delete button removes target group and updates state", async () => {
         const groupContainer = createElementStub("div");
         const addBtn = createElementStub("button");
         const module = loadGroupTabsModule({
@@ -519,6 +519,8 @@ describe("GTV group tabs module", () => {
         expect(delBtn).toBeTruthy();
 
         delBtn.onclick?.({ stopPropagation() { } });
+        // Deletion waits for the (now asynchronous) confirm answer.
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         expect(state.groups).toHaveLength(1);
         expect(state.groups[0].name).toBe("B");
@@ -891,6 +893,7 @@ describe("GTV group tabs module", () => {
         exportBtn.onclick?.({ stopPropagation() { } });
         importBtn.onclick?.({ stopPropagation() { } });
         delBtn.onclick?.({ stopPropagation() { } });
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         expect(exportCalls).toBe(1);
         expect(importCalls).toBe(1);

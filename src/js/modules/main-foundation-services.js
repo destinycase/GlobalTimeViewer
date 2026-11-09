@@ -120,7 +120,8 @@
             safeDeps.window
         );
         const fallbackConfirmFn = resolveConfirmRef(safeDeps.confirm, windowRef);
-        const confirmFn = (typeof safeDeps.confirmFn === "function")
+        // Used only when the in-page confirm dialog is not available (see confirmFn below).
+        const confirmFallback = (typeof safeDeps.confirmFn === "function")
             ? safeDeps.confirmFn
             : ((message) => {
                 if (typeof fallbackConfirmFn === "function") {
@@ -201,6 +202,66 @@
         const calculatorModule = safeDeps.GTV_CALCULATOR || null;
         let activePromptResolver = null;
         let activePromptCleanup = null;
+        let activeConfirmFinalize = null;
+
+        // Asks for confirmation in the app's own dialog (#app-confirm-overlay) and resolves to
+        // true (Confirm) or false (Cancel, close button, background click, Esc). Cancel has the
+        // initial focus because every caller confirms a destructive action.
+        async function confirmFn(message) {
+            const overlay = documentRef?.getElementById?.("app-confirm-overlay");
+            const messageEl = documentRef?.getElementById?.("app-confirm-message");
+            const okBtn = documentRef?.getElementById?.("app-confirm-ok");
+            const cancelBtn = documentRef?.getElementById?.("app-confirm-cancel");
+            const closeBtn = documentRef?.getElementById?.("app-confirm-close");
+            const usable = [overlay, messageEl, okBtn, cancelBtn, closeBtn].every((el) => el
+                && typeof el.addEventListener === "function"
+                && typeof el.removeEventListener === "function") && !!overlay.style;
+            if (!usable) {
+                return !!(await confirmFallback(message));
+            }
+            if (typeof activeConfirmFinalize === "function") activeConfirmFinalize(false);
+
+            return await new Promise((resolve) => {
+                let settled = false;
+                const previousFocus = documentRef?.activeElement || null;
+                const onOk = () => finalize(true);
+                const onCancel = () => finalize(false);
+                const onOverlayClick = (event) => {
+                    if (event?.target === overlay) finalize(false);
+                };
+                const onKeydown = (event) => {
+                    if (event?.key === "Escape") {
+                        event.preventDefault?.();
+                        event.stopPropagation?.();
+                        finalize(false);
+                    }
+                };
+                function finalize(value) {
+                    if (settled) return;
+                    settled = true;
+                    okBtn.removeEventListener("click", onOk);
+                    cancelBtn.removeEventListener("click", onCancel);
+                    closeBtn.removeEventListener("click", onCancel);
+                    overlay.removeEventListener("click", onOverlayClick);
+                    overlay.removeEventListener("keydown", onKeydown);
+                    overlay.style.display = "none";
+                    if (activeConfirmFinalize === finalize) activeConfirmFinalize = null;
+                    if (typeof previousFocus?.focus === "function") previousFocus.focus();
+                    resolve(value);
+                }
+                activeConfirmFinalize = finalize;
+                messageEl.textContent = String(message || "");
+                okBtn.textContent = t("btn_confirm");
+                cancelBtn.textContent = t("btn_cancel");
+                overlay.style.display = "flex";
+                okBtn.addEventListener("click", onOk);
+                cancelBtn.addEventListener("click", onCancel);
+                closeBtn.addEventListener("click", onCancel);
+                overlay.addEventListener("click", onOverlayClick);
+                overlay.addEventListener("keydown", onKeydown);
+                if (typeof cancelBtn.focus === "function") cancelBtn.focus();
+            });
+        }
 
         async function promptFn(message, defaultValue = "") {
             if (promptOverride) {
