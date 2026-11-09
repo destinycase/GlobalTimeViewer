@@ -103,35 +103,44 @@
             };
         };
 
-        const setFieldValues = (values) => {
+        const FIELD_VALUE_KEYS = Object.freeze([
+            ["unix_sec", unixTsInput, "unixSec"],
+            ["unix_ms", unixTsMsInput, "unixMs"],
+            ["iso_local", unixIsoLocalInput, "isoLocal"],
+            ["iso_utc", unixIsoUtcInput, "isoUtc"],
+            ["rfc2822", unixRfc2822Input, "rfc2822"],
+            ["sql", unixSqlInput, "sql"],
+            ["human", unixHumanInput, "human"]
+        ]);
+
+        // activeKey: the field the user is typing in. It keeps the user's text (also when empty or
+        // invalid) so typing, deleting and correcting are never overwritten; only the other fields update.
+        const setFieldValues = (values, activeKey = null) => {
             if (!values) return;
             isSyncing = true;
-            unixTsInput.value = values.unixSec;
-            unixTsMsInput.value = values.unixMs;
-            unixIsoLocalInput.value = values.isoLocal;
-            unixIsoUtcInput.value = values.isoUtc;
-            unixRfc2822Input.value = values.rfc2822;
-            unixSqlInput.value = values.sql;
-            unixHumanInput.value = values.human;
+            FIELD_VALUE_KEYS.forEach(([key, el, valueKey]) => {
+                if (key === activeKey) return;
+                el.value = values[valueKey];
+            });
             isSyncing = false;
         };
 
-        const renderInvalid = () => {
+        const renderInvalid = (activeKey = null) => {
             hasValidEpoch = false;
             setRowsInvalid(true);
             const invalidText = t("calc_unix_invalid");
             setFieldValues({
                 unixSec: invalidText, unixMs: invalidText, isoLocal: invalidText,
                 isoUtc: invalidText, rfc2822: invalidText, sql: invalidText, human: invalidText
-            });
+            }, activeKey);
         };
 
-        const renderFromEpoch = (epochMs) => {
+        const renderFromEpoch = (epochMs, activeKey = null) => {
             const values = buildFieldValues(epochMs);
-            if (!values) { renderInvalid(); return; }
+            if (!values) { renderInvalid(activeKey); return; }
             hasValidEpoch = true;
             setRowsInvalid(false);
-            setFieldValues(values);
+            setFieldValues(values, activeKey);
         };
 
         const parseFieldValue = (key, value) => {
@@ -161,12 +170,14 @@
             return runtime.dateFormat.isValidDateObject(parsedDate) ? Math.trunc(parsedDate.getTime()) : null;
         };
 
-        const handleFieldInput = (key, fieldEl) => {
+        // While typing ("input") the edited field keeps its text. On "change" (the field is committed)
+        // a valid value is rewritten in the standard form; an invalid one is left as typed.
+        const handleFieldInput = (key, fieldEl, isCommit = false) => {
             if (isSyncing || !fieldEl) return;
             const parsedMs = parseFieldValue(key, fieldEl.value);
-            if (!Number.isFinite(parsedMs)) { renderInvalid(); return; }
+            if (!Number.isFinite(parsedMs)) { renderInvalid(key); return; }
             activeEpochMs = Math.trunc(parsedMs);
-            renderFromEpoch(activeEpochMs);
+            renderFromEpoch(activeEpochMs, isCommit ? null : key);
         };
 
         const updateNow = () => {
@@ -183,8 +194,8 @@
         };
 
         editableFields.forEach(({ key, el }) => {
-            el.addEventListener("input", () => handleFieldInput(key, el));
-            el.addEventListener("change", () => handleFieldInput(key, el));
+            el.addEventListener("input", () => handleFieldInput(key, el, false));
+            el.addEventListener("change", () => handleFieldInput(key, el, true));
         });
         if (unixSyncNowBtn) unixSyncNowBtn.addEventListener("click", syncNow);
 

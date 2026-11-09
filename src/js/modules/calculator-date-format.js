@@ -12,6 +12,10 @@
     const SQL_DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/;
     const ISO_WITH_EXPLICIT_ZONE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/i;
     const RFC2822_PATTERN = /^(?:[A-Za-z]{3},\s*)?(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?\s+(?:[A-Za-z]{1,5}|[+-]\d{4})$/;
+    // Accepted ISO 8601 form (extended format only): YYYY-MM-DD, optionally THH:mm[:ss[.fff]] and a
+    // zone (Z or ±HH:MM). Week dates, ordinal dates, basic format, reduced dates and 24:00 are refused
+    // whether or not Luxon is available, so both parsing paths accept the same inputs.
+    const ISO_STANDARD_PATTERN = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?$/i;
     const RFC2822_MONTHS = Object.freeze(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]);
 
     function isValidDateObject(value) {
@@ -25,7 +29,9 @@
         const h = Number(hour);
         const min = Number(minute);
         const sec = Number(second);
-        const built = new Date(y, m - 1, d, h, min, sec, 0);
+        const built = new Date(2000, 0, 1, h, min, sec, 0);
+        // new Date(y, ...) maps years 0-99 to 1900-1999; set the full date explicitly instead.
+        built.setFullYear(y, m - 1, d);
         if (Number.isNaN(built.getTime())) return null;
         if (
             built.getFullYear() !== y ||
@@ -108,9 +114,15 @@
         return Number.isFinite(epochMs) ? new Date(epochMs) : null;
     }
 
+    function isStandardIsoDateTime(normalized) {
+        const matched = normalized.match(ISO_STANDARD_PATTERN);
+        if (!matched) return false;
+        return !!buildValidatedUtcDate(matched[1], matched[2], matched[3], matched[4] || 0, matched[5] || 0, matched[6] || 0);
+    }
+
     function parseIsoLocalDateString(raw, luxonDT) {
         const normalized = String(raw || "").trim();
-        if (!normalized) return null;
+        if (!normalized || !isStandardIsoDateTime(normalized)) return null;
         const hasExplicitZone = ISO_WITH_EXPLICIT_ZONE_PATTERN.test(normalized);
 
         if (luxonDT && typeof luxonDT.fromISO === "function") {
@@ -127,7 +139,7 @@
 
     function parseIsoUtcDateString(raw, luxonDT) {
         const normalized = String(raw || "").trim();
-        if (!normalized) return null;
+        if (!normalized || !isStandardIsoDateTime(normalized)) return null;
         const hasExplicitZone = ISO_WITH_EXPLICIT_ZONE_PATTERN.test(normalized);
 
         if (luxonDT && typeof luxonDT.fromISO === "function") {
@@ -171,7 +183,8 @@
     }
 
     function toValidDate(value, luxonDT) {
-        if (!value) return null;
+        // Only empty values are "no date"; the number 0 is the Unix epoch.
+        if (value === null || value === undefined || value === "" || typeof value === "boolean") return null;
         if (isValidDateObject(value)) return new Date(value.getTime());
         if (typeof value === "number" && Number.isFinite(value)) {
             const parsed = new Date(value);

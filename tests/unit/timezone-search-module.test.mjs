@@ -750,6 +750,15 @@ describe("GTV timezone search module", () => {
         expect(standardTabBtn.classList.contains("active")).toBe(true);
         expect(standardTabBtn.getAttribute("aria-selected")).toBe("true");
         expect(clearSearchBtn.disabled).toBe(true);
+        // The standard time list (offsets only) has its own search hint.
+        expect(searchInput.getAttribute("data-i18n")).toBe("placeholder_timezone_search_standard");
+        expect(searchInput.placeholder).toBe("placeholder_timezone_search_standard");
+
+        // A city name finds nothing in the standard list and points to the country list.
+        searchInput.value = "Seoul";
+        searchInput.dispatchEvent({ type: "input", target: searchInput });
+        expect(list.children).toHaveLength(1);
+        expect(list.children[0].textContent).toBe("overlay_no_tz_results_standard");
 
         searchInput.value = "UTC+09:00";
         searchInput.dispatchEvent({ type: "input", target: searchInput });
@@ -759,6 +768,11 @@ describe("GTV timezone search module", () => {
         countryTabBtn.dispatchEvent({ type: "click", target: countryTabBtn });
         expect(countryTabBtn.classList.contains("active")).toBe(true);
         expect(countryTabBtn.getAttribute("aria-selected")).toBe("true");
+        expect(searchInput.getAttribute("data-i18n")).toBe("placeholder_timezone_search");
+        expect(searchInput.placeholder).toBe("placeholder_timezone_search");
+        searchInput.value = "Nowhere";
+        searchInput.dispatchEvent({ type: "input", target: searchInput });
+        expect(list.children[0].textContent).toBe("overlay_no_tz_results");
 
         clearSearchBtn.dispatchEvent({ type: "click", target: clearSearchBtn });
         expect(searchInput.value).toBe("");

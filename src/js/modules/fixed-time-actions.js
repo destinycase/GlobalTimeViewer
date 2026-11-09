@@ -202,15 +202,30 @@
             return payload?.clock || "";
         }
 
+        // Out-of-range clock values (25:00:00, 10:75:00) and impossible dates are rejected here, like
+        // the time edit tabs do, instead of being clamped later when the UTC time is built.
+        function isValidClockParts(hour, minute, second) {
+            return Number.isInteger(hour) && hour >= 0 && hour <= 23
+                && Number.isInteger(minute) && minute >= 0 && minute <= 59
+                && Number.isInteger(second) && second >= 0 && second <= 59;
+        }
+
+        function isValidCalendarDate(year, month, day) {
+            const timeCore = globalObj?.GTVTimeCore || globalThis.GTVTimeCore;
+            if (!timeCore || typeof timeCore.buildStrictUtcDateFromParts !== "function") return true;
+            return !!timeCore.buildStrictUtcDateFromParts({ year, month, day, hour: 0, minute: 0, second: 0 });
+        }
+
         function buildFixedTimeCellTimeParts(rawValue) {
             const timeParts = dep.parseDateTimeParts(rawValue, "time");
             if (timeParts) {
                 const [hour, minute, second] = timeParts;
-                return { hour, minute, second };
+                return isValidClockParts(hour, minute, second) ? { hour, minute, second } : null;
             }
             const datetimeParts = dep.parseDateTimeParts(rawValue, "datetime");
             if (datetimeParts) {
-                const [, , , hour, minute, second] = datetimeParts;
+                const [year, month, day, hour, minute, second] = datetimeParts;
+                if (!isValidCalendarDate(year, month, day) || !isValidClockParts(hour, minute, second)) return null;
                 return { hour, minute, second };
             }
             return null;

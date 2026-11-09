@@ -219,6 +219,47 @@ describe("GTV time input mutations module", () => {
         expect(globalTimes[0].toISOString()).toBe("2026-03-29T02:00:00.000Z");
     });
 
+    it("handleTimeChange moves a skipped DST-start time forward with a notice and keeps the first repeated time", () => {
+        const module = loadTimeInputMutationsModule();
+        // America/New_York 2026: EST (-300) until 03-08 07:00Z, EDT (-240) until 11-01 06:00Z.
+        const dstStart = Date.UTC(2026, 2, 8, 7, 0, 0);
+        const dstEnd = Date.UTC(2026, 10, 1, 6, 0, 0);
+        const nyOffset = (_zone, date) => {
+            const ms = date.getTime();
+            return (ms >= dstStart && ms < dstEnd) ? -240 : -300;
+        };
+        const globalTimes = [new Date(Date.UTC(2026, 0, 1, 0, 0, 0))];
+        const toasts = [];
+        const service = module.createService({
+            isRealtime: () => false,
+            parseDateTimeParts: parsePartsByMode,
+            buildStrictUtcDateFromParts: buildUtcDateFromParts,
+            getGlobalTime: () => globalTimes[0],
+            getFixedOffsetForDisplayAtDate: () => null,
+            getTimezoneOffset: nyOffset,
+            setGlobalTime: (_idx, value) => { globalTimes[0] = value; },
+            updateClocks: () => {},
+            t: (key) => key,
+            showToast: (message) => toasts.push(message)
+        });
+
+        // 02:30 does not exist on 2026-03-08 in New York: moved forward to 03:30 EDT (07:30Z).
+        service.handleTimeChange("2026-03-08 02:30:00", "America/New_York", 0, null, "datetime");
+        expect(globalTimes[0].toISOString()).toBe("2026-03-08T07:30:00.000Z");
+        expect(toasts).toEqual(["toast_dst_gap_adjusted"]);
+
+        // Times right before and after the gap are unchanged and silent.
+        service.handleTimeChange("2026-03-08 01:59:00", "America/New_York", 0, null, "datetime");
+        expect(globalTimes[0].toISOString()).toBe("2026-03-08T06:59:00.000Z");
+        service.handleTimeChange("2026-03-08 03:00:00", "America/New_York", 0, null, "datetime");
+        expect(globalTimes[0].toISOString()).toBe("2026-03-08T07:00:00.000Z");
+
+        // 01:30 happens twice on 2026-11-01: the first occurrence (EDT, 05:30Z) is used, no notice.
+        service.handleTimeChange("2026-11-01 01:30:00", "America/New_York", 0, null, "datetime");
+        expect(globalTimes[0].toISOString()).toBe("2026-11-01T05:30:00.000Z");
+        expect(toasts).toEqual(["toast_dst_gap_adjusted"]);
+    });
+
     it("handleTimeChange handles custom offsets and invalid standard offsets", () => {
         const module = loadTimeInputMutationsModule();
         const zones = [{ id: "custom-1" }];

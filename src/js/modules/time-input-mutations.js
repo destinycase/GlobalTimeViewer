@@ -155,7 +155,7 @@
             });
         }
 
-        function resolveUtcDateForZone(tempUTC, timezone, timezoneId = null, offsetAnchor = null) {
+        function resolveUtcDateForZone(tempUTC, timezone, timezoneId = null, offsetAnchor = null, onSkippedTime = null) {
             if (!isValidDate(tempUTC)) return null;
             if (timezone === "UTC") return tempUTC;
 
@@ -174,21 +174,38 @@
             if (Number.isFinite(fixedOffsetMinutes)) {
                 return new Date(tempUTC.getTime() - (fixedOffsetMinutes * 60000));
             }
-            return resolveZonedWallTimeToUtc(tempUTC, timezone);
+            const resolved = resolveZonedWallTimeToUtc(tempUTC, timezone);
+            if (!resolved) return null;
+            if (resolved.skipped && typeof onSkippedTime === "function") onSkippedTime();
+            return resolved.date;
         }
 
         // tempUTC holds the typed wall-clock time read as UTC. The zone offset must be taken at the
-        // real instant, which differs from tempUTC by the offset itself, so a second lookup corrects
-        // inputs that fall within that distance of a DST transition.
+        // real instant, which differs from tempUTC by the offset itself, so the offset at each
+        // candidate instant is checked: a candidate is right when its own offset is the one used.
+        // - Normal times and times just around a DST change: the first consistent candidate.
+        // - Repeated times when DST ends: the first occurrence (the first lookup is already consistent).
+        // - Skipped times when DST starts (no candidate is consistent): moved forward by the skipped
+        //   amount, e.g. New York 02:30 -> 03:30, and reported with skipped: true.
         function resolveZonedWallTimeToUtc(tempUTC, timezone) {
             const firstOffset = dep.getTimezoneOffset(timezone, tempUTC);
             if (!Number.isFinite(firstOffset)) return null;
             const firstGuessMs = tempUTC.getTime() - (firstOffset * 60000);
             const secondOffset = dep.getTimezoneOffset(timezone, new Date(firstGuessMs));
             if (!Number.isFinite(secondOffset) || secondOffset === firstOffset) {
-                return new Date(firstGuessMs);
+                return { date: new Date(firstGuessMs), skipped: false };
             }
-            return new Date(tempUTC.getTime() - (secondOffset * 60000));
+            const secondGuessMs = tempUTC.getTime() - (secondOffset * 60000);
+            const thirdOffset = dep.getTimezoneOffset(timezone, new Date(secondGuessMs));
+            if (thirdOffset === secondOffset) {
+                return { date: new Date(secondGuessMs), skipped: false };
+            }
+            // Neither offset reproduces the typed wall time: it lies in the DST-start gap.
+            return { date: new Date(Math.max(firstGuessMs, secondGuessMs)), skipped: true };
+        }
+
+        function showSkippedTimeNotice() {
+            dep.showToast(translate("toast_dst_gap_adjusted"));
         }
 
         function handleTimeChange(val, timezone, slotIdx, timezoneId = null, inputMode = "datetime") {
@@ -205,7 +222,8 @@
                 tempUTC,
                 timezone,
                 timezoneId,
-                dep.getGlobalTime(0)
+                dep.getGlobalTime(0),
+                showSkippedTimeNotice
             );
             if (!isValidDate(utcDate)) return;
             dep.setGlobalTime(slotIdx, utcDate);
@@ -241,7 +259,8 @@
                 tempUTC,
                 timezone,
                 timezoneId,
-                new Date(range.startUtcMs)
+                new Date(range.startUtcMs),
+                showSkippedTimeNotice
             );
             if (!isValidDate(utcDate)) return;
             dep.setMultiRangeSlotDate(rangeIdx, slotIdx, utcDate);

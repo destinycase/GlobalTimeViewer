@@ -500,6 +500,93 @@ function buildScenarios(ctx) {
                 assert(shift.result === "-" && shift.message, `소수 이동량: 결과 ${shift.result}, 안내 "${shift.message}"`);
                 return `뉴욕·서울·UTC 기간 ${nyRow.period}, ISO 2023-02-29 → "${invalidText}", 이동량 2.5 → "${shift.result}"(${shift.message})`;
             }
+        },
+        {
+            id: "12",
+            title: "검수 결함 회귀: 변환기 손 입력·카운트다운 수정·DST 없는 시각·고정 시간 범위·표준시 검색 안내",
+            async run() {
+                const { api, page } = ctx;
+                const toastTexts = () => api.ev(`[...document.querySelectorAll("#toast-container .toast")].map((t) => t.textContent.trim())`);
+
+                // a) Typing into the converter one key at a time keeps the text and converts it.
+                await api.switchTab("calc");
+                await api.ev(`(() => { const el = document.getElementById("unix-iso-utc-input"); el.focus(); el.select(); })()`);
+                await page.client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });
+                await page.client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });
+                for (const ch of "2024-02-29T00:00:00Z") {
+                    await page.client.send("Input.insertText", { text: ch });
+                }
+                const typed = await api.ev(`({ field: document.getElementById("unix-iso-utc-input").value, unixSec: document.getElementById("unix-ts-input").value })`);
+                assert(typed.field === "2024-02-29T00:00:00Z" && typed.unixSec === "1709164800", `변환기 손 입력: ${JSON.stringify(typed)}`);
+
+                // b) Countdown: a manual edit after a calendar selection is used.
+                const countdown = await api.ev(`(() => {
+                    const input = document.querySelector(".countdown-target-input");
+                    if (!input._cdp) return { error: "no picker" };
+                    input._cdp.setDate(new Date(2030, 0, 1, 0, 0, 0));
+                    input.dispatchEvent(new Event("change", { bubbles: true }));
+                    input.value = "2031-06-15 12:00:00";
+                    input.dispatchEvent(new Event("change", { bubbles: true }));
+                    return { shown: input.value, picker: input._cdp.selectedDate ? input._cdp.selectedDate.getFullYear() : null };
+                })()`);
+                assert(countdown.shown === "2031-06-15 12:00:00" && countdown.picker === 2031, `카운트다운 수동 수정: ${JSON.stringify(countdown)}`);
+
+                // c) A skipped DST-start time moves forward with a notice; d) fixed-time 25:00 is refused.
+                const saved = {
+                    groups: [{
+                        name: "Review Group",
+                        zones: [
+                            { id: "tz-ny", type: "standard", zone: "America/New_York", name_ko: "미국 - 뉴욕", name_en: "USA - New York", fixedAbbr: "", fixedOffsetMinutes: null }
+                        ],
+                        baseTimezoneId: "tz-ny",
+                        showUtcRow: true,
+                        utcRowOrder: 0,
+                        fixedDate: "2026-07-01",
+                        fixedTimeShowLiveNow: false,
+                        fixedTimes: [{ id: "ft-1", name: "A", time: "09:00" }]
+                    }],
+                    activeGroupId: 0,
+                    currentMainTab: "fixed",
+                    activeGroupIdByMainTab: { live: 0, fixed: 0 },
+                    slotCount: 1
+                };
+                await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))})`);
+                await api.reload();
+                await api.switchTab("fixed");
+                await api.ev(`(() => {
+                    const input = document.querySelector('#clocks-container .base-row .time-input[data-slot="0"]');
+                    input.value = "2026-03-08 02:30:00";
+                    input.dispatchEvent(new Event("change", { bubbles: true }));
+                })()`);
+                const gap = await until("없는 시각 보정", async () => {
+                    const value = await api.ev(`document.querySelector('#clocks-container .base-row .time-input[data-slot="0"]').value`);
+                    return value.startsWith("2026-03-08 03:30:00") ? value : false;
+                });
+                const gapToasts = await toastTexts();
+                assert(gapToasts.some((text) => text.includes("서머타임") || text.toLowerCase().includes("daylight")), `없는 시각 안내 없음: ${JSON.stringify(gapToasts)}`);
+
+                await api.switchTab("fixed-time");
+                await until("고정 시간 표", () => api.ev(`document.querySelectorAll("#fixed-time-body .fixed-time-time-input").length > 0`));
+                const fixedBefore = await api.ev(`document.querySelector("#fixed-time-body .fixed-time-time-input").value`);
+                await api.ev(`(() => {
+                    const input = document.querySelector("#fixed-time-body .fixed-time-time-input");
+                    input.value = "25:00:00";
+                    input.dispatchEvent(new Event("change", { bubbles: true }));
+                })()`);
+                await sleep(300);
+                const fixedAfter = await api.ev(`document.querySelector("#fixed-time-body .fixed-time-time-input").value`);
+                const storedSlot = (await api.storedData())?.groups?.[0]?.fixedTimes?.[0]?.time;
+                assert(fixedAfter === fixedBefore && storedSlot === "09:00", `고정 시간 25:00: 표시 ${fixedBefore}→${fixedAfter}, 저장 ${storedSlot}`);
+
+                // e) The standard time list has its own search hint.
+                await api.ev(`document.getElementById("show-all-tz").click()`);
+                await sleep(200);
+                const placeholder = await api.ev(`document.getElementById("tz-search-input").placeholder`);
+                await api.ev(`document.getElementById("close-overlay").click()`);
+                assert(/UTC/.test(placeholder) && !/도시|city/i.test(placeholder), `표준시 목록 안내: ${placeholder}`);
+
+                return `변환기 손 입력 ${typed.unixSec}, 카운트다운 ${countdown.shown}, 02:30 → ${gap.slice(11, 19)}(안내), 25:00 거부(${fixedAfter}), 표준시 안내 "${placeholder}"`;
+            }
         }
     ];
 }

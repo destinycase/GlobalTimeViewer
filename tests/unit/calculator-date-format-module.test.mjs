@@ -128,3 +128,36 @@ for (const [label, luxonDT] of [["luxon", DateTime], ["fallback", null]]) {
         expect(iso(f.parseZonedIsoString("2026-03-07T00:00:00.250Z"))).toBe("2026-03-07T00:00:00.250Z");
     });
 }
+
+test("toValidDate treats 0 as the Unix epoch and only empty values as no date", () => {
+    const f = loadDateFormat();
+    expect(iso(f.toValidDate(0, DateTime))).toBe("1970-01-01T00:00:00.000Z");
+    expect(f.toValidDate(null, DateTime)).toBe(null);
+    expect(f.toValidDate(undefined, DateTime)).toBe(null);
+    expect(f.toValidDate("", DateTime)).toBe(null);
+    expect(f.toValidDate(false, DateTime)).toBe(null);
+    expect(f.toValidDate(true, DateTime)).toBe(null);
+});
+
+test("local dates accept years 0-99 like the UTC builder", () => {
+    const f = loadDateFormat();
+    expect(f.parseLocalDateOnlyString("0050-01-02").getFullYear()).toBe(50);
+    expect(f.buildValidatedLocalDate(0, 2, 29).getMonth()).toBe(1);
+    expect(f.buildValidatedLocalDate(99, 12, 31, 23, 59, 59).getFullYear()).toBe(99);
+    expect(f.buildValidatedLocalDate(1, 2, 29)).toBe(null);
+    expect(f.parseLocalDateTimeString("0050-01-02T10:00").getFullYear()).toBe(50);
+});
+
+for (const [label, luxonDT] of [["luxon", DateTime], ["fallback", null]]) {
+    test(`ISO parsers accept the same standard forms with and without Luxon (${label})`, () => {
+        const f = loadDateFormat();
+        for (const refused of ["2023-02-28T24:00:00Z", "2024-060", "2024-W09-4", "20240229T000000Z", "2024-02-29T10", "2024-02", "2024", "2024-02-29T25:00:00Z"]) {
+            expect(f.parseIsoUtcDateString(refused, luxonDT)).toBe(null);
+            expect(f.parseIsoLocalDateString(refused, luxonDT)).toBe(null);
+        }
+        expect(iso(f.parseIsoUtcDateString("2024-02-29", luxonDT))).toBe("2024-02-29T00:00:00.000Z");
+        expect(iso(f.parseIsoUtcDateString("2024-02-29T10:30", luxonDT))).toBe("2024-02-29T10:30:00.000Z");
+        expect(iso(f.parseIsoUtcDateString("2024-02-29T10:30:15.250+09:00", luxonDT))).toBe("2024-02-29T01:30:15.250Z");
+        expect(iso(f.parseIsoLocalDateString("2024-02-29T10:30:15Z", luxonDT))).toBe("2024-02-29T10:30:15.000Z");
+    });
+}

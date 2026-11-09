@@ -484,6 +484,15 @@
             if (searchInput && searchInput.value !== fullTimezoneOverlayQuery) {
                 searchInput.value = fullTimezoneOverlayQuery;
             }
+            if (searchInput) {
+                // The standard time list holds offsets only (UTC+09:00), so it gets its own hint. The
+                // data-i18n key follows the tab so a language change keeps the matching text.
+                const placeholderKey = fullTimezoneOverlayActiveTab === "standard"
+                    ? "placeholder_timezone_search_standard"
+                    : "placeholder_timezone_search";
+                searchInput.setAttribute?.("data-i18n", placeholderKey);
+                searchInput.placeholder = translate(placeholderKey);
+            }
             if (clearBtn) {
                 const hasQuery = !!String(fullTimezoneOverlayQuery || "").trim();
                 clearBtn.disabled = !hasQuery;
@@ -513,7 +522,12 @@
             if (!entries.length && typeof doc.createElement === "function") {
                 const emptyState = doc.createElement("div");
                 emptyState.className = "tz-empty-state";
-                emptyState.textContent = translate("overlay_no_tz_results");
+                const hasQuery = !!String(fullTimezoneOverlayQuery || "").trim();
+                emptyState.textContent = translate(
+                    (fullTimezoneOverlayActiveTab === "standard" && hasQuery)
+                        ? "overlay_no_tz_results_standard"
+                        : "overlay_no_tz_results"
+                );
                 list.appendChild(emptyState);
                 return;
             }

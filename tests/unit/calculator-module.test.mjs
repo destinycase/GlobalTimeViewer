@@ -908,3 +908,66 @@ test("date shift rejects fractions, zero and empty amounts with a message instea
     elements.offUnit.value = "day";
     expect(shiftWith("3")).toBe("2024-03-03 00:00:00");
 });
+
+test("unix converter keeps the field being typed and only updates the other fields", () => {
+    const { sandbox, elements } = createCalculatorContext();
+    sandbox.GTVCalculator.initCalculators({ t: createTranslator(), copyText: async () => { } });
+    const typeInto = (el, text) => {
+        el.value = text;
+        el.dispatch("input");
+    };
+
+    // Partial input: the typed field keeps its text, the others show the invalid notice.
+    typeInto(elements.unixIsoUtcInput, "2");
+    expect(elements.unixIsoUtcInput.value).toBe("2");
+    expect(elements.unixTsInput.value).toBe("Invalid timestamp");
+    typeInto(elements.unixIsoUtcInput, "2024-02-2");
+    expect(elements.unixIsoUtcInput.value).toBe("2024-02-2");
+
+    // A complete value updates the other fields but still leaves the typed text alone.
+    typeInto(elements.unixIsoUtcInput, "2024-02-29T00:00Z");
+    expect(elements.unixIsoUtcInput.value).toBe("2024-02-29T00:00Z");
+    expect(elements.unixTsInput.value).toBe("1709164800");
+    expect(elements.smartFormatRows.some((row) => row.classList.contains("is-invalid"))).toBe(false);
+
+    // Committing (change) rewrites a valid value in the standard form.
+    elements.unixIsoUtcInput.dispatch("change");
+    expect(elements.unixIsoUtcInput.value.startsWith("2024-02-29T00:00:00")).toBe(true);
+
+    // Clearing the field keeps it empty; an invalid commit is left as typed.
+    typeInto(elements.unixIsoUtcInput, "");
+    expect(elements.unixIsoUtcInput.value).toBe("");
+    expect(elements.unixTsInput.value).toBe("Invalid timestamp");
+    typeInto(elements.unixIsoUtcInput, "2023-02-29T00:00:00Z");
+    elements.unixIsoUtcInput.dispatch("change");
+    expect(elements.unixIsoUtcInput.value).toBe("2023-02-29T00:00:00Z");
+    expect(elements.unixTsInput.value).toBe("Invalid timestamp");
+
+    // Unix seconds typed digit by digit.
+    typeInto(elements.unixTsInput, "1");
+    expect(elements.unixTsInput.value).toBe("1");
+    typeInto(elements.unixTsInput, "1709164800");
+    expect(elements.unixTsInput.value).toBe("1709164800");
+    expect(elements.unixIsoUtcInput.value.startsWith("2024-02-29T00:00:00")).toBe(true);
+});
+
+test("countdown uses a manually edited target even after a calendar selection", () => {
+    const { sandbox, elements, storage } = createCalculatorContext();
+    sandbox.GTVCalculator.initCalculators({ t: createTranslator(), copyText: async () => { } });
+    const target = elements.countdownTargetInputs[0];
+    target._cdp = {
+        selectedDate: new Date(2030, 0, 1, 0, 0, 0),
+        setDate(value) { this.selectedDate = value ? new Date(value) : null; }
+    };
+
+    target.value = "2031-06-15 12:00:00";
+    target.dispatch("change");
+
+    const persisted = JSON.parse(storage.getItem("GTV_CalcCountdown_v1"));
+    expect(persisted[0].targetIso).toBe(new Date(2031, 5, 15, 12, 0, 0).toISOString());
+    expect(target._cdp.selectedDate.getTime()).toBe(new Date(2031, 5, 15, 12, 0, 0).getTime());
+
+    target.value = "not a date";
+    target.dispatch("change");
+    expect(JSON.parse(storage.getItem("GTV_CalcCountdown_v1"))[0].targetIso).toBe("");
+});

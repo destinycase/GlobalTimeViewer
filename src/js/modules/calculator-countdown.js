@@ -214,9 +214,13 @@
             nameInput.addEventListener("blur", () => closeNameEditor(true));
 
             targetInput.addEventListener("change", () => {
-                const parsed = (targetInput._cdp && targetInput._cdp.selectedDate)
-                    ? runtime.dateFormat.toValidDate(targetInput._cdp.selectedDate, luxonDT)
-                    : runtime.dateFormat.toValidDate(targetInput.value, luxonDT);
+                // The typed text decides the target: a date picked in the calendar is written into the
+                // box first, so it is read the same way, and a later manual edit is never overridden
+                // by the calendar's remembered selection. The calendar is then synced to the text.
+                const parsed = runtime.dateFormat.toValidDate(targetInput.value, luxonDT);
+                if (parsed && targetInput._cdp && typeof targetInput._cdp.setDate === "function") {
+                    targetInput._cdp.setDate(parsed);
+                }
                 if (!parsed) {
                     countdownState[i].targetIso = "";
                     countdownState[i].active = false;

@@ -356,6 +356,41 @@ describe("GTV fixed time actions module", () => {
         expect(renderCount).toBe(2);
     });
 
+    it("applyFixedTimeSlotByTimezoneInput rejects out-of-range clock values and impossible dates", () => {
+        const module = loadFixedTimeActionsModule();
+        const toastMessages = [];
+        const converted = [];
+        const parse = (raw, mode) => {
+            const patterns = { time: /^(\d{2}):(\d{2}):(\d{2})$/, datetime: /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/ };
+            const m = String(raw).match(patterns[mode]);
+            return m ? m.slice(1).map(Number) : null;
+        };
+        const service = module.createService({
+            t: (key) => key,
+            parseDateTimeParts: parse,
+            getFixedOffsetForDisplayAtDate: () => 0,
+            getLocalPartsByTimezone: () => ({ year: 2026, month: 3, day: 7 }),
+            getUTCDateFromLocalParts: (parts) => { converted.push(parts); return null; },
+            showToast: (message) => toastMessages.push(String(message)),
+            renderFixedTimeTab: () => {}
+        });
+        const anchor = new Date("2026-03-07T00:00:00.000Z");
+
+        for (const raw of ["25:00:00", "10:75:00", "10:00:60", "2026-02-30 10:00:00", "2026-03-07 24:00:00"]) {
+            expect(service.applyFixedTimeSlotByTimezoneInput(0, { zone: "UTC" }, raw, anchor)).toBe(false);
+        }
+        expect(converted).toEqual([]);
+        expect(toastMessages.filter((msg) => msg === "toast_invalid_date")).toHaveLength(5);
+
+        // Valid values reach the UTC conversion (here stubbed to fail, so false again).
+        service.applyFixedTimeSlotByTimezoneInput(0, { zone: "UTC" }, "23:59:59", anchor);
+        service.applyFixedTimeSlotByTimezoneInput(0, { zone: "UTC" }, "2024-02-29 00:00:00", anchor);
+        expect(converted).toEqual([
+            { year: 2026, month: 3, day: 7, hour: 23, minute: 59, second: 59 },
+            { year: 2026, month: 3, day: 7, hour: 0, minute: 0, second: 0 }
+        ]);
+    });
+
     it("applyFixedTimeSlotByTimezoneInput converts timezone input and updates slot value", () => {
         const module = loadFixedTimeActionsModule();
         const group = { fixedTimes: [{ id: "ft-1", name: "Slot", time: "09:00" }] };
