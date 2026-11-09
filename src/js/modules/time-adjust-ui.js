@@ -233,6 +233,14 @@
             label.textContent = labelText || (slotIdx === 0 ? translate("th_time_day_main") : translate("th_time_day_extra"));
             appendChildIfPossible(set, label);
 
+            // The leading actions differ per row (now/midnight/on the hour, set zero days, sync
+            // previous end). They share one fixed-width block so the hour/day/week buttons after
+            // it start at the same position in every row.
+            const lead = createElement("span");
+            if (lead) lead.className = "time-adjust-lead";
+            const leadTarget = lead || set;
+            let hasLeadAction = false;
+
             if (includeFixedActions) {
                 const fixedActions = [
                     ["btn_now", "now"],
@@ -240,9 +248,9 @@
                     ["btn_sharp_hour", "sharp_hour"]
                 ];
                 fixedActions.forEach(([labelKey, action]) => {
-                    appendChildIfPossible(set, createTimeAdjustActionButton(labelKey, slotIdx, action, actionHandler, disabled));
+                    appendChildIfPossible(leadTarget, createTimeAdjustActionButton(labelKey, slotIdx, action, actionHandler, disabled));
                 });
-                appendChildIfPossible(set, createTimeAdjustDivider());
+                hasLeadAction = true;
             }
 
             if (includeZeroDayAction) {
@@ -250,8 +258,8 @@
                 if (zeroDayBtn?.classList && typeof zeroDayBtn.classList.add === "function") {
                     zeroDayBtn.classList.add("time-adjust-zero-btn");
                 }
-                appendChildIfPossible(set, zeroDayBtn);
-                appendChildIfPossible(set, createTimeAdjustDivider());
+                appendChildIfPossible(leadTarget, zeroDayBtn);
+                hasLeadAction = true;
             }
 
             if (includeSyncPreviousEndAction) {
@@ -259,7 +267,12 @@
                 if (syncPrevBtn?.classList && typeof syncPrevBtn.classList.add === "function") {
                     syncPrevBtn.classList.add("time-adjust-sync-btn");
                 }
-                appendChildIfPossible(set, syncPrevBtn);
+                appendChildIfPossible(leadTarget, syncPrevBtn);
+                hasLeadAction = true;
+            }
+
+            if (hasLeadAction) {
+                if (lead) appendChildIfPossible(set, lead);
                 appendChildIfPossible(set, createTimeAdjustDivider());
             }
 
@@ -320,49 +333,6 @@
                     labelText: translate("label_main_time_adjust"),
                     includeFixedActions: true
                 }));
-            }
-
-            const syncFixedZeroButtonWidth = () => {
-                const sets = Array.from(buttonsContainer.querySelectorAll?.(".time-adjust-set") || []);
-                if (sets.length < 2) return;
-                const startSet = sets[0];
-                const endSet = sets[1];
-                const zeroBtn = endSet.querySelector?.('[data-action="set_zero_day"]');
-                if (!isHtmlElementLike(zeroBtn)) return;
-
-                zeroBtn.style.width = "";
-                zeroBtn.style.minWidth = "";
-
-                const nowBtn = startSet.querySelector?.('[data-action="now"]');
-                const firstDivider = startSet.querySelector?.(".time-adjust-divider");
-                if (isHtmlElementLike(nowBtn) && isHtmlElementLike(firstDivider)) {
-                    const nowRect = nowBtn.getBoundingClientRect();
-                    const dividerRect = firstDivider.getBoundingClientRect();
-                    const desiredSpanToDivider = Math.round(dividerRect.left - nowRect.left);
-                    if (desiredSpanToDivider > 0 && typeof globalObj.getComputedStyle === "function") {
-                        const endSetStyle = globalObj.getComputedStyle(endSet);
-                        const gap = parseFloat(endSetStyle.columnGap || endSetStyle.gap || "0") || 0;
-                        const btnStyle = globalObj.getComputedStyle(zeroBtn);
-                        const marginRight = parseFloat(btnStyle.marginRight || "0") || 0;
-                        const widthPx = `${Math.max(150, Math.round(desiredSpanToDivider - marginRight - gap))}px`;
-                        zeroBtn.style.width = widthPx;
-                        zeroBtn.style.minWidth = widthPx;
-                        return;
-                    }
-                }
-
-                const fallbackWidth = Math.max(150, Math.ceil((Number(zeroBtn.scrollWidth) || 0) + 18));
-                const widthPx = `${fallbackWidth}px`;
-                zeroBtn.style.width = widthPx;
-                zeroBtn.style.minWidth = widthPx;
-            };
-
-            if (effectiveSlotCount > 1) {
-                if (typeof globalObj.requestAnimationFrame === "function") {
-                    globalObj.requestAnimationFrame(syncFixedZeroButtonWidth);
-                } else {
-                    syncFixedZeroButtonWidth();
-                }
             }
 
             dep.upgradeNativeTitleTooltips(buttonsContainer);

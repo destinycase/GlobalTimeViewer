@@ -236,7 +236,8 @@
 
             const dayBox = doc.querySelector?.(".timeline-hour-box.day");
             const liveDayBg = dayBox ? getComputedStyleSafe(dayBox).backgroundColor : "#caeefb";
-            const liveNightBg = "#616161";
+            const nightBox = doc.querySelector?.(".timeline-hour-box.night");
+            const liveNightBg = nightBox ? getComputedStyleSafe(nightBox).backgroundColor : "#616161";
             const liveBorder = dayBox ? getComputedStyleSafe(dayBox).borderTopColor : "#8795aa";
             const liveText = getComputedStyleSafe(doc.body).color || "#f8fafc";
             const liveBg = getComputedStyleSafe(doc.body).backgroundColor || "#0f172a";

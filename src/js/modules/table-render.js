@@ -193,15 +193,17 @@
             `;
         }
 
+        // Time-edit and realtime columns are kept compact so the time cells fit without sideways
+        // scrolling; time cells wrap their badges below the time when space is short (style.css).
         function getDisplayColumnHeader(colKey) {
             const useRangeTimeLabels = !isRealtimeMode() && getSlotCountSafe() > 1;
             switch (colKey) {
                 case "timezone":
-                    return `<th style="width: 110px;">${translate("th_tz_abbr")}</th>`;
+                    return `<th style="width: 84px;">${translate("th_tz_abbr")}</th>`;
                 case "region":
-                    return `<th style="width: 220px;">${translate("th_region")}</th>`;
+                    return `<th style="width: 165px;">${translate("th_region")}</th>`;
                 case "offset":
-                    return `<th style="width: 140px;">${translate("th_utc_offset")}</th>`;
+                    return `<th style="width: 110px;">${translate("th_utc_offset")}</th>`;
                 case "time_main":
                     return `<th class="dynamic-col">${translate(useRangeTimeLabels ? "th_time_day_start" : "th_time_day_main")}</th>`;
                 case "time_extra":
@@ -209,7 +211,7 @@
                 case "period_days":
                     return `<th style="width: 90px;">${translate("th_period_days")}</th>`;
                 case "period_time":
-                    return `<th style="width: 170px;">${translate("th_period_time")}</th>`;
+                    return `<th style="width: 150px;">${translate("th_period_time")}</th>`;
                 default:
                     return "";
             }
@@ -421,10 +423,10 @@
             const theadRow = doc.querySelector?.("#table-head tr");
 
             if (theadRow) {
-                const headCells = [`<th class="move-col" style="width: 70px;">${translate("th_order")}</th>`];
+                const headCells = [`<th class="move-col" style="width: 56px;">${translate("th_order")}</th>`];
                 headCells.push(...displayColumns.map(getDisplayColumnHeader).filter(Boolean));
-                headCells.push(`<th class="export-exclude" style="width: 70px;">${translate("th_copy")}</th>`);
-                headCells.push(`<th class="export-exclude" style="width: 70px;">${translate("th_remove")}</th>`);
+                headCells.push(`<th class="export-exclude" style="width: 56px;">${translate("th_copy")}</th>`);
+                headCells.push(`<th class="export-exclude" style="width: 56px;">${translate("th_remove")}</th>`);
                 theadRow.textContent = "";
                 theadRow.insertAdjacentHTML('beforeend', headCells.join(""));
             }

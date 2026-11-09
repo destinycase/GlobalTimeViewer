@@ -66,12 +66,6 @@
             return [];
         }
 
-        function isElementLike(node) {
-            if (!node || typeof node !== "object") return false;
-            if (typeof Element === "undefined") return true;
-            return node instanceof Element;
-        }
-
         function getMultiRangeCount() {
             const value = Number(dep.getMultiRangeCount());
             return Number.isFinite(value) ? Math.max(0, value) : 0;
@@ -116,14 +110,22 @@
                 zeroDayBtn.classList.add("time-adjust-bulk-zero-btn");
             }
 
+            // Same fixed-width leading block as the other time adjust rows, so columns line up.
+            const leadBlock = zeroDayBtn ? doc.createElement("span") : null;
+            if (leadBlock) {
+                leadBlock.className = "time-adjust-lead";
+                leadBlock.appendChild(zeroDayBtn);
+            }
+            const leadNode = leadBlock || zeroDayBtn;
+
             const bulkChildren = asArray(bulkSet.children);
             const firstActionNode = bulkChildren.find((_node, idx) => idx > 0) || null;
-            if (zeroDayBtn && firstActionNode && typeof bulkSet.insertBefore === "function") {
-                bulkSet.insertBefore(zeroDayBtn, firstActionNode);
+            if (leadNode && firstActionNode && typeof bulkSet.insertBefore === "function") {
+                bulkSet.insertBefore(leadNode, firstActionNode);
                 const divider = dep.createTimeAdjustDivider();
                 if (divider) bulkSet.insertBefore(divider, firstActionNode);
-            } else if (zeroDayBtn) {
-                bulkSet.appendChild(zeroDayBtn);
+            } else if (leadNode) {
+                bulkSet.appendChild(leadNode);
             }
 
             const bulkToolBlock = doc.createElement("div");
@@ -190,71 +192,6 @@
             if (firstRangeStartSet) allTools.appendChild(firstRangeStartToolBlock);
             allTools.appendChild(bulkToolBlock);
 
-            const syncZeroButtonWidth = () => {
-                const bulkZeroBtn = allTools.querySelector?.(".time-adjust-bulk-zero-btn");
-                if (!bulkZeroBtn || !isElementLike(bulkZeroBtn)) return;
-                const rangeButtons = asArray(doc.querySelectorAll?.(
-                    '.multi-range-adjust-row [data-action="set_zero_day"], .multi-range-adjust-row [data-action="sync_prev_end"]'
-                ));
-                const targetButtons = [bulkZeroBtn, ...rangeButtons].filter((btn) => isElementLike(btn));
-                if (!targetButtons.length) return;
-
-                targetButtons.forEach((btn) => {
-                    btn.style.width = "";
-                    btn.style.minWidth = "";
-                    btn.style.justifyContent = "";
-                    btn.style.textAlign = "";
-                });
-
-                const firstRangeSet = allTools.querySelector?.('[data-role="first-range-start-tools"] .time-adjust-set')
-                    || doc.querySelector?.('.multi-range-adjust-row .time-adjust-set [data-action="now"]')?.closest?.(".time-adjust-set");
-                let desiredSpanToDivider = 0;
-                if (firstRangeSet) {
-                    const nowBtn = firstRangeSet.querySelector?.('[data-action="now"]');
-                    const firstDivider = firstRangeSet.querySelector?.(".time-adjust-divider");
-                    if (nowBtn && firstDivider) {
-                        const nowRect = nowBtn.getBoundingClientRect();
-                        const dividerRect = firstDivider.getBoundingClientRect();
-                        desiredSpanToDivider = Math.round(dividerRect.left - nowRect.left);
-                    }
-                }
-
-                const getComputedStyleFn = (typeof globalObj.getComputedStyle === "function")
-                    ? globalObj.getComputedStyle.bind(globalObj)
-                    : null;
-                if (desiredSpanToDivider > 0 && getComputedStyleFn) {
-                    targetButtons.forEach((btn) => {
-                        const set = btn.closest?.(".time-adjust-set");
-                        const setStyle = set ? getComputedStyleFn(set) : null;
-                        const gap = setStyle ? (parseFloat(setStyle.columnGap || setStyle.gap || "0") || 0) : 0;
-                        const btnStyle = getComputedStyleFn(btn);
-                        const marginRight = parseFloat(btnStyle.marginRight || "0") || 0;
-                        const nextWidth = Math.max(150, Math.round(desiredSpanToDivider - marginRight - gap));
-                        const widthPx = `${nextWidth}px`;
-                        btn.style.width = widthPx;
-                        btn.style.minWidth = widthPx;
-                    });
-                    return;
-                }
-
-                const fallbackWidth = Math.max(
-                    180,
-                    ...targetButtons.map((btn) => Math.ceil(btn.getBoundingClientRect().width)),
-                    ...targetButtons.map((btn) => Math.ceil((Number(btn.scrollWidth) || 0) + 18))
-                );
-                if (fallbackWidth <= 0) return;
-                const widthPx = `${fallbackWidth}px`;
-                targetButtons.forEach((btn) => {
-                    btn.style.width = widthPx;
-                    btn.style.minWidth = widthPx;
-                });
-            };
-
-            if (typeof globalObj.requestAnimationFrame === "function") {
-                globalObj.requestAnimationFrame(syncZeroButtonWidth);
-            } else {
-                syncZeroButtonWidth();
-            }
             dep.upgradeNativeTitleTooltips(allTools);
         }
 

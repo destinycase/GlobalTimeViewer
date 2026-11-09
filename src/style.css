@@ -21,8 +21,10 @@
      §19  Toast notifications
      §20  DatePicker
      §21  Fatal error banner
-     §22  Responsive adjustments
-   Theme overrides use :root[data-theme="light"] next to the rule they change. */
+     §22  Visual hierarchy refinements
+     §23  Responsive adjustments
+   Theme overrides use :root[data-theme="light"] next to the rule they change
+   (§22 keeps its light overrides inside its own blocks). */
 
 /* ========================================================================
    §01 Theme variables
@@ -220,28 +222,31 @@ td {
     flex-shrink: 0;
 }
 
+/* Logo: the app name on one line (sized to fit the sidebar) and the version below it. */
 .logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
     margin-bottom: 24px;
+    padding-left: 4px;
 }
 
-.logo-icon {
-    font-size: 1.8rem;
+.logo-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .logo-text h1 {
-    font-size: 1.5rem;
+    font-size: 19px;
     font-weight: 800;
     color: var(--accent);
-    line-height: 1;
+    line-height: 1.15;
+    white-space: nowrap;
 }
 
 .version-badge {
-    font-size: 16px;
+    font-size: 12px;
+    font-weight: 600;
     color: var(--text-dim);
-    opacity: 0.6;
+    font-family: 'JetBrains Mono', monospace;
 }
 
 .nav-menu {
@@ -4138,7 +4143,539 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 /* ========================================================================
-   §22 Responsive adjustments
+   §22 Visual hierarchy refinements
+   Calmer secondary controls so values and primary actions stand out. Grouped by item
+   (1 buttons, 2 tab icons, 3 dividers and labels, 4 toggles, 5 timeline, 6 inputs,
+   tables and modals, 7 group tab strip, 8 time adjust alignment, 9 calculator inputs,
+   10 time-edit table width);
+   each block only overrides earlier rules.
+   ======================================================================== */
+
+/* 1. Buttons: secondary buttons neutral, primary (+, List, Add, .btn-primary keep their
+      accent through the !important rules in §05), deletion buttons subdued until hover. */
+.sm-btn,
+.icon-btn,
+.off-btn,
+#timezone-section .drag-handle,
+#fixed-time-section .drag-handle {
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.22);
+    color: #cbd5e1;
+    box-shadow: none;
+    font-weight: 600;
+    border-radius: 6px;
+}
+
+.sm-btn:hover,
+.icon-btn:hover,
+.off-btn:hover,
+#timezone-section .drag-handle:hover,
+#fixed-time-section .drag-handle:hover {
+    background: rgba(148, 163, 184, 0.2);
+    border-color: rgba(148, 163, 184, 0.45);
+    color: #f1f5f9;
+    box-shadow: none;
+}
+
+:root[data-theme="light"] .sm-btn,
+:root[data-theme="light"] .icon-btn,
+:root[data-theme="light"] .off-btn,
+:root[data-theme="light"] #timezone-section .drag-handle,
+:root[data-theme="light"] #fixed-time-section .drag-handle {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.15);
+    color: #334155;
+    box-shadow: none;
+}
+
+:root[data-theme="light"] .sm-btn:hover,
+:root[data-theme="light"] .icon-btn:hover,
+:root[data-theme="light"] .off-btn:hover,
+:root[data-theme="light"] #timezone-section .drag-handle:hover,
+:root[data-theme="light"] #fixed-time-section .drag-handle:hover {
+    background: #f1f5f9;
+    border-color: rgba(15, 23, 42, 0.3);
+    color: #0f172a;
+}
+
+.sm-btn.danger,
+.time-row .remove-cell .sm-btn {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.22);
+    color: #fca5a5;
+    box-shadow: none;
+}
+
+.sm-btn.danger:hover,
+.time-row .remove-cell .sm-btn:hover {
+    background: rgba(239, 68, 68, 0.22);
+    border-color: rgba(239, 68, 68, 0.65);
+    color: #fee2e2;
+}
+
+:root[data-theme="light"] .sm-btn.danger,
+:root[data-theme="light"] .time-row .remove-cell .sm-btn {
+    background: rgba(239, 68, 68, 0.06);
+    border-color: rgba(220, 38, 38, 0.25);
+    color: #dc2626;
+    box-shadow: none;
+}
+
+:root[data-theme="light"] .sm-btn.danger:hover,
+:root[data-theme="light"] .time-row .remove-cell .sm-btn:hover {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.6);
+    color: #b91c1c;
+}
+
+/* 2. Group and subgroup tab icons: plain icons until hover or keyboard focus. */
+.group-edit-btn,
+.group-export-btn,
+.group-import-btn,
+.group-del-btn,
+.multi-subgroup-edit-btn,
+.multi-subgroup-export-btn,
+.multi-subgroup-import-btn,
+.multi-subgroup-del-btn,
+:root[data-theme="light"] .group-edit-btn,
+:root[data-theme="light"] .group-export-btn,
+:root[data-theme="light"] .group-import-btn,
+:root[data-theme="light"] .group-del-btn,
+:root[data-theme="light"] .multi-subgroup-edit-btn,
+:root[data-theme="light"] .multi-subgroup-export-btn,
+:root[data-theme="light"] .multi-subgroup-import-btn,
+:root[data-theme="light"] .multi-subgroup-del-btn {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    opacity: 0.8;
+}
+
+.group-edit-btn:is(:hover, :focus-visible),
+.group-export-btn:is(:hover, :focus-visible),
+.group-import-btn:is(:hover, :focus-visible),
+.multi-subgroup-edit-btn:is(:hover, :focus-visible),
+.multi-subgroup-export-btn:is(:hover, :focus-visible),
+.multi-subgroup-import-btn:is(:hover, :focus-visible) {
+    opacity: 1;
+    background: rgba(148, 163, 184, 0.18);
+    border-color: rgba(148, 163, 184, 0.35);
+    box-shadow: none;
+}
+
+.group-del-btn:is(:hover, :focus-visible),
+.multi-subgroup-del-btn:is(:hover, :focus-visible) {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+    box-shadow: none;
+}
+
+:root[data-theme="light"] .group-edit-btn:is(:hover, :focus-visible),
+:root[data-theme="light"] .group-export-btn:is(:hover, :focus-visible),
+:root[data-theme="light"] .group-import-btn:is(:hover, :focus-visible),
+:root[data-theme="light"] .multi-subgroup-edit-btn:is(:hover, :focus-visible),
+:root[data-theme="light"] .multi-subgroup-export-btn:is(:hover, :focus-visible),
+:root[data-theme="light"] .multi-subgroup-import-btn:is(:hover, :focus-visible) {
+    opacity: 1;
+    background: rgba(15, 23, 42, 0.07);
+    border-color: rgba(15, 23, 42, 0.18);
+}
+
+:root[data-theme="light"] .group-del-btn:is(:hover, :focus-visible),
+:root[data-theme="light"] .multi-subgroup-del-btn:is(:hover, :focus-visible) {
+    opacity: 1;
+    background: rgba(220, 38, 38, 0.1);
+    border-color: rgba(220, 38, 38, 0.45);
+    color: #b91c1c;
+}
+
+/* 3. Dividers and labels: thin hairlines instead of "|" characters and 2px rules;
+      large labels step back so the selected values read first. */
+.control-row-options .option-toggle-group.option-with-divider::after,
+.control-row-main .control-group-divider::before,
+#multi-range-count-group::after,
+#fixed-time-slot-count-group::before,
+#fixed-time-date-group::before {
+    content: "";
+    width: 1px;
+    height: 18px;
+    background: rgba(148, 163, 184, 0.22);
+    opacity: 1;
+}
+
+.time-adjust-divider,
+.multi-range-header-divider {
+    display: inline-block;
+    align-self: center;
+    width: 1px;
+    height: 18px;
+    padding: 0;
+    margin: 0 4px;
+    font-size: 0;
+    background: rgba(148, 163, 184, 0.22);
+    opacity: 1;
+    vertical-align: middle;
+}
+
+:root[data-theme="light"] .control-row-options .option-toggle-group.option-with-divider::after,
+:root[data-theme="light"] .control-row-main .control-group-divider::before,
+:root[data-theme="light"] #multi-range-count-group::after,
+:root[data-theme="light"] #fixed-time-slot-count-group::before,
+:root[data-theme="light"] #fixed-time-date-group::before,
+:root[data-theme="light"] .time-adjust-divider,
+:root[data-theme="light"] .multi-range-header-divider {
+    background: rgba(15, 23, 42, 0.12);
+}
+
+.control-row-options,
+.control-row-tools,
+.multi-range-adjust-row {
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+    box-shadow: none;
+}
+
+:root[data-theme="light"] .control-row-options,
+:root[data-theme="light"] .control-row-tools,
+:root[data-theme="light"] .multi-range-adjust-row {
+    border-top-color: rgba(15, 23, 42, 0.1);
+}
+
+.sidebar-separator,
+.nav-menu-separator {
+    height: 1px;
+    border-radius: 0;
+    background: rgba(148, 163, 184, 0.18);
+    box-shadow: none;
+}
+
+:root[data-theme="light"] .sidebar-separator,
+:root[data-theme="light"] .nav-menu-separator {
+    background: rgba(15, 23, 42, 0.1);
+    box-shadow: none;
+}
+
+.control-label-large {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dim);
+}
+
+/* 4. Option checkboxes as pill switches (format chips keep their checkboxes). */
+.control-row-options input[type="checkbox"],
+.fixed-time-live-now-flag input[type="checkbox"],
+.time-adjust-set-toggle {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 19px;
+    margin: 0;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(148, 163, 184, 0.3);
+    cursor: pointer;
+    vertical-align: middle;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.control-row-options input[type="checkbox"]::after,
+.fixed-time-live-now-flag input[type="checkbox"]::after,
+.time-adjust-set-toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #f8fafc;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    transition: transform 0.15s;
+}
+
+.control-row-options input[type="checkbox"]:checked,
+.fixed-time-live-now-flag input[type="checkbox"]:checked,
+.time-adjust-set-toggle:checked {
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+}
+
+.control-row-options input[type="checkbox"]:checked::after,
+.fixed-time-live-now-flag input[type="checkbox"]:checked::after,
+.time-adjust-set-toggle:checked::after {
+    transform: translateX(15px);
+}
+
+.control-row-options input[type="checkbox"]:focus-visible,
+.fixed-time-live-now-flag input[type="checkbox"]:focus-visible,
+.time-adjust-set-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+:root[data-theme="light"] .control-row-options input[type="checkbox"],
+:root[data-theme="light"] .fixed-time-live-now-flag input[type="checkbox"],
+:root[data-theme="light"] .time-adjust-set-toggle {
+    background: #cbd5e1;
+    border-color: #94a3b8;
+}
+
+:root[data-theme="light"] .control-row-options input[type="checkbox"]:checked,
+:root[data-theme="light"] .fixed-time-live-now-flag input[type="checkbox"]:checked,
+:root[data-theme="light"] .time-adjust-set-toggle:checked {
+    background: #0284c7;
+    border-color: #0284c7;
+}
+
+/* 5. Timeline: softer day/night boxes (solid colours, so image export can read them) and a
+      thinner marker line; the 12px drag area of start/end/slot markers stays the same. */
+:root {
+    --timeline-hour-day-bg: rgba(56, 189, 248, 0.24);
+    --timeline-hour-day-border: rgba(56, 189, 248, 0.32);
+    --timeline-hour-night-bg: rgba(71, 85, 105, 0.55);
+    --timeline-hour-night-border: rgba(148, 163, 184, 0.3);
+}
+
+:root[data-theme="light"] {
+    --timeline-hour-day-bg: #e0f2fe;
+    --timeline-hour-day-border: #7dd3fc;
+    --timeline-hour-night-bg: #cbd5e1;
+    --timeline-hour-night-border: #94a3b8;
+}
+
+.timeline-hour-box.day {
+    background-color: var(--timeline-hour-day-bg);
+    background-image: linear-gradient(180deg, rgba(56, 189, 248, 0.1), rgba(14, 165, 233, 0));
+    border-color: var(--timeline-hour-day-border);
+}
+
+:root[data-theme="light"] .timeline-hour-box.day {
+    background-image: linear-gradient(180deg, #e0f2fe, #bae6fd);
+}
+
+.timeline-hour-box.night {
+    background-color: var(--timeline-hour-night-bg);
+    border-color: var(--timeline-hour-night-border);
+}
+
+.timeline-indicator {
+    background: linear-gradient(currentColor, currentColor) center / 4px 100% no-repeat !important;
+    box-shadow: none;
+}
+
+.timeline-indicator::before,
+.timeline-indicator::after {
+    font-size: 13px;
+}
+
+.timeline-indicator::before {
+    top: -12px;
+}
+
+.timeline-indicator::after {
+    bottom: -12px;
+}
+
+.timeline-indicator-label {
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* 6. Inputs, tables and modals: calm borders until focus, lighter grid lines. */
+.form-input,
+.form-select,
+.time-input {
+    border-color: rgba(148, 163, 184, 0.38);
+    border-radius: 6px;
+}
+
+:root[data-theme="light"] .form-input,
+:root[data-theme="light"] .form-select,
+:root[data-theme="light"] .time-input {
+    border-color: rgba(15, 23, 42, 0.26);
+}
+
+.form-input:is(:focus, :focus-visible),
+.form-select:is(:focus, :focus-visible),
+.time-input:is(:focus, :focus-visible) {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+}
+
+:root[data-theme="light"] .form-input:is(:focus, :focus-visible),
+:root[data-theme="light"] .form-select:is(:focus, :focus-visible),
+:root[data-theme="light"] .time-input:is(:focus, :focus-visible) {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.data-table th {
+    font-size: 14px;
+}
+
+.data-table th:not(:last-child),
+.time-row td:not(:last-child) {
+    border-right-color: rgba(148, 163, 184, 0.08);
+}
+
+:root[data-theme="light"] .data-table th:not(:last-child),
+:root[data-theme="light"] .time-row td:not(:last-child) {
+    border-right-color: rgba(15, 23, 42, 0.07);
+}
+
+.zone-code,
+.day-badge,
+.dst-badge {
+    border-radius: 6px;
+}
+
+.overlay-content {
+    border-color: rgba(148, 163, 184, 0.24);
+}
+
+:root[data-theme="light"] .overlay-content {
+    border-color: rgba(15, 23, 42, 0.12);
+}
+
+.tz-item {
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 8px;
+}
+
+.tz-item:hover {
+    border-color: rgba(56, 189, 248, 0.45);
+}
+
+:root[data-theme="light"] .tz-item {
+    border-color: rgba(15, 23, 42, 0.1);
+}
+
+:root[data-theme="light"] .tz-item:hover {
+    border-color: rgba(2, 132, 199, 0.45);
+}
+
+/* 7. Group tab strip: lower tabs and + button. */
+.group-tab {
+    padding: 6px 14px;
+    gap: 8px;
+    border-radius: 10px;
+}
+
+.group-tabs {
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+}
+
+#add-group-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: 18px;
+}
+
+.group-tab .group-edit-btn,
+.group-tab .group-export-btn,
+.group-tab .group-import-btn,
+.group-tab .group-del-btn {
+    padding: 2px 5px;
+}
+
+/* 8. Time adjust rows: the leading actions share one fixed-width block and buttons do not
+      shrink, so the hour/day/week columns line up between rows. */
+.time-adjust-set > * {
+    flex-shrink: 0;
+}
+
+.time-adjust-lead {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: var(--time-adjust-lead-w, 190px);
+}
+
+.time-adjust-lead > .time-adjust-zero-btn,
+.time-adjust-lead > .time-adjust-sync-btn,
+.time-adjust-lead > .time-adjust-bulk-zero-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+:root[lang="en"] {
+    --time-adjust-lead-w: 238px;
+}
+
+/* 9. Calculator inputs use the same calm border as other inputs. */
+.calc-card .form-input,
+.calc-card .form-select {
+    border-color: rgba(148, 163, 184, 0.38);
+}
+
+:root[data-theme="light"] .calc-card .form-input,
+:root[data-theme="light"] .calc-card .form-select {
+    border-color: rgba(15, 23, 42, 0.26);
+}
+
+.calc-card .form-input:is(:focus, :focus-visible),
+.calc-card .form-select:is(:focus, :focus-visible) {
+    border-color: var(--accent);
+}
+
+:root[data-theme="light"] .calc-card .form-input:is(:focus, :focus-visible),
+:root[data-theme="light"] .calc-card .form-select:is(:focus, :focus-visible) {
+    border-color: #0284c7;
+}
+
+/* 10. Time-edit (and realtime) table: a time input that fits 19 characters and badges that
+       wrap below the time when the table is short of room, so it does not scroll sideways
+       at common window widths. */
+#timezone-section .time-input {
+    flex: 0 0 auto;
+    /* 19 characters plus padding, border and a little room so the last digit is never cut. */
+    width: calc(19ch + 26px);
+}
+
+#timezone-section .time-day-group {
+    flex-wrap: wrap;
+    column-gap: 4px;
+    row-gap: 3px;
+}
+
+#timezone-section .time-day-group .dn-icon {
+    min-width: 16px;
+}
+
+#timezone-section .time-day-group .calendar-btn {
+    padding: 0 2px;
+}
+
+#timezone-section td.dynamic-cell {
+    min-width: calc(222px * var(--ui-scale));
+}
+
+#timezone-section .data-table th.move-col,
+#timezone-section .time-row td.move-cell {
+    width: 56px;
+    min-width: 56px;
+    max-width: 56px;
+}
+
+#timezone-section .period-time-cell {
+    min-width: 160px;
+    max-width: 160px;
+    width: 160px;
+}
+
+/* ========================================================================
+   §23 Responsive adjustments
    Narrow-window overrides
    ======================================================================== */
 

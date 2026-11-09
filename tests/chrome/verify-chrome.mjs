@@ -818,6 +818,64 @@ function buildScenarios(ctx) {
                         assert(multi.problems.length === 0, `${width}px 연속 시간: ${multi.problems.slice(0, 6).join(" | ")}`);
                         assert(multi.sideScroll === false, `${width}px 연속 시간 표가 옆으로 넘침`);
 
+                        // Time adjust rows in the same panel start their hour/day/week buttons at the
+                        // same position, whatever their leading buttons are.
+                        const alignment = async (tab) => {
+                            await api.switchTab(tab);
+                            return api.ev(`(() => {
+                                const panels = new Map();
+                                document.querySelectorAll(".time-adjust-set").forEach((set) => {
+                                    if (set.getBoundingClientRect().width === 0) return;
+                                    const button = set.querySelector('[data-action="minus_hour"]');
+                                    const panel = set.closest(".multi-range-block, #multi-tools-row, .control-panel, section") || document.body;
+                                    if (!button) return;
+                                    const list = panels.get(panel) || [];
+                                    list.push(["minus_hour", "minus_day", "minus_week", "plus_four_weeks"].map((action) => Math.round(set.querySelector('[data-action="' + action + '"]').getBoundingClientRect().left)));
+                                    panels.set(panel, list);
+                                });
+                                return [...panels.values()].filter((rows) => rows.length > 1);
+                            })()`);
+                        };
+                        const checkAlignment = async (context) => {
+                            for (const tab of ["fixed", "multi"]) {
+                                const groups = await alignment(tab);
+                                assert(groups.length > 0, `${context} ${tab} 시간 조정 행 없음`);
+                                groups.forEach((rows) => {
+                                    const same = rows.every((row) => row.every((x, i) => Math.abs(x - rows[0][i]) <= 1));
+                                    assert(same, `${context} ${tab} 시간 조정 버튼 열 어긋남: ${JSON.stringify(rows)}`);
+                                });
+                            }
+                        };
+                        await checkAlignment(`${width}px`);
+                        if (width === 1600) {
+                            // The time-edit table fits without sideways scrolling and keeps full times.
+                            await api.switchTab("fixed");
+                            const timeEdit = await api.ev(`(() => {
+                                const table = document.querySelector("#clocks-container").closest("table");
+                                const wrap = document.getElementById("timezone-section");
+                                const clipped = [...table.querySelectorAll(".time-input")].filter((el) => el.getBoundingClientRect().width > 0 && el.scrollWidth > el.clientWidth + 1).map((el) => el.value);
+                                return { sideScroll: wrap.scrollWidth > wrap.clientWidth + 1, clipped, rows: table.querySelectorAll("tr.time-row").length };
+                            })()`);
+                            assert(timeEdit.rows >= 5 && !timeEdit.sideScroll, `1600px 시간 변경 표가 옆으로 넘침`);
+                            assert(timeEdit.clipped.length === 0, `1600px 시간 변경 입력 잘림: ${timeEdit.clipped.join(" | ")}`);
+                            // Rows rendered while their tab is hidden, at 125% UI scale, must line up too.
+                            await api.ev(`(() => {
+                                const data = JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)}));
+                                const target = data && data.data && data.__gtvStorageEnvelope ? data.data : data;
+                                target.currentMainTab = "calc";
+                                localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, JSON.stringify(data));
+                                localStorage.setItem("GTV_UIScale", "125");
+                            })()`);
+                            await api.reload();
+                            try {
+                                await checkAlignment("125% 숨은 탭 시작");
+                            } finally {
+                                await api.ev(`localStorage.removeItem("GTV_UIScale")`);
+                                await api.reload();
+                            }
+                        }
+                        await api.switchTab("multi");
+
                         await api.switchTab("calc");
                         const converter = await api.ev(`(() => {
                             const input = document.getElementById("unix-iso-local-input");
