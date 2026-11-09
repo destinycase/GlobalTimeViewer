@@ -510,7 +510,7 @@
                 const thead = doc.createElement("thead");
                 const headCells = [];
                 headCells.push(...displayColumns.map((colKey) => dep.getMultiDisplayColumnHeader(colKey)).filter(Boolean));
-                headCells.push(`<th class="export-exclude" style="width: 70px;">${translate("th_copy")}</th>`);
+                headCells.push(`<th class="export-exclude" style="width: 64px;">${translate("th_copy")}</th>`);
                 thead.insertAdjacentHTML("afterbegin", `<tr>${headCells.join("")}</tr>`);
                 table.appendChild(thead);
 

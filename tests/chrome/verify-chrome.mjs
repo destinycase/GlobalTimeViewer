@@ -739,6 +739,103 @@ function buildScenarios(ctx) {
                 const promptKind = named.kind === "browser" ? "브라우저 기본 입력 창" : "화면 안 입력 창";
                 return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}`;
             }
+        },
+        {
+            id: "14",
+            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음(1280·1600px)",
+            async run() {
+                const { api } = ctx;
+                const zone = (id, name, ko, en) => ({ id, type: "standard", zone: name, name_ko: ko, name_en: en, fixedAbbr: "", fixedOffsetMinutes: null });
+                const saved = {
+                    groups: [{
+                        name: "Layout Group",
+                        zones: [
+                            zone("tz-ny", "America/New_York", "미국 - 뉴욕", "USA - New York"),
+                            zone("tz-se", "Asia/Seoul", "대한민국 - 서울", "Korea - Seoul"),
+                            zone("tz-la", "America/Los_Angeles", "미국 - 로스앤젤레스", "USA - Los Angeles"),
+                            zone("tz-ld", "Europe/London", "영국 - 런던", "UK - London")
+                        ],
+                        baseTimezoneId: "tz-se",
+                        showUtcRow: true,
+                        utcRowOrder: 0,
+                        fixedDate: "2026-07-01",
+                        fixedTimeShowLiveNow: false,
+                        fixedTimes: [{ id: "ft-1", name: "A", time: "09:00" }]
+                    }],
+                    activeGroupId: 0,
+                    currentMainTab: "multi",
+                    activeGroupIdByMainTab: { live: 0, fixed: 0 },
+                    slotCount: 2
+                };
+                await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))})`);
+                // Every visible element must stay inside its table cell, no input may hide part of
+                // its value and no text may be cut off.
+                const measureMulti = () => api.ev(`(() => {
+                    const problems = [];
+                    document.querySelectorAll(".multi-range-table tr.time-row").forEach((tr, row) => {
+                        [...tr.children].forEach((td, col) => {
+                            const cell = td.getBoundingClientRect();
+                            if (cell.width === 0) return;
+                            const where = "r" + row + "c" + col + " ";
+                            td.querySelectorAll("*").forEach((el) => {
+                                const box = el.getBoundingClientRect();
+                                if (box.width === 0 || el.closest(".is-hidden")) return;
+                                if (box.left < cell.left - 0.5 || box.right > cell.right + 0.5) problems.push("셀 밖 " + where + (el.className || el.tagName));
+                            });
+                            [td, ...td.querySelectorAll("*")].forEach((el) => {
+                                if (el.tagName === "INPUT") {
+                                    if (el.scrollWidth > el.clientWidth + 1) problems.push("입력 잘림 " + where + el.value);
+                                } else if (el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflow !== "visible") {
+                                    problems.push("글자 잘림 " + where + el.textContent.trim().slice(0, 20));
+                                }
+                            });
+                        });
+                    });
+                    const wrap = document.querySelector(".multi-range-table-wrap");
+                    return {
+                        problems,
+                        rows: document.querySelectorAll(".multi-range-table tr.time-row").length,
+                        dst: document.querySelectorAll(".multi-range-table .dst-badge:not(.is-hidden)").length,
+                        sideScroll: wrap ? wrap.scrollWidth > wrap.clientWidth + 1 : null
+                    };
+                })()`);
+                const results = [];
+                try {
+                    for (const width of [1280, 1600]) {
+                        await ctx.page.client.send("Emulation.setDeviceMetricsOverride", { width, height: 1000, deviceScaleFactor: 1, mobile: false });
+                        await api.reload();
+                        await api.switchTab("multi");
+                        await until("연속 시간 표", () => api.ev(`document.querySelectorAll(".multi-range-table tr.time-row").length >= 5`));
+                        // July start: New York, Los Angeles and London show the DST badge (the widest cells).
+                        await api.ev(`(() => {
+                            const input = document.querySelector(".multi-range-table .base-row .time-input.slot-0");
+                            input.value = "2026-07-15 10:00:00";
+                            input.dispatchEvent(new Event("change", { bubbles: true }));
+                        })()`);
+                        await until("DST 표시", () => api.ev(`document.querySelectorAll(".multi-range-table .dst-badge:not(.is-hidden)").length >= 3`));
+                        await sleep(200);
+                        const multi = await measureMulti();
+                        assert(multi.problems.length === 0, `${width}px 연속 시간: ${multi.problems.slice(0, 6).join(" | ")}`);
+                        assert(multi.sideScroll === false, `${width}px 연속 시간 표가 옆으로 넘침`);
+
+                        await api.switchTab("calc");
+                        const converter = await api.ev(`(() => {
+                            const input = document.getElementById("unix-iso-local-input");
+                            input.value = "2026-11-09T18:41:00+09:00";
+                            input.dispatchEvent(new Event("input", { bubbles: true }));
+                            input.dispatchEvent(new Event("change", { bubbles: true }));
+                            return [...document.querySelectorAll(".smart-format-input")].map((el) => ({ id: el.id, value: el.value, clipped: el.scrollWidth > el.clientWidth + 1 }));
+                        })()`);
+                        const clipped = converter.filter((field) => field.clipped).map((field) => `${field.id}="${field.value}"`);
+                        assert(converter.length >= 7 && converter.every((field) => field.value), `${width}px 변환기 값: ${JSON.stringify(converter)}`);
+                        assert(clipped.length === 0, `${width}px 변환기 잘림: ${clipped.join(" | ")}`);
+                        results.push(`${width}px 행 ${multi.rows}·DST ${multi.dst}·변환기 ${converter.length}칸`);
+                    }
+                } finally {
+                    await ctx.page.client.send("Emulation.clearDeviceMetricsOverride");
+                }
+                return `겹침·잘림 없음: ${results.join(", ")}`;
+            }
         }
     ];
 }

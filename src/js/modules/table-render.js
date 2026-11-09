@@ -215,14 +215,17 @@
             }
         }
 
+        // Continuous-time columns: the start/end time cells need room for the input, weekday,
+        // DST badge and calendar button, so the other columns are kept compact. The time columns
+        // get their minimum width from style.css (.multi-range-table th.dynamic-col).
         function getMultiDisplayColumnHeader(colKey) {
             switch (colKey) {
                 case "timezone":
-                    return `<th style="width: 110px;">${translate("th_tz_abbr")}</th>`;
+                    return `<th style="width: 84px;">${translate("th_tz_abbr")}</th>`;
                 case "region":
-                    return `<th style="width: 220px;">${translate("th_region")}</th>`;
+                    return `<th style="width: 165px;">${translate("th_region")}</th>`;
                 case "offset":
-                    return `<th style="width: 150px;">${translate("th_utc_offset")}</th>`;
+                    return `<th style="width: 110px;">${translate("th_utc_offset")}</th>`;
                 case "time_main":
                     return `<th class="dynamic-col">${translate("th_time_day_start")}</th>`;
                 case "time_extra":
@@ -230,7 +233,7 @@
                 case "period_days":
                     return `<th style="width: 100px;">${translate("th_period_days")}</th>`;
                 case "period_time":
-                    return `<th style="width: 180px;">${translate("th_period_time")}</th>`;
+                    return `<th style="width: 170px;">${translate("th_period_time")}</th>`;
                 default:
                     return "";
             }

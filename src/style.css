@@ -2349,7 +2349,8 @@ input[type=number] {
 }
 
 .multi-range-table-wrap {
-    overflow-x: hidden;
+    /* Narrow windows scroll sideways instead of letting time cells overlap. */
+    overflow-x: auto;
 }
 
 .multi-range-table th {
@@ -2361,9 +2362,16 @@ input[type=number] {
     padding: 4px 8px;
 }
 
+/* .dynamic-cell sets 8px with !important; continuous-time cells need 2px more room per side. */
+.multi-range-table .time-row td.dynamic-cell {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+}
+
 .multi-range-table .time-input {
-    width: min(20vw, 220px);
-    max-width: 100%;
+    /* Exactly fits "YYYY-MM-DD HH:mm:ss" (19 characters) plus padding and border. */
+    flex: 0 0 auto;
+    width: calc(19ch + 20px);
     font-size: 14px;
     padding: 5px 8px;
 }
@@ -2387,11 +2395,18 @@ input[type=number] {
 
 .multi-range-table .time-day-group {
     gap: 5px;
+    /* When a cell is narrow the weekday, DST badge and calendar button move to a second line. */
+    flex-wrap: wrap;
+    row-gap: 3px;
 }
 
 .multi-range-table {
     width: 100%;
     table-layout: fixed;
+}
+
+.multi-range-table th.dynamic-col {
+    width: 190px;
 }
 
 .multi-range-block.collapsed .multi-range-table-wrap {
@@ -3290,16 +3305,27 @@ input[type=number] {
     gap: 8px;
 }
 
+/* The label sits above the value so the value uses the full card width and long forms
+   (RFC 2822, readable text) are not cut off. */
 .smart-format-row {
     display: grid;
-    grid-template-columns: minmax(150px, 190px) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 8px;
+    column-gap: 8px;
+    row-gap: 4px;
+}
+
+.smart-format-row > .calc-result-label {
+    grid-column: 1 / -1;
 }
 
 .smart-format-input {
     width: 100%;
+    min-width: 0;
     font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 .smart-format-input[readonly] {
@@ -3395,14 +3421,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
     .smart-format-now-grid {
         grid-template-columns: minmax(0, 1fr);
-    }
-
-    .smart-format-row {
-        grid-template-columns: minmax(0, 1fr) auto;
-    }
-
-    .smart-format-row .calc-result-label {
-        grid-column: 1 / -1;
     }
 }
 
