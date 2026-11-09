@@ -587,6 +587,156 @@ function buildScenarios(ctx) {
 
                 return `변환기 손 입력 ${typed.unixSec}, 카운트다운 ${countdown.shown}, 02:30 → ${gap.slice(11, 19)}(안내), 25:00 거부(${fixedAfter}), 표준시 안내 "${placeholder}"`;
             }
+        },
+        {
+            id: "13",
+            title: "그룹 만들기(이름 입력 창)·같은 도시 중복 추가 방지",
+            async run() {
+                const { api } = ctx;
+                const toastTexts = () => api.ev(`[...document.querySelectorAll("#toast-container .toast")].map((t) => t.textContent.trim())`);
+                // Real mouse clicks at the element centre, as a person would click.
+                const clickAt = async (selector) => {
+                    const rect = await api.ev(`(() => {
+                        const el = document.querySelector(${JSON.stringify(selector)});
+                        if (!el) return null;
+                        el.scrollIntoView({ block: "center" });
+                        const r = el.getBoundingClientRect();
+                        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+                    })()`);
+                    assert(rect, `클릭 대상 없음: ${selector}`);
+                    await api.mouse("mousePressed", rect.x, rect.y);
+                    await api.mouse("mouseReleased", rect.x, rect.y);
+                    await sleep(150);
+                };
+                const groupTabs = () => api.ev(`[...document.querySelectorAll("#group-tabs-container .group-tab")].map((tab) => ({
+                    name: tab.querySelector(".group-name-label")?.textContent || "",
+                    active: tab.classList.contains("active")
+                }))`);
+                const promptShown = () => api.ev(`getComputedStyle(document.getElementById("app-prompt-overlay")).display !== "none"`);
+                // The group name is asked either in the browser's own prompt window or in the in-page
+                // dialog. A browser prompt blocks the page, so it is answered from the CDP event; the
+                // in-page dialog is filled with real clicks and typing.
+                const nativeDialogs = [];
+                let nativeAnswer = null;
+                if (!ctx.dialogHandlerInstalled) {
+                    ctx.dialogHandlerInstalled = true;
+                    ctx.page.client.on("Page.javascriptDialogOpening", (params) => {
+                        nativeDialogs.push({ type: params.type, message: params.message });
+                        ctx.page.client.send("Page.handleJavaScriptDialog", nativeAnswer === null
+                            ? { accept: false }
+                            : { accept: true, promptText: nativeAnswer }).catch(() => {});
+                    });
+                }
+                const answerGroupName = async (name) => {
+                    const before = nativeDialogs.length;
+                    nativeAnswer = name;
+                    await clickAt("#add-group-btn");
+                    if (nativeDialogs.length > before) {
+                        const dialog = nativeDialogs[nativeDialogs.length - 1];
+                        assert(dialog.type === "prompt", `예상 밖 브라우저 창: ${JSON.stringify(dialog)}`);
+                        return { kind: "browser", title: dialog.message.trim() };
+                    }
+                    await until("이름 입력 창 표시", promptShown);
+                    const title = await api.ev(`document.getElementById("app-prompt-title").textContent.trim()`);
+                    if (name === null) {
+                        await clickAt("#app-prompt-cancel");
+                    } else {
+                        await clickAt("#app-prompt-input");
+                        await api.ev(`document.getElementById("app-prompt-input").select()`);
+                        await ctx.page.client.send("Input.insertText", { text: name });
+                        await clickAt("#app-prompt-confirm");
+                    }
+                    await until("이름 입력 창 닫힘", async () => !(await promptShown()));
+                    return { kind: "page", title };
+                };
+                const tableNames = () => api.ev(`[...document.querySelectorAll("#clocks-container .zone-name")].map((el) => el.textContent.trim())`);
+
+                const saved = {
+                    groups: [{
+                        name: "Dup Group",
+                        zones: [
+                            { id: "tz-ny", type: "standard", zone: "America/New_York", name_ko: "미국 - 뉴욕", name_en: "USA - New York", fixedAbbr: "", fixedOffsetMinutes: null }
+                        ],
+                        baseTimezoneId: "utc",
+                        showUtcRow: true,
+                        utcRowOrder: 0,
+                        fixedDate: "2026-07-01",
+                        fixedTimeShowLiveNow: false,
+                        fixedTimes: [{ id: "ft-1", name: "A", time: "09:00" }]
+                    }],
+                    activeGroupId: 0,
+                    currentMainTab: "live",
+                    activeGroupIdByMainTab: { live: 0, fixed: 0 },
+                    slotCount: 1
+                };
+                await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))})`);
+                await api.reload();
+                await api.switchTab("live");
+                assert((await groupTabs()).length === 1, `시작 그룹 수: ${JSON.stringify(await groupTabs())}`);
+
+                // a) Cancel leaves the groups unchanged.
+                await answerGroupName(null);
+                await sleep(200);
+                assert((await groupTabs()).length === 1, `취소 뒤 그룹 수: ${JSON.stringify(await groupTabs())}`);
+
+                // b) Typing a name and confirming creates, selects and saves the group.
+                const named = await answerGroupName("QA 새 그룹");
+                const tabsAfter = await until("새 그룹 탭", async () => {
+                    const tabs = await groupTabs();
+                    return tabs.length === 2 ? tabs : false;
+                });
+                assert(tabsAfter[1].name === "QA 새 그룹" && tabsAfter[1].active, `새 그룹 탭: ${JSON.stringify(tabsAfter)}`);
+                await until("새 그룹 저장", async () => (await api.storedData())?.groups?.[1]?.name === "QA 새 그룹");
+                await api.reload();
+                const tabsReloaded = await groupTabs();
+                assert(tabsReloaded.length === 2 && tabsReloaded[1].name === "QA 새 그룹", `다시 연 뒤 그룹: ${JSON.stringify(tabsReloaded)}`);
+
+                // c) Back in the first group, adding New York again is refused with a notice;
+                //    Seoul is added once and refused the second time.
+                await clickAt("#group-tabs-container .group-tab:first-child .group-name-label");
+                await until("첫 그룹 선택", async () => (await groupTabs())[0].active);
+                const addFromList = async (query, titlePart) => {
+                    await api.ev(`document.getElementById("show-all-tz").click()`);
+                    await until("시간대 목록 열림", () => api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none"`));
+                    await api.ev(`document.getElementById("tz-tab-country").click()`);
+                    await api.ev(`(() => {
+                        const input = document.getElementById("tz-search-input");
+                        input.value = ${JSON.stringify(query)};
+                        input.dispatchEvent(new Event("input", { bubbles: true }));
+                    })()`);
+                    const index = await until(`검색 결과 ${query}`, () => api.ev(`(() => {
+                        const items = [...document.querySelectorAll("#full-tz-list .tz-item")];
+                        const i = items.findIndex((item) => item.querySelector(".tz-item-title")?.textContent.includes(${JSON.stringify(titlePart)}));
+                        return i >= 0 ? i + 1 : false;
+                    })()`));
+                    await clickAt(`#full-tz-list .tz-item:nth-child(${index})`);
+                    await sleep(200);
+                    const stillOpen = await api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none"`);
+                    if (stillOpen) await api.ev(`document.getElementById("close-overlay").click()`);
+                    await sleep(150);
+                };
+                const zoneCount = async () => (await api.storedData())?.groups?.[0]?.zones?.length;
+
+                await api.ev(`document.querySelectorAll("#toast-container .toast").forEach((t) => t.remove())`);
+                await addFromList("뉴욕", "뉴욕");
+                const dupToasts = await toastTexts();
+                assert(dupToasts.some((text) => text.includes("이미 존재") || text.toLowerCase().includes("already")), `뉴욕 중복 안내 없음: ${JSON.stringify(dupToasts)}`);
+                const namesAfterDup = await tableNames();
+                assert(namesAfterDup.filter((name) => name.includes("뉴욕")).length === 1 && await zoneCount() === 1, `뉴욕 중복 추가됨: ${JSON.stringify(namesAfterDup)}`);
+
+                await addFromList("서울", "서울");
+                await until("서울 추가", async () => await zoneCount() === 2);
+                await api.ev(`document.querySelectorAll("#toast-container .toast").forEach((t) => t.remove())`);
+                await addFromList("서울", "서울");
+                const seoulToasts = await toastTexts();
+                const namesFinal = await tableNames();
+                assert(seoulToasts.some((text) => text.includes("이미 존재") || text.toLowerCase().includes("already")), `서울 중복 안내 없음: ${JSON.stringify(seoulToasts)}`);
+                assert(namesFinal.filter((name) => name.includes("서울")).length === 1 && await zoneCount() === 2, `서울 중복 추가됨: ${JSON.stringify(namesFinal)}`);
+                assert(((await api.storedData())?.groups?.[1]?.zones || []).length === 0, "새 그룹에 시간대가 들어감");
+
+                const promptKind = named.kind === "browser" ? "브라우저 기본 입력 창" : "화면 안 입력 창";
+                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}`;
+            }
         }
     ];
 }
