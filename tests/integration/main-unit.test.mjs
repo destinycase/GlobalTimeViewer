@@ -1751,3 +1751,15 @@ test("main facade alias wrappers call delegated services broadly", async () => {
     expect(aliasCalls.includes("multi:copyAllMultiRangeTimezones")).toBe(true);
 });
 
+
+test("addGroup asks for the name in the in-page dialog, not the browser prompt", () => {
+    const { sandbox, run } = createMainContext();
+    const browserPrompts = [];
+    sandbox.prompt = (message) => {
+        browserPrompts.push(message);
+        return null;
+    };
+    // The in-page dialog waits for a click, so the promise is left pending on purpose.
+    run("groupTabsService.addGroup()");
+    expect(browserPrompts).toEqual([]);
+});

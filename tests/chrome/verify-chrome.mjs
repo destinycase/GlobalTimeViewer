@@ -613,9 +613,9 @@ function buildScenarios(ctx) {
                     active: tab.classList.contains("active")
                 }))`);
                 const promptShown = () => api.ev(`getComputedStyle(document.getElementById("app-prompt-overlay")).display !== "none"`);
-                // The group name is asked either in the browser's own prompt window or in the in-page
-                // dialog. A browser prompt blocks the page, so it is answered from the CDP event; the
-                // in-page dialog is filled with real clicks and typing.
+                // The group name must be asked in the in-page dialog, filled with real clicks and typing.
+                // A browser prompt would block the page, so it is still answered from the CDP event and
+                // then reported as a failure instead of hanging the run.
                 const nativeDialogs = [];
                 let nativeAnswer = null;
                 if (!ctx.dialogHandlerInstalled) {
@@ -675,12 +675,14 @@ function buildScenarios(ctx) {
                 assert((await groupTabs()).length === 1, `시작 그룹 수: ${JSON.stringify(await groupTabs())}`);
 
                 // a) Cancel leaves the groups unchanged.
-                await answerGroupName(null);
+                const cancelled = await answerGroupName(null);
+                assert(cancelled.kind === "page", "그룹 이름을 브라우저 기본 입력 창으로 물음(화면 안 입력 창이어야 함)");
                 await sleep(200);
                 assert((await groupTabs()).length === 1, `취소 뒤 그룹 수: ${JSON.stringify(await groupTabs())}`);
 
                 // b) Typing a name and confirming creates, selects and saves the group.
                 const named = await answerGroupName("QA 새 그룹");
+                assert(named.kind === "page", "그룹 이름을 브라우저 기본 입력 창으로 물음(화면 안 입력 창이어야 함)");
                 const tabsAfter = await until("새 그룹 탭", async () => {
                     const tabs = await groupTabs();
                     return tabs.length === 2 ? tabs : false;
