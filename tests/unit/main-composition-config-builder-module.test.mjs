@@ -65,10 +65,6 @@ describe("GTV main composition config builder module", () => {
             getRenderTimelineFrameRef: () => () => "render-timeline",
             confirmFnViaMainFoundation: () => true,
             promptFnViaMainFoundation: async () => "prompted",
-            bindFacadeMethod: (getFacade, methodName) => (...args) => getFacade()[methodName](...args),
-            getTimezoneSearchServiceRef: () => ({
-                updateTZDropdown: () => "updated"
-            }),
             getDocumentRefOrNull: () => ({ id: "doc" }),
             getRuntimeNowMs: () => 1234
         };
@@ -81,7 +77,7 @@ describe("GTV main composition config builder module", () => {
         expect(config.groupTabsConfig.renderList()).toBe("render-list");
         expect(config.groupTabsConfig.renderTimelineFrame()).toBe("render-timeline");
         await expect(config.groupTabsConfig.promptFn()).resolves.toBe("prompted");
-        expect(config.persistenceConfig.updateTZDropdown()).toBe("updated");
+        expect(config.persistenceConfig.updateTZDropdown).toBeUndefined();
         expect(config.persistenceConfig.document).toEqual({ id: "doc" });
     });
 

@@ -150,22 +150,36 @@ function buildScenarios(ctx) {
         },
         {
             id: "3",
-            title: "시간대 추가 → 저장 → 다시 열어도 유지",
+            title: "타임존 추가 팝업의 커스텀 탭으로 시간대 추가 → 저장 → 다시 열어도 유지",
             async run() {
                 const { api } = ctx;
+                const shownById = (id) => api.ev(`(() => { const el = document.getElementById(${JSON.stringify(id)}); return !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().width > 0; })()`);
+                // The main screen has no city combo box; "Add Timezone" + List opens the popup.
+                const main = await api.ev(`({ combo: !!document.getElementById("tz-quick-select"), label: document.querySelector(".option-add-tz-group .control-label-large")?.textContent.trim() })`);
+                assert(!main.combo && main.label === "타임존 추가", `본 화면 타임존 추가: ${JSON.stringify(main)}`);
+                await api.ev(`document.getElementById("show-all-tz").click()`);
+                await until("타임존 추가 팝업", () => shownById("full-tz-overlay"));
+                await api.ev(`document.getElementById("tz-tab-custom").click()`);
+                await until("커스텀 탭", () => shownById("tz-custom-panel"));
+                assert(!(await shownById("full-tz-list")) && !(await shownById("tz-search-input")), "커스텀 탭에서 목록·검색이 보임");
+                // Type into the fields like a user (the abbreviation field has focus).
+                const focused = await api.ev(`document.activeElement?.id`);
+                assert(focused === "custom-abbr", `커스텀 탭 첫 초점: ${focused}`);
+                await ctx.page.client.send("Input.insertText", { text: "GTVQ" });
+                await api.ev(`document.getElementById("custom-name").focus()`);
+                await ctx.page.client.send("Input.insertText", { text: "Chrome Check Zone" });
                 await api.ev(`(() => {
-                    document.getElementById("custom-abbr").value = "GTVQ";
-                    document.getElementById("custom-name").value = "Chrome Check Zone";
                     document.getElementById("custom-off-h").value = "9";
                     document.getElementById("custom-off-m").value = "0";
                     document.getElementById("add-custom-btn").click();
                 })()`);
+                await until("팝업 닫힘", async () => !(await shownById("full-tz-overlay")));
                 await until("행 추가", () => api.ev(`[...document.querySelectorAll("#clocks-container .zone-name")].some((el) => el.textContent.includes("Chrome Check Zone"))`));
                 await until("저장", async () => JSON.stringify(await api.storedData() || {}).includes("Chrome Check Zone"));
                 await api.reload();
                 const kept = await api.ev(`[...document.querySelectorAll("#clocks-container .zone-name")].some((el) => el.textContent.includes("Chrome Check Zone"))`);
                 assert(kept, "다시 연 뒤 추가한 시간대가 없음");
-                return "UTC+09:00 사용자 지정 시간대가 다시 연 뒤에도 표시됨";
+                return "본 화면 콤보박스 없음·\"타임존 추가\" → 팝업 커스텀 탭(목록·검색 숨김, 약어 칸 초점)에 입력 → 추가 후 팝업 닫힘, UTC+09:00 사용자 지정 시간대가 다시 연 뒤에도 표시됨";
             }
         },
         {
@@ -763,13 +777,38 @@ function buildScenarios(ctx) {
                 const offsetsFinal = await group2Offsets();
                 assert(stdDupToasts.some((text) => text.includes("이미 존재")) && offsetsFinal.length === 2, `같은 시차 재추가: ${JSON.stringify({ stdDupToasts, offsetsFinal })}`);
 
+                // f) UTC+00:00 in the standard list stands for the UTC row: with the row shown it gives
+                //    the notice; with the row hidden it shows the row again. No entry is added either way.
+                const group2 = async () => (await api.storedData())?.groups?.[1] || {};
+                await api.ev(`document.querySelectorAll("#toast-container .toast").forEach((t) => t.remove())`);
+                await addFromList("+00", "UTC+00:00", "standard");
+                const utcShownToasts = await toastTexts();
+                assert(utcShownToasts.some((text) => text.includes("이미 존재")) && (await group2()).zones.length === 2, `UTC 행이 있을 때 UTC+00:00: ${JSON.stringify(utcShownToasts)}`);
+                // Hide the UTC row the way a user does: base time on another row (group settings),
+                // then the UTC row's remove button.
+                await api.switchTab("live");
+                await api.ev(`(() => {
+                    document.querySelector(".group-tab.active .group-settings-btn").click();
+                    const select = document.getElementById("base-time-select");
+                    select.value = [...select.options].find((option) => option.value !== "utc").value;
+                    select.dispatchEvent(new Event("change", { bubbles: true }));
+                    document.getElementById("close-group-settings-btn").click();
+                })()`);
+                await until("기준 시간 변경", async () => (await group2()).baseTimezoneId !== "utc");
+                await api.ev(`document.querySelector("#tz-row-utc .remove-row-btn").click()`);
+                await until("UTC 행 숨김", async () => (await group2()).showUtcRow === false);
+                assert((await group2()).showUtcRow === false, "UTC 행 숨김 준비 실패");
+                await addFromList("+00", "UTC+00:00", "standard");
+                await until("UTC 행 다시 표시", async () => (await group2()).showUtcRow === true);
+                assert((await group2()).zones.length === 2, "UTC+00:00이 별도 시간대로 추가됨");
+
                 const promptKind = named.kind === "browser" ? "브라우저 기본 입력 창" : "화면 안 입력 창";
-                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")}), 표준시 UTC+09:00·UTC-05:00 함께 추가(시차 ${offsetsFinal.join(", ")}분)·같은 시차 재추가 거부`;
+                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")}), 표준시 UTC+09:00·UTC-05:00 함께 추가(시차 ${offsetsFinal.join(", ")}분)·같은 시차 재추가 거부, UTC+00:00은 UTC 행 표시(있으면 안내·숨김이면 다시 표시)`;
             }
         },
         {
             id: "14",
-            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음·계산기 날짜와 달력 버튼 한 줄·이동량 선택칸 잘림 없음·타임존 줄 폭·한 줄(1280·1600px)",
+            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음·계산기 날짜와 달력 버튼 한 줄·이동량 선택칸 잘림 없음·실시간 탭 도구 한 줄(1280·1600px)",
             async run() {
                 const { api } = ctx;
                 const zone = (id, name, ko, en) => ({ id, type: "standard", zone: name, name_ko: ko, name_en: en, fixedAbbr: "", fixedOffsetMinutes: null });
@@ -949,42 +988,35 @@ function buildScenarios(ctx) {
                         const calcDates = await measureCalcDates();
                         assert(calcDates.problems.length === 0, `${width}px 계산기: ${calcDates.problems.join(" | ")}`);
                         assert(calcDates.periodOneLine, `${width}px 기간 계산 시작일·바꾸기·종료일이 한 줄이 아님`);
-                        // Timezone row: the city select is as wide as its longest option needs (so the
-                        // opened list is no wider), the custom hour and minute selects match and show their
-                        // values, and the whole row (city and custom groups) stays on one line in the panel.
-                        await api.switchTab("fixed");
+                        // Live tab: "Add Timezone" + List start the options row, which stays on one line;
+                        // the custom tab's hour and minute selects share a width and show their values.
+                        await api.switchTab("live");
                         const tzRow = await api.ev(`(() => {
-                            const sel = document.getElementById("tz-quick-select");
-                            const cs = getComputedStyle(sel);
-                            const ctx2d = document.createElement("canvas").getContext("2d");
-                            ctx2d.font = cs.fontStyle + " " + cs.fontWeight + " " + cs.fontSize + " " + cs.fontFamily;
-                            const widest = Math.max(...[...sel.options].map((option) => ctx2d.measureText(option.textContent.trim()).width));
-                            const room = sel.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-                            const box = (id) => document.getElementById(id).getBoundingClientRect();
-                            const panel = document.querySelector(".control-row-main").getBoundingClientRect();
-                            const groups = [["tz-quick-select", "show-all-tz"], ["custom-abbr", "custom-name", "custom-off-h", "custom-off-m", "add-custom-btn"]];
-                            const split = groups.filter((ids) => ids.some((id) => Math.abs((box(id).top + box(id).bottom) / 2 - (box(ids[0]).top + box(ids[0]).bottom) / 2) > 4));
-                            const outside = groups.flat().filter((id) => box(id).right > panel.right + 0.5);
-                            const mid = (id) => (box(id).top + box(id).bottom) / 2;
-                            const oneLine = Math.abs(mid("tz-quick-select") - mid("add-custom-btn")) <= 4;
-                            const offClipped = ["custom-off-h", "custom-off-m"].filter((id) => {
-                                const el = document.getElementById(id);
-                                const ocs = getComputedStyle(el);
-                                const ctxOff = document.createElement("canvas").getContext("2d");
-                                ctxOff.font = ocs.fontStyle + " " + ocs.fontWeight + " " + ocs.fontSize + " " + ocs.fontFamily;
-                                const longest = Math.max(...[...el.options].map((option) => ctxOff.measureText(option.textContent).width));
-                                // The browser's arrow takes about 20px of the space inside the padding.
-                                return el.clientWidth - parseFloat(ocs.paddingLeft) - parseFloat(ocs.paddingRight) - longest < 16;
-                            });
-                            return { room: Math.round(room), widest: Math.round(widest), spare: Math.round(room - widest), abbr: Math.round(box("custom-abbr").width), name: Math.round(box("custom-name").width), hour: Math.round(box("custom-off-h").width), minute: Math.round(box("custom-off-m").width), split: split.length, outside, oneLine, offClipped };
+                            const row = document.getElementById("control-option-row");
+                            const kids = [...row.children].filter((el) => getComputedStyle(el).display !== "none");
+                            const mid = (el) => { const r = el.getBoundingClientRect(); return (r.top + r.bottom) / 2; };
+                            const rowBox = row.getBoundingClientRect();
+                            return {
+                                first: kids[0]?.classList.contains("option-add-tz-group"),
+                                oneLine: kids.every((el) => Math.abs(mid(el) - mid(kids[0])) <= 4),
+                                outside: kids.some((el) => el.getBoundingClientRect().right > rowBox.right + 0.5),
+                                oldRow: !!document.querySelector(".control-row-main, #tz-quick-select")
+                            };
                         })()`);
-                        // Space inside the padding = longest name + the browser's arrow (about 20px).
-                        assert(tzRow.spare >= 16 && tzRow.spare <= 32, `${width}px 도시 선택 폭이 가장 긴 항목과 맞지 않음: ${JSON.stringify(tzRow)}`);
-                        // Custom inputs: twice the old width when there is room (1600px), never below
-                        // their minimum when they shrink to keep the row on one line (1280px).
-                        const fullInputs = width === 1600 ? tzRow.abbr === 128 && tzRow.name === 148 : tzRow.abbr >= 80 && tzRow.name >= 96;
-                        assert(tzRow.hour === tzRow.minute && tzRow.offClipped.length === 0 && fullInputs, `${width}px 커스텀 입력 폭: ${JSON.stringify(tzRow)}`);
-                        assert(tzRow.oneLine && tzRow.split === 0 && tzRow.outside.length === 0, `${width}px 타임존 줄이 한 줄이 아님: ${JSON.stringify(tzRow)}`);
+                        assert(tzRow.first && tzRow.oneLine && !tzRow.outside && !tzRow.oldRow, `${width}px 실시간 탭 도구 줄: ${JSON.stringify(tzRow)}`);
+                        await api.ev(`document.getElementById("show-all-tz").click()`);
+                        await api.ev(`document.getElementById("tz-tab-custom").click()`);
+                        const offsets = await api.ev(`(() => ["custom-off-h", "custom-off-m"].map((id) => {
+                            const el = document.getElementById(id);
+                            const ocs = getComputedStyle(el);
+                            const ctxOff = document.createElement("canvas").getContext("2d");
+                            ctxOff.font = ocs.fontStyle + " " + ocs.fontWeight + " " + ocs.fontSize + " " + ocs.fontFamily;
+                            const longest = Math.max(...[...el.options].map((option) => ctxOff.measureText(option.textContent).width));
+                            // The browser's arrow takes about 20px of the space inside the padding.
+                            return { w: Math.round(el.getBoundingClientRect().width), spare: Math.round(el.clientWidth - parseFloat(ocs.paddingLeft) - parseFloat(ocs.paddingRight) - longest) };
+                        }))()`);
+                        await api.ev(`document.getElementById("close-overlay").click()`);
+                        assert(offsets[0].w === offsets[1].w && offsets.every((o) => o.spare >= 16), `${width}px 커스텀 시·분 선택칸: ${JSON.stringify(offsets)}`);
                         results.push(`${width}px 행 ${multi.rows}·DST ${multi.dst}·변환기 ${converter.length}칸·계산기 날짜 한 줄`);
                     }
                 } finally {

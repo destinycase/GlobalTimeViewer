@@ -95,36 +95,12 @@
 
             <!-- Main controls are rendered by JavaScript. -->
             <div id="top-control-bar" class="control-bar">
-                <div class="control-row control-row-main">
-                    <div class="control-group">
-                        <span class="control-label-large" data-i18n="label_add_tz">Timezone</span>
-                        <select id="tz-quick-select" class="form-select">
-                            <option value="" data-i18n="option_popular">Select popular city...</option>
-                        </select>
-                        <button id="show-all-tz" class="icon-btn" data-i18n="btn_list">List</button>
-                    </div>
-
-                    <div class="control-group custom-tz-group">
-                        <span class="inline-time-label" data-i18n="label_add_custom">Custom</span>
-                        <span class="info-tip" tabindex="0" role="img" data-i18n-title="tooltip_custom_timezone_help"
-                            aria-label="Info">i</span>
-                        <input type="text" id="custom-abbr" class="form-input" placeholder="Timezone"
-                            data-i18n="placeholder_abbr">
-                        <input type="text" id="custom-name" class="form-input" placeholder="Name"
-                            data-i18n="placeholder_name">
-                        <select id="custom-off-h" class="form-select"></select>
-                        <span class="inline-colon">:</span>
-                        <select id="custom-off-m" class="form-select">
-                            <option value="0">00</option>
-                            <option value="15">15</option>
-                            <option value="30">30</option>
-                            <option value="45">45</option>
-                        </select>
-                        <button id="add-custom-btn" class="sm-btn" data-i18n="btn_add">Add</button>
-                    </div>
-                </div>
-
                 <div id="control-option-row" class="control-row control-row-options">
+                    <div class="control-group option-toggle-group option-add-tz-group">
+                        <span class="control-label-large" data-i18n="label_add_timezone">Add Timezone</span>
+                        <button id="show-all-tz" class="icon-btn" type="button" data-i18n="btn_list">List</button>
+                    </div>
+
                     <div class="control-group option-toggle-group option-copy-format-group">
                         <label class="control-label-large option-toggle-label">
                             <span data-i18n="label_copy_format">Display / Copy Format</span>
@@ -782,7 +758,7 @@
         <div id="full-tz-overlay" class="overlay">
             <div class="overlay-content">
                 <div class="overlay-header">
-                    <h3 data-i18n="overlay_select_tz">Select Timezone</h3><button id="close-overlay" class="icon-btn"
+                    <h3 data-i18n="overlay_add_tz">Add Timezone</h3><button id="close-overlay" class="icon-btn"
                         aria-label="Close">&times;</button>
                 </div>
                 <div class="overlay-tabs" role="tablist" aria-label="Timezone list type">
@@ -790,6 +766,8 @@
                         data-i18n="overlay_standard_tz_list">Standard Time List</button>
                     <button id="tz-tab-country" class="overlay-tab" type="button" role="tab" aria-selected="false"
                         data-i18n="overlay_country_region_tz_list">Country - Region List</button>
+                    <button id="tz-tab-custom" class="overlay-tab" type="button" role="tab" aria-selected="false"
+                        data-i18n="overlay_custom_tz">Custom</button>
                 </div>
                 <div class="overlay-search-row">
                     <input id="tz-search-input" class="form-input overlay-search-input" type="text"
@@ -799,6 +777,31 @@
                         data-i18n="btn_clear">Clear</button>
                 </div>
                 <div id="full-tz-list" class="tz-grid"></div>
+                <div id="tz-custom-panel" class="tz-custom-panel" style="display: none;">
+                    <p class="settings-desc" data-i18n="custom_tz_help">Enter an abbreviation, a name and a UTC offset.</p>
+                    <div class="tz-custom-grid">
+                        <label for="custom-abbr" data-i18n="custom_tz_label_abbr">Abbreviation</label>
+                        <input type="text" id="custom-abbr" class="form-input" placeholder="Timezone"
+                            data-i18n="placeholder_abbr" maxlength="10" autocomplete="off" spellcheck="false">
+                        <label for="custom-name" data-i18n="custom_tz_label_name">Name</label>
+                        <input type="text" id="custom-name" class="form-input" placeholder="Name"
+                            data-i18n="placeholder_name" maxlength="60" autocomplete="off" spellcheck="false">
+                        <label for="custom-off-h" data-i18n="custom_tz_label_offset">UTC Offset</label>
+                        <div class="tz-custom-offset">
+                            <select id="custom-off-h" class="form-select"></select>
+                            <span class="inline-colon">:</span>
+                            <select id="custom-off-m" class="form-select">
+                                <option value="0">00</option>
+                                <option value="15">15</option>
+                                <option value="30">30</option>
+                                <option value="45">45</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="tz-custom-actions">
+                        <button id="add-custom-btn" class="sm-btn" type="button" data-i18n="btn_add">Add</button>
+                    </div>
+                </div>
             </div>
         </div>
         <div id="app-prompt-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="app-prompt-title">

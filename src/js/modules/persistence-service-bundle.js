@@ -76,8 +76,6 @@
                 populateUiScaleSelect: cfg.populateUiScaleSelect,
                 getCurrentUiScalePercent: cfg.getCurrentUiScalePercent,
                 refreshMultiRangeControls: cfg.refreshMultiRangeControls,
-                updateTZDropdown: cfg.updateTZDropdown,
-                refreshSelectWidths: cfg.refreshSelectWidths,
                 switchMainTab: cfg.switchMainTab,
                 showToast: cfg.showToast,
                 t: cfg.t,
@@ -142,8 +140,6 @@
                 getDayStartHour: cfg.getDayStartHour,
                 getNightStartHour: cfg.getNightStartHour,
                 refreshMultiRangeControls: cfg.refreshMultiRangeControls,
-                updateTZDropdown: cfg.updateTZDropdown,
-                refreshSelectWidths: cfg.refreshSelectWidths,
                 switchMainTab: cfg.switchMainTab
             });
 

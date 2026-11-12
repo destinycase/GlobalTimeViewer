@@ -365,84 +365,40 @@ describe("GTV timezone search module", () => {
         expect(String(warned[0][0])).toContain("Failed to warm up standard timezone cache.");
     });
 
-    it("updateTZDropdown prefers injected documentRef over global document", () => {
-        const globalQuickSelect = createElementStub("select");
-        const globalPlaceholder = createElementStub("option");
-        globalQuickSelect.options = [globalPlaceholder];
-        const injectedQuickSelect = createElementStub("select");
-        const injectedPlaceholder = createElementStub("option");
-        injectedQuickSelect.options = [injectedPlaceholder];
-        const globalDoc = createDocumentStub({
-            "tz-quick-select": globalQuickSelect
-        });
-        const injectedDoc = createDocumentStub({
-            "tz-quick-select": injectedQuickSelect
-        });
+    it("renderFullTimezoneOverlayList prefers injected documentRef over global document", () => {
+        const globalList = createElementStub("div");
+        const injectedList = createElementStub("div");
         const module = loadTimezoneSearchModule({
-            document: globalDoc
+            document: createDocumentStub({ "full-tz-list": globalList })
         });
+        const injectedDoc = createDocumentStub({ "full-tz-list": injectedList });
         const service = module.createService({
             documentRef: injectedDoc,
-            TZ_DATABASE: [
-                {
-                    zone: "Asia/Seoul",
-                    name: "Korea",
-                    city: "Seoul",
-                    name_en: "Korea",
-                    city_en: "Seoul"
-                }
-            ],
-            ZONE_MAP: {
-                "Asia/Seoul": "KST"
-            },
             ...createOffsetAndAbbrDeps()
         });
 
-        service.updateTZDropdown();
+        service.renderFullTimezoneOverlayList();
 
-        expect(injectedQuickSelect.options.length).toBeGreaterThan(1);
-        expect(globalQuickSelect.options.length).toBe(1);
+        expect(injectedList.children.length).toBe(1);
+        expect(globalList.children.length).toBe(0);
     });
-
-    it("updateTZDropdown prefers injected getDocumentRefOrNull over global document", () => {
-        const globalQuickSelect = createElementStub("select");
-        const globalPlaceholder = createElementStub("option");
-        globalQuickSelect.options = [globalPlaceholder];
-        const injectedQuickSelect = createElementStub("select");
-        const injectedPlaceholder = createElementStub("option");
-        injectedQuickSelect.options = [injectedPlaceholder];
-        const globalDoc = createDocumentStub({
-            "tz-quick-select": globalQuickSelect
-        });
-        const injectedDoc = createDocumentStub({
-            "tz-quick-select": injectedQuickSelect
-        });
+    it("renderFullTimezoneOverlayList prefers injected getDocumentRefOrNull over global document", () => {
+        const globalList = createElementStub("div");
+        const injectedList = createElementStub("div");
         const module = loadTimezoneSearchModule({
-            document: globalDoc
+            document: createDocumentStub({ "full-tz-list": globalList })
         });
+        const injectedDoc = createDocumentStub({ "full-tz-list": injectedList });
         const service = module.createService({
             getDocumentRefOrNull: () => injectedDoc,
-            TZ_DATABASE: [
-                {
-                    zone: "Asia/Seoul",
-                    name: "Korea",
-                    city: "Seoul",
-                    name_en: "Korea",
-                    city_en: "Seoul"
-                }
-            ],
-            ZONE_MAP: {
-                "Asia/Seoul": "KST"
-            },
             ...createOffsetAndAbbrDeps()
         });
 
-        service.updateTZDropdown();
+        service.renderFullTimezoneOverlayList();
 
-        expect(injectedQuickSelect.options.length).toBeGreaterThan(1);
-        expect(globalQuickSelect.options.length).toBe(1);
+        expect(injectedList.children.length).toBe(1);
+        expect(globalList.children.length).toBe(0);
     });
-
     it("addFromSearchWithData uses selectable entries and forwards addTimezone", () => {
         const added = [];
         const module = loadTimezoneSearchModule();
@@ -643,7 +599,7 @@ describe("GTV timezone search module", () => {
         expect(entry.zone).toBe("UTC");
     });
 
-    it("updateTZDropdown exits safely when quick select element is missing", () => {
+    it("initSearchAndSelect exits safely when the popup elements are missing", () => {
         const module = loadTimezoneSearchModule({
             document: {
                 getElementById() {
@@ -653,50 +609,43 @@ describe("GTV timezone search module", () => {
         });
         const service = module.createService({});
 
-        expect(() => service.updateTZDropdown()).not.toThrow();
+        expect(() => service.initSearchAndSelect()).not.toThrow();
     });
-
-    it("initSearchAndSelect handles UTC quick-select branch and persists", () => {
-        const quickSelect = createElementStub("select");
-        const placeholder = createElementStub("option");
-        placeholder.value = "";
-        quickSelect.options = [placeholder];
-        const activeGroup = { showUtcRow: false, utcRowOrder: "invalid" };
+    it("UTC+00:00 in the standard list shows the hidden UTC row instead of adding an entry", () => {
+        const activeGroup = { showUtcRow: false, utcRowOrder: "invalid", zones: [] };
         let saveCalls = 0;
         let renderCalls = 0;
-
+        const added = [];
+        const toasts = [];
         const module = loadTimezoneSearchModule({
-            document: {
-                getElementById(id) {
-                    if (id === "tz-quick-select") return quickSelect;
-                    return null;
-                },
-                createElement(tag) {
-                    return createElementStub(tag);
-                }
-            }
+            Intl: { supportedValuesOf: () => ["UTC", "Asia/Seoul"] }
         });
         const service = module.createService({
             getCurrentGroup: () => activeGroup,
             savePersistence: () => { saveCalls += 1; },
             renderList: () => { renderCalls += 1; },
-            t: (key) => key
+            addTimezone: (zone) => { added.push(zone); return true; },
+            showToast: (message) => { toasts.push(message); },
+            t: (key) => key,
+            ...createOffsetAndAbbrDeps()
         });
+        const utcEntry = service.getStandardTimezoneEntries().find((entry) => entry.fixedOffsetMinutes === 0);
+        expect(utcEntry).toBeTruthy();
 
-        service.initSearchAndSelect();
-        quickSelect.onchange({ target: { value: "UTC" } });
-
+        expect(service.addFromSearchWithData(utcEntry.key)).toBe(true);
         expect(activeGroup.showUtcRow).toBe(true);
         expect(activeGroup.utcRowOrder).toBe(0);
         expect(saveCalls).toBe(1);
         expect(renderCalls).toBe(1);
-        expect(quickSelect.value).toBe("");
-    });
+        expect(added).toEqual([]);
 
+        // Already shown: a notice, nothing else changes.
+        expect(service.addFromSearchWithData(utcEntry.key)).toBe(false);
+        expect(toasts).toEqual(["toast_timezone_duplicate"]);
+        expect(saveCalls).toBe(1);
+        expect(added).toEqual([]);
+    });
     it("initSearchAndSelect wires full overlay open/tab/close actions", () => {
-        const quickSelect = createElementStub("select");
-        const placeholder = createElementStub("option");
-        quickSelect.options = [placeholder];
         const showAllBtn = createElementStub("button");
         const overlay = createElementStub("div");
         overlay.style.display = "none";
@@ -706,8 +655,16 @@ describe("GTV timezone search module", () => {
         const searchInput = createElementStub("input");
         const clearSearchBtn = createElementStub("button");
         const closeOverlayBtn = createElementStub("button");
+        const customTabBtn = createElementStub("button");
+        const customPanel = createElementStub("div");
+        customPanel.style.display = "none";
+        const customAbbr = createElementStub("input");
+        let customFocused = 0;
+        customAbbr.focus = () => { customFocused += 1; };
         const doc = createDocumentStub({
-            "tz-quick-select": quickSelect,
+            "tz-tab-custom": customTabBtn,
+            "tz-custom-panel": customPanel,
+            "custom-abbr": customAbbr,
             "show-all-tz": showAllBtn,
             "full-tz-overlay": overlay,
             "full-tz-list": list,
@@ -777,6 +734,17 @@ describe("GTV timezone search module", () => {
         clearSearchBtn.dispatchEvent({ type: "click", target: clearSearchBtn });
         expect(searchInput.value).toBe("");
         expect(clearSearchBtn.disabled).toBe(true);
+
+        // The custom tab shows its form instead of the list and focuses the abbreviation field.
+        customTabBtn.dispatchEvent({ type: "click", target: customTabBtn });
+        expect(customTabBtn.classList.contains("active")).toBe(true);
+        expect(countryTabBtn.classList.contains("active")).toBe(false);
+        expect(customPanel.style.display).toBe("flex");
+        expect(list.style.display).toBe("none");
+        expect(customFocused).toBe(1);
+        standardTabBtn.dispatchEvent({ type: "click", target: standardTabBtn });
+        expect(customPanel.style.display).toBe("none");
+        expect(list.style.display).toBe("");
 
         closeOverlayBtn.onclick();
         expect(overlay.style.display).toBe("none");

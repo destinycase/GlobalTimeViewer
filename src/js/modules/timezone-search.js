@@ -43,10 +43,10 @@
                 "t",
                 "createUniqueTimezoneId",
                 "addTimezone",
-                "adjustSelectWidthForContent",
                 "getCurrentGroup",
                 "savePersistence",
-                "renderList"
+                "renderList",
+                "showToast"
             ])
         });
 
@@ -363,12 +363,6 @@
             return getStandardTimezoneEntries().find((entry) => entry.key === key) || null;
         }
 
-        function getSelectableTZOptionLabel(entry) {
-            const line1 = getTimezoneEntryTitle(entry);
-            const abbr = normalizeZoneAbbreviation(entry?.abbr);
-            return abbr ? `${line1} [${abbr}]` : line1;
-        }
-
         function createStandardTimezoneFromSelectableEntry(entry) {
             if (!entry || typeof entry !== "object") return null;
             if (entry.kind === "standard_list") {
@@ -405,8 +399,27 @@
             };
         }
 
+        // UTC+00:00 in the standard time list stands for the table's UTC row: it shows the row again
+        // when it is hidden instead of adding a separate fixed-offset entry.
+        function showUtcRowFromList() {
+            const activeGroup = dep.getCurrentGroup();
+            if (!activeGroup) return false;
+            if (activeGroup.showUtcRow !== false) {
+                dep.showToast(translate("toast_timezone_duplicate"), { type: "info" });
+                return false;
+            }
+            activeGroup.showUtcRow = true;
+            if (!Number.isFinite(parseInt(activeGroup.utcRowOrder, 10))) activeGroup.utcRowOrder = 0;
+            dep.savePersistence();
+            dep.renderList();
+            return true;
+        }
+
         function addFromSearchWithData(entryKey) {
             const entry = getSelectableTZEntryByKey(entryKey);
+            if (entry?.kind === "standard_list" && parseFixedOffsetMinutes(entry.fixedOffsetMinutes) === 0) {
+                return showUtcRowFromList();
+            }
             const nextZone = createStandardTimezoneFromSelectableEntry(entry);
             if (nextZone) {
                 addTimezoneSafe({
@@ -466,7 +479,7 @@
         }
 
         function sanitizeFullTimezoneOverlayTab(value) {
-            return value === "country" ? "country" : "standard";
+            return (value === "country" || value === "custom") ? value : "standard";
         }
 
         function getActiveFullTimezoneOverlayEntries() {
@@ -540,22 +553,33 @@
         function updateFullTimezoneOverlayTabButtons() {
             const doc = getDocumentRef();
             if (!doc || typeof doc.getElementById !== "function") return;
-            const standardTabBtn = doc.getElementById("tz-tab-standard");
-            const countryTabBtn = doc.getElementById("tz-tab-country");
-            if (standardTabBtn) {
-                standardTabBtn.classList.toggle("active", fullTimezoneOverlayActiveTab === "standard");
-                standardTabBtn.setAttribute("aria-selected", fullTimezoneOverlayActiveTab === "standard" ? "true" : "false");
-            }
-            if (countryTabBtn) {
-                countryTabBtn.classList.toggle("active", fullTimezoneOverlayActiveTab === "country");
-                countryTabBtn.setAttribute("aria-selected", fullTimezoneOverlayActiveTab === "country" ? "true" : "false");
-            }
+            ["standard", "country", "custom"].forEach((tab) => {
+                const tabBtn = doc.getElementById(`tz-tab-${tab}`);
+                if (!tabBtn) return;
+                tabBtn.classList.toggle("active", fullTimezoneOverlayActiveTab === tab);
+                tabBtn.setAttribute("aria-selected", fullTimezoneOverlayActiveTab === tab ? "true" : "false");
+            });
+            // The custom tab shows its form instead of the search box and the list.
+            const isCustom = fullTimezoneOverlayActiveTab === "custom";
+            const setShown = (id, shown, display) => {
+                const el = doc.getElementById(id);
+                if (el?.style) el.style.display = shown ? display : "none";
+            };
+            setShown("tz-custom-panel", isCustom, "flex");
+            setShown("full-tz-list", !isCustom, "");
+            const searchRow = doc.getElementById("tz-search-input")?.closest?.(".overlay-search-row");
+            if (searchRow?.style) searchRow.style.display = isCustom ? "none" : "";
         }
 
         function setFullTimezoneOverlayTab(value) {
             fullTimezoneOverlayActiveTab = sanitizeFullTimezoneOverlayTab(value);
             updateFullTimezoneOverlayTabButtons();
             updateFullTimezoneOverlaySearchUi();
+            if (fullTimezoneOverlayActiveTab === "custom") {
+                const doc = getDocumentRef();
+                doc?.getElementById?.("custom-abbr")?.focus?.();
+                return;
+            }
             renderFullTimezoneOverlayList();
         }
 
@@ -587,56 +611,9 @@
             }
         }
 
-        function updateTZDropdown() {
-            const doc = getDocumentRef();
-            if (!doc || typeof doc.getElementById !== "function" || typeof doc.createElement !== "function") return;
-            const quickSelect = doc.getElementById("tz-quick-select");
-            if (!quickSelect) return;
-            const placeholder = quickSelect.options?.[0] || null;
-            quickSelect.textContent = "";
-            if (placeholder) quickSelect.appendChild(placeholder);
-
-            const utcOption = doc.createElement("option");
-            utcOption.value = "UTC";
-            utcOption.textContent = translate("utc_name");
-            quickSelect.appendChild(utcOption);
-
-            getSelectableTZEntries().forEach((entry) => {
-                const option = doc.createElement("option");
-                option.value = entry.key;
-                option.textContent = getSelectableTZOptionLabel(entry);
-                quickSelect.appendChild(option);
-            });
-            dep.adjustSelectWidthForContent(quickSelect, 118);
-        }
-
         function initSearchAndSelect() {
             const doc = getDocumentRef();
             if (!doc || typeof doc.getElementById !== "function") return;
-            const quickSelect = doc.getElementById("tz-quick-select");
-            if (!quickSelect) return;
-
-            updateTZDropdown();
-
-            quickSelect.onchange = (e) => {
-                const value = e?.target?.value;
-                if (value === "UTC") {
-                    const activeGroup = dep.getCurrentGroup();
-                    if (activeGroup) {
-                        activeGroup.showUtcRow = true;
-                        if (!Number.isFinite(parseInt(activeGroup.utcRowOrder, 10))) {
-                            activeGroup.utcRowOrder = 0;
-                        }
-                        dep.savePersistence();
-                        dep.renderList();
-                    }
-                    quickSelect.value = "";
-                    return;
-                }
-                const entry = getSelectableTZEntryByKey(value);
-                if (entry) addFromSearchWithData(entry.key);
-                quickSelect.value = "";
-            };
 
             const showAllBtn = doc.getElementById("show-all-tz");
             if (showAllBtn) {
@@ -645,14 +622,10 @@
                 };
             }
 
-            const standardTabBtn = doc.getElementById("tz-tab-standard");
-            const countryTabBtn = doc.getElementById("tz-tab-country");
-            if (standardTabBtn) {
-                standardTabBtn.addEventListener("click", () => setFullTimezoneOverlayTab("standard"));
-            }
-            if (countryTabBtn) {
-                countryTabBtn.addEventListener("click", () => setFullTimezoneOverlayTab("country"));
-            }
+            ["standard", "country", "custom"].forEach((tab) => {
+                const tabBtn = doc.getElementById(`tz-tab-${tab}`);
+                if (tabBtn) tabBtn.addEventListener("click", () => setFullTimezoneOverlayTab(tab));
+            });
 
             const searchInput = doc.getElementById("tz-search-input");
             if (searchInput) {
@@ -689,12 +662,10 @@
             getTimezoneEntryTitle,
             filterTimezoneEntries,
             getSelectableTZEntryByKey,
-            getSelectableTZOptionLabel,
             sanitizeFullTimezoneOverlayTab,
             renderFullTimezoneOverlayList,
             updateFullTimezoneOverlayTabButtons,
             setFullTimezoneOverlayTab,
-            updateTZDropdown,
             initSearchAndSelect,
             createStandardTimezoneFromSelectableEntry,
             addFromSearchWithData

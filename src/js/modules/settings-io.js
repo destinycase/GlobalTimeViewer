@@ -356,8 +356,6 @@
             }
             safeDeps.refreshMultiRangeControls();
 
-            safeDeps.updateTZDropdown();
-            safeDeps.refreshSelectWidths();
             safeDeps.switchMainTab(safeDeps.getCurrentMainTab());
         }
 

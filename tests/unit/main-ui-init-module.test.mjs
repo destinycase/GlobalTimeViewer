@@ -130,13 +130,11 @@ describe("GTV main ui init module", () => {
             renderCopyFormatControls: () => {},
             updateCopyFormatPreview: () => {},
             refreshCalculator: () => {},
-            updateTZDropdown: () => {},
             renderGroups: () => {},
             renderMultiSubgroups: () => {},
             populateUiScaleSelect: () => {},
             applyUiScale: () => {},
             applyTheme: () => {},
-            refreshSelectWidths: () => {},
             updateOptionRowVisibility: () => {},
             renderBaseTimeSelect: () => {},
             updateTimeAdjustPanel: () => {},
@@ -197,7 +195,6 @@ describe("GTV main ui init module", () => {
             addGroup: () => "addGroup",
             copyAllTimezones: () => {},
             updateTimeAdjustPanel: () => {},
-            refreshSelectWidths: () => {},
             renderBaseTimeSelect: () => {},
             updateOptionRowVisibility: () => {},
             refreshMultiRangeControls: () => {},
@@ -260,7 +257,6 @@ describe("GTV main ui init module", () => {
             refreshMultiRangeControls: () => {},
             refreshFixedTimeSlotCountControls: () => {},
             renderBaseTimeSelect: () => {},
-            refreshSelectWidths: () => {},
             updateOptionRowVisibility: () => {},
             updateTimeAdjustPanel: () => {},
             renderCopyFormatControls: () => {},
@@ -306,11 +302,9 @@ describe("GTV main ui init module", () => {
             refreshMultiRangeControls: 0,
             refreshFixedTimeSlotCountControls: 0,
             applyVersionBranding: 0,
-            updateTZDropdown: 0,
             renderGroups: 0,
             renderMultiSubgroups: 0,
             updateTimeAdjustPanel: 0,
-            refreshSelectWidths: 0,
             renderBaseTimeSelect: 0,
             updateOptionRowVisibility: 0,
             upgradeNativeTitleTooltips: 0,
@@ -537,9 +531,6 @@ describe("GTV main ui init module", () => {
             applyVersionBranding: () => {
                 calls.applyVersionBranding += 1;
             },
-            updateTZDropdown: () => {
-                calls.updateTZDropdown += 1;
-            },
             renderGroups: () => {
                 calls.renderGroups += 1;
             },
@@ -548,9 +539,6 @@ describe("GTV main ui init module", () => {
             },
             updateTimeAdjustPanel: () => {
                 calls.updateTimeAdjustPanel += 1;
-            },
-            refreshSelectWidths: () => {
-                calls.refreshSelectWidths += 1;
             },
             bindResetControls: () => {
                 calls.bindResetControls += 1;
@@ -690,11 +678,9 @@ describe("GTV main ui init module", () => {
         expect(calls.language).toEqual(["en"]);
         expect(calls.hideFloatingTooltip).toBe(1);
         expect(calls.applyVersionBranding).toBe(1);
-        expect(calls.updateTZDropdown).toBeGreaterThanOrEqual(1);
         expect(calls.renderGroups).toBeGreaterThanOrEqual(1);
         expect(calls.renderMultiSubgroups).toBeGreaterThanOrEqual(1);
         expect(calls.updateTimeAdjustPanel).toBeGreaterThanOrEqual(2);
-        expect(calls.refreshSelectWidths).toBeGreaterThanOrEqual(2);
         expect(calls.refreshCalculator).toBeGreaterThanOrEqual(2);
 
         let prevented = 0;

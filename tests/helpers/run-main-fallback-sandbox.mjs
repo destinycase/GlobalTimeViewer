@@ -222,14 +222,10 @@ export function runMainWithSandbox({ withWindow = true, constantsDefined = true 
     const mainRuntimeCoreServiceBootstrapStub = {
         createService: () => {
             const mainSelectServices = {
-                adjustSelectWidthForContent: () => undefined,
-                refreshSelectWidths: () => undefined,
                 renderBaseTimeSelect: () => undefined
             };
             return {
                 mainSelectServices,
-                adjustSelectWidthForContent: mainSelectServices.adjustSelectWidthForContent,
-                refreshSelectWidths: mainSelectServices.refreshSelectWidths,
                 renderBaseTimeSelect: mainSelectServices.renderBaseTimeSelect,
                 timezoneSearchService: createNoopServiceProxy(),
                 snapshotFormatService: createNoopServiceProxy()

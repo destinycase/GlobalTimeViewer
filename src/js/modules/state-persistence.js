@@ -100,8 +100,6 @@
                 "applyVersionBranding",
                 "populateUiScaleSelect",
                 "refreshMultiRangeControls",
-                "updateTZDropdown",
-                "refreshSelectWidths",
                 "switchMainTab",
                 "ensureBaseTimezoneSelection",
                 "syncCurrentMultiStateToActiveSubgroup"
@@ -502,8 +500,6 @@
             if (nightStartSelect) nightStartSelect.value = String(dayNightRange.nightStartHour);
 
             dep.refreshMultiRangeControls();
-            dep.updateTZDropdown();
-            dep.refreshSelectWidths();
             dep.switchMainTab("live");
             await savePersistence();
         }

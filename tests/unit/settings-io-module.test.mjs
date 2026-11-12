@@ -134,8 +134,6 @@ function createBaseDeps(overrides = {}) {
         populateUiScaleSelect: () => { },
         getCurrentUiScalePercent: () => 100,
         refreshMultiRangeControls: () => { },
-        updateTZDropdown: () => { },
-        refreshSelectWidths: () => { },
         switchMainTab: () => { },
         getCurrentMainTab: () => "live",
         ...overrides
@@ -651,8 +649,6 @@ describe("GTV settings IO module", () => {
         const setStorageCalls = [];
         let populatedUiScale = null;
         let refreshMultiRangeControlsCount = 0;
-        let updateTZDropdownCount = 0;
-        let refreshSelectWidthsCount = 0;
         const switchedTabs = [];
         const service = loaded.module.createService(createBaseDeps({
             setStorageValue: async (key, value, options) => {
@@ -670,12 +666,6 @@ describe("GTV settings IO module", () => {
             },
             refreshMultiRangeControls: () => {
                 refreshMultiRangeControlsCount += 1;
-            },
-            updateTZDropdown: () => {
-                updateTZDropdownCount += 1;
-            },
-            refreshSelectWidths: () => {
-                refreshSelectWidthsCount += 1;
             },
             switchMainTab: (tab) => {
                 switchedTabs.push(tab);
@@ -698,8 +688,6 @@ describe("GTV settings IO module", () => {
         expect(populatedUiScale).toBe(uiScaleSelect);
         expect(uiScaleSelect.value).toBe("125");
         expect(refreshMultiRangeControlsCount).toBe(1);
-        expect(updateTZDropdownCount).toBe(1);
-        expect(refreshSelectWidthsCount).toBe(1);
         expect(switchedTabs).toEqual(["fixed"]);
     });
 

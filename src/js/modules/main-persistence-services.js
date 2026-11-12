@@ -104,8 +104,6 @@
                 "populateUiScaleSelect",
                 "getCurrentUiScalePercent",
                 "refreshMultiRangeControls",
-                "updateTZDropdown",
-                "refreshSelectWidths",
                 "switchMainTab",
                 "showToast",
                 "t",

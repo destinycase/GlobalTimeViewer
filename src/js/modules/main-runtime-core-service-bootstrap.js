@@ -80,10 +80,10 @@
                     "getBetterAbbr",
                     "getTimezoneOffset",
                     "getLocalizedTZLabel",
-                    "adjustSelectWidthForContent",
                     "getCurrentGroup",
                     "addTimezone",
-                    "createUniqueTimezoneId"
+                    "createUniqueTimezoneId",
+                    "showToast"
                 ]),
                 renderList: deferDynamic(d, d.getRenderListRef)
             };
@@ -152,8 +152,6 @@
         };
         const mainSelectServicesConfig = buildMainSelectServicesConfig(selectDeps);
         const mainSelectServices = createMainSelectServices(mainSelectServicesConfig);
-        const adjustSelectWidthForContent = mainSelectServices.adjustSelectWidthForContent;
-        const refreshSelectWidths = mainSelectServices.refreshSelectWidths;
         const renderBaseTimeSelect = mainSelectServices.renderBaseTimeSelect;
 
         const timezoneSearchConfig = buildTimezoneSearchConfig({
@@ -166,14 +164,14 @@
                 "getTimezoneOffset",
                 "getLocalizedTZLabel"
             ]),
-            adjustSelectWidthForContent,
             ...pickDeps([
                 "getCurrentGroup",
                 "savePersistenceSafely",
                 "deferDynamicCall",
                 "getRenderListRef",
                 "addTimezone",
-                "createUniqueTimezoneId"
+                "createUniqueTimezoneId",
+                "showToast"
             ])
         });
         const timezoneSearchService = createTimezoneSearchService(timezoneSearchConfig);
@@ -208,8 +206,6 @@
 
         return Object.freeze({
             mainSelectServices,
-            adjustSelectWidthForContent,
-            refreshSelectWidths,
             renderBaseTimeSelect,
             timezoneSearchService,
             snapshotFormatService

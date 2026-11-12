@@ -535,49 +535,6 @@ td {
     overflow-y: auto;
 }
 
-/* The city select is sized by main-select-services.js to its longest option. */
-#tz-quick-select {
-    min-width: 200px;
-}
-
-/* The custom group keeps the timezone row on one line: its timezone and name inputs are
-   128px/148px when there is room and shrink (down to 80px/96px) before the group wraps.
-   Their width is 0 so the group's smallest size is counted from their min-width. */
-.control-row-main .control-group.custom-tz-group {
-    flex: 1 1 0;
-    min-width: min-content;
-    gap: 6px;
-}
-
-.custom-tz-group>:not(#custom-abbr, #custom-name) {
-    flex-shrink: 0;
-}
-
-#custom-abbr {
-    flex: 0 1 128px;
-    width: 0;
-    min-width: 80px;
-}
-
-#custom-name {
-    flex: 0 1 148px;
-    width: 0;
-    min-width: 96px;
-}
-
-/* Selects in the timezone row: the browser draws its own arrow, so only a small gap is kept
-   before it (other selects keep 34px). */
-.control-row-main .form-select {
-    padding-right: 12px;
-}
-
-/* Hour and minute selects share the hour select's natural width ("+14" plus the arrow). */
-#custom-off-h,
-#custom-off-m {
-    flex: 0 0 auto;
-    width: 76px;
-}
-
 #multi-range-count-input {
     width: 64px;
     text-align: center;
@@ -702,19 +659,13 @@ input[type=number] {
     gap: 15px;
 }
 
-.control-row-main {
-    gap: 10px;
-}
-
-.control-row-main .control-group {
-    gap: 8px;
-}
-
+/* The options row is the panel's only first row: "Add Timezone" + List start it. */
 .control-row-options {
-    border-top: 2px solid rgba(148, 163, 184, 0.45);
-    box-shadow: inset 0 1px 0 rgba(56, 189, 248, 0.16);
-    padding-top: 10px;
     gap: 10px;
+}
+
+.control-row-options .option-add-tz-group {
+    gap: 8px;
 }
 
 .control-row-tools {
@@ -3582,6 +3533,43 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     color: var(--text-dim);
 }
 
+/* Custom tab of the add-timezone popup: label column + fields. */
+.tz-custom-panel {
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 20px 22px;
+}
+
+.tz-custom-grid {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 260px);
+    align-items: center;
+    gap: 10px 14px;
+}
+
+.tz-custom-grid>label {
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.tz-custom-offset {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Hour and minute share one width; the browser draws its own arrow after the 12px gap. */
+#custom-off-h,
+#custom-off-m {
+    width: 76px;
+    padding-right: 12px;
+}
+
+.tz-custom-actions {
+    display: flex;
+}
+
 .overlay-tab.active {
     background: var(--accent-glow);
     border-color: rgba(56, 189, 248, 0.58);
@@ -4395,14 +4383,12 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     background: rgba(15, 23, 42, 0.12);
 }
 
-.control-row-options,
 .control-row-tools,
 .multi-range-adjust-row {
     border-top: 1px solid rgba(148, 163, 184, 0.16);
     box-shadow: none;
 }
 
-:root[data-theme="light"] .control-row-options,
 :root[data-theme="light"] .control-row-tools,
 :root[data-theme="light"] .multi-range-adjust-row {
     border-top-color: rgba(15, 23, 42, 0.1);

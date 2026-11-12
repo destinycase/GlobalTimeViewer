@@ -61,8 +61,6 @@ describe("GTV main runtime core service bootstrap module", () => {
         let timezoneConfig;
         let snapshotConfig;
         const createMainSelectServices = vi.fn(() => ({
-            adjustSelectWidthForContent: () => "adjusted",
-            refreshSelectWidths: () => "refreshed",
             renderBaseTimeSelect: () => "rendered"
         }));
         const createTimezoneSearchService = vi.fn((config) => {
@@ -76,8 +74,6 @@ describe("GTV main runtime core service bootstrap module", () => {
         createMainSelectServices.mockImplementation((config) => {
             selectConfig = config;
             return {
-                adjustSelectWidthForContent: () => "adjusted",
-                refreshSelectWidths: () => "refreshed",
                 renderBaseTimeSelect: () => "rendered"
             };
         });
@@ -140,7 +136,9 @@ describe("GTV main runtime core service bootstrap module", () => {
         expect(snapshotConfig.I18N_DATA).toEqual({ en: {} });
         expect(snapshotConfig.getCurrentLang()).toBe("en");
         expect(snapshotConfig.timeService).toEqual({ name: "time-service" });
-        expect(typeof service.adjustSelectWidthForContent).toBe("function");
+        expect(service.renderBaseTimeSelect()).toBe("rendered");
+        expect(service.adjustSelectWidthForContent).toBeUndefined();
+        expect(timezoneConfig.adjustSelectWidthForContent).toBeUndefined();
         expect(service.timezoneSearchService).toEqual({ name: "timezone-search-service" });
         expect(service.snapshotFormatService).toEqual({ name: "snapshot-format-service" });
         expect(Object.isFrozen(service)).toBe(true);
