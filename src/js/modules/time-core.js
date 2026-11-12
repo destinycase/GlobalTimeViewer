@@ -78,6 +78,21 @@
         return Math.min(Math.max(value, min), max);
     }
 
+    // A whole-minute UTC offset as custom timezone fields: "UTC+09:00" abbreviation and the
+    // signed hour plus minutes that getCustomOffsetMinutes reads back. Offsets between -1 and 0
+    // hours cannot be written as offH/offM and return null.
+    function toCustomOffsetFields(offsetMinutes) {
+        const minutes = Math.trunc(Number(offsetMinutes));
+        if (!Number.isFinite(minutes) || Math.abs(minutes) > 14 * 60) return null;
+        if (minutes < 0 && minutes > -60) return null;
+        const sign = minutes < 0 ? -1 : 1;
+        const absMinutes = Math.abs(minutes);
+        const hours = Math.floor(absMinutes / 60);
+        const rest = absMinutes % 60;
+        const label = `UTC${sign < 0 ? "-" : "+"}${String(hours).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+        return { abbr: label, offH: sign * hours, offM: rest };
+    }
+
     function getCustomOffsetMinutes(tz) {
         const offH = Number.isFinite(parseInt(tz?.offH, 10)) ? parseInt(tz.offH, 10) : 0;
         const offM = Number.isFinite(parseInt(tz?.offM, 10)) ? Math.abs(parseInt(tz.offM, 10)) : 0;
@@ -138,6 +153,7 @@
             buildStrictUtcDateFromParts,
             pad,
             getCustomOffsetMinutes,
+            toCustomOffsetFields,
             clampNumber,
             getZoneOffsetMinutes,
             getZoneSeasonalOffsets,
@@ -156,6 +172,7 @@
         buildStrictUtcDateFromParts: defaultService.buildStrictUtcDateFromParts,
         pad: defaultService.pad,
         getCustomOffsetMinutes: defaultService.getCustomOffsetMinutes,
+        toCustomOffsetFields: defaultService.toCustomOffsetFields,
         clampNumber: defaultService.clampNumber,
         getZoneOffsetMinutes: defaultService.getZoneOffsetMinutes,
         getZoneSeasonalOffsets: defaultService.getZoneSeasonalOffsets,

@@ -13,6 +13,7 @@ const EN_I18N = {
     placeholder_name: "Name",
     placeholder_abbr: "Timezone",
     label_custom: "Custom",
+    standard_time_suffix: "Standard Time",
 
     label_extra_time: "Extra Time",
     label_timeline_view: "Timeline View",
@@ -329,6 +330,7 @@ const KO_OVERRIDES = {
     placeholder_name: "이름",
     placeholder_abbr: "시간대",
     label_custom: "커스텀",
+    standard_time_suffix: "표준시",
 
     label_extra_time: "추가 시간 표시",
     label_timeline_view: "타임라인 보기",

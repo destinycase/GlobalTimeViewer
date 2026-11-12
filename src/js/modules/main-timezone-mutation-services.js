@@ -119,23 +119,10 @@
                 nextTimezone = { ...nextTimezone, abbr: normalizedAbbr };
             }
             if (nextTimezone.type === "standard") {
-                // Items from the standard time list all use the UTC zone with their own fixed
-                // offset, so they are told apart by that offset; other entries by their zone.
-                const duplicateKey = (zone) => {
-                    const normalized = normalizeStandardZone(zone?.zone);
-                    const offset = Number(zone?.fixedOffsetMinutes);
-                    const isFixedUtc = normalized.toUpperCase() === "UTC"
-                        && zone?.fixedOffsetMinutes !== null
-                        && zone?.fixedOffsetMinutes !== undefined
-                        && zone?.fixedOffsetMinutes !== ""
-                        && Number.isFinite(offset);
-                    return isFixedUtc ? `${normalized}|${Math.trunc(offset)}` : normalized;
-                };
                 const normalizedZone = normalizeStandardZone(nextTimezone.zone);
-                const nextKey = duplicateKey(nextTimezone);
                 const hasDuplicateZone = activeGroup.zones.some((zone) => (
                     zone?.type === "standard"
-                    && duplicateKey(zone) === nextKey
+                    && normalizeStandardZone(zone?.zone) === normalizedZone
                 ));
                 if (normalizedZone && hasDuplicateZone) {
                     showToast(t("toast_timezone_duplicate"), { type: "info" });

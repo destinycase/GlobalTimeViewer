@@ -265,7 +265,7 @@ test("formatUtcOffsetLabel returns signed padded UTC offset labels", () => {
     expect(sandbox.formatUtcOffsetLabel(570)).toBe("UTC+09:30");
 });
 
-test("createStandardTimezoneFromSelectableEntry builds fixed standard timezone payload", () => {
+test("createStandardTimezoneFromSelectableEntry builds a fixed-offset custom payload", () => {
     const { sandbox } = createMainContext();
     const result = sandbox.createStandardTimezoneFromSelectableEntry({
         kind: "standard_list",
@@ -275,14 +275,13 @@ test("createStandardTimezoneFromSelectableEntry builds fixed standard timezone p
     });
 
     expect(result).toMatchObject({
-        type: "standard",
-        zone: "Asia/Seoul",
-        name_ko: "UTC+09:00 \uD45C\uC900\uC2DC",
-        name_en: "UTC+09:00 Standard Time",
-        fixedAbbr: "GMT+9",
-        fixedOffsetMinutes: 540
+        type: "custom",
+        abbr: "UTC+09:00",
+        offH: 9,
+        offM: 0
     });
-    expect(result.id).toMatch(/^tz-/);
+    expect(result.name.startsWith("UTC+09:00 ")).toBe(true);
+    expect(result.id).toMatch(/^tz-c/);
 });
 
 test("applyCurrentGroupBaseTimezoneId rerenders list/timeline and persists", () => {

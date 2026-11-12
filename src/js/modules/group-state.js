@@ -84,8 +84,8 @@
         // standard or daylight variant (for example Los Angeles fixed at UTC-07:00 "PDT"). Such an
         // entry never shows [DST] and keeps the wrong offset for half of the year. A city entry
         // whose fixed offset equals the same city's January or July offset is turned back into a
-        // rule-following entry. Offset-list entries ("UTC-07:00 Standard Time", zone "UTC") and
-        // offsets that match neither season are kept as they are.
+        // rule-following entry. Offsets that match neither season are kept as they are; offset-list
+        // entries (zone "UTC") are turned into fixed-offset custom entries by sanitizeGroup.
         function isLegacyFixedCityOffset(zoneName, fixedOffsetMinutes) {
             if (fixedOffsetMinutes === null || zoneName === "UTC") return false;
             const timeCore = globalObj?.GTVTimeCore || globalThis.GTVTimeCore;
@@ -133,10 +133,33 @@
             };
         }
 
+        function convertOffsetListZone(zone) {
+            if (zone.type !== "standard" || zone.zone !== "UTC" || !zone.fixedOffsetMinutes) return zone;
+            const timeCore = globalObj?.GTVTimeCore || globalThis.GTVTimeCore;
+            const fields = timeCore && typeof timeCore.toCustomOffsetFields === "function"
+                ? timeCore.toCustomOffsetFields(zone.fixedOffsetMinutes)
+                : null;
+            if (!fields) return zone;
+            return {
+                id: zone.id,
+                type: "custom",
+                abbr: String(dep.normalizeCustomAbbr(fields.abbr) || fields.abbr),
+                name: `${fields.abbr} ${String(dep.t("standard_time_suffix") || "Standard Time")}`,
+                offH: fields.offH,
+                offM: fields.offM
+            };
+        }
+
         function sanitizeGroup(group, idx, legacyMultiState = null) {
             if (!group || typeof group !== "object") return null;
 
-            const rawZones = Array.isArray(group.zones) ? group.zones.map(sanitizeTimezoneZone).filter(Boolean) : [];
+            // Up to v3.16.10 the standard time list saved its items as zone "UTC" plus a fixed offset,
+            // which every screen treats as the UTC row, so they were never shown and were dropped
+            // here. They become fixed-offset custom entries ("UTC+09:00") with the same id; a plain
+            // UTC entry (offset 0 or none) still folds into the UTC row.
+            const rawZones = Array.isArray(group.zones)
+                ? group.zones.map(sanitizeTimezoneZone).filter(Boolean).map(convertOffsetListZone)
+                : [];
             const zones = rawZones
                 .filter((zone) => !(zone.type === "standard" && zone.zone === "UTC"))
                 .map((zone) => ({ ...zone }));

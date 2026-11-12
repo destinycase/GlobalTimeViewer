@@ -366,17 +366,18 @@
         function createStandardTimezoneFromSelectableEntry(entry) {
             if (!entry || typeof entry !== "object") return null;
             if (entry.kind === "standard_list") {
-                const abbr = normalizeZoneAbbreviation(entry.abbr);
-                const fixedOffsetMinutes = Number.isFinite(entry.fixedOffsetMinutes) ? Math.trunc(entry.fixedOffsetMinutes) : null;
-                const offsetLabel = formatUtcOffsetLabel(fixedOffsetMinutes);
+                // A fixed offset without daylight saving time: stored as a custom entry, the type
+                // every screen draws and calculates with its own offset ("UTC+09:00").
+                const timeCore = globalObj?.GTVTimeCore || globalThis.GTVTimeCore;
+                const fields = timeCore?.toCustomOffsetFields?.(entry.fixedOffsetMinutes);
+                if (!fields) return null;
                 return {
-                    id: createUniqueTimezoneId("tz"),
-                    zone: entry.zone || "UTC",
-                    name_ko: `${offsetLabel} \uD45C\uC900\uC2DC`,
-                    name_en: `${offsetLabel} Standard Time`,
-                    type: "standard",
-                    fixedAbbr: abbr,
-                    fixedOffsetMinutes
+                    id: createUniqueTimezoneId("tz-c"),
+                    type: "custom",
+                    abbr: fields.abbr,
+                    name: `${fields.abbr} ${translate("standard_time_suffix")}`,
+                    offH: fields.offH,
+                    offM: fields.offM
                 };
             }
             const entryKey = (typeof entry.key === "string") ? entry.key.trim() : "";
@@ -421,11 +422,18 @@
                 return showUtcRowFromList();
             }
             const nextZone = createStandardTimezoneFromSelectableEntry(entry);
-            if (nextZone) {
-                addTimezoneSafe({
-                    ...nextZone
-                });
+            if (!nextZone) return false;
+            if (nextZone.type === "custom") {
+                // The same offset already in the group gets the usual timezone notice.
+                const zones = dep.getCurrentGroup()?.zones;
+                const exists = Array.isArray(zones) && zones.some((zone) => zone?.type === "custom"
+                    && String(zone.abbr || "").toUpperCase() === nextZone.abbr);
+                if (exists) {
+                    dep.showToast(translate("toast_timezone_duplicate"), { type: "info" });
+                    return false;
+                }
             }
+            return addTimezoneSafe({ ...nextZone }) !== false;
         }
 
         function createTimezoneListItem(tzEntry, closeOverlay = false) {

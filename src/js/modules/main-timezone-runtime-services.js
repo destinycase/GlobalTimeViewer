@@ -234,7 +234,12 @@
             const lang = getCurrentLang();
 
             if (tz.type === "custom") {
-                return tz.name_ko || tz.name || tz.name_en || tz.zone || "";
+                const customName = tz.name_ko || tz.name || tz.name_en || tz.zone || "";
+                // Entries from the standard time list are named "<offset> 표준시/Standard Time";
+                // that suffix follows the current language.
+                const offsetName = /^(UTC[+-]\d{2}:\d{2}) (?:표준시|Standard Time)$/.exec(String(customName));
+                if (offsetName) return `${offsetName[1]} ${t("standard_time_suffix")}`;
+                return customName;
             }
 
             const parsedFixedOffsetMinutes = parseFixedOffsetMinutes(tz.fixedOffsetMinutes);

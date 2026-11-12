@@ -190,24 +190,48 @@ describe("GTV timezone search module", () => {
         expect(service.getSelectableTZEntries()).toEqual([]);
     });
 
-    it("createStandardTimezoneFromSelectableEntry falls back ID when generator is missing", () => {
+    it("createStandardTimezoneFromSelectableEntry stores standard list offsets as fixed-offset custom entries", () => {
         const module = loadTimezoneSearchModule();
-        const service = module.createService({});
-
-        const result = service.createStandardTimezoneFromSelectableEntry({
-            kind: "standard_list",
-            zone: "UTC",
-            abbr: "UTC",
-            fixedOffsetMinutes: 0
+        const service = module.createService({ t: (key) => (key === "standard_time_suffix" ? "Standard Time" : key) });
+        const make = (offset) => service.createStandardTimezoneFromSelectableEntry({
+            kind: "standard_list", zone: "UTC", abbr: "x", fixedOffsetMinutes: offset
         });
 
-        expect(result).toMatchObject({
-            zone: "UTC",
-            type: "standard",
-            fixedAbbr: "UTC",
-            fixedOffsetMinutes: 0
+        const plus = make(540);
+        expect(plus).toMatchObject({ type: "custom", abbr: "UTC+09:00", name: "UTC+09:00 Standard Time", offH: 9, offM: 0 });
+        expect(plus.id).toMatch(/^tz-c/);
+        expect(plus.zone).toBeUndefined();
+        expect(make(-570)).toMatchObject({ abbr: "UTC-09:30", offH: -9, offM: 30 });
+        expect(make(345)).toMatchObject({ abbr: "UTC+05:45", offH: 5, offM: 45 });
+        expect(make(-660)).toMatchObject({ abbr: "UTC-11:00", offH: -11, offM: 0 });
+        // The custom offset reads back to the same minutes.
+        const timeCore = globalThis.GTVTimeCore;
+        for (const offset of [540, -570, 345, -660, 840]) {
+            expect(timeCore.getCustomOffsetMinutes(make(offset))).toBe(offset);
+        }
+    });
+
+    it("standard list items: added as fixed-offset entries, the same offset again gives the notice", () => {
+        const group = { zones: [], showUtcRow: true };
+        const added = [];
+        const toasts = [];
+        const module = loadTimezoneSearchModule({
+            Intl: { supportedValuesOf: () => ["UTC", "Asia/Seoul", "Pacific/Pago_Pago"] }
         });
-        expect(result.id).toMatch(/^tz-/);
+        const service = module.createService({
+            getCurrentGroup: () => group,
+            addTimezone: (zone) => { added.push(zone); group.zones.push(zone); return true; },
+            showToast: (message) => { toasts.push(message); },
+            t: (key) => key,
+            ...createOffsetAndAbbrDeps()
+        });
+        const keyFor = (offset) => service.getStandardTimezoneEntries().find((entry) => entry.fixedOffsetMinutes === offset)?.key;
+
+        expect(service.addFromSearchWithData(keyFor(540))).toBe(true);
+        expect(added.map((zone) => [zone.type, zone.abbr])).toEqual([["custom", "UTC+09:00"]]);
+        expect(service.addFromSearchWithData(keyFor(540))).toBe(false);
+        expect(toasts).toEqual(["toast_timezone_duplicate"]);
+        expect(added).toHaveLength(1);
     });
 
     it("getAllSupportedTimezoneNames falls back to TZ database when Intl is unavailable", () => {

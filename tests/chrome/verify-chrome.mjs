@@ -764,7 +764,7 @@ function buildScenarios(ctx) {
 
                 // e) Standard time list items with different offsets can all be added to one group;
                 //    only the same offset again is refused.
-                const group2Offsets = async () => ((await api.storedData())?.groups?.[1]?.zones || []).map((zone) => zone.fixedOffsetMinutes);
+                const group2Offsets = async () => ((await api.storedData())?.groups?.[1]?.zones || []).map((zone) => zone.abbr);
                 await api.ev(`document.querySelectorAll("#toast-container .toast").forEach((t) => t.remove())`);
                 await addFromList("+09", "UTC+09:00", "standard");
                 await until("UTC+09:00 추가", async () => (await group2Offsets()).length === 1);
@@ -803,7 +803,7 @@ function buildScenarios(ctx) {
                 assert((await group2()).zones.length === 2, "UTC+00:00이 별도 시간대로 추가됨");
 
                 const promptKind = named.kind === "browser" ? "브라우저 기본 입력 창" : "화면 안 입력 창";
-                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")}), 표준시 UTC+09:00·UTC-05:00 함께 추가(시차 ${offsetsFinal.join(", ")}분)·같은 시차 재추가 거부, UTC+00:00은 UTC 행 표시(있으면 안내·숨김이면 다시 표시)`;
+                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")}), 표준시 ${offsetsFinal.join("·")} 함께 추가·같은 시차 재추가 거부, UTC+00:00은 UTC 행 표시(있으면 안내·숨김이면 다시 표시)`;
             }
         },
         {
@@ -1275,6 +1275,74 @@ function buildScenarios(ctx) {
                 assert(remaining.name === "업무" && remaining.dayStartHour === 8, `남은 그룹: ${JSON.stringify({ name: remaining.name, day: remaining.dayStartHour })}`);
 
                 return `탭 버튼 ${layout.buttons.join(",")}·본 화면에 기준 시간 없음, "${popupName}" 기준 뉴욕·낮 08~20시 저장, 그룹 2는 공통 06~18시 유지, 팝업 안에서 이름 "출장" 변경(변경 버튼)·제목 반영·Esc 닫힘, 설정 버튼 테두리·배경 있음, 삭제 취소 유지·확인 시 삭제·닫힘`;
+            }
+        },
+        {
+            id: "17",
+            title: "표준시 목록 항목: 표에 표시·시각·다시 열기·옛 저장 형식 변환",
+            async run() {
+                const { api } = ctx;
+                // Saved up to v3.16.10: a standard list item as zone "UTC" plus a fixed offset (never shown).
+                const saved = {
+                    groups: [{
+                        name: "Offset Group",
+                        zones: [{ id: "tz-old-9", type: "standard", zone: "UTC", name_ko: "UTC+09:00 표준시", name_en: "UTC+09:00 Standard Time", fixedAbbr: "UTC+09:00", fixedOffsetMinutes: 540 }],
+                        baseTimezoneId: "utc",
+                        showUtcRow: true,
+                        utcRowOrder: 0
+                    }],
+                    activeGroupId: 0,
+                    currentMainTab: "fixed",
+                    activeGroupIdByMainTab: { live: 0, fixed: 0 },
+                    slotCount: 1
+                };
+                await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))}); localStorage.setItem("GTV_Lang", "ko")`);
+                await api.reload();
+                await api.switchTab("fixed");
+                const rows = () => api.ev(`[...document.querySelectorAll("#clocks-container tr.time-row, #clocks-container tr[id^='tz-row-']")].map((tr) => ({
+                    id: tr.id,
+                    abbr: tr.querySelector(".zone-code")?.textContent.trim() || "",
+                    name: tr.querySelector(".zone-name")?.textContent.trim() || "",
+                    value: tr.querySelector('.time-input[data-slot="0"]')?.value || ""
+                }))`);
+                const setUtc = async (value) => {
+                    await api.ev(`(() => {
+                        const input = document.querySelector('#tz-row-utc .time-input[data-slot="0"]');
+                        input.value = ${JSON.stringify(value)};
+                        input.dispatchEvent(new Event("change", { bubbles: true }));
+                    })()`);
+                };
+                // a) The old entry is kept (as a fixed-offset entry with the same id) and drawn.
+                const zone0 = (await api.storedData())?.groups?.[0]?.zones?.[0];
+                assert(zone0 && zone0.id === "tz-old-9" && zone0.type === "custom" && zone0.abbr === "UTC+09:00" && zone0.offH === 9, `옛 항목 변환: ${JSON.stringify(zone0)}`);
+                await setUtc("2026-01-15 00:00:00");
+                const oldRow = await until("옛 항목 행", async () => (await rows()).find((row) => row.id === "tz-row-tz-old-9" && row.value === "2026-01-15 09:00:00"));
+                assert(oldRow.name === "UTC+09:00 표준시" && oldRow.abbr.includes("UTC+09:00"), `옛 항목 행: ${JSON.stringify(oldRow)}`);
+
+                // b) UTC-11:00 picked in the standard list appears with the right time.
+                await api.ev(`document.getElementById("show-all-tz").click()`);
+                await api.ev(`document.getElementById("tz-tab-standard").click()`);
+                await api.ev(`[...document.querySelectorAll("#full-tz-list .tz-item")].find((item) => item.querySelector(".tz-item-title")?.textContent.startsWith("UTC-11:00")).click()`);
+                const newRow = await until("UTC-11:00 행", async () => (await rows()).find((row) => row.name === "UTC-11:00 표준시"));
+                await setUtc("2026-01-15 00:00:00");
+                const newValue = await until("UTC-11:00 시각", async () => {
+                    const row = (await rows()).find((r) => r.name === "UTC-11:00 표준시");
+                    return row && row.value === "2026-01-14 13:00:00" ? row.value : false;
+                });
+
+                // c) Both stay after reopening; the name follows the language.
+                await until("저장", async () => ((await api.storedData())?.groups?.[0]?.zones || []).length === 2);
+                await api.reload();
+                await api.switchTab("fixed");
+                const afterReload = (await rows()).filter((row) => row.name.endsWith("표준시") && row.id !== "tz-row-utc").map((row) => row.name);
+                assert(afterReload.length === 2, `다시 연 뒤: ${JSON.stringify(afterReload)}`);
+                await api.ev(`localStorage.setItem("GTV_Lang", "en")`);
+                await api.reload();
+                await api.switchTab("fixed");
+                const english = (await rows()).filter((row) => row.id !== "tz-row-utc").map((row) => row.name);
+                await api.ev(`localStorage.setItem("GTV_Lang", "ko")`);
+                assert(english.includes("UTC+09:00 Standard Time") && english.includes("UTC-11:00 Standard Time"), `영어 이름: ${JSON.stringify(english)}`);
+                return `옛 형식 UTC+09:00 항목 변환(같은 id)·표시(UTC 00:00 → 09:00), 표준시 목록 UTC-11:00 추가·표시(${newRow.abbr}, UTC 00:00 → ${newValue}), 다시 연 뒤 2개 유지, 영어 이름 ${english.join(" / ")}`;
             }
         }
     ];

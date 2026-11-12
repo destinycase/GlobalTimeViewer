@@ -226,41 +226,4 @@ describe("GTV main timezone mutation services module", () => {
         expect(timelineCount).toBe(0);
         expect(toasts).toEqual(["toast_timezone_duplicate"]);
     });
-
-    it("tells standard time list items apart by their fixed offset", () => {
-        const moduleApi = loadMainTimezoneMutationServicesModule();
-        const group = { zones: [], baseTimezoneId: "utc", showUtcRow: true, utcRowOrder: 0 };
-        const toasts = [];
-        let seq = 0;
-        const service = moduleApi.createService({
-            getGroups: () => [group],
-            getCurrentGroup: () => group,
-            getCurrentGroupBaseTimezoneId: () => group.baseTimezoneId,
-            sanitizeTimezoneId: (value) => String(value || "").trim(),
-            getNextTimezoneIdSeed: () => 2,
-            getNow: () => (seq += 1),
-            getRandomUUID: () => "",
-            getGroupStateService: () => ({ isValidTimeZone: () => true }),
-            showToast: (message) => { toasts.push(message); },
-            t: (key) => key
-        });
-        const fixed = (offset) => ({
-            id: "", type: "standard", zone: "UTC", fixedAbbr: "", fixedOffsetMinutes: offset,
-            name_en: `UTC offset ${offset}`
-        });
-
-        expect(service.addTimezone(fixed(540))).toBe(true);
-        expect(service.addTimezone(fixed(-300))).toBe(true);
-        expect(service.addTimezone(fixed(330))).toBe(true);
-        expect(group.zones.map((zone) => zone.fixedOffsetMinutes)).toEqual([540, -300, 330]);
-        expect(toasts).toEqual([]);
-
-        // The same offset again is a duplicate.
-        expect(service.addTimezone(fixed(540))).toBe(false);
-        expect(toasts).toEqual(["toast_timezone_duplicate"]);
-        // A city entry is still compared by its zone, unaffected by the offsets above.
-        expect(service.addTimezone({ id: "", type: "standard", zone: "Asia/Seoul", fixedOffsetMinutes: null })).toBe(true);
-        expect(service.addTimezone({ id: "", type: "standard", zone: "Asia/Seoul", fixedOffsetMinutes: null })).toBe(false);
-        expect(group.zones).toHaveLength(4);
-    });
 });

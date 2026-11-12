@@ -103,6 +103,22 @@ describe("GTV main timezone runtime services module", () => {
         })).toBe("UTC+09:00 \uD45C\uC900\uC2DC");
     });
 
+    it("shows standard-list offset names in the current language; other custom names as typed", () => {
+        const moduleApi = loadMainTimezoneRuntimeServicesModule();
+        let lang = "en";
+        const service = moduleApi.createService({
+            getCurrentLang: () => lang,
+            t: (key) => (key === "standard_time_suffix" ? (lang === "en" ? "Standard Time" : "표준시") : key)
+        });
+        const fromList = { type: "custom", abbr: "UTC+09:00", name: "UTC+09:00 표준시", offH: 9, offM: 0 };
+
+        expect(service.getZoneDisplayName(fromList)).toBe("UTC+09:00 Standard Time");
+        lang = "ko";
+        expect(service.getZoneDisplayName({ ...fromList, name: "UTC+09:00 Standard Time" })).toBe("UTC+09:00 표준시");
+        expect(service.getZoneDisplayName({ type: "custom", abbr: "KST", name: "Seoul office" })).toBe("Seoul office");
+        expect(service.getZoneDisplayName({ type: "custom", abbr: "X", name: "UTC+09:00 my team" })).toBe("UTC+09:00 my team");
+    });
+
     it("falls back to Intl offset resolution when time service is unavailable", () => {
         const moduleApi = loadMainTimezoneRuntimeServicesModule();
         const service = moduleApi.createService({

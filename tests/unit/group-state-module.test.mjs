@@ -256,3 +256,25 @@ test("sanitizeTimezoneZone keeps fixed offsets that are not an old city variant"
     expect(service.sanitizeTimezoneZone({ id: "tz-c", type: "custom", abbr: "ABC", name: "Custom", offH: -7, offM: 0 }))
         .toMatchObject({ type: "custom", offH: -7, offM: 0 });
 });
+
+test("sanitizeGroup turns old standard-list entries (zone UTC + fixed offset) into fixed-offset entries", () => {
+    const service = createService(createDepsStub());
+    const group = service.sanitizeGroup({
+        name: "G",
+        baseTimezoneId: "tz-std-9",
+        showUtcRow: false,
+        zones: [
+            { id: "tz-std-9", type: "standard", zone: "UTC", name_ko: "UTC+09:00 표준시", fixedAbbr: "UTC+09:00", fixedOffsetMinutes: 540 },
+            { id: "tz-std-m930", type: "standard", zone: "UTC", fixedOffsetMinutes: -570 },
+            { id: "tz-utc", type: "standard", zone: "UTC", fixedOffsetMinutes: 0 }
+        ]
+    }, 0);
+
+    expect(group.zones).toEqual([
+        { id: "tz-std-9", type: "custom", abbr: "UTC+09:00", name: "UTC+09:00 standard_time_suffix", offH: 9, offM: 0 },
+        { id: "tz-std-m930", type: "custom", abbr: "UTC-09:30", name: "UTC-09:30 standard_time_suffix", offH: -9, offM: 30 }
+    ]);
+    // The base still points at the converted entry; the plain UTC entry folds into the UTC row.
+    expect(group.baseTimezoneId).toBe("tz-std-9");
+    expect(group.showUtcRow).toBe(true);
+});
