@@ -754,7 +754,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "14",
-            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음·계산기 날짜와 달력 버튼 한 줄·이동량 선택칸 잘림 없음·타임존 줄 폭(1280·1600px)",
+            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음·계산기 날짜와 달력 버튼 한 줄·이동량 선택칸 잘림 없음·타임존 줄 폭·한 줄(1280·1600px)",
             async run() {
                 const { api } = ctx;
                 const zone = (id, name, ko, en) => ({ id, type: "standard", zone: name, name_ko: ko, name_en: en, fixedAbbr: "", fixedOffsetMinutes: null });
@@ -935,8 +935,8 @@ function buildScenarios(ctx) {
                         assert(calcDates.problems.length === 0, `${width}px 계산기: ${calcDates.problems.join(" | ")}`);
                         assert(calcDates.periodOneLine, `${width}px 기간 계산 시작일·바꾸기·종료일이 한 줄이 아님`);
                         // Timezone row: the city select is as wide as its longest option needs (so the
-                        // opened list is no wider), the custom hour and minute selects match, and each
-                        // group stays on one line inside the panel.
+                        // opened list is no wider), the custom hour and minute selects match and show their
+                        // values, and the whole row (city and custom groups) stays on one line in the panel.
                         await api.switchTab("fixed");
                         const tzRow = await api.ev(`(() => {
                             const sel = document.getElementById("tz-quick-select");
@@ -950,11 +950,26 @@ function buildScenarios(ctx) {
                             const groups = [["tz-quick-select", "show-all-tz"], ["custom-abbr", "custom-name", "custom-off-h", "custom-off-m", "add-custom-btn"]];
                             const split = groups.filter((ids) => ids.some((id) => Math.abs((box(id).top + box(id).bottom) / 2 - (box(ids[0]).top + box(ids[0]).bottom) / 2) > 4));
                             const outside = groups.flat().filter((id) => box(id).right > panel.right + 0.5);
-                            return { room: Math.round(room), widest: Math.round(widest), spare: Math.round(room - widest), abbr: Math.round(box("custom-abbr").width), name: Math.round(box("custom-name").width), hour: Math.round(box("custom-off-h").width), minute: Math.round(box("custom-off-m").width), split: split.length, outside };
+                            const mid = (id) => (box(id).top + box(id).bottom) / 2;
+                            const oneLine = Math.abs(mid("tz-quick-select") - mid("add-custom-btn")) <= 4;
+                            const offClipped = ["custom-off-h", "custom-off-m"].filter((id) => {
+                                const el = document.getElementById(id);
+                                const ocs = getComputedStyle(el);
+                                const ctxOff = document.createElement("canvas").getContext("2d");
+                                ctxOff.font = ocs.fontStyle + " " + ocs.fontWeight + " " + ocs.fontSize + " " + ocs.fontFamily;
+                                const longest = Math.max(...[...el.options].map((option) => ctxOff.measureText(option.textContent).width));
+                                // The browser's arrow takes about 20px of the space inside the padding.
+                                return el.clientWidth - parseFloat(ocs.paddingLeft) - parseFloat(ocs.paddingRight) - longest < 16;
+                            });
+                            return { room: Math.round(room), widest: Math.round(widest), spare: Math.round(room - widest), abbr: Math.round(box("custom-abbr").width), name: Math.round(box("custom-name").width), hour: Math.round(box("custom-off-h").width), minute: Math.round(box("custom-off-m").width), split: split.length, outside, oneLine, offClipped };
                         })()`);
-                        assert(tzRow.spare >= 0 && tzRow.spare <= 12, `${width}px 도시 선택 폭이 가장 긴 항목과 맞지 않음: ${JSON.stringify(tzRow)}`);
-                        assert(tzRow.hour === tzRow.minute && tzRow.abbr >= 120 && tzRow.name >= 140, `${width}px 커스텀 입력 폭: ${JSON.stringify(tzRow)}`);
-                        assert(tzRow.split === 0 && tzRow.outside.length === 0, `${width}px 타임존 줄 배치: ${JSON.stringify(tzRow)}`);
+                        // Space inside the padding = longest name + the browser's arrow (about 20px).
+                        assert(tzRow.spare >= 16 && tzRow.spare <= 32, `${width}px 도시 선택 폭이 가장 긴 항목과 맞지 않음: ${JSON.stringify(tzRow)}`);
+                        // Custom inputs: twice the old width when there is room (1600px), never below
+                        // their minimum when they shrink to keep the row on one line (1280px).
+                        const fullInputs = width === 1600 ? tzRow.abbr === 128 && tzRow.name === 148 : tzRow.abbr >= 80 && tzRow.name >= 96;
+                        assert(tzRow.hour === tzRow.minute && tzRow.offClipped.length === 0 && fullInputs, `${width}px 커스텀 입력 폭: ${JSON.stringify(tzRow)}`);
+                        assert(tzRow.oneLine && tzRow.split === 0 && tzRow.outside.length === 0, `${width}px 타임존 줄이 한 줄이 아님: ${JSON.stringify(tzRow)}`);
                         results.push(`${width}px 행 ${multi.rows}·DST ${multi.dst}·변환기 ${converter.length}칸·계산기 날짜 한 줄`);
                     }
                 } finally {

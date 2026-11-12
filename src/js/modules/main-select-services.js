@@ -50,6 +50,25 @@
 
         let measureCanvas = null;
 
+        // Width the browser itself gives the select for its longest option: text, padding, border
+        // and the native arrow. Measured on a hidden copy placed next to it (so the same styles
+        // apply) without changing the page layout. Returns 0 when it cannot be measured (no DOM,
+        // or the select is not rendered, e.g. inside a hidden tab).
+        function measureNaturalSelectWidth(documentRef, select) {
+            const body = select?.parentElement || documentRef?.body;
+            if (!body || typeof body.appendChild !== "function" || typeof select.cloneNode !== "function") return 0;
+            const copy = select.cloneNode(true);
+            if (typeof copy.removeAttribute === "function") copy.removeAttribute("id");
+            if (copy.style) {
+                copy.style.cssText = "position:absolute;visibility:hidden;left:0;top:0;width:auto;min-width:0;max-width:none;";
+            }
+            body.appendChild(copy);
+            const width = Number(copy.offsetWidth) || 0;
+            if (typeof copy.remove === "function") copy.remove();
+            else if (typeof body.removeChild === "function") body.removeChild(copy);
+            return width > 0 ? Math.ceil(width) : 0;
+        }
+
         function adjustSelectWidthForContent(select, minWidth = 0) {
             if (!select) return;
             const fixedWidth = parseInt(select.dataset?.fixedWidth || "", 10);
@@ -66,6 +85,20 @@
             }
 
             const documentRef = getDocumentRef();
+            const currentWidth = parseInt(select.dataset?.minWidth || "", 10);
+            const baseMinWidth = Number.isFinite(currentWidth)
+                ? currentWidth
+                : (parseInt(select.style?.width || "", 10) || minWidth || 0);
+            if (!Number.isFinite(currentWidth) && select.dataset) select.dataset.minWidth = String(baseMinWidth);
+
+            // Preferred: the browser's own width for the longest option, so the closed select is as
+            // wide as its opened list and the chosen name is not cut off.
+            const naturalWidth = measureNaturalSelectWidth(documentRef, select);
+            if (naturalWidth > 0) {
+                if (select.style) select.style.width = `${Math.max(baseMinWidth, naturalWidth)}px`;
+                return;
+            }
+
             if (!documentRef || typeof documentRef.createElement !== "function") return;
             if (!measureCanvas) measureCanvas = documentRef.createElement("canvas");
 
@@ -85,20 +118,14 @@
                 maxTextWidth = Math.max(maxTextWidth, ctx.measureText(label).width);
             });
 
-            // Room for the longest option plus the select's own padding (arrow area included) and
-            // border, so the closed select is as wide as its opened list.
+            // Fallback estimate: text plus padding, border and about 26px for the native arrow.
             const px = (value) => {
                 const parsed = parseFloat(value);
                 return Number.isFinite(parsed) ? parsed : 0;
             };
             const chrome = px(computed.paddingLeft) + px(computed.paddingRight)
                 + px(computed.borderLeftWidth) + px(computed.borderRightWidth);
-            const requiredWidth = Math.ceil(maxTextWidth + (chrome > 0 ? chrome : 46) + 4);
-            const currentWidth = parseInt(select.dataset?.minWidth || "", 10);
-            const baseMinWidth = Number.isFinite(currentWidth)
-                ? currentWidth
-                : (parseInt(select.style?.width || "", 10) || minWidth || 0);
-            if (!Number.isFinite(currentWidth) && select.dataset) select.dataset.minWidth = String(baseMinWidth);
+            const requiredWidth = Math.ceil(maxTextWidth + (chrome > 0 ? chrome : 46) + 26);
 
             if (select.style) {
                 select.style.width = `${Math.max(baseMinWidth, requiredWidth)}px`;

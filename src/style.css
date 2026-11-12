@@ -540,18 +540,42 @@ td {
     min-width: 200px;
 }
 
+/* The custom group keeps the timezone row on one line: its timezone and name inputs are
+   128px/148px when there is room and shrink (down to 80px/96px) before the group wraps.
+   Their width is 0 so the group's smallest size is counted from their min-width. */
+.control-row-main .control-group.custom-tz-group {
+    flex: 1 1 0;
+    min-width: min-content;
+    gap: 6px;
+}
+
+.custom-tz-group>:not(#custom-abbr, #custom-name) {
+    flex-shrink: 0;
+}
+
 #custom-abbr {
-    width: 128px;
+    flex: 0 1 128px;
+    width: 0;
+    min-width: 80px;
 }
 
 #custom-name {
-    width: 148px;
+    flex: 0 1 148px;
+    width: 0;
+    min-width: 96px;
 }
 
-/* Hour and minute selects share the hour select's width. */
+/* Selects in the timezone row: the browser draws its own arrow, so only a small gap is kept
+   before it (other selects keep 34px). */
+.control-row-main .form-select {
+    padding-right: 12px;
+}
+
+/* Hour and minute selects share the hour select's natural width ("+14" plus the arrow). */
 #custom-off-h,
 #custom-off-m {
-    width: 120px;
+    flex: 0 0 auto;
+    width: 76px;
 }
 
 #multi-range-count-input {

@@ -98,8 +98,8 @@ describe("GTV main select services module", () => {
         service.adjustSelectWidthForContent(select, 100);
 
         expect(select.dataset.minWidth).toBe("100");
-        // 15 chars * 6 = 90, + 46 (no padding/border info) + 4.
-        expect(select.style.width).toBe("140px");
+        // No DOM to measure in: estimate 15 chars * 6 = 90, + 46 (no padding/border info) + 26 arrow.
+        expect(select.style.width).toBe("162px");
     });
 
     it("renders base-time options and persists when selected timezone changes", () => {
@@ -191,7 +191,33 @@ describe("GTV main select services module", () => {
         expect(baseSelect.style.width || "").toBe("");
     });
 
-    it("sizes the city select to its longest option plus its own padding and border", () => {
+    it("sizes the city select to the browser's own width for it, measured on a hidden copy", () => {
+        const moduleApi = loadMainSelectServicesModule();
+        const appended = [];
+        const parent = { appendChild: (node) => appended.push(node) };
+        let copyRemoved = false;
+        const quickSelect = createSelectElement();
+        quickSelect.parentElement = parent;
+        quickSelect.cloneNode = () => ({
+            style: { cssText: "" },
+            offsetWidth: 309.4,
+            removeAttribute() { },
+            remove() { copyRemoved = true; }
+        });
+        const service = moduleApi.createService({
+            documentRef: { getElementById: (id) => (id === "tz-quick-select" ? quickSelect : null), createElement: () => ({}) }
+        });
+
+        service.refreshSelectWidths();
+
+        expect(quickSelect.style.width).toBe("310px");
+        expect(appended).toHaveLength(1);
+        expect(appended[0].style.cssText).toContain("visibility:hidden");
+        expect(appended[0].style.cssText).toContain("width:auto");
+        expect(copyRemoved).toBe(true);
+    });
+
+    it("estimates the city select width from its longest option when it cannot be measured", () => {
         const moduleApi = loadMainSelectServicesModule();
         const quickSelect = createSelectElement();
         quickSelect.options = [{ textContent: "Short" }, { textContent: "  A much longer city name  " }];
@@ -208,8 +234,8 @@ describe("GTV main select services module", () => {
         });
 
         service.refreshSelectWidths();
-        // "A much longer city name" = 23 chars * 10 = 230, + 46 padding/border + 4.
-        expect(quickSelect.style.width).toBe("280px");
+        // "A much longer city name" = 23 chars * 10 = 230, + 46 padding/border + 26 arrow.
+        expect(quickSelect.style.width).toBe("302px");
 
         // Shorter options (another language) shrink it back, but not below the minimum.
         quickSelect.options = [{ textContent: "UTC" }];
