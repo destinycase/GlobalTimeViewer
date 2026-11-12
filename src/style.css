@@ -661,7 +661,7 @@ input[type=number] {
 
 /* The options row is the panel's only first row: "Add Timezone" + List start it. */
 .control-row-options {
-    gap: 10px;
+    gap: 8px;
 }
 
 .control-row-options .option-add-tz-group {
@@ -815,8 +815,9 @@ input[type=number] {
     user-select: none;
 }
 
+/* Holds one digit (1-5); kept narrow so the fixed time tools fit on one line. */
 #fixed-time-slot-count-input {
-    width: 64px;
+    width: 48px;
     text-align: center;
     padding-left: 6px;
     padding-right: 6px;

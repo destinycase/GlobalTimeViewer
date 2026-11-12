@@ -808,7 +808,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "14",
-            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음·계산기 날짜와 달력 버튼 한 줄·이동량 선택칸 잘림 없음·실시간 탭 도구 한 줄(1280·1600px)",
+            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음·계산기 날짜와 달력 버튼 한 줄·이동량 선택칸 잘림 없음·도구 한 줄(1280·1600px)",
             async run() {
                 const { api } = ctx;
                 const zone = (id, name, ko, en) => ({ id, type: "standard", zone: name, name_ko: ko, name_en: en, fixedAbbr: "", fixedOffsetMinutes: null });
@@ -988,10 +988,10 @@ function buildScenarios(ctx) {
                         const calcDates = await measureCalcDates();
                         assert(calcDates.problems.length === 0, `${width}px 계산기: ${calcDates.problems.join(" | ")}`);
                         assert(calcDates.periodOneLine, `${width}px 기간 계산 시작일·바꾸기·종료일이 한 줄이 아님`);
-                        // Live tab: "Add Timezone" + List start the options row, which stays on one line;
-                        // the custom tab's hour and minute selects share a width and show their values.
-                        await api.switchTab("live");
-                        const tzRow = await api.ev(`(() => {
+                        // "Add Timezone" + List start the options row, which stays on one line in the live
+                        // and time edit tabs (and the fixed time tab at 1600px); the custom tab's hour and
+                        // minute selects share a width and show their values.
+                        const measureToolRow = () => api.ev(`(() => {
                             const row = document.getElementById("control-option-row");
                             const kids = [...row.children].filter((el) => getComputedStyle(el).display !== "none");
                             const mid = (el) => { const r = el.getBoundingClientRect(); return (r.top + r.bottom) / 2; };
@@ -1003,7 +1003,12 @@ function buildScenarios(ctx) {
                                 oldRow: !!document.querySelector(".control-row-main, #tz-quick-select")
                             };
                         })()`);
-                        assert(tzRow.first && tzRow.oneLine && !tzRow.outside && !tzRow.oldRow, `${width}px 실시간 탭 도구 줄: ${JSON.stringify(tzRow)}`);
+                        for (const tab of width === 1600 ? ["live", "fixed", "fixed-time"] : ["live", "fixed"]) {
+                            await api.switchTab(tab);
+                            const tzRow = await measureToolRow();
+                            assert(tzRow.first && tzRow.oneLine && !tzRow.outside && !tzRow.oldRow, `${width}px ${tab} 탭 도구 줄: ${JSON.stringify(tzRow)}`);
+                        }
+                        await api.switchTab("live");
                         await api.ev(`document.getElementById("show-all-tz").click()`);
                         await api.ev(`document.getElementById("tz-tab-custom").click()`);
                         const offsets = await api.ev(`(() => ["custom-off-h", "custom-off-m"].map((id) => {
@@ -1017,7 +1022,7 @@ function buildScenarios(ctx) {
                         }))()`);
                         await api.ev(`document.getElementById("close-overlay").click()`);
                         assert(offsets[0].w === offsets[1].w && offsets.every((o) => o.spare >= 16), `${width}px 커스텀 시·분 선택칸: ${JSON.stringify(offsets)}`);
-                        results.push(`${width}px 행 ${multi.rows}·DST ${multi.dst}·변환기 ${converter.length}칸·계산기 날짜 한 줄`);
+                        results.push(`${width}px 행 ${multi.rows}·DST ${multi.dst}·변환기 ${converter.length}칸·계산기 날짜 한 줄·도구 한 줄(${width === 1600 ? "실시간·시간 변경·고정 시간" : "실시간·시간 변경"})`);
                     }
                 } finally {
                     await ctx.page.client.send("Emulation.clearDeviceMetricsOverride");
