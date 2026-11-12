@@ -947,6 +947,18 @@ function buildScenarios(ctx) {
                 assert(JSON.stringify(footer.ids) === JSON.stringify(["open-help-btn", "open-settings-btn"]) && footer.selects === 0, `사이드바 하단: ${JSON.stringify(footer)}`);
                 assert(footer.firstOffset <= 24 && footer.labels.every(Boolean), `아이콘 정렬·이름: ${JSON.stringify(footer)}`);
 
+                // A visible divider separates the title/version from the tab menu.
+                const titleDivider = await api.ev(`(() => {
+                    const logo = document.querySelector(".logo")?.getBoundingClientRect();
+                    const sep = document.querySelector(".logo-separator");
+                    const nav = document.querySelector(".nav-menu")?.getBoundingClientRect();
+                    if (!logo || !sep || !nav) return null;
+                    const box = sep.getBoundingClientRect();
+                    const bg = getComputedStyle(sep).backgroundColor;
+                    return { gapAbove: Math.round(box.top - logo.bottom), gapBelow: Math.round(nav.top - box.bottom), height: box.height, width: Math.round(box.width), visible: bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent" };
+                })()`);
+                assert(titleDivider && titleDivider.gapAbove > 0 && titleDivider.gapBelow > 0 && titleDivider.height >= 1 && titleDivider.width > 100 && titleDivider.visible, `제목 아래 구분선: ${JSON.stringify(titleDivider)}`);
+
                 // Settings: open with a real click, change the theme inside, close with Esc.
                 await clickAt("#open-settings-btn");
                 assert(await shown("settings-overlay"), "설정 팝업이 열리지 않음");
@@ -1024,7 +1036,7 @@ function buildScenarios(ctx) {
                 const storedName = (await api.storedData())?.groups?.[0]?.fixedTimes?.[0]?.name;
                 assert(storedName === "회의", `슬롯 이름 저장: ${storedName}`);
 
-                return `하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘, 초기화 확인 창 "${confirmMessage}" 화면 안 창·취소/Esc 유지·확인 시 닫힘(${confirmCount}회), 슬롯 이름 화면 안 입력 창으로 "${slotTitle.trim()}"`;
+                return `제목 아래 구분선(위 ${titleDivider.gapAbove}px·아래 ${titleDivider.gapBelow}px), 하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘, 초기화 확인 창 "${confirmMessage}" 화면 안 창·취소/Esc 유지·확인 시 닫힘(${confirmCount}회), 슬롯 이름 화면 안 입력 창으로 "${slotTitle.trim()}"`;
             }
         }
     ];

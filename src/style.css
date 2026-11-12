@@ -224,8 +224,13 @@ td {
 
 /* Logo: the app name on one line (sized to fit the sidebar) and the version below it. */
 .logo {
-    margin-bottom: 24px;
+    margin-bottom: 14px;
     padding-left: 4px;
+}
+
+/* Divider between the title/version and the tab menu (same look as the other sidebar dividers). */
+.sidebar-separator.logo-separator {
+    margin: 0 4px 16px;
 }
 
 .logo-text {
