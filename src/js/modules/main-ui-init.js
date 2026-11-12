@@ -480,6 +480,8 @@
 
             renderBaseTimeSelect();
             refreshSelectWidths();
+            // Select widths come from measured option text; measure again once web fonts are ready.
+            document.fonts?.ready?.then?.(() => refreshSelectWidths());
             updateOptionRowVisibility();
             updateTimeAdjustPanel();
             renderCopyFormatControls();

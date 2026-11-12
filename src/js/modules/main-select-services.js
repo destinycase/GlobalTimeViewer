@@ -85,7 +85,15 @@
                 maxTextWidth = Math.max(maxTextWidth, ctx.measureText(label).width);
             });
 
-            const requiredWidth = Math.ceil(maxTextWidth + 72);
+            // Room for the longest option plus the select's own padding (arrow area included) and
+            // border, so the closed select is as wide as its opened list.
+            const px = (value) => {
+                const parsed = parseFloat(value);
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+            const chrome = px(computed.paddingLeft) + px(computed.paddingRight)
+                + px(computed.borderLeftWidth) + px(computed.borderRightWidth);
+            const requiredWidth = Math.ceil(maxTextWidth + (chrome > 0 ? chrome : 46) + 4);
             const currentWidth = parseInt(select.dataset?.minWidth || "", 10);
             const baseMinWidth = Number.isFinite(currentWidth)
                 ? currentWidth

@@ -535,26 +535,23 @@ td {
     overflow-y: auto;
 }
 
+/* The city select is sized by main-select-services.js to its longest option. */
 #tz-quick-select {
-    width: 200px;
     min-width: 200px;
-    max-width: 200px;
 }
 
 #custom-abbr {
-    width: 64px;
+    width: 128px;
 }
 
 #custom-name {
-    width: 74px;
+    width: 148px;
 }
 
-#custom-off-h {
-    width: 120px;
-}
-
+/* Hour and minute selects share the hour select's width. */
+#custom-off-h,
 #custom-off-m {
-    width: 94px;
+    width: 120px;
 }
 
 #multi-range-count-input {

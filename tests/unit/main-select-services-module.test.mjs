@@ -98,7 +98,8 @@ describe("GTV main select services module", () => {
         service.adjustSelectWidthForContent(select, 100);
 
         expect(select.dataset.minWidth).toBe("100");
-        expect(select.style.width).toBe("162px");
+        // 15 chars * 6 = 90, + 46 (no padding/border info) + 4.
+        expect(select.style.width).toBe("140px");
     });
 
     it("renders base-time options and persists when selected timezone changes", () => {
@@ -188,6 +189,32 @@ describe("GTV main select services module", () => {
         expect(quickSelect.style.width.endsWith("px")).toBe(true);
         // The base time select is in the group settings popup and keeps its stylesheet width.
         expect(baseSelect.style.width || "").toBe("");
+    });
+
+    it("sizes the city select to its longest option plus its own padding and border", () => {
+        const moduleApi = loadMainSelectServicesModule();
+        const quickSelect = createSelectElement();
+        quickSelect.options = [{ textContent: "Short" }, { textContent: "  A much longer city name  " }];
+        const measure = (text) => ({ width: text.length * 10 });
+        const service = moduleApi.createService({
+            getComputedStyle: () => ({
+                fontStyle: "normal", fontWeight: "400", fontSize: "14px", fontFamily: "sans-serif",
+                paddingLeft: "10px", paddingRight: "34px", borderLeftWidth: "1px", borderRightWidth: "1px"
+            }),
+            documentRef: {
+                getElementById: (id) => (id === "tz-quick-select" ? quickSelect : null),
+                createElement: () => ({ getContext: () => ({ font: "", measureText: measure }) })
+            }
+        });
+
+        service.refreshSelectWidths();
+        // "A much longer city name" = 23 chars * 10 = 230, + 46 padding/border + 4.
+        expect(quickSelect.style.width).toBe("280px");
+
+        // Shorter options (another language) shrink it back, but not below the minimum.
+        quickSelect.options = [{ textContent: "UTC" }];
+        service.refreshSelectWidths();
+        expect(quickSelect.style.width).toBe("118px");
     });
 
     it("uses safe fallback dependencies when rendering base-time select", () => {
