@@ -395,6 +395,11 @@
                     activeMultiSubgroupId: sourceGroup.activeMultiSubgroupId,
                     multiSubgroups: sourceGroup.multiSubgroups
                 };
+                // The group's own day/night hours, when it has them.
+                if (Number.isInteger(sourceGroup.dayStartHour) && Number.isInteger(sourceGroup.nightStartHour)) {
+                    groupPayload.dayStartHour = sourceGroup.dayStartHour;
+                    groupPayload.nightStartHour = sourceGroup.nightStartHour;
+                }
                 const fileName = getGroupExportFileName(sourceGroup.name);
                 const exportPayload = {
                     app: "GlobalTimeViewer",
@@ -579,16 +584,18 @@
                 const fileName = getSettingsExportFileName();
                 const currentLang = deps.getCurrentLang();
                 const snapshot = deps.getPersistenceSnapshot();
+                // The shared day/night value (groups without their own hours follow it). The
+                // getters return the current group's hours, so they are only a fallback here.
                 const parsedDayStartHour = Number.parseInt(
-                    (typeof deps.getDayStartHour === "function")
-                        ? deps.getDayStartHour()
-                        : snapshot?.dayStartHour,
+                    Number.isFinite(Number.parseInt(snapshot?.dayStartHour, 10))
+                        ? snapshot.dayStartHour
+                        : ((typeof deps.getDayStartHour === "function") ? deps.getDayStartHour() : undefined),
                     10
                 );
                 const parsedNightStartHour = Number.parseInt(
-                    (typeof deps.getNightStartHour === "function")
-                        ? deps.getNightStartHour()
-                        : snapshot?.nightStartHour,
+                    Number.isFinite(Number.parseInt(snapshot?.nightStartHour, 10))
+                        ? snapshot.nightStartHour
+                        : ((typeof deps.getNightStartHour === "function") ? deps.getNightStartHour() : undefined),
                     10
                 );
                 const defaultDayStartHour = Number.parseInt(deps.DEFAULT_DAY_START_HOUR, 10);

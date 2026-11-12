@@ -243,9 +243,9 @@
             const groups = getStateGroups(state);
             if (groups.length <= 1) {
                 dep.showToast(translate("toast_group_min"));
-                return;
+                return false;
             }
-            if (!(await confirmFn(translate("confirm_delete_group")))) return;
+            if (!(await confirmFn(translate("confirm_delete_group")))) return false;
 
             const safeIdx = clampGroupIndexByLength(idx, groups.length);
             const currentActiveGroupId = clampGroupIndexByLength(state.activeGroupId, groups.length);
@@ -272,6 +272,7 @@
             renderMultiSubgroups();
             rerenderActiveTabBody();
             dep.showToast(translate("toast_group_deleted"));
+            return true;
         }
 
         function activateMultiSubgroup(subgroupId) {
@@ -354,6 +355,127 @@
             dep.showToast(translate("toast_subgroup_deleted"));
         }
 
+        // ---- Group settings popup (#group-settings-overlay) ----
+        // The base time and day/night selects inside it keep their ids, so their existing change
+        // handlers apply them to the current group. Opening the popup asks main-ui-init (through the
+        // "gtv:group-settings-opened" document event) to show this group's day/night hours.
+        let groupSettingsIdx = -1;
+        let groupSettingsOpener = null;
+        let groupSettingsBound = false;
+
+        function getGroupSettingsOverlay() {
+            const documentRef = getDocumentRef();
+            return documentRef?.getElementById?.("group-settings-overlay") || null;
+        }
+
+        function isGroupSettingsOpen() {
+            const overlay = getGroupSettingsOverlay();
+            return !!overlay && overlay.style?.display === "flex";
+        }
+
+        function refreshGroupSettingsName() {
+            const documentRef = getDocumentRef();
+            const group = getStateGroups(getState())[groupSettingsIdx];
+            if (!group) return;
+            const titleEl = documentRef?.getElementById?.("group-settings-title");
+            if (titleEl) titleEl.textContent = `${translate("group_settings_title")} \u2014 ${group.name}`;
+            const nameInput = documentRef?.getElementById?.("group-settings-name-input");
+            if (nameInput) nameInput.value = group.name;
+        }
+
+        // Applies the name typed in the popup when Change is pressed; an empty or unchanged name
+        // restores the current one.
+        function applyGroupSettingsName() {
+            const documentRef = getDocumentRef();
+            const nameInput = documentRef?.getElementById?.("group-settings-name-input");
+            const group = getStateGroups(getState())[groupSettingsIdx];
+            if (!nameInput || !group) return false;
+            const nextName = String(nameInput.value || "").trim();
+            if (!nextName || nextName === group.name) {
+                nameInput.value = group.name;
+                return false;
+            }
+            group.name = nextName;
+            dep.savePersistence();
+            renderGroups();
+            renderMultiSubgroups();
+            refreshGroupSettingsName();
+            dep.showToast(translate("toast_name_changed"));
+            return true;
+        }
+
+        function refreshGroupSettings() {
+            const documentRef = getDocumentRef();
+            refreshGroupSettingsName();
+            dep.renderBaseTimeSelect();
+            const EventCtor = (typeof globalObj?.CustomEvent === "function") ? globalObj.CustomEvent : null;
+            if (EventCtor && typeof documentRef?.dispatchEvent === "function") {
+                documentRef.dispatchEvent(new EventCtor("gtv:group-settings-opened"));
+            }
+        }
+
+        // Closing never saves a typed name; only the Change button does.
+        function closeGroupSettings() {
+            const overlay = getGroupSettingsOverlay();
+            if (!overlay || overlay.style?.display !== "flex") return;
+            overlay.style.display = "none";
+            const opener = groupSettingsOpener;
+            groupSettingsOpener = null;
+            groupSettingsIdx = -1;
+            if (typeof opener?.focus === "function" && opener.isConnected !== false) opener.focus();
+        }
+
+        function bindGroupSettings() {
+            if (groupSettingsBound) return;
+            const documentRef = getDocumentRef();
+            const overlay = getGroupSettingsOverlay();
+            if (!documentRef || !overlay) return;
+            groupSettingsBound = true;
+            const on = (id, handler) => {
+                const el = documentRef.getElementById?.(id);
+                if (el && typeof el.addEventListener === "function") el.addEventListener("click", handler);
+            };
+            on("close-group-settings-btn", () => closeGroupSettings());
+            on("group-settings-name-apply-btn", () => applyGroupSettingsName());
+            on("group-settings-export-btn", () => {
+                if (groupSettingsIdx >= 0) dep.exportGroupToJSON(groupSettingsIdx);
+            });
+            on("group-settings-import-btn", () => {
+                if (groupSettingsIdx < 0) return;
+                dep.triggerGroupImportFor(groupSettingsIdx);
+                closeGroupSettings();
+            });
+            on("group-settings-delete-btn", async () => {
+                if (groupSettingsIdx < 0) return;
+                const deleted = await deleteGroup(groupSettingsIdx);
+                if (deleted === true) closeGroupSettings();
+            });
+            overlay.addEventListener?.("click", (event) => {
+                if (event?.target === overlay) closeGroupSettings();
+            });
+            documentRef.addEventListener?.("keydown", (event) => {
+                if (event?.key !== "Escape" || !isGroupSettingsOpen()) return;
+                const blocking = Array.from(documentRef.querySelectorAll?.(".overlay:not(.app-dialog-overlay)") || [])
+                    .some((el) => el.style?.display === "flex");
+                if (blocking) return;
+                closeGroupSettings();
+            });
+        }
+
+        function openGroupSettings(idx, opener = null) {
+            const overlay = getGroupSettingsOverlay();
+            if (!overlay || !overlay.style) return;
+            bindGroupSettings();
+            const groups = getStateGroups(getState());
+            if (!groups.length) return;
+            groupSettingsIdx = clampGroupIndexByLength(idx, groups.length);
+            groupSettingsOpener = opener || null;
+            overlay.style.display = "flex";
+            refreshGroupSettings();
+            const panel = overlay.querySelector?.(".app-dialog");
+            if (typeof panel?.focus === "function") panel.focus({ preventScroll: true });
+        }
+
         function renderGroups() {
             dep.hideFloatingTooltip();
             const documentRef = getDocumentRef();
@@ -398,48 +520,21 @@
                     activateGroupTab(idx);
                 });
 
-                const editBtn = documentRef.createElement("button");
-                editBtn.className = "group-edit-btn";
-                editBtn.textContent = "✎";
-                dep.setCustomTooltip(editBtn, translate("tooltip_edit"));
-                editBtn.onclick = async (e) => {
+                const settingsBtn = documentRef.createElement("button");
+                settingsBtn.type = "button";
+                settingsBtn.className = "group-settings-btn";
+                settingsBtn.textContent = "\u2699\ufe0f";
+                settingsBtn.setAttribute?.("aria-haspopup", "dialog");
+                settingsBtn.setAttribute?.("aria-controls", "group-settings-overlay");
+                dep.setCustomTooltip(settingsBtn, translate("btn_group_settings"));
+                settingsBtn.onclick = (e) => {
                     e.stopPropagation();
-                    await renameGroup(idx);
-                };
-
-                const exportBtn = documentRef.createElement("button");
-                exportBtn.className = "group-export-btn";
-                exportBtn.textContent = "⤒";
-                dep.setCustomTooltip(exportBtn, translate("tooltip_group_export"));
-                exportBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    dep.exportGroupToJSON(idx);
-                };
-
-                const importBtn = documentRef.createElement("button");
-                importBtn.className = "group-import-btn";
-                importBtn.textContent = "⤓";
-                dep.setCustomTooltip(importBtn, translate("tooltip_group_import"));
-                importBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    dep.triggerGroupImportFor(idx);
-                };
-
-                const delBtn = documentRef.createElement("button");
-                delBtn.className = "group-del-btn";
-                delBtn.textContent = "✕";
-                dep.setCustomTooltip(delBtn, translate("tooltip_delete"));
-                delBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    deleteGroup(idx);
+                    openGroupSettings(idx, settingsBtn);
                 };
 
                 btn.appendChild(label);
                 if (idx === activeGroupId) {
-                    btn.appendChild(editBtn);
-                    btn.appendChild(exportBtn);
-                    btn.appendChild(importBtn);
-                    btn.appendChild(delBtn);
+                    btn.appendChild(settingsBtn);
                 }
                 container.appendChild(btn);
             });
@@ -547,6 +642,8 @@
         return Object.freeze({
             activateGroupTab,
             addGroup,
+            openGroupSettings,
+            closeGroupSettings,
             renameGroup,
             activateMultiSubgroup,
             addMultiSubgroup,

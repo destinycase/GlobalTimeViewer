@@ -132,12 +132,30 @@
             ), options[0]);
         }
 
+        // Day/night hours belong to the current group; a group without its own hours follows the
+        // shared value kept in state (older data and new groups).
+        function getCurrentGroupSafe() {
+            if (typeof safeDeps.getCurrentGroup !== "function") return null;
+            try {
+                const group = safeDeps.getCurrentGroup();
+                return (group && typeof group === "object") ? group : null;
+            } catch (_error) {
+                return null;
+            }
+        }
+
+        function groupHasDayNightHours(group) {
+            return !!group && Number.isInteger(group.dayStartHour) && Number.isInteger(group.nightStartHour);
+        }
+
         function resolveCurrentDayNightHours() {
             const state = readState();
+            const group = getCurrentGroupSafe();
+            const source = groupHasDayNightHours(group) ? group : state;
             const fallbackDay = getDefaultDayStartHour();
             const fallbackNight = getDefaultNightStartHour();
-            const dayStartHour = sanitizeDayNightHour(state.dayStartHour, fallbackDay);
-            const nightStartHour = sanitizeDayNightHour(state.nightStartHour, fallbackNight);
+            const dayStartHour = sanitizeDayNightHour(source.dayStartHour, fallbackDay);
+            const nightStartHour = sanitizeDayNightHour(source.nightStartHour, fallbackNight);
             if (nightStartHour <= dayStartHour) {
                 return { dayStartHour: fallbackDay, nightStartHour: fallbackNight };
             }
@@ -193,10 +211,16 @@
                 };
             }
 
-            patchState({
-                dayStartHour: nextDayStartHour,
-                nightStartHour: nextNightStartHour
-            });
+            const group = getCurrentGroupSafe();
+            if (group) {
+                group.dayStartHour = nextDayStartHour;
+                group.nightStartHour = nextNightStartHour;
+            } else {
+                patchState({
+                    dayStartHour: nextDayStartHour,
+                    nightStartHour: nextNightStartHour
+                });
+            }
 
             if (safeOptions.rerender !== false) {
                 dep.updateClocks();

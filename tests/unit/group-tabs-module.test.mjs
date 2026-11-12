@@ -146,6 +146,40 @@ function loadGroupTabsModule(options = {}) {
     return globalThis.window?.GTVGroupTabs || globalThis.GTVGroupTabs;
 }
 
+function createGroupSettingsDom() {
+    const groupContainer = createElementStub("div");
+    const addBtn = createElementStub("button");
+    const overlay = createElementStub("div");
+    const panel = createElementStub("div");
+    panel.className = "app-dialog";
+    panel.focused = 0;
+    panel.focus = () => { panel.focused += 1; };
+    overlay.appendChild(panel);
+    const ids = {
+        "group-tabs-container": groupContainer,
+        "add-group-btn": addBtn,
+        "group-settings-overlay": overlay,
+        "group-settings-title": createElementStub("h3"),
+        "group-settings-name-input": createElementStub("input"),
+        "group-settings-name-apply-btn": createElementStub("button"),
+        "close-group-settings-btn": createElementStub("button"),
+        "group-settings-export-btn": createElementStub("button"),
+        "group-settings-import-btn": createElementStub("button"),
+        "group-settings-delete-btn": createElementStub("button")
+    };
+    const docHandlers = {};
+    const dispatched = [];
+    const blockingOverlay = createElementStub("div");
+    const documentRef = {
+        getElementById: (id) => ids[id] || null,
+        createElement: (tagName) => createElementStub(tagName),
+        querySelectorAll: () => [blockingOverlay],
+        addEventListener: (type, cb) => { docHandlers[type] = cb; },
+        dispatchEvent: (event) => { dispatched.push(event.type); }
+    };
+    return { ids, overlay, panel, groupContainer, documentRef, docHandlers, dispatched, blockingOverlay };
+}
+
 function createBaseDeps(state, overrides = {}) {
     return {
         t: (key) => key,
@@ -486,46 +520,86 @@ describe("GTV group tabs module", () => {
         expect(toastKey).toBe("toast_name_changed");
     });
 
-    it("renderGroups delete button removes target group and updates state", async () => {
-        const groupContainer = createElementStub("div");
-        const addBtn = createElementStub("button");
-        const module = loadGroupTabsModule({
-            document: {
-                getElementById(id) {
-                    if (id === "group-tabs-container") return groupContainer;
-                    if (id === "add-group-btn") return addBtn;
-                    return null;
-                },
-                createElement(tagName) {
-                    return createElementStub(tagName);
-                }
-            }
-        });
+    it("renderGroups shows only a settings button on the active tab that opens the group settings popup", async () => {
+        const dom = createGroupSettingsDom();
+        const module = loadGroupTabsModule({ document: dom.documentRef });
+        globalThis.window.CustomEvent = class { constructor(type) { this.type = type; } };
         const state = {
             groups: [{ name: "A" }, { name: "B" }],
             activeGroupId: 0,
             currentMainTab: "live",
             activeGroupIdByMainTab: { live: 0, fixed: 0 }
         };
+        let baseRendered = 0;
         let toastKey = "";
         const service = module.createService(createBaseDeps(state, {
-            confirmFn: () => true,
-            showToast: (key) => { toastKey = key; }
+            confirmFn: async () => true,
+            showToast: (key) => { toastKey = key; },
+            renderBaseTimeSelect: () => { baseRendered += 1; }
         }));
 
         service.renderGroups();
-        const firstTab = groupContainer.children[0];
-        const delBtn = firstTab?.children?.find((child) => child.className === "group-del-btn");
-        expect(delBtn).toBeTruthy();
+        const [firstTab, secondTab] = dom.groupContainer.children;
+        const buttonClasses = (tab) => tab.children.filter((child) => child.tagName === "BUTTON").map((child) => child.className);
+        expect(buttonClasses(firstTab)).toEqual(["group-settings-btn"]);
+        expect(buttonClasses(secondTab)).toEqual([]);
 
-        delBtn.onclick?.({ stopPropagation() { } });
-        // Deletion waits for the (now asynchronous) confirm answer.
+        const settingsBtn = firstTab.children.find((child) => child.className === "group-settings-btn");
+        settingsBtn.focused = 0;
+        settingsBtn.focus = () => { settingsBtn.focused += 1; };
+        settingsBtn.onclick({ stopPropagation() { } });
+        expect(dom.overlay.style.display).toBe("flex");
+        expect(dom.ids["group-settings-title"].textContent).toBe("group_settings_title \u2014 A");
+        expect(dom.ids["group-settings-name-input"].value).toBe("A");
+        expect(baseRendered).toBe(1);
+        expect(dom.dispatched).toEqual(["gtv:group-settings-opened"]);
+        expect(dom.panel.focused).toBe(1);
+
+        // Esc is left to a confirm/prompt dialog shown above; otherwise it closes the popup.
+        dom.blockingOverlay.style.display = "flex";
+        dom.docHandlers.keydown({ key: "Escape" });
+        expect(dom.overlay.style.display).toBe("flex");
+        dom.blockingOverlay.style.display = "none";
+        dom.docHandlers.keydown({ key: "Escape" });
+        expect(dom.overlay.style.display).toBe("none");
+        expect(settingsBtn.focused).toBe(1);
+
+        // Background click closes; delete closes after a confirmed deletion.
+        service.openGroupSettings(0, settingsBtn);
+        dom.overlay.dispatch("click", { target: dom.panel });
+        expect(dom.overlay.style.display).toBe("flex");
+        dom.overlay.dispatch("click", { target: dom.overlay });
+        expect(dom.overlay.style.display).toBe("none");
+
+        service.openGroupSettings(0, settingsBtn);
+        await dom.ids["group-settings-delete-btn"].dispatch("click");
         await new Promise((resolve) => setTimeout(resolve, 0));
-
         expect(state.groups).toHaveLength(1);
         expect(state.groups[0].name).toBe("B");
-        expect(state.activeGroupId).toBe(0);
         expect(toastKey).toBe("toast_group_deleted");
+        expect(dom.overlay.style.display).toBe("none");
+    });
+
+    it("group settings popup keeps the popup open when deletion is refused", async () => {
+        const dom = createGroupSettingsDom();
+        const module = loadGroupTabsModule({ document: dom.documentRef });
+        const state = {
+            groups: [{ name: "Only" }],
+            activeGroupId: 0,
+            currentMainTab: "live",
+            activeGroupIdByMainTab: { live: 0, fixed: 0 }
+        };
+        let toastKey = "";
+        const service = module.createService(createBaseDeps(state, {
+            confirmFn: async () => true,
+            showToast: (key) => { toastKey = key; }
+        }));
+        service.openGroupSettings(0);
+        await dom.ids["group-settings-delete-btn"].dispatch("click");
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(toastKey).toBe("toast_group_min");
+        expect(state.groups).toHaveLength(1);
+        expect(dom.overlay.style.display).toBe("flex");
     });
 
     it("activateMultiSubgroup switches active subgroup and rerenders multi UI", () => {
@@ -799,47 +873,56 @@ describe("GTV group tabs module", () => {
         }
     });
 
-    it("renderGroups rename/export/import handlers invoke expected actions", async () => {
-        const groupContainer = createElementStub("div");
-        const addBtn = createElementStub("button");
-        const module = loadGroupTabsModule({
-            prompt: () => "Renamed via button",
-            document: {
-                getElementById(id) {
-                    if (id === "group-tabs-container") return groupContainer;
-                    if (id === "add-group-btn") return addBtn;
-                    return null;
-                },
-                createElement(tagName) {
-                    return createElementStub(tagName);
-                }
-            }
-        });
+    it("group settings popup renames in place and its export/import buttons act on the chosen group", async () => {
+        const dom = createGroupSettingsDom();
+        const module = loadGroupTabsModule({ document: dom.documentRef });
         const state = {
             groups: [{ name: "A" }, { name: "B" }],
-            activeGroupId: 0,
+            activeGroupId: 1,
             currentMainTab: "live",
-            activeGroupIdByMainTab: { live: 0, fixed: 0 }
+            activeGroupIdByMainTab: { live: 1, fixed: 1 }
         };
-        let exportCalls = 0;
-        let importCalls = 0;
+        const exported = [];
+        const imported = [];
         const service = module.createService(createBaseDeps(state, {
-            exportGroupToJSON: () => { exportCalls += 1; },
-            triggerGroupImportFor: () => { importCalls += 1; }
+            exportGroupToJSON: (idx) => { exported.push(idx); },
+            triggerGroupImportFor: (idx) => { imported.push(idx); }
         }));
 
-        service.renderGroups();
-        const firstTab = groupContainer.children[0];
-        const editBtn = firstTab.children.find((child) => child.className === "group-edit-btn");
-        const exportBtn = firstTab.children.find((child) => child.className === "group-export-btn");
-        const importBtn = firstTab.children.find((child) => child.className === "group-import-btn");
-        await editBtn.onclick?.({ stopPropagation() { } });
-        exportBtn.onclick?.({ stopPropagation() { } });
-        importBtn.onclick?.({ stopPropagation() { } });
+        service.openGroupSettings(1);
+        const nameInput = dom.ids["group-settings-name-input"];
+        expect(nameInput.value).toBe("B");
 
-        expect(state.groups[0].name).toBe("Renamed via button");
-        expect(exportCalls).toBe(1);
-        expect(importCalls).toBe(1);
+        const applyBtn = dom.ids["group-settings-name-apply-btn"];
+
+        // Typing alone, Enter or leaving the field does not save; the Change button does.
+        nameInput.value = "  Renamed in popup  ";
+        nameInput.dispatch("keydown", { key: "Enter", preventDefault() { } });
+        nameInput.dispatch("change");
+        expect(state.groups[1].name).toBe("B");
+        applyBtn.dispatch("click");
+        expect(state.groups[1].name).toBe("Renamed in popup");
+        expect(dom.ids["group-settings-title"].textContent).toBe("group_settings_title \u2014 Renamed in popup");
+
+        // An empty name is not saved; the field returns to the current name.
+        nameInput.value = "   ";
+        applyBtn.dispatch("click");
+        expect(state.groups[1].name).toBe("Renamed in popup");
+        expect(nameInput.value).toBe("Renamed in popup");
+
+        // Closing with an unsaved name keeps the old name.
+        nameInput.value = "Unsaved";
+        dom.ids["close-group-settings-btn"].dispatch("click");
+        expect(state.groups[1].name).toBe("Renamed in popup");
+        service.openGroupSettings(1);
+
+        dom.ids["group-settings-export-btn"].dispatch("click");
+        expect(exported).toEqual([1]);
+
+        // Import opens the file picker for this group and closes the popup.
+        dom.ids["group-settings-import-btn"].dispatch("click");
+        expect(imported).toEqual([1]);
+        expect(dom.overlay.style.display).toBe("none");
     });
 
     it("renderMultiSubgroups active tab handlers rename/export/import/delete", async () => {

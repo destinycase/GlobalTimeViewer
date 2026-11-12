@@ -186,7 +186,8 @@ describe("GTV main select services module", () => {
         service.refreshSelectWidths();
 
         expect(quickSelect.style.width.endsWith("px")).toBe(true);
-        expect(baseSelect.style.width.endsWith("px")).toBe(true);
+        // The base time select is in the group settings popup and keeps its stylesheet width.
+        expect(baseSelect.style.width || "").toBe("");
     });
 
     it("uses safe fallback dependencies when rendering base-time select", () => {

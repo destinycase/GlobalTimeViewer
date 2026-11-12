@@ -1038,6 +1038,121 @@ function buildScenarios(ctx) {
 
                 return `제목 아래 구분선(위 ${titleDivider.gapAbove}px·아래 ${titleDivider.gapBelow}px), 하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘, 초기화 확인 창 "${confirmMessage}" 화면 안 창·취소/Esc 유지·확인 시 닫힘(${confirmCount}회), 슬롯 이름 화면 안 입력 창으로 "${slotTitle.trim()}"`;
             }
+        },
+        {
+            id: "16",
+            title: "그룹 설정 팝업: 탭은 이름·설정만, 기준 시간·낮/밤(그룹별)·이름·내보내기·가져오기·삭제",
+            async run() {
+                const { api } = ctx;
+                const z = (id, zone, ko, en) => ({ id, type: "standard", zone, name_ko: ko, name_en: en, fixedAbbr: "", fixedOffsetMinutes: null });
+                const saved = {
+                    groups: [
+                        { name: "업무", zones: [z("tz-se", "Asia/Seoul", "대한민국 - 서울", "Korea - Seoul"), z("tz-ny", "America/New_York", "미국 - 뉴욕", "USA - New York")], baseTimezoneId: "tz-se", showUtcRow: true, utcRowOrder: 0, fixedDate: "2026-07-01", fixedTimeShowLiveNow: false, fixedTimes: [{ id: "ft-1", name: "A", time: "09:00" }] },
+                        { name: "여행", zones: [z("tz-tk", "Asia/Tokyo", "일본 - 도쿄", "Japan - Tokyo")], baseTimezoneId: "utc", showUtcRow: true, utcRowOrder: 0, fixedDate: "2026-07-01", fixedTimeShowLiveNow: false, fixedTimes: [{ id: "ft-1", name: "A", time: "09:00" }] }
+                    ],
+                    activeGroupId: 0,
+                    currentMainTab: "fixed",
+                    activeGroupIdByMainTab: { live: 0, fixed: 0 },
+                    slotCount: 1,
+                    dayStartHour: 6,
+                    nightStartHour: 18
+                };
+                await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))})`);
+                await api.reload();
+                await api.switchTab("fixed");
+                const clickAt = async (selector) => {
+                    const rect = await api.ev(`(() => {
+                        const el = document.querySelector(${JSON.stringify(selector)});
+                        if (!el) return null;
+                        const r = el.getBoundingClientRect();
+                        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+                    })()`);
+                    assert(rect, `클릭 대상 없음: ${selector}`);
+                    await api.mouse("mousePressed", rect.x, rect.y);
+                    await api.mouse("mouseReleased", rect.x, rect.y);
+                    await sleep(200);
+                };
+                const shown = (id) => api.ev(`getComputedStyle(document.getElementById(${JSON.stringify(id)})).display !== "none"`);
+                const stored = () => api.storedData();
+                const select = (id, value) => api.ev(`(() => { const s = document.getElementById(${JSON.stringify(id)}); s.value = ${JSON.stringify(String(value))}; s.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+
+                // The active tab shows only its name and the settings button; the main screen no longer
+                // has the base time or day/night controls.
+                const layout = await api.ev(`(() => {
+                    const active = document.querySelector("#group-tabs-container .group-tab.active");
+                    return {
+                        buttons: [...active.querySelectorAll("button")].map((b) => b.classList.contains("group-settings-btn") ? "group-settings-btn" : b.className),
+                        name: active.querySelector(".group-name-label")?.textContent,
+                        mainHasBase: !!document.querySelector(".control-panel #base-time-select, #top-control-bar #base-time-select"),
+                        selectsInPopup: ["base-time-select", "day-start-select", "night-start-select"].every((id) => document.getElementById(id)?.closest("#group-settings-overlay"))
+                    };
+                })()`);
+                assert(JSON.stringify(layout.buttons) === JSON.stringify(["group-settings-btn"]) && layout.name === "업무", `그룹 탭 구성: ${JSON.stringify(layout)}`);
+                assert(!layout.mainHasBase && layout.selectsInPopup, `기준 시간·낮/밤 위치: ${JSON.stringify(layout)}`);
+
+                // Group 1: base time New York, day 08:00-20:00 (its own hours).
+                await clickAt("#group-tabs-container .group-tab.active .group-settings-btn");
+                assert(await shown("group-settings-overlay"), "그룹 설정 팝업이 열리지 않음");
+                const popupName = await api.ev(`document.getElementById("group-settings-name-input").value`);
+                const popupTitle = await api.ev(`document.getElementById("group-settings-title").textContent`);
+                assert(popupTitle.includes("업무"), `팝업 제목: ${popupTitle}`);
+                await select("base-time-select", "tz-ny");
+                await select("day-start-select", 8);
+                await select("night-start-select", 20);
+                await until("그룹 1 저장", async () => {
+                    const d = await stored();
+                    return d?.groups?.[0]?.dayStartHour === 8 && d.groups[0].nightStartHour === 20 && d.groups[0].baseTimezoneId === "tz-ny";
+                });
+                const baseRow = await api.ev(`document.querySelector("#clocks-container .base-row .zone-name")?.textContent || ""`);
+                assert(baseRow.includes("뉴욕"), `기준 시간 반영: ${baseRow}`);
+                await clickAt("#close-group-settings-btn");
+                assert(!(await shown("group-settings-overlay")), "닫기 버튼으로 닫히지 않음");
+
+                // Group 2 keeps the shared 06:00-18:00 and shows it in its own popup.
+                await clickAt("#group-tabs-container .group-tab:nth-child(2) .group-name-label");
+                await until("그룹 2 선택", () => api.ev(`document.querySelector("#group-tabs-container .group-tab:nth-child(2)").classList.contains("active")`));
+                await clickAt("#group-tabs-container .group-tab.active .group-settings-btn");
+                const group2Hours = await api.ev(`[document.getElementById("day-start-select").value, document.getElementById("night-start-select").value]`);
+                assert(JSON.stringify(group2Hours) === JSON.stringify(["6", "18"]), `그룹 2 낮/밤: ${group2Hours}`);
+                const d2 = await stored();
+                assert(d2.groups[1].dayStartHour === undefined && d2.dayStartHour === 6, `그룹 2·공통 값이 바뀜: ${JSON.stringify({ g2: d2.groups[1].dayStartHour, shared: d2.dayStartHour })}`);
+
+                // Rename: typing alone does not save; the Change button does. Esc closes the popup.
+                await clickAt("#group-settings-name-input");
+                await api.ev(`document.getElementById("group-settings-name-input").select()`);
+                await ctx.page.client.send("Input.insertText", { text: "출장" });
+                await sleep(200);
+                assert((await stored()).groups[1].name === "여행", "변경 버튼 전에 이름이 저장됨");
+                await clickAt("#group-settings-name-apply-btn");
+                await until("이름 변경", async () => (await stored()).groups[1].name === "출장");
+                const renamedTab = await api.ev(`document.querySelector("#group-tabs-container .group-tab.active .group-name-label").textContent`);
+                const renamedTitle = await api.ev(`document.getElementById("group-settings-title").textContent`);
+                assert(renamedTab === "출장" && renamedTitle.includes("출장") && await shown("group-settings-overlay"), `이름 변경 반영: ${renamedTab} / ${renamedTitle}`);
+                // The settings button looks like a button (visible border and background).
+                const gearStyle = await api.ev(`(() => { const cs = getComputedStyle(document.querySelector(".group-tab.active .group-settings-btn")); return { border: cs.borderTopColor, bg: cs.backgroundColor, w: cs.width }; })()`);
+                assert(gearStyle.border !== "rgba(0, 0, 0, 0)" && gearStyle.bg !== "rgba(0, 0, 0, 0)", `설정 버튼 모양: ${JSON.stringify(gearStyle)}`);
+                await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+                await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+                await sleep(200);
+                assert(!(await shown("group-settings-overlay")), "Esc로 그룹 설정이 닫히지 않음");
+
+                // Delete: Cancel keeps both groups and the popup; Confirm deletes and closes it.
+                await clickAt("#group-tabs-container .group-tab.active .group-settings-btn");
+                await clickAt("#group-settings-delete-btn");
+                await until("삭제 확인 창", () => shown("app-confirm-overlay"));
+                await clickAt("#app-confirm-cancel");
+                await sleep(200);
+                assert((await stored()).groups.length === 2 && await shown("group-settings-overlay"), "삭제 취소 뒤 상태가 다름");
+                await clickAt("#group-settings-delete-btn");
+                await until("삭제 확인 창(확인)", () => shown("app-confirm-overlay"));
+                await clickAt("#app-confirm-ok");
+                await until("그룹 삭제", async () => (await stored()).groups.length === 1);
+                assert(!(await shown("group-settings-overlay")), "삭제 뒤 그룹 설정이 닫히지 않음");
+                const remaining = (await stored()).groups[0];
+                assert(remaining.name === "업무" && remaining.dayStartHour === 8, `남은 그룹: ${JSON.stringify({ name: remaining.name, day: remaining.dayStartHour })}`);
+
+                return `탭 버튼 ${layout.buttons.join(",")}·본 화면에 기준 시간 없음, "${popupName}" 기준 뉴욕·낮 08~20시 저장, 그룹 2는 공통 06~18시 유지, 팝업 안에서 이름 "출장" 변경(변경 버튼)·제목 반영·Esc 닫힘, 설정 버튼 테두리·배경 있음, 삭제 취소 유지·확인 시 삭제·닫힘`;
+            }
         }
     ];
 }

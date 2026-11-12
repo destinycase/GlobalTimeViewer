@@ -127,6 +127,17 @@ test("sanitizeGroup normalizes duplicate ids, legacy UTC zone, and base timezone
     expect(group.multiSubgroups.length).toBeGreaterThan(0);
 });
 
+test("sanitizeGroup keeps valid per-group day/night hours and drops invalid ones", () => {
+    const service = createService(createDepsStub());
+    const base = { name: "G", zones: [] };
+    expect(service.sanitizeGroup({ ...base, dayStartHour: 8, nightStartHour: 20 }, 0)).toMatchObject({ dayStartHour: 8, nightStartHour: 20 });
+    for (const [day, night] of [[20, 8], [8, 8], [8.5, 20], [-1, 20], [8, 24], [undefined, undefined]]) {
+        const group = service.sanitizeGroup({ ...base, dayStartHour: day, nightStartHour: night }, 0);
+        expect(group.dayStartHour).toBeUndefined();
+        expect(group.nightStartHour).toBeUndefined();
+    }
+});
+
 test("sanitizeGroup survives missing dependency functions", () => {
     const service = createService({});
     const group = service.sanitizeGroup({

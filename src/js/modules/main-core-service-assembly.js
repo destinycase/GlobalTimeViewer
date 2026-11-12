@@ -306,6 +306,7 @@
             setStorageValue: deps.setStorageValue,
             updateClocks: deps.updateClocks,
             savePersistence: deps.savePersistenceSafely,
+            getCurrentGroup: deps.getCurrentGroup,
             getState: () => ({
                 uiScale: deps.getUiScaleState(),
                 currentTheme: deps.getCurrentThemeState(),

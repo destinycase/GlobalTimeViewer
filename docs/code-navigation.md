@@ -46,6 +46,7 @@
 | 브라우저 저장소(`localStorage`)·설정 초기화 | `state-persistence.js` | `persistence-service-bundle.js`, `settings-io.js`, `data-transfer.js` |
 | 늦게 정해지는 서비스·상태 참조 | `main-runtime-reference-accessors.js` | 표(`PASS_THROUGH_REFS`)와 로직이 있는 함수 8개 |
 | 설정·도움말 팝업 | `ui-settings-actions.js`(`bindDialogControls`) | `index.html`의 `#settings-overlay`·`#help-overlay`, `i18n.js`의 `settings_*`·`help_*` 키, `main-ui-init.js`(연결) |
+| 그룹 설정 팝업(이름·내보내기/가져오기·기준 시간·낮/밤·삭제) | `group-tabs.js`(`openGroupSettings`) | `index.html`의 `#group-settings-overlay`, `i18n.js`의 `group_settings_*` 키, `ui-preferences-state.js`(그룹별 낮/밤), `main-ui-init.js`(`gtv:group-settings-opened`로 낮/밤 선택값 동기화) |
 | 화면 스타일 | `style.css` | 맨 위 목차에서 `§번호`로 구역을 찾음(테마 변수, 컨트롤 패널, 시간 표, 타임라인, 계산기, 모달, DatePicker 등) |
 | 핵심·표·이미지 서비스 의존성 구성 | `main-runtime-core-service-bootstrap.js`, `main-runtime-table-image-bootstrap.js` | 각 조립부가 생성할 서비스의 설정을 함께 구성 |
 | 도메인 서비스 조립·의존성 구성 | `main-runtime-domain-service-bootstrap.js`, `main-runtime-ui-services-bootstrap.js` | 도메인 서비스를 만드는 데 필요한 설정과 생성 순서를 함께 확인 |

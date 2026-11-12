@@ -345,6 +345,7 @@
                     }
                     if (event?.key === "Escape") {
                         event.preventDefault?.();
+                        event.stopPropagation?.();
                         finalize(null);
                     }
                 };

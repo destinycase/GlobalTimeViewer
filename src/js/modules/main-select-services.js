@@ -101,7 +101,7 @@
             const documentRef = getDocumentRef();
             if (!documentRef || typeof documentRef.getElementById !== "function") return;
             adjustSelectWidthForContent(documentRef.getElementById("tz-quick-select"), 118);
-            adjustSelectWidthForContent(documentRef.getElementById("base-time-select"), 200);
+            // The base time select lives in the group settings popup and is sized by its styles.
         }
 
         function renderBaseTimeSelect() {
@@ -138,7 +138,6 @@
             setCurrentGroupBaseTimezoneId(selectedNext);
             select.value = selectedNext;
             if (selectedNext !== selectedBefore) savePersistence();
-            adjustSelectWidthForContent(select, 220);
         }
 
         return Object.freeze({

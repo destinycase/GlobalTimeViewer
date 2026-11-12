@@ -131,6 +131,13 @@
                 let dayNightCommitToken = 0;
                 let pendingDayNightSelectionKey = "";
                 let lastAppliedDayNightSelectionKey = getDayNightSelectionKey();
+                // Day/night hours belong to the current group: the group settings popup asks for its
+                // values to be shown when it opens.
+                document.addEventListener?.("gtv:group-settings-opened", () => {
+                    syncDayNightSelectValues();
+                    lastAppliedDayNightSelectionKey = getDayNightSelectionKey();
+                    pendingDayNightSelectionKey = "";
+                });
                 const commitDayNightRange = async () => {
                     const requestedSelectionKey = getDayNightSelectionKey();
                     if (

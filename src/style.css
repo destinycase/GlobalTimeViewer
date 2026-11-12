@@ -557,12 +557,6 @@ td {
     width: 94px;
 }
 
-#base-time-select {
-    width: 200px;
-    min-width: 200px;
-    max-width: 200px;
-}
-
 #multi-range-count-input {
     width: 64px;
     text-align: center;
@@ -772,61 +766,11 @@ input[type=number] {
     gap: 10px;
 }
 
-.base-time-group {
-    flex-wrap: wrap;
-    row-gap: 8px;
-}
-
-.base-time-settings {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-left: 4px;
-}
-
-.inline-time-setting {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
 .inline-time-label {
     font-size: 13px;
     font-weight: 600;
     color: var(--text-dim);
     white-space: nowrap;
-}
-
-.inline-time-select {
-    width: 128px;
-    min-width: 128px;
-}
-
-.control-row-main .control-group-divider {
-    position: relative;
-    padding-left: 18px;
-    margin-left: 2px;
-}
-
-.control-row-main .control-group-divider::before {
-    content: "|";
-    position: absolute;
-    left: 4px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-dim);
-    font-weight: 700;
-    font-size: 16px;
-    opacity: 0.9;
-    user-select: none;
-}
-
-@media (max-width: 1500px) {
-    .base-time-settings {
-        width: 100%;
-        margin-left: 0;
-    }
 }
 
 .control-group input[type="checkbox"] {
@@ -4233,7 +4177,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
    Calmer secondary controls so values and primary actions stand out. Grouped by item
    (1 buttons, 2 tab icons, 3 dividers and labels, 4 toggles, 5 timeline, 6 inputs,
    tables and modals, 7 group tab strip, 8 time adjust alignment, 9 calculator inputs,
-   10 time-edit table width);
+   10 time-edit table width, 11 group settings button);
    each block only overrides earlier rules.
    ======================================================================== */
 
@@ -4380,7 +4324,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 /* 3. Dividers and labels: thin hairlines instead of "|" characters and 2px rules;
       large labels step back so the selected values read first. */
 .control-row-options .option-toggle-group.option-with-divider::after,
-.control-row-main .control-group-divider::before,
 #multi-range-count-group::after,
 #fixed-time-slot-count-group::before,
 #fixed-time-date-group::before {
@@ -4406,7 +4349,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 :root[data-theme="light"] .control-row-options .option-toggle-group.option-with-divider::after,
-:root[data-theme="light"] .control-row-main .control-group-divider::before,
 :root[data-theme="light"] #multi-range-count-group::after,
 :root[data-theme="light"] #fixed-time-slot-count-group::before,
 :root[data-theme="light"] #fixed-time-date-group::before,
@@ -4758,6 +4700,60 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     min-width: 160px;
     max-width: 160px;
     width: 160px;
+}
+
+/* 11. Group tab settings button (opens the group settings popup): plain icon until hover. */
+.group-settings-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 7px;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: rgba(148, 163, 184, 0.16);
+    color: #e2e8f0;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.group-settings-btn:is(:hover, :focus-visible) {
+    color: #ffffff;
+    background: rgba(56, 189, 248, 0.22);
+    border-color: rgba(56, 189, 248, 0.6);
+}
+
+:root[data-theme="light"] .group-settings-btn {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.22);
+    color: #334155;
+}
+
+:root[data-theme="light"] .group-settings-btn:is(:hover, :focus-visible) {
+    background: #e0f2fe;
+    border-color: #0284c7;
+    color: #0f172a;
+}
+
+.group-settings-name-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 330px;
+}
+
+.group-settings-name-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.group-settings-name-field .sm-btn {
+    flex: 0 0 auto;
+    padding: 7px 14px;
+    font-size: 13px;
 }
 
 /* ========================================================================

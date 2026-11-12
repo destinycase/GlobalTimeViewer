@@ -189,6 +189,11 @@
             const fixedTimeShowLiveNow = (fixedTimeShowLiveNowRaw === undefined)
                 ? !!group.fixedTimeShowLiveNow
                 : !!fixedTimeShowLiveNowRaw;
+            // Per-group day/night hours (optional). A group without them follows the shared value.
+            const dayStartHourRaw = Number(group.dayStartHour);
+            const nightStartHourRaw = Number(group.nightStartHour);
+            const hasDayNight = Number.isInteger(dayStartHourRaw) && Number.isInteger(nightStartHourRaw)
+                && dayStartHourRaw >= 0 && nightStartHourRaw <= 23 && nightStartHourRaw > dayStartHourRaw;
             const sanitizedGroup = {
                 name,
                 zones,
@@ -201,6 +206,10 @@
                 activeMultiSubgroupId,
                 multiSubgroups
             };
+            if (hasDayNight) {
+                sanitizedGroup.dayStartHour = dayStartHourRaw;
+                sanitizedGroup.nightStartHour = nightStartHourRaw;
+            }
 
             const hasLegacyMultiState = group.multiRanges || group.multiRangeCount || group.multiRangeCollapsed || group.multiRangeStartEditEnabled || group.multiRangeEndEditEnabled;
             const groupLegacyMultiState = hasLegacyMultiState

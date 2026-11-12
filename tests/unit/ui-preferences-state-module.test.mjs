@@ -334,4 +334,44 @@ describe("GTV ui preferences state module", () => {
         expect(savePersistenceCount).toBe(1);
         expect(toasts).toContain("toast_day_night_invalid_order");
     });
+
+    it("keeps day/night hours per group and lets groups without their own hours follow the shared value", async () => {
+        const moduleApi = loadUiPreferencesStateModule();
+        globalThis.document = createDocumentStub();
+        const state = { uiScale: 1, currentTheme: "dark", currentLang: "ko", dayStartHour: 6, nightStartHour: 18 };
+        const groupA = { name: "A" };
+        const groupB = { name: "B" };
+        let current = groupA;
+        const service = moduleApi.createService({
+            DEFAULT_DAY_START_HOUR: 6,
+            DEFAULT_NIGHT_START_HOUR: 18,
+            DAY_NIGHT_HOUR_OPTIONS: Array.from({ length: 24 }, (_, hour) => hour),
+            t: (key) => key,
+            showToast: () => { },
+            updateClocks: () => { },
+            savePersistence: async () => { },
+            getState: () => state,
+            setState: (next) => Object.assign(state, next),
+            getCurrentGroup: () => current
+        });
+
+        // Group A gets its own hours; the shared value stays.
+        await service.setDayNightRange(8, 20);
+        expect(groupA).toMatchObject({ dayStartHour: 8, nightStartHour: 20 });
+        expect(state).toMatchObject({ dayStartHour: 6, nightStartHour: 18 });
+        expect(service.getDayStartHour()).toBe(8);
+        expect(service.getDayNightMarkerByHour(7)).toBe("NIGHT");
+
+        // Group B has no own hours: it follows the shared 06:00-18:00.
+        current = groupB;
+        expect(service.getDayStartHour()).toBe(6);
+        expect(service.getNightStartHour()).toBe(18);
+        expect(service.getDayNightMarkerByHour(7)).toBe("DAY");
+
+        // Setting B does not change A.
+        await service.setDayNightRange(5, 17);
+        expect(groupB).toMatchObject({ dayStartHour: 5, nightStartHour: 17 });
+        current = groupA;
+        expect(service.getDayStartHour()).toBe(8);
+    });
 });

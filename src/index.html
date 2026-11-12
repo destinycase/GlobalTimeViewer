@@ -122,24 +122,6 @@
                         </select>
                         <button id="add-custom-btn" class="sm-btn" data-i18n="btn_add">Add</button>
                     </div>
-
-                    <div class="control-group control-group-divider base-time-group">
-                        <span class="control-label-large" data-i18n="label_base_time">Base Time</span>
-                        <select id="base-time-select" class="form-select" data-fixed-width="200"></select>
-                        <div class="base-time-settings">
-                            <div class="inline-time-setting">
-                                <label class="inline-time-label" for="day-start-select" data-i18n="label_day_start">Day
-                                    Start</label>
-                                <select id="day-start-select" class="form-select inline-time-select"></select>
-                            </div>
-                            <div class="inline-time-setting">
-                                <label class="inline-time-label" for="night-start-select"
-                                    data-i18n="label_night_start">Night Start</label>
-                                <select id="night-start-select" class="form-select inline-time-select"></select>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
 
                 <div id="control-option-row" class="control-row control-row-options">
@@ -679,6 +661,69 @@
                     <div class="settings-row settings-row-action">
                         <button id="reset-all-settings-btn" class="sm-btn danger" type="button" data-i18n="btn_reset_all_settings">Reset All</button>
                         <p class="settings-desc" data-i18n="tooltip_reset_all_settings_desc"></p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+    <div id="group-settings-overlay" class="overlay app-dialog-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="group-settings-title">
+        <div class="overlay-content app-dialog" tabindex="-1">
+            <div class="overlay-header">
+                <h3 id="group-settings-title" data-i18n="group_settings_title">Group Settings</h3>
+                <button id="close-group-settings-btn" class="icon-btn app-dialog-close" type="button"
+                    data-i18n-title="btn_close">&times;</button>
+            </div>
+            <div class="app-dialog-body">
+                <section class="settings-section" aria-labelledby="group-settings-section-name">
+                    <h4 id="group-settings-section-name" data-i18n="group_settings_section_name">Name</h4>
+                    <div class="settings-row">
+                        <label class="settings-label" for="group-settings-name-input" data-i18n="group_settings_name_label">Group Name</label>
+                        <div class="group-settings-name-field">
+                            <input id="group-settings-name-input" class="form-input group-settings-name-input" type="text"
+                                maxlength="60" spellcheck="false" autocomplete="off">
+                            <button id="group-settings-name-apply-btn" class="sm-btn" type="button"
+                                data-i18n="btn_change_name">Change</button>
+                        </div>
+                        <p class="settings-desc" data-i18n="group_settings_name_desc"></p>
+                    </div>
+                </section>
+                <section class="settings-section" aria-labelledby="group-settings-section-transfer">
+                    <h4 id="group-settings-section-transfer" data-i18n="group_settings_section_transfer">Export / Import</h4>
+                    <div class="settings-row settings-row-action">
+                        <button id="group-settings-export-btn" class="sm-btn" type="button" data-i18n="tooltip_group_export">Export Group</button>
+                        <p class="settings-desc" data-i18n="group_settings_export_desc"></p>
+                    </div>
+                    <div class="settings-row settings-row-action">
+                        <button id="group-settings-import-btn" class="sm-btn" type="button" data-i18n="tooltip_group_import">Import Group</button>
+                        <p class="settings-desc" data-i18n="group_settings_import_desc"></p>
+                    </div>
+                </section>
+                <section class="settings-section" aria-labelledby="group-settings-section-base">
+                    <h4 id="group-settings-section-base" data-i18n="label_base_time">Base Time</h4>
+                    <div class="settings-row">
+                        <label class="settings-label" for="base-time-select" data-i18n="label_add_tz">Timezone</label>
+                        <select id="base-time-select" class="form-select sidebar-select"></select>
+                        <p class="settings-desc" data-i18n="group_settings_base_desc"></p>
+                    </div>
+                </section>
+                <section class="settings-section" aria-labelledby="group-settings-section-daynight">
+                    <h4 id="group-settings-section-daynight" data-i18n="group_settings_section_daynight">Day / Night</h4>
+                    <div class="settings-row">
+                        <label class="settings-label" for="day-start-select" data-i18n="label_day_start">Day Start</label>
+                        <select id="day-start-select" class="form-select sidebar-select"></select>
+                    </div>
+                    <div class="settings-row">
+                        <label class="settings-label" for="night-start-select" data-i18n="label_night_start">Night Start</label>
+                        <select id="night-start-select" class="form-select sidebar-select"></select>
+                        <p class="settings-desc" data-i18n="group_settings_daynight_desc"></p>
+                    </div>
+                </section>
+                <section class="settings-section" aria-labelledby="group-settings-section-delete">
+                    <h4 id="group-settings-section-delete" data-i18n="group_settings_section_delete">Delete</h4>
+                    <div class="settings-row settings-row-action">
+                        <button id="group-settings-delete-btn" class="sm-btn danger" type="button" data-i18n="tooltip_delete">Delete Group</button>
+                        <p class="settings-desc" data-i18n="group_settings_delete_desc"></p>
                     </div>
                 </section>
             </div>

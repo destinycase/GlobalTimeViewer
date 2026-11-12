@@ -625,6 +625,53 @@ describe("GTV data transfer module", () => {
         expect(toasts[0].startsWith("toast_settings_export_success:")).toBe(true);
     });
 
+    it("exports a group's own day/night hours and the shared hours in full settings", () => {
+        const written = [];
+        const OriginalBlob = globalThis.Blob;
+        const originalCreate = URL.createObjectURL;
+        const originalRevoke = URL.revokeObjectURL;
+        globalThis.Blob = class { constructor(parts) { written.push(JSON.parse(parts.join(""))); } };
+        URL.createObjectURL = () => "blob:test";
+        URL.revokeObjectURL = () => { };
+        try {
+            const doc = {
+                getElementById() { return null; },
+                createElement() { return { click() { }, remove() { } }; },
+                body: { appendChild() { } }
+            };
+            const loaded = loadDataTransferModule({ document: doc });
+            const groups = [
+                { name: "A", zones: [], dayStartHour: 8, nightStartHour: 20 },
+                { name: "B", zones: [] }
+            ];
+            const service = loaded.module.createService(createBaseDeps({
+                document: doc,
+                getGroups: () => groups,
+                getGroupsState: () => groups,
+                getPersistenceSnapshot: () => ({ groups, dayStartHour: 6, nightStartHour: 18 }),
+                // The getters return the current group's hours (A); settings export must not use them.
+                getDayStartHour: () => 8,
+                getNightStartHour: () => 20,
+                getCurrentTheme: () => "dark",
+                getCurrentLang: () => "ko",
+                getCurrentUiScalePercent: () => 100
+            }));
+
+            service.exportGroupToJSON(0);
+            service.exportGroupToJSON(1);
+            service.exportSettingsToJSON();
+
+            const [groupA, groupB, settings] = written;
+            expect(groupA.group).toMatchObject({ name: "A", dayStartHour: 8, nightStartHour: 20 });
+            expect(groupB.group.dayStartHour).toBeUndefined();
+            expect(settings.preferences).toMatchObject({ dayStartHour: 6, nightStartHour: 18 });
+        } finally {
+            globalThis.Blob = OriginalBlob;
+            URL.createObjectURL = originalCreate;
+            URL.revokeObjectURL = originalRevoke;
+        }
+    });
+
     it("exportGroupToJSON maps DOM failures to failure toast", () => {
         const loaded = loadDataTransferModule({
             document: {
