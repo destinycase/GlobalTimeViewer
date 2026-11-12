@@ -318,524 +318,527 @@
                         <h2 data-i18n="calc_period_title">Period Calculator</h2>
                         <div class="calc-form">
                             <div class="calc-period-grid">
-                                <div class="calc-period-head">
-                                    <label data-i18n="calc_label_start" for="period-start">Start Date</label>
-                                    <label data-i18n="calc_label_end" for="period-end">End Date</label>
-                                </div>
                                 <div class="calc-period-input-row">
-                                    <div class="calc-date-input-wrap">
-                                        <input type="text" id="period-start" class="form-input" inputmode="numeric"
-                                            placeholder="YYYY-MM-DD" data-i18n="placeholder_fixed_date"
-                                            aria-describedby="calc-date-format-help period-start-error">
-                                        <button type="button" class="calendar-btn" id="period-start-trigger"
-                                            data-i18n-title="tooltip_open_date_picker">&#128197;</button>
-                                        <span id="period-start-error" class="field-error" role="status" aria-live="polite"></span>
+                                    <div class="calc-period-field">
+                                        <label data-i18n="calc_label_start" for="period-start">Start Date</label>
+                                        <div class="calc-date-input-wrap">
+                                            <input type="text" id="period-start" class="form-input" inputmode="numeric"
+                                                placeholder="YYYY-MM-DD" data-i18n="placeholder_fixed_date"
+                                                aria-describedby="calc-date-format-help period-start-error">
+                                            <button type="button" class="calendar-btn" id="period-start-trigger"
+                                                data-i18n-title="tooltip_open_date_picker">&#128197;</button>
+                                            <span id="period-start-error" class="field-error" role="status" aria-live="polite"></span>
+                                        </div>
                                     </div>
                                     <button type="button" id="period-swap-btn"
                                         class="sm-btn calc-period-swap-btn custom-tooltip"
                                         data-i18n-title="tooltip_swap_dates">&lt;-&gt;</button>
+                                    <div class="calc-period-field">
+                                        <label data-i18n="calc_label_end" for="period-end">End Date</label>
+                                        <div class="calc-date-input-wrap">
+                                            <input type="text" id="period-end" class="form-input" inputmode="numeric"
+                                                placeholder="YYYY-MM-DD" data-i18n="placeholder_fixed_date"
+                                                aria-describedby="calc-date-format-help period-end-error">
+                                            <button type="button" class="calendar-btn" id="period-end-trigger"
+                                                data-i18n-title="tooltip_open_date_picker">&#128197;</button>
+                                            <span id="period-end-error" class="field-error" role="status" aria-live="polite"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                    <small id="calc-date-format-help" data-i18n="calc_date_format_help">Enter a date as YYYY-MM-DD.</small>
+                                </div>
+                                <div class="calc-result-grid">
+                                    <div class="calc-result-box calc-result-box-compact">
+                                        <div>
+                                            <div class="calc-result-label" data-i18n="calc_label_total_days">Total Days
+                                            </div>
+                                            <span class="result-val result-val-compact" id="period-res">0d</span>
+                                        </div>
+                                        <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-res-btn"
+                                            data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
+                                    <div class="calc-result-box calc-result-box-compact">
+                                        <div>
+                                            <div class="calc-result-label" data-i18n="calc_label_total_hours">Total Hours
+                                            </div>
+                                            <span class="result-val result-val-compact" id="period-hour-res">0h</span>
+                                        </div>
+                                        <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-hour-res-btn"
+                                            data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
+                                    <div class="calc-result-box calc-result-box-compact">
+                                        <div>
+                                            <div class="calc-result-label" data-i18n="calc_label_total_minutes">Total
+                                                Minutes</div>
+                                            <span class="result-val result-val-compact" id="period-min-res">0m</span>
+                                        </div>
+                                        <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-min-res-btn"
+                                            data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
+                                    <div class="calc-result-box calc-result-box-compact">
+                                        <div>
+                                            <div class="calc-result-label" data-i18n="calc_label_total_seconds">Total
+                                                Seconds</div>
+                                            <span class="result-val result-val-compact" id="period-sec-res">0s</span>
+                                        </div>
+                                        <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-sec-res-btn"
+                                            data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="calc-card">
+                            <h2 data-i18n="calc_offset_title">Date Offset Calculator</h2>
+                            <div class="calc-form calc-shift-form">
+                                <!-- Row 1: Base Date -->
+                                <div class="calc-shift-item">
+                                    <label for="offset-start" data-i18n="calc_label_base">Base Date</label>
                                     <div class="calc-date-input-wrap">
-                                        <input type="text" id="period-end" class="form-input" inputmode="numeric"
+                                        <input type="text" id="offset-start" class="form-input" inputmode="numeric"
                                             placeholder="YYYY-MM-DD" data-i18n="placeholder_fixed_date"
-                                            aria-describedby="calc-date-format-help period-end-error">
-                                        <button type="button" class="calendar-btn" id="period-end-trigger"
+                                            aria-describedby="calc-date-format-help offset-start-error">
+                                        <button type="button" class="calendar-btn" id="offset-start-trigger"
                                             data-i18n-title="tooltip_open_date_picker">&#128197;</button>
-                                        <span id="period-end-error" class="field-error" role="status" aria-live="polite"></span>
+                                        <span id="offset-start-error" class="field-error" role="status" aria-live="polite"></span>
                                     </div>
                                 </div>
-                                <small id="calc-date-format-help" data-i18n="calc_date_format_help">Enter a date as YYYY-MM-DD.</small>
-                            </div>
-                            <div class="calc-result-grid">
-                                <div class="calc-result-box calc-result-box-compact">
-                                    <div>
-                                        <div class="calc-result-label" data-i18n="calc_label_total_days">Total Days
-                                        </div>
-                                        <span class="result-val result-val-compact" id="period-res">0d</span>
+                                <small id="date-offset-help" data-i18n="calc_offset_help">The shift is a whole number of days, weeks, months, or years.</small>
+    
+                                <!-- Row 2: Shift Amount & Controls -->
+                                <div class="calc-shift-item">
+                                    <label for="off-val" data-i18n="calc_label_shift">Shift</label>
+                                    <div class="calc-shift-controls">
+                                        <button type="button" class="sm-btn" id="off-val-minus" aria-label="Decrease"
+                                            title="Decrease">-</button>
+                                        <input type="number" id="off-val" class="form-input" value="1" min="1" step="1"
+                                            aria-describedby="date-offset-help off-val-error">
+                                        <button type="button" class="sm-btn" id="off-val-plus" aria-label="Increase"
+                                            title="Increase">+</button>
+                                        <select id="off-unit" class="form-select">
+                                            <option value="day" data-i18n="calc_unit_day" selected>Days</option>
+                                            <option value="week" data-i18n="calc_unit_week">Weeks</option>
+                                            <option value="month" data-i18n="calc_unit_month">Months</option>
+                                            <option value="year" data-i18n="calc_unit_year">Years</option>
+                                        </select>
+                                        <select id="off-dir" class="form-select">
+                                            <option value="after" data-i18n="calc_label_after" selected>after</option>
+                                            <option value="before" data-i18n="calc_label_before">before</option>
+                                        </select>
                                     </div>
-                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-res-btn"
-                                        data-i18n-title="tooltip_copy">&#128203;</button>
+                                    <span id="off-val-error" class="field-error" role="status" aria-live="polite"></span>
                                 </div>
-                                <div class="calc-result-box calc-result-box-compact">
-                                    <div>
-                                        <div class="calc-result-label" data-i18n="calc_label_total_hours">Total Hours
-                                        </div>
-                                        <span class="result-val result-val-compact" id="period-hour-res">0h</span>
+    
+                                <!-- Row 3: Result Date -->
+                                <div class="calc-shift-item">
+                                    <label data-i18n="calc_label_result">Result Date</label>
+                                    <div class="calc-shift-result-wrap">
+                                        <input type="text" id="offset-res" class="form-input" readonly value="-">
+                                        <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-offset-res-btn"
+                                            data-i18n-title="tooltip_copy">&#128203;</button>
                                     </div>
-                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-hour-res-btn"
-                                        data-i18n-title="tooltip_copy">&#128203;</button>
-                                </div>
-                                <div class="calc-result-box calc-result-box-compact">
-                                    <div>
-                                        <div class="calc-result-label" data-i18n="calc_label_total_minutes">Total
-                                            Minutes</div>
-                                        <span class="result-val result-val-compact" id="period-min-res">0m</span>
-                                    </div>
-                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-min-res-btn"
-                                        data-i18n-title="tooltip_copy">&#128203;</button>
-                                </div>
-                                <div class="calc-result-box calc-result-box-compact">
-                                    <div>
-                                        <div class="calc-result-label" data-i18n="calc_label_total_seconds">Total
-                                            Seconds</div>
-                                        <span class="result-val result-val-compact" id="period-sec-res">0s</span>
-                                    </div>
-                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-period-sec-res-btn"
-                                        data-i18n-title="tooltip_copy">&#128203;</button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="calc-card">
-                        <h2 data-i18n="calc_offset_title">Date Offset Calculator</h2>
-                        <div class="calc-form calc-shift-form">
-                            <!-- Row 1: Base Date -->
-                            <div class="calc-shift-item">
-                                <label for="offset-start" data-i18n="calc_label_base">Base Date</label>
-                                <div class="calc-date-input-wrap">
-                                    <input type="text" id="offset-start" class="form-input" inputmode="numeric"
-                                        placeholder="YYYY-MM-DD" data-i18n="placeholder_fixed_date"
-                                        aria-describedby="calc-date-format-help offset-start-error">
-                                    <button type="button" class="calendar-btn" id="offset-start-trigger"
-                                        data-i18n-title="tooltip_open_date_picker">&#128197;</button>
-                                    <span id="offset-start-error" class="field-error" role="status" aria-live="polite"></span>
-                                </div>
-                            </div>
-                            <small id="date-offset-help" data-i18n="calc_offset_help">The shift is a whole number of days, weeks, months, or years.</small>
-
-                            <!-- Row 2: Shift Amount & Controls -->
-                            <div class="calc-shift-item">
-                                <label for="off-val" data-i18n="calc_label_shift">Shift</label>
-                                <div class="calc-shift-controls">
-                                    <button type="button" class="sm-btn" id="off-val-minus" aria-label="Decrease"
-                                        title="Decrease">-</button>
-                                    <input type="number" id="off-val" class="form-input" value="1" min="1" step="1"
-                                        aria-describedby="date-offset-help off-val-error">
-                                    <button type="button" class="sm-btn" id="off-val-plus" aria-label="Increase"
-                                        title="Increase">+</button>
-                                    <select id="off-unit" class="form-select">
-                                        <option value="day" data-i18n="calc_unit_day" selected>Days</option>
-                                        <option value="week" data-i18n="calc_unit_week">Weeks</option>
-                                        <option value="month" data-i18n="calc_unit_month">Months</option>
-                                        <option value="year" data-i18n="calc_unit_year">Years</option>
-                                    </select>
-                                    <select id="off-dir" class="form-select">
-                                        <option value="after" data-i18n="calc_label_after" selected>after</option>
-                                        <option value="before" data-i18n="calc_label_before">before</option>
-                                    </select>
-                                </div>
-                                <span id="off-val-error" class="field-error" role="status" aria-live="polite"></span>
-                            </div>
-
-                            <!-- Row 3: Result Date -->
-                            <div class="calc-shift-item">
-                                <label data-i18n="calc_label_result">Result Date</label>
-                                <div class="calc-shift-result-wrap">
-                                    <input type="text" id="offset-res" class="form-input" readonly value="-">
-                                    <button class="sm-btn calc-copy-btn custom-tooltip" id="copy-offset-res-btn"
-                                        data-i18n-title="tooltip_copy">&#128203;</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="calc-card">
-                        <h2 data-i18n="calc_countdown_title">Countdown</h2>
-                        <div class="calc-form countdown-list">
-                            <div class="countdown-slot" data-slot="0">
-                                <div class="countdown-slot-head">
-                                    <button type="button" class="countdown-name-btn" data-slot="0">Countdown 1</button>
-                                    <input type="text" class="form-input countdown-name-input is-hidden" data-slot="0"
-                                        maxlength="40">
-                                </div>
-                                <div class="countdown-slot-controls">
-                                    <input type="text" class="form-input countdown-target-input" data-slot="0">
-                                    <button type="button" class="calendar-btn trigger-cd-0">&#128197;</button>
-                                    <button type="button" class="sm-btn countdown-toggle-btn" data-action="toggle"
-                                        data-slot="0" data-i18n="calc_countdown_start">Start</button>
-                                    <button type="button" class="sm-btn danger" data-action="reset" data-slot="0"
-                                        data-i18n="calc_countdown_reset">Reset</button>
-                                </div>
-                                <div class="countdown-slot-display">
-                                    <span class="countdown-display" data-slot="0">00d 00:00:00</span>
-                                    <span class="countdown-status" data-slot="0"></span>
-                                </div>
-                            </div>
-                            <div class="countdown-slot" data-slot="1">
-                                <div class="countdown-slot-head">
-                                    <button type="button" class="countdown-name-btn" data-slot="1">Countdown 2</button>
-                                    <input type="text" class="form-input countdown-name-input is-hidden" data-slot="1"
-                                        maxlength="40">
-                                </div>
-                                <div class="countdown-slot-controls">
-                                    <input type="text" class="form-input countdown-target-input" data-slot="1">
-                                    <button type="button" class="calendar-btn trigger-cd-1">&#128197;</button>
-                                    <button type="button" class="sm-btn countdown-toggle-btn" data-action="toggle"
-                                        data-slot="1" data-i18n="calc_countdown_start">Start</button>
-                                    <button type="button" class="sm-btn danger" data-action="reset" data-slot="1"
-                                        data-i18n="calc_countdown_reset">Reset</button>
-                                </div>
-                                <div class="countdown-slot-display">
-                                    <span class="countdown-display" data-slot="1">00d 00:00:00</span>
-                                    <span class="countdown-status" data-slot="1"></span>
-                                </div>
-                            </div>
-                            <div class="countdown-slot" data-slot="2">
-                                <div class="countdown-slot-head">
-                                    <button type="button" class="countdown-name-btn" data-slot="2">Countdown 3</button>
-                                    <input type="text" class="form-input countdown-name-input is-hidden" data-slot="2"
-                                        maxlength="40">
-                                </div>
-                                <div class="countdown-slot-controls">
-                                    <input type="text" class="form-input countdown-target-input" data-slot="2">
-                                    <button type="button" class="calendar-btn trigger-cd-2">&#128197;</button>
-                                    <button type="button" class="sm-btn countdown-toggle-btn" data-action="toggle"
-                                        data-slot="2" data-i18n="calc_countdown_start">Start</button>
-                                    <button type="button" class="sm-btn danger" data-action="reset" data-slot="2"
-                                        data-i18n="calc_countdown_reset">Reset</button>
-                                </div>
-                                <div class="countdown-slot-display">
-                                    <span class="countdown-display" data-slot="2">00d 00:00:00</span>
-                                    <span class="countdown-status" data-slot="2"></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="calc-card">
-                        <h2 data-i18n="calc_unix_title">Smart Format Converter</h2>
-                        <div class="calc-form smart-format-tool">
-                            <div class="smart-format-now-box">
-                                <div class="smart-format-now-head">
-                                    <div class="smart-format-now-label" data-i18n="calc_unix_current">Current Timestamp
+    
+                        <div class="calc-card">
+                            <h2 data-i18n="calc_countdown_title">Countdown</h2>
+                            <div class="calc-form countdown-list">
+                                <div class="countdown-slot" data-slot="0">
+                                    <div class="countdown-slot-head">
+                                        <button type="button" class="countdown-name-btn" data-slot="0">Countdown 1</button>
+                                        <input type="text" class="form-input countdown-name-input is-hidden" data-slot="0"
+                                            maxlength="40">
                                     </div>
-                                    <button type="button" class="sm-btn" id="unix-sync-now-btn"
-                                        data-i18n="calc_unix_sync_now">Now</button>
+                                    <div class="countdown-slot-controls">
+                                        <input type="text" class="form-input countdown-target-input" data-slot="0">
+                                        <button type="button" class="calendar-btn trigger-cd-0">&#128197;</button>
+                                        <button type="button" class="sm-btn countdown-toggle-btn" data-action="toggle"
+                                            data-slot="0" data-i18n="calc_countdown_start">Start</button>
+                                        <button type="button" class="sm-btn danger" data-action="reset" data-slot="0"
+                                            data-i18n="calc_countdown_reset">Reset</button>
+                                    </div>
+                                    <div class="countdown-slot-display">
+                                        <span class="countdown-display" data-slot="0">00d 00:00:00</span>
+                                        <span class="countdown-status" data-slot="0"></span>
+                                    </div>
                                 </div>
-                                <div class="smart-format-now-grid">
-                                    <div class="smart-format-now-item">
-                                        <span class="calc-result-label" data-i18n="calc_fmt_unix_sec">Unix Timestamp
-                                            (s)</span>
-                                        <div class="smart-format-now-value-row">
-                                            <span class="result-val result-val-compact" id="unix-now-value">0</span>
-                                            <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                                id="copy-unix-now-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                <div class="countdown-slot" data-slot="1">
+                                    <div class="countdown-slot-head">
+                                        <button type="button" class="countdown-name-btn" data-slot="1">Countdown 2</button>
+                                        <input type="text" class="form-input countdown-name-input is-hidden" data-slot="1"
+                                            maxlength="40">
+                                    </div>
+                                    <div class="countdown-slot-controls">
+                                        <input type="text" class="form-input countdown-target-input" data-slot="1">
+                                        <button type="button" class="calendar-btn trigger-cd-1">&#128197;</button>
+                                        <button type="button" class="sm-btn countdown-toggle-btn" data-action="toggle"
+                                            data-slot="1" data-i18n="calc_countdown_start">Start</button>
+                                        <button type="button" class="sm-btn danger" data-action="reset" data-slot="1"
+                                            data-i18n="calc_countdown_reset">Reset</button>
+                                    </div>
+                                    <div class="countdown-slot-display">
+                                        <span class="countdown-display" data-slot="1">00d 00:00:00</span>
+                                        <span class="countdown-status" data-slot="1"></span>
+                                    </div>
+                                </div>
+                                <div class="countdown-slot" data-slot="2">
+                                    <div class="countdown-slot-head">
+                                        <button type="button" class="countdown-name-btn" data-slot="2">Countdown 3</button>
+                                        <input type="text" class="form-input countdown-name-input is-hidden" data-slot="2"
+                                            maxlength="40">
+                                    </div>
+                                    <div class="countdown-slot-controls">
+                                        <input type="text" class="form-input countdown-target-input" data-slot="2">
+                                        <button type="button" class="calendar-btn trigger-cd-2">&#128197;</button>
+                                        <button type="button" class="sm-btn countdown-toggle-btn" data-action="toggle"
+                                            data-slot="2" data-i18n="calc_countdown_start">Start</button>
+                                        <button type="button" class="sm-btn danger" data-action="reset" data-slot="2"
+                                            data-i18n="calc_countdown_reset">Reset</button>
+                                    </div>
+                                    <div class="countdown-slot-display">
+                                        <span class="countdown-display" data-slot="2">00d 00:00:00</span>
+                                        <span class="countdown-status" data-slot="2"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="calc-card">
+                            <h2 data-i18n="calc_unix_title">Smart Format Converter</h2>
+                            <div class="calc-form smart-format-tool">
+                                <div class="smart-format-now-box">
+                                    <div class="smart-format-now-head">
+                                        <div class="smart-format-now-label" data-i18n="calc_unix_current">Current Timestamp
                                         </div>
+                                        <button type="button" class="sm-btn" id="unix-sync-now-btn"
+                                            data-i18n="calc_unix_sync_now">Now</button>
                                     </div>
-                                    <div class="smart-format-now-item">
-                                        <span class="calc-result-label" data-i18n="calc_fmt_unix_ms">Unix Timestamp
-                                            (ms)</span>
-                                        <div class="smart-format-now-value-row">
-                                            <span class="result-val result-val-compact" id="unix-now-ms-value">0</span>
-                                            <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                                id="copy-unix-now-ms-btn"
-                                                data-i18n-title="tooltip_copy">&#128203;</button>
+                                    <div class="smart-format-now-grid">
+                                        <div class="smart-format-now-item">
+                                            <span class="calc-result-label" data-i18n="calc_fmt_unix_sec">Unix Timestamp
+                                                (s)</span>
+                                            <div class="smart-format-now-value-row">
+                                                <span class="result-val result-val-compact" id="unix-now-value">0</span>
+                                                <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                                    id="copy-unix-now-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                            </div>
+                                        </div>
+                                        <div class="smart-format-now-item">
+                                            <span class="calc-result-label" data-i18n="calc_fmt_unix_ms">Unix Timestamp
+                                                (ms)</span>
+                                            <div class="smart-format-now-value-row">
+                                                <span class="result-val result-val-compact" id="unix-now-ms-value">0</span>
+                                                <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                                    id="copy-unix-now-ms-btn"
+                                                    data-i18n-title="tooltip_copy">&#128203;</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="smart-format-list">
-                                <div class="smart-format-row" data-format-field="unix_sec">
-                                    <label for="unix-ts-input" class="calc-result-label"
-                                        data-i18n="calc_fmt_unix_sec">Unix
-                                        Timestamp (s)</label>
-                                    <input type="text" id="unix-ts-input" class="form-input smart-format-input"
-                                        inputmode="decimal" placeholder="0">
-                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-ts-btn" data-i18n-title="tooltip_copy">&#128203;</button>
-                                </div>
-                                <div class="smart-format-row" data-format-field="unix_ms">
-                                    <label for="unix-ts-ms-input" class="calc-result-label"
-                                        data-i18n="calc_fmt_unix_ms">Unix Timestamp (ms)</label>
-                                    <input type="text" id="unix-ts-ms-input" class="form-input smart-format-input"
-                                        inputmode="decimal" placeholder="0">
-                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-ts-ms-btn" data-i18n-title="tooltip_copy">&#128203;</button>
-                                </div>
-                                <div class="smart-format-row" data-format-field="iso_local">
-                                    <label for="unix-iso-local-input" class="calc-result-label"
-                                        data-i18n="calc_fmt_iso_local">ISO 8601 (Local)</label>
-                                    <input type="text" id="unix-iso-local-input" class="form-input smart-format-input"
-                                        placeholder="2026-03-13T00:52:21+09:00">
-                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-iso-local-btn" data-i18n-title="tooltip_copy">&#128203;</button>
-                                </div>
-                                <div class="smart-format-row" data-format-field="iso_utc">
-                                    <label for="unix-iso-utc-input" class="calc-result-label"
-                                        data-i18n="calc_fmt_iso_utc">ISO 8601 (UTC)</label>
-                                    <input type="text" id="unix-iso-utc-input" class="form-input smart-format-input"
-                                        placeholder="2026-03-12T15:52:21Z">
-                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-iso-utc-btn" data-i18n-title="tooltip_copy">&#128203;</button>
-                                </div>
-                                <div class="smart-format-row" data-format-field="rfc2822">
-                                    <label for="unix-rfc2822-input" class="calc-result-label"
-                                        data-i18n="calc_fmt_rfc2822">RFC 2822</label>
-                                    <input type="text" id="unix-rfc2822-input" class="form-input smart-format-input"
-                                        placeholder="Fri, 13 Mar 2026 00:52:21 +0900">
-                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-rfc2822-btn" data-i18n-title="tooltip_copy">&#128203;</button>
-                                </div>
-                                <div class="smart-format-row" data-format-field="sql">
-                                    <label for="unix-sql-input" class="calc-result-label" data-i18n="calc_fmt_sql">SQL /
-                                        Database</label>
-                                    <input type="text" id="unix-sql-input" class="form-input smart-format-input"
-                                        placeholder="2026-03-13 00:52:21">
-                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-sql-btn" data-i18n-title="tooltip_copy">&#128203;</button>
-                                </div>
-                                <div class="smart-format-row" data-format-field="human">
-                                    <label for="unix-human-input" class="calc-result-label"
-                                        data-i18n="calc_fmt_human">Human Readable</label>
-                                    <input type="text" id="unix-human-input" class="form-input smart-format-input"
-                                        readonly>
-                                    <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
-                                        id="copy-unix-human-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                <div class="smart-format-list">
+                                    <div class="smart-format-row" data-format-field="unix_sec">
+                                        <label for="unix-ts-input" class="calc-result-label"
+                                            data-i18n="calc_fmt_unix_sec">Unix
+                                            Timestamp (s)</label>
+                                        <input type="text" id="unix-ts-input" class="form-input smart-format-input"
+                                            inputmode="decimal" placeholder="0">
+                                        <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                            id="copy-unix-ts-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
+                                    <div class="smart-format-row" data-format-field="unix_ms">
+                                        <label for="unix-ts-ms-input" class="calc-result-label"
+                                            data-i18n="calc_fmt_unix_ms">Unix Timestamp (ms)</label>
+                                        <input type="text" id="unix-ts-ms-input" class="form-input smart-format-input"
+                                            inputmode="decimal" placeholder="0">
+                                        <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                            id="copy-unix-ts-ms-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
+                                    <div class="smart-format-row" data-format-field="iso_local">
+                                        <label for="unix-iso-local-input" class="calc-result-label"
+                                            data-i18n="calc_fmt_iso_local">ISO 8601 (Local)</label>
+                                        <input type="text" id="unix-iso-local-input" class="form-input smart-format-input"
+                                            placeholder="2026-03-13T00:52:21+09:00">
+                                        <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                            id="copy-unix-iso-local-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
+                                    <div class="smart-format-row" data-format-field="iso_utc">
+                                        <label for="unix-iso-utc-input" class="calc-result-label"
+                                            data-i18n="calc_fmt_iso_utc">ISO 8601 (UTC)</label>
+                                        <input type="text" id="unix-iso-utc-input" class="form-input smart-format-input"
+                                            placeholder="2026-03-12T15:52:21Z">
+                                        <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                            id="copy-unix-iso-utc-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
+                                    <div class="smart-format-row" data-format-field="rfc2822">
+                                        <label for="unix-rfc2822-input" class="calc-result-label"
+                                            data-i18n="calc_fmt_rfc2822">RFC 2822</label>
+                                        <input type="text" id="unix-rfc2822-input" class="form-input smart-format-input"
+                                            placeholder="Fri, 13 Mar 2026 00:52:21 +0900">
+                                        <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                            id="copy-unix-rfc2822-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
+                                    <div class="smart-format-row" data-format-field="sql">
+                                        <label for="unix-sql-input" class="calc-result-label" data-i18n="calc_fmt_sql">SQL /
+                                            Database</label>
+                                        <input type="text" id="unix-sql-input" class="form-input smart-format-input"
+                                            placeholder="2026-03-13 00:52:21">
+                                        <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                            id="copy-unix-sql-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
+                                    <div class="smart-format-row" data-format-field="human">
+                                        <label for="unix-human-input" class="calc-result-label"
+                                            data-i18n="calc_fmt_human">Human Readable</label>
+                                        <input type="text" id="unix-human-input" class="form-input smart-format-input"
+                                            readonly>
+                                        <button type="button" class="sm-btn calc-copy-btn custom-tooltip"
+                                            id="copy-unix-human-btn" data-i18n-title="tooltip_copy">&#128203;</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+    
+                        <div class="calc-card coming-soon">
+                            <div class="calc-coming-emoji" aria-hidden="true">&#128736;</div>
+                            <div class="calc-coming-title" data-i18n="calc_coming_soon_title">Coming Soon</div>
+                            <p class="calc-coming-desc" data-i18n="calc_coming_soon_desc">New time utilities are in
+                                progress. Share your ideas for upcoming tools.</p>
+                        </div>
                     </div>
-
-                    <div class="calc-card coming-soon">
-                        <div class="calc-coming-emoji" aria-hidden="true">&#128736;</div>
-                        <div class="calc-coming-title" data-i18n="calc_coming_soon_title">Coming Soon</div>
-                        <p class="calc-coming-desc" data-i18n="calc_coming_soon_desc">New time utilities are in
-                            progress. Share your ideas for upcoming tools.</p>
-                    </div>
+                </section>
+            </main>
+        </div>
+    
+        <!-- Overlay -->
+        <div id="settings-overlay" class="overlay app-dialog-overlay" role="dialog" aria-modal="true"
+            aria-labelledby="settings-title">
+            <div class="overlay-content app-dialog" tabindex="-1">
+                <div class="overlay-header">
+                    <h3 id="settings-title" data-i18n="settings_title">Settings</h3>
+                    <button id="close-settings-btn" class="icon-btn app-dialog-close" type="button"
+                        data-i18n-title="btn_close">&times;</button>
                 </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Overlay -->
-    <div id="settings-overlay" class="overlay app-dialog-overlay" role="dialog" aria-modal="true"
-        aria-labelledby="settings-title">
-        <div class="overlay-content app-dialog" tabindex="-1">
-            <div class="overlay-header">
-                <h3 id="settings-title" data-i18n="settings_title">Settings</h3>
-                <button id="close-settings-btn" class="icon-btn app-dialog-close" type="button"
-                    data-i18n-title="btn_close">&times;</button>
-            </div>
-            <div class="app-dialog-body">
-                <section class="settings-section" aria-labelledby="settings-section-display">
-                    <h4 id="settings-section-display" data-i18n="settings_section_display">Display</h4>
-                    <div class="settings-row">
-                        <label class="settings-label" for="ui-scale-select" data-i18n="label_ui_scale"></label>
-                        <select id="ui-scale-select" class="form-select sidebar-select"></select>
-                        <p class="settings-desc" data-i18n="tooltip_ui_scale_desc"></p>
-                    </div>
-                    <div class="settings-row">
-                        <label class="settings-label" for="theme-select" data-i18n="label_theme"></label>
-                        <select id="theme-select" class="form-select sidebar-select">
-                            <option value="dark" data-i18n="theme_dark">Dark</option>
-                            <option value="light" data-i18n="theme_light">Light</option>
-                        </select>
-                        <p class="settings-desc" data-i18n="tooltip_theme_desc"></p>
-                    </div>
-                    <div class="settings-row">
-                        <label class="settings-label" for="lang-select" data-i18n="label_language"></label>
-                        <select id="lang-select" class="form-select sidebar-select">
-                            <option value="en">English(EN)</option>
-                            <option value="ko" selected>Korean(KO)</option>
-                        </select>
-                        <p class="settings-desc" data-i18n="tooltip_language_desc"></p>
-                    </div>
-                </section>
-                <section class="settings-section" aria-labelledby="settings-section-data">
-                    <h4 id="settings-section-data" data-i18n="settings_section_data">Settings File</h4>
-                    <div class="settings-row settings-row-action">
-                        <button id="export-settings-btn" class="sm-btn" type="button" data-i18n="btn_export_settings">Export All</button>
-                        <p class="settings-desc" data-i18n="tooltip_export_settings_desc"></p>
-                    </div>
-                    <div class="settings-row settings-row-action">
-                        <button id="import-settings-btn" class="sm-btn" type="button" data-i18n="btn_import_settings">Import All</button>
-                        <p class="settings-desc" data-i18n="tooltip_import_settings_desc"></p>
-                    </div>
-                </section>
-                <section class="settings-section" aria-labelledby="settings-section-reset">
-                    <h4 id="settings-section-reset" data-i18n="settings_section_reset">Reset</h4>
-                    <div class="settings-row settings-row-action">
-                        <button id="reset-except-group-tz-btn" class="sm-btn" type="button" data-i18n="btn_reset_except_group_tz">Reset Settings Only</button>
-                        <p class="settings-desc" data-i18n="tooltip_reset_except_group_tz_desc"></p>
-                    </div>
-                    <div class="settings-row settings-row-action">
-                        <button id="reset-all-settings-btn" class="sm-btn danger" type="button" data-i18n="btn_reset_all_settings">Reset All</button>
-                        <p class="settings-desc" data-i18n="tooltip_reset_all_settings_desc"></p>
-                    </div>
-                </section>
-            </div>
-        </div>
-    </div>
-    <div id="group-settings-overlay" class="overlay app-dialog-overlay" role="dialog" aria-modal="true"
-        aria-labelledby="group-settings-title">
-        <div class="overlay-content app-dialog" tabindex="-1">
-            <div class="overlay-header">
-                <h3 id="group-settings-title" data-i18n="group_settings_title">Group Settings</h3>
-                <button id="close-group-settings-btn" class="icon-btn app-dialog-close" type="button"
-                    data-i18n-title="btn_close">&times;</button>
-            </div>
-            <div class="app-dialog-body">
-                <section class="settings-section" aria-labelledby="group-settings-section-name">
-                    <h4 id="group-settings-section-name" data-i18n="group_settings_section_name">Name</h4>
-                    <div class="settings-row">
-                        <label class="settings-label" for="group-settings-name-input" data-i18n="group_settings_name_label">Group Name</label>
-                        <div class="group-settings-name-field">
-                            <input id="group-settings-name-input" class="form-input group-settings-name-input" type="text"
-                                maxlength="60" spellcheck="false" autocomplete="off">
-                            <button id="group-settings-name-apply-btn" class="sm-btn" type="button"
-                                data-i18n="btn_change_name">Change</button>
+                <div class="app-dialog-body">
+                    <section class="settings-section" aria-labelledby="settings-section-display">
+                        <h4 id="settings-section-display" data-i18n="settings_section_display">Display</h4>
+                        <div class="settings-row">
+                            <label class="settings-label" for="ui-scale-select" data-i18n="label_ui_scale"></label>
+                            <select id="ui-scale-select" class="form-select sidebar-select"></select>
+                            <p class="settings-desc" data-i18n="tooltip_ui_scale_desc"></p>
                         </div>
-                        <p class="settings-desc" data-i18n="group_settings_name_desc"></p>
-                    </div>
-                </section>
-                <section class="settings-section" aria-labelledby="group-settings-section-transfer">
-                    <h4 id="group-settings-section-transfer" data-i18n="group_settings_section_transfer">Export / Import</h4>
-                    <div class="settings-row settings-row-action">
-                        <button id="group-settings-export-btn" class="sm-btn" type="button" data-i18n="tooltip_group_export">Export Group</button>
-                        <p class="settings-desc" data-i18n="group_settings_export_desc"></p>
-                    </div>
-                    <div class="settings-row settings-row-action">
-                        <button id="group-settings-import-btn" class="sm-btn" type="button" data-i18n="tooltip_group_import">Import Group</button>
-                        <p class="settings-desc" data-i18n="group_settings_import_desc"></p>
-                    </div>
-                </section>
-                <section class="settings-section" aria-labelledby="group-settings-section-base">
-                    <h4 id="group-settings-section-base" data-i18n="label_base_time">Base Time</h4>
-                    <div class="settings-row">
-                        <label class="settings-label" for="base-time-select" data-i18n="label_add_tz">Timezone</label>
-                        <select id="base-time-select" class="form-select sidebar-select"></select>
-                        <p class="settings-desc" data-i18n="group_settings_base_desc"></p>
-                    </div>
-                </section>
-                <section class="settings-section" aria-labelledby="group-settings-section-daynight">
-                    <h4 id="group-settings-section-daynight" data-i18n="group_settings_section_daynight">Day / Night</h4>
-                    <div class="settings-row">
-                        <label class="settings-label" for="day-start-select" data-i18n="label_day_start">Day Start</label>
-                        <select id="day-start-select" class="form-select sidebar-select"></select>
-                    </div>
-                    <div class="settings-row">
-                        <label class="settings-label" for="night-start-select" data-i18n="label_night_start">Night Start</label>
-                        <select id="night-start-select" class="form-select sidebar-select"></select>
-                        <p class="settings-desc" data-i18n="group_settings_daynight_desc"></p>
-                    </div>
-                </section>
-                <section class="settings-section" aria-labelledby="group-settings-section-delete">
-                    <h4 id="group-settings-section-delete" data-i18n="group_settings_section_delete">Delete</h4>
-                    <div class="settings-row settings-row-action">
-                        <button id="group-settings-delete-btn" class="sm-btn danger" type="button" data-i18n="tooltip_delete">Delete Group</button>
-                        <p class="settings-desc" data-i18n="group_settings_delete_desc"></p>
-                    </div>
-                </section>
+                        <div class="settings-row">
+                            <label class="settings-label" for="theme-select" data-i18n="label_theme"></label>
+                            <select id="theme-select" class="form-select sidebar-select">
+                                <option value="dark" data-i18n="theme_dark">Dark</option>
+                                <option value="light" data-i18n="theme_light">Light</option>
+                            </select>
+                            <p class="settings-desc" data-i18n="tooltip_theme_desc"></p>
+                        </div>
+                        <div class="settings-row">
+                            <label class="settings-label" for="lang-select" data-i18n="label_language"></label>
+                            <select id="lang-select" class="form-select sidebar-select">
+                                <option value="en">English(EN)</option>
+                                <option value="ko" selected>Korean(KO)</option>
+                            </select>
+                            <p class="settings-desc" data-i18n="tooltip_language_desc"></p>
+                        </div>
+                    </section>
+                    <section class="settings-section" aria-labelledby="settings-section-data">
+                        <h4 id="settings-section-data" data-i18n="settings_section_data">Settings File</h4>
+                        <div class="settings-row settings-row-action">
+                            <button id="export-settings-btn" class="sm-btn" type="button" data-i18n="btn_export_settings">Export All</button>
+                            <p class="settings-desc" data-i18n="tooltip_export_settings_desc"></p>
+                        </div>
+                        <div class="settings-row settings-row-action">
+                            <button id="import-settings-btn" class="sm-btn" type="button" data-i18n="btn_import_settings">Import All</button>
+                            <p class="settings-desc" data-i18n="tooltip_import_settings_desc"></p>
+                        </div>
+                    </section>
+                    <section class="settings-section" aria-labelledby="settings-section-reset">
+                        <h4 id="settings-section-reset" data-i18n="settings_section_reset">Reset</h4>
+                        <div class="settings-row settings-row-action">
+                            <button id="reset-except-group-tz-btn" class="sm-btn" type="button" data-i18n="btn_reset_except_group_tz">Reset Settings Only</button>
+                            <p class="settings-desc" data-i18n="tooltip_reset_except_group_tz_desc"></p>
+                        </div>
+                        <div class="settings-row settings-row-action">
+                            <button id="reset-all-settings-btn" class="sm-btn danger" type="button" data-i18n="btn_reset_all_settings">Reset All</button>
+                            <p class="settings-desc" data-i18n="tooltip_reset_all_settings_desc"></p>
+                        </div>
+                    </section>
+                </div>
             </div>
         </div>
-    </div>
-    <div id="help-overlay" class="overlay app-dialog-overlay" role="dialog" aria-modal="true"
-        aria-labelledby="help-title">
-        <div class="overlay-content app-dialog app-dialog-wide" tabindex="-1">
-            <div class="overlay-header">
-                <h3 id="help-title" data-i18n="help_title">Help</h3>
-                <button id="close-help-btn" class="icon-btn app-dialog-close" type="button"
-                    data-i18n-title="btn_close">&times;</button>
-            </div>
-            <div class="app-dialog-body help-body">
-                <section class="help-section">
-                    <h4 data-i18n="help_add_title"></h4>
-                    <p data-i18n="help_add_body"></p>
-                </section>
-                <section class="help-section">
-                    <h4 data-i18n="help_groups_title"></h4>
-                    <p data-i18n="help_groups_body"></p>
-                </section>
-                <section class="help-section">
-                    <h4 data-i18n="help_tabs_title"></h4>
-                    <ul class="help-list">
-                        <li><strong data-i18n="nav_live"></strong><span data-i18n="help_tab_live"></span></li>
-                        <li><strong data-i18n="nav_fixed"></strong><span data-i18n="help_tab_fixed"></span></li>
-                        <li><strong data-i18n="nav_multi"></strong><span data-i18n="help_tab_multi"></span></li>
-                        <li><strong data-i18n="nav_fixed_time"></strong><span data-i18n="help_tab_fixed_time"></span></li>
-                        <li><strong data-i18n="nav_calc"></strong><span data-i18n="help_tab_calc"></span></li>
-                    </ul>
-                </section>
-                <section class="help-section">
-                    <h4 data-i18n="help_input_title"></h4>
-                    <p data-i18n="help_input_body"></p>
-                </section>
-                <section class="help-section">
-                    <h4 data-i18n="help_dst_title"></h4>
-                    <p data-i18n="help_dst_body"></p>
-                </section>
-                <section class="help-section">
-                    <h4 data-i18n="help_copy_title"></h4>
-                    <p data-i18n="help_copy_body"></p>
-                </section>
-                <section class="help-section">
-                    <h4 data-i18n="help_settings_title"></h4>
-                    <p data-i18n="help_settings_body"></p>
-                </section>
-            </div>
-        </div>
-    </div>
-    <div id="full-tz-overlay" class="overlay">
-        <div class="overlay-content">
-            <div class="overlay-header">
-                <h3 data-i18n="overlay_select_tz">Select Timezone</h3><button id="close-overlay" class="icon-btn"
-                    aria-label="Close">&times;</button>
-            </div>
-            <div class="overlay-tabs" role="tablist" aria-label="Timezone list type">
-                <button id="tz-tab-standard" class="overlay-tab active" type="button" role="tab" aria-selected="true"
-                    data-i18n="overlay_standard_tz_list">Standard Time List</button>
-                <button id="tz-tab-country" class="overlay-tab" type="button" role="tab" aria-selected="false"
-                    data-i18n="overlay_country_region_tz_list">Country - Region List</button>
-            </div>
-            <div class="overlay-search-row">
-                <input id="tz-search-input" class="form-input overlay-search-input" type="text"
-                    data-i18n="placeholder_timezone_search"
-                    placeholder="Search timezone, city, abbreviation, UTC offset" spellcheck="false">
-                <button id="tz-search-clear" class="icon-btn overlay-search-clear" type="button"
-                    data-i18n="btn_clear">Clear</button>
-            </div>
-            <div id="full-tz-list" class="tz-grid"></div>
-        </div>
-    </div>
-    <div id="app-prompt-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="app-prompt-title">
-        <div class="overlay-content prompt-overlay-content">
-            <div class="overlay-header prompt-overlay-header">
-                <h3 id="app-prompt-title">Prompt</h3>
-                <button id="app-prompt-close" class="icon-btn" type="button" aria-label="Close">&times;</button>
-            </div>
-            <div class="prompt-overlay-body">
-                <input id="app-prompt-input" class="form-input prompt-overlay-input" type="text" spellcheck="false">
-            </div>
-            <div class="prompt-overlay-actions">
-                <button id="app-prompt-cancel" class="sm-btn" type="button" data-i18n="btn_cancel">Cancel</button>
-                <button id="app-prompt-confirm" class="sm-btn" type="button" data-i18n="btn_confirm">Confirm</button>
+        <div id="group-settings-overlay" class="overlay app-dialog-overlay" role="dialog" aria-modal="true"
+            aria-labelledby="group-settings-title">
+            <div class="overlay-content app-dialog" tabindex="-1">
+                <div class="overlay-header">
+                    <h3 id="group-settings-title" data-i18n="group_settings_title">Group Settings</h3>
+                    <button id="close-group-settings-btn" class="icon-btn app-dialog-close" type="button"
+                        data-i18n-title="btn_close">&times;</button>
+                </div>
+                <div class="app-dialog-body">
+                    <section class="settings-section" aria-labelledby="group-settings-section-name">
+                        <h4 id="group-settings-section-name" data-i18n="group_settings_section_name">Name</h4>
+                        <div class="settings-row">
+                            <label class="settings-label" for="group-settings-name-input" data-i18n="group_settings_name_label">Group Name</label>
+                            <div class="group-settings-name-field">
+                                <input id="group-settings-name-input" class="form-input group-settings-name-input" type="text"
+                                    maxlength="60" spellcheck="false" autocomplete="off">
+                                <button id="group-settings-name-apply-btn" class="sm-btn" type="button"
+                                    data-i18n="btn_change_name">Change</button>
+                            </div>
+                            <p class="settings-desc" data-i18n="group_settings_name_desc"></p>
+                        </div>
+                    </section>
+                    <section class="settings-section" aria-labelledby="group-settings-section-transfer">
+                        <h4 id="group-settings-section-transfer" data-i18n="group_settings_section_transfer">Export / Import</h4>
+                        <div class="settings-row settings-row-action">
+                            <button id="group-settings-export-btn" class="sm-btn" type="button" data-i18n="tooltip_group_export">Export Group</button>
+                            <p class="settings-desc" data-i18n="group_settings_export_desc"></p>
+                        </div>
+                        <div class="settings-row settings-row-action">
+                            <button id="group-settings-import-btn" class="sm-btn" type="button" data-i18n="tooltip_group_import">Import Group</button>
+                            <p class="settings-desc" data-i18n="group_settings_import_desc"></p>
+                        </div>
+                    </section>
+                    <section class="settings-section" aria-labelledby="group-settings-section-base">
+                        <h4 id="group-settings-section-base" data-i18n="label_base_time">Base Time</h4>
+                        <div class="settings-row">
+                            <label class="settings-label" for="base-time-select" data-i18n="label_add_tz">Timezone</label>
+                            <select id="base-time-select" class="form-select sidebar-select"></select>
+                            <p class="settings-desc" data-i18n="group_settings_base_desc"></p>
+                        </div>
+                    </section>
+                    <section class="settings-section" aria-labelledby="group-settings-section-daynight">
+                        <h4 id="group-settings-section-daynight" data-i18n="group_settings_section_daynight">Day / Night</h4>
+                        <div class="settings-row">
+                            <label class="settings-label" for="day-start-select" data-i18n="label_day_start">Day Start</label>
+                            <select id="day-start-select" class="form-select sidebar-select"></select>
+                        </div>
+                        <div class="settings-row">
+                            <label class="settings-label" for="night-start-select" data-i18n="label_night_start">Night Start</label>
+                            <select id="night-start-select" class="form-select sidebar-select"></select>
+                            <p class="settings-desc" data-i18n="group_settings_daynight_desc"></p>
+                        </div>
+                    </section>
+                    <section class="settings-section" aria-labelledby="group-settings-section-delete">
+                        <h4 id="group-settings-section-delete" data-i18n="group_settings_section_delete">Delete</h4>
+                        <div class="settings-row settings-row-action">
+                            <button id="group-settings-delete-btn" class="sm-btn danger" type="button" data-i18n="tooltip_delete">Delete Group</button>
+                            <p class="settings-desc" data-i18n="group_settings_delete_desc"></p>
+                        </div>
+                    </section>
+                </div>
             </div>
         </div>
-    </div>
-
-    <div id="app-confirm-overlay" class="overlay" role="alertdialog" aria-modal="true"
-        aria-labelledby="app-confirm-title" aria-describedby="app-confirm-message">
-        <div class="overlay-content prompt-overlay-content">
-            <div class="overlay-header prompt-overlay-header">
-                <h3 id="app-confirm-title" data-i18n="confirm_title">Confirm</h3>
-                <button id="app-confirm-close" class="icon-btn" type="button" data-i18n-title="btn_cancel">&times;</button>
-            </div>
-            <div class="prompt-overlay-body">
-                <p id="app-confirm-message" class="confirm-overlay-message"></p>
-            </div>
-            <div class="prompt-overlay-actions">
-                <button id="app-confirm-cancel" class="sm-btn" type="button" data-i18n="btn_cancel">Cancel</button>
-                <button id="app-confirm-ok" class="sm-btn danger" type="button" data-i18n="btn_confirm">Confirm</button>
+        <div id="help-overlay" class="overlay app-dialog-overlay" role="dialog" aria-modal="true"
+            aria-labelledby="help-title">
+            <div class="overlay-content app-dialog app-dialog-wide" tabindex="-1">
+                <div class="overlay-header">
+                    <h3 id="help-title" data-i18n="help_title">Help</h3>
+                    <button id="close-help-btn" class="icon-btn app-dialog-close" type="button"
+                        data-i18n-title="btn_close">&times;</button>
+                </div>
+                <div class="app-dialog-body help-body">
+                    <section class="help-section">
+                        <h4 data-i18n="help_add_title"></h4>
+                        <p data-i18n="help_add_body"></p>
+                    </section>
+                    <section class="help-section">
+                        <h4 data-i18n="help_groups_title"></h4>
+                        <p data-i18n="help_groups_body"></p>
+                    </section>
+                    <section class="help-section">
+                        <h4 data-i18n="help_tabs_title"></h4>
+                        <ul class="help-list">
+                            <li><strong data-i18n="nav_live"></strong><span data-i18n="help_tab_live"></span></li>
+                            <li><strong data-i18n="nav_fixed"></strong><span data-i18n="help_tab_fixed"></span></li>
+                            <li><strong data-i18n="nav_multi"></strong><span data-i18n="help_tab_multi"></span></li>
+                            <li><strong data-i18n="nav_fixed_time"></strong><span data-i18n="help_tab_fixed_time"></span></li>
+                            <li><strong data-i18n="nav_calc"></strong><span data-i18n="help_tab_calc"></span></li>
+                        </ul>
+                    </section>
+                    <section class="help-section">
+                        <h4 data-i18n="help_input_title"></h4>
+                        <p data-i18n="help_input_body"></p>
+                    </section>
+                    <section class="help-section">
+                        <h4 data-i18n="help_dst_title"></h4>
+                        <p data-i18n="help_dst_body"></p>
+                    </section>
+                    <section class="help-section">
+                        <h4 data-i18n="help_copy_title"></h4>
+                        <p data-i18n="help_copy_body"></p>
+                    </section>
+                    <section class="help-section">
+                        <h4 data-i18n="help_settings_title"></h4>
+                        <p data-i18n="help_settings_body"></p>
+                    </section>
+                </div>
             </div>
         </div>
-    </div>
-
-    <!-- Toast Container -->
-    <div id="toast-container" class="toast-container"></div>
-    <input type="file" id="settings-import-file" class="hidden-file-input" accept="application/json,.json">
-    <input type="file" id="group-import-file" class="hidden-file-input" accept="application/json,.json">
-    <input type="file" id="subgroup-import-file" class="hidden-file-input" accept="application/json,.json">
-    <script src="js/source-script-loader.js"></script>
-</body>
-
-</html>
+        <div id="full-tz-overlay" class="overlay">
+            <div class="overlay-content">
+                <div class="overlay-header">
+                    <h3 data-i18n="overlay_select_tz">Select Timezone</h3><button id="close-overlay" class="icon-btn"
+                        aria-label="Close">&times;</button>
+                </div>
+                <div class="overlay-tabs" role="tablist" aria-label="Timezone list type">
+                    <button id="tz-tab-standard" class="overlay-tab active" type="button" role="tab" aria-selected="true"
+                        data-i18n="overlay_standard_tz_list">Standard Time List</button>
+                    <button id="tz-tab-country" class="overlay-tab" type="button" role="tab" aria-selected="false"
+                        data-i18n="overlay_country_region_tz_list">Country - Region List</button>
+                </div>
+                <div class="overlay-search-row">
+                    <input id="tz-search-input" class="form-input overlay-search-input" type="text"
+                        data-i18n="placeholder_timezone_search"
+                        placeholder="Search timezone, city, abbreviation, UTC offset" spellcheck="false">
+                    <button id="tz-search-clear" class="icon-btn overlay-search-clear" type="button"
+                        data-i18n="btn_clear">Clear</button>
+                </div>
+                <div id="full-tz-list" class="tz-grid"></div>
+            </div>
+        </div>
+        <div id="app-prompt-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="app-prompt-title">
+            <div class="overlay-content prompt-overlay-content">
+                <div class="overlay-header prompt-overlay-header">
+                    <h3 id="app-prompt-title">Prompt</h3>
+                    <button id="app-prompt-close" class="icon-btn" type="button" aria-label="Close">&times;</button>
+                </div>
+                <div class="prompt-overlay-body">
+                    <input id="app-prompt-input" class="form-input prompt-overlay-input" type="text" spellcheck="false">
+                </div>
+                <div class="prompt-overlay-actions">
+                    <button id="app-prompt-cancel" class="sm-btn" type="button" data-i18n="btn_cancel">Cancel</button>
+                    <button id="app-prompt-confirm" class="sm-btn" type="button" data-i18n="btn_confirm">Confirm</button>
+                </div>
+            </div>
+        </div>
+    
+        <div id="app-confirm-overlay" class="overlay" role="alertdialog" aria-modal="true"
+            aria-labelledby="app-confirm-title" aria-describedby="app-confirm-message">
+            <div class="overlay-content prompt-overlay-content">
+                <div class="overlay-header prompt-overlay-header">
+                    <h3 id="app-confirm-title" data-i18n="confirm_title">Confirm</h3>
+                    <button id="app-confirm-close" class="icon-btn" type="button" data-i18n-title="btn_cancel">&times;</button>
+                </div>
+                <div class="prompt-overlay-body">
+                    <p id="app-confirm-message" class="confirm-overlay-message"></p>
+                </div>
+                <div class="prompt-overlay-actions">
+                    <button id="app-confirm-cancel" class="sm-btn" type="button" data-i18n="btn_cancel">Cancel</button>
+                    <button id="app-confirm-ok" class="sm-btn danger" type="button" data-i18n="btn_confirm">Confirm</button>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Toast Container -->
+        <div id="toast-container" class="toast-container"></div>
+        <input type="file" id="settings-import-file" class="hidden-file-input" accept="application/json,.json">
+        <input type="file" id="group-import-file" class="hidden-file-input" accept="application/json,.json">
+        <input type="file" id="subgroup-import-file" class="hidden-file-input" accept="application/json,.json">
+        <script src="js/source-script-loader.js"></script>
+    </body>
+    
+    </html>
+    

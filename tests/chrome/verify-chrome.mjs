@@ -754,7 +754,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "14",
-            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음(1280·1600px)",
+            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음·계산기 날짜와 달력 버튼 한 줄(1280·1600px)",
             async run() {
                 const { api } = ctx;
                 const zone = (id, name, ko, en) => ({ id, type: "standard", zone: name, name_ko: ko, name_en: en, fixedAbbr: "", fixedOffsetMinutes: null });
@@ -810,6 +810,23 @@ function buildScenarios(ctx) {
                         dst: document.querySelectorAll(".multi-range-table .dst-badge:not(.is-hidden)").length,
                         sideScroll: wrap ? wrap.scrollWidth > wrap.clientWidth + 1 : null
                     };
+                })()`);
+                // Calculator dates: each date stays on the line of its calendar button and shows in
+                // full; the period start, swap and end share one line when there is room.
+                const measureCalcDates = () => api.ev(`(() => {
+                    const box = (id) => document.getElementById(id).getBoundingClientRect();
+                    const sameLine = (a, b) => a.top < b.bottom - 1 && b.top < a.bottom - 1;
+                    const problems = [];
+                    ["period-start", "period-end", "offset-start"].forEach((id) => {
+                        const input = document.getElementById(id);
+                        if (box(id).width === 0) problems.push("안 보임 " + id);
+                        if (!sameLine(box(id), box(id + "-trigger"))) problems.push("달력 버튼 줄바꿈 " + id);
+                        if (input.scrollWidth > input.clientWidth + 1) problems.push("날짜 잘림 " + id + "=" + input.value);
+                        const card = input.closest(".calc-card").getBoundingClientRect();
+                        if (box(id + "-trigger").right > card.right + 0.5) problems.push("카드 밖 " + id);
+                    });
+                    const row = ["period-start", "period-start-trigger", "period-swap-btn", "period-end", "period-end-trigger"].map(box);
+                    return { problems, periodOneLine: row.every((r) => sameLine(r, row[0])) };
                 })()`);
                 const results = [];
                 try {
@@ -880,6 +897,10 @@ function buildScenarios(ctx) {
                             })()`);
                             await api.reload();
                             try {
+                                // At 125% the period card may be too narrow for one line: the end date
+                                // may move down, but no date may be cut off or lose its calendar button.
+                                const calc125 = await measureCalcDates();
+                                assert(calc125.problems.length === 0, `125% 계산기 날짜: ${calc125.problems.join(" | ")}`);
                                 await checkAlignment("125% 숨은 탭 시작");
                             } finally {
                                 await api.ev(`localStorage.removeItem("GTV_UIScale")`);
@@ -899,7 +920,10 @@ function buildScenarios(ctx) {
                         const clipped = converter.filter((field) => field.clipped).map((field) => `${field.id}="${field.value}"`);
                         assert(converter.length >= 7 && converter.every((field) => field.value), `${width}px 변환기 값: ${JSON.stringify(converter)}`);
                         assert(clipped.length === 0, `${width}px 변환기 잘림: ${clipped.join(" | ")}`);
-                        results.push(`${width}px 행 ${multi.rows}·DST ${multi.dst}·변환기 ${converter.length}칸`);
+                        const calcDates = await measureCalcDates();
+                        assert(calcDates.problems.length === 0, `${width}px 계산기 날짜: ${calcDates.problems.join(" | ")}`);
+                        assert(calcDates.periodOneLine, `${width}px 기간 계산 시작일·바꾸기·종료일이 한 줄이 아님`);
+                        results.push(`${width}px 행 ${multi.rows}·DST ${multi.dst}·변환기 ${converter.length}칸·계산기 날짜 한 줄`);
                     }
                 } finally {
                     await ctx.page.client.send("Emulation.clearDeviceMetricsOverride");

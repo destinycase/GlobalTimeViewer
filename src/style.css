@@ -2882,37 +2882,35 @@ input[type=number] {
 }
 
 .calc-period-grid {
-    --period-swap-col: 42px;
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.calc-period-head {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--period-swap-col) minmax(0, 1fr);
+/* Start date, swap and end date share one line; when the card is too narrow for the
+   dates to show in full, the end date moves to the next line (each date keeps its
+   calendar button). */
+.calc-period-input-row {
+    --period-label-h: calc(var(--calc-label-size) * 1.3);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px 6px;
+}
+
+.calc-period-field {
+    flex: 1 1 0;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
 }
 
-.calc-period-head label {
+.calc-period-field>label {
     color: var(--text-dim);
     font-size: var(--calc-label-size);
     font-weight: 600;
-}
-
-.calc-period-head label:first-child {
-    grid-column: 1;
-}
-
-.calc-period-head label:last-child {
-    grid-column: 3;
-}
-
-.calc-period-input-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--period-swap-col) minmax(0, 1fr);
-    align-items: center;
-    gap: 8px;
+    line-height: 1.3;
 }
 
 .calc-date-input-wrap {
@@ -2924,9 +2922,13 @@ input[type=number] {
     min-width: 0;
 }
 
+/* The date and its calendar button share one line; only the error message wraps below. */
 .calc-date-input-wrap .form-input {
-    flex: 1 1 auto;
-    width: 100%;
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 .calc-date-input-wrap .calendar-btn {
@@ -2939,13 +2941,16 @@ input[type=number] {
     font-size: 0.85em;
 }
 
-.calc-period-input-row .form-input {
-    width: 100%;
+.calc-date-input-wrap .field-error:empty {
+    display: none;
 }
 
+/* Sits at the input line below the labels, even when an error message shows under a date. */
 .calc-period-swap-btn {
-    min-width: 42px;
-    width: 42px;
+    flex: 0 0 auto;
+    margin-top: calc(var(--period-label-h) + 8px);
+    min-width: 36px;
+    width: 36px;
     padding: 5px 0 !important;
     justify-content: center !important;
     text-align: center !important;
