@@ -698,10 +698,10 @@ function buildScenarios(ctx) {
                 //    Seoul is added once and refused the second time.
                 await clickAt("#group-tabs-container .group-tab:first-child .group-name-label");
                 await until("첫 그룹 선택", async () => (await groupTabs())[0].active);
-                const addFromList = async (query, titlePart) => {
+                const addFromList = async (query, titlePart, tab = "country") => {
                     await api.ev(`document.getElementById("show-all-tz").click()`);
                     await until("시간대 목록 열림", () => api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none"`));
-                    await api.ev(`document.getElementById("tz-tab-country").click()`);
+                    await api.ev(`document.getElementById("tz-tab-${tab}").click()`);
                     await api.ev(`(() => {
                         const input = document.getElementById("tz-search-input");
                         input.value = ${JSON.stringify(query)};
@@ -748,8 +748,23 @@ function buildScenarios(ctx) {
                     keptOn.push(tab);
                 }
 
+                // e) Standard time list items with different offsets can all be added to one group;
+                //    only the same offset again is refused.
+                const group2Offsets = async () => ((await api.storedData())?.groups?.[1]?.zones || []).map((zone) => zone.fixedOffsetMinutes);
+                await api.ev(`document.querySelectorAll("#toast-container .toast").forEach((t) => t.remove())`);
+                await addFromList("+09", "UTC+09:00", "standard");
+                await until("UTC+09:00 추가", async () => (await group2Offsets()).length === 1);
+                await addFromList("-05", "UTC-05:00", "standard");
+                await until("UTC-05:00 추가", async () => (await group2Offsets()).length === 2);
+                const stdToastsOk = await toastTexts();
+                assert(!stdToastsOk.some((text) => text.includes("이미 존재")), `다른 시차인데 중복 안내: ${JSON.stringify(stdToastsOk)}`);
+                await addFromList("+09", "UTC+09:00", "standard");
+                const stdDupToasts = await toastTexts();
+                const offsetsFinal = await group2Offsets();
+                assert(stdDupToasts.some((text) => text.includes("이미 존재")) && offsetsFinal.length === 2, `같은 시차 재추가: ${JSON.stringify({ stdDupToasts, offsetsFinal })}`);
+
                 const promptKind = named.kind === "browser" ? "브라우저 기본 입력 창" : "화면 안 입력 창";
-                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")})`;
+                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")}), 표준시 UTC+09:00·UTC-05:00 함께 추가(시차 ${offsetsFinal.join(", ")}분)·같은 시차 재추가 거부`;
             }
         },
         {
