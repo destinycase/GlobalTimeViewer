@@ -415,16 +415,18 @@
                                             aria-describedby="date-offset-help off-val-error">
                                         <button type="button" class="sm-btn" id="off-val-plus" aria-label="Increase"
                                             title="Increase">+</button>
-                                        <select id="off-unit" class="form-select">
-                                            <option value="day" data-i18n="calc_unit_day" selected>Days</option>
-                                            <option value="week" data-i18n="calc_unit_week">Weeks</option>
-                                            <option value="month" data-i18n="calc_unit_month">Months</option>
-                                            <option value="year" data-i18n="calc_unit_year">Years</option>
-                                        </select>
-                                        <select id="off-dir" class="form-select">
-                                            <option value="after" data-i18n="calc_label_after" selected>after</option>
-                                            <option value="before" data-i18n="calc_label_before">before</option>
-                                        </select>
+                                        <div class="calc-shift-selects">
+                                            <select id="off-unit" class="form-select">
+                                                <option value="day" data-i18n="calc_unit_day" selected>Days</option>
+                                                <option value="week" data-i18n="calc_unit_week">Weeks</option>
+                                                <option value="month" data-i18n="calc_unit_month">Months</option>
+                                                <option value="year" data-i18n="calc_unit_year">Years</option>
+                                            </select>
+                                            <select id="off-dir" class="form-select">
+                                                <option value="after" data-i18n="calc_label_after" selected>after</option>
+                                                <option value="before" data-i18n="calc_label_before">before</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     <span id="off-val-error" class="field-error" role="status" aria-live="polite"></span>
                                 </div>

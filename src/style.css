@@ -3062,8 +3062,13 @@ input[type=number] {
     font-weight: 600;
 }
 
+/* The unit and direction selects keep room for their longest option (--calc-select-min, wider
+   for English words); when the card is too narrow for them next to the number, both move to
+   the next line together, and in a very narrow card the direction goes below the unit. */
 .calc-shift-controls {
+    --calc-select-min: 76px;
     display: flex;
+    flex-wrap: wrap;
     align-items: stretch;
     gap: 8px;
 }
@@ -3079,9 +3084,20 @@ input[type=number] {
     text-align: center;
 }
 
+:root[lang="en"] .calc-shift-controls {
+    --calc-select-min: 100px;
+}
+
+.calc-shift-selects {
+    display: flex;
+    flex-wrap: wrap;
+    flex: 1 1 calc(var(--calc-select-min) * 2 + 8px);
+    gap: 8px;
+}
+
 .calc-shift-controls .form-select {
-    min-width: 0;
-    flex: 1 1 auto;
+    flex: 1 1 0;
+    min-width: var(--calc-select-min);
 }
 
 .calc-shift-result-wrap {
@@ -3364,10 +3380,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 @media (max-width: 980px) {
     .calc-grid {
         grid-template-columns: minmax(0, 1fr);
-    }
-
-    .calc-shift-controls {
-        flex-wrap: wrap;
     }
 
     .countdown-slot-controls {
