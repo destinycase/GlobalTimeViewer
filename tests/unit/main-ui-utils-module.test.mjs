@@ -414,6 +414,20 @@ describe("GTV main ui utils module", () => {
         env.documentMock.dispatchEvent("pointerleave", { target, relatedTarget: null });
         expect(tooltip.classList.contains("visible")).toBe(false);
 
+        // Focus that did not come from the Tab key (for example given back by a closing popup)
+        // shows no tooltip; Tab navigation does.
+        env.documentMock.dispatchEvent("focusin", { target });
+        expect(tooltip.classList.contains("visible")).toBe(false);
+        env.documentMock.dispatchEvent("keydown", { key: "Escape", target: new FakeHTMLElement("DIV") });
+        env.documentMock.dispatchEvent("focusin", { target });
+        expect(tooltip.classList.contains("visible")).toBe(false);
+        env.documentMock.dispatchEvent("keydown", { key: "Tab", target: new FakeHTMLElement("DIV") });
+        env.documentMock.dispatchEvent("focusin", { target });
+        expect(tooltip.classList.contains("visible")).toBe(true);
+        env.documentMock.dispatchEvent("pointerdown", { target: new FakeHTMLElement("DIV") });
+        env.documentMock.dispatchEvent("focusin", { target });
+        expect(tooltip.classList.contains("visible")).toBe(false);
+        env.documentMock.dispatchEvent("keydown", { key: "Tab", target: new FakeHTMLElement("DIV") });
         env.documentMock.dispatchEvent("focusin", { target });
         expect(tooltip.classList.contains("visible")).toBe(true);
 

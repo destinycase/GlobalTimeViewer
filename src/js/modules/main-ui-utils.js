@@ -6,6 +6,7 @@
         let floatingTooltipEl = null;
         let floatingTooltipTarget = null;
         let floatingTooltipBound = false;
+        let focusFromTabKey = false;
         let dragGhostEl = null;
 
         function getDocumentRef() {
@@ -256,7 +257,11 @@
                 if (floatingTooltipTarget === target) hideFloatingTooltip();
             }, true);
 
+            // Focus shows a tooltip only when the user moved there with Tab. Focus given back by a
+            // closing popup (or set by a click) would otherwise leave the tooltip on screen with
+            // the pointer elsewhere.
             documentRef.addEventListener("focusin", (e) => {
+                if (!focusFromTabKey) return;
                 const target = isElementInstance(e.target) ? e.target.closest("[data-tooltip]") : null;
                 if (!target) return;
                 showFloatingTooltip(target);
@@ -274,8 +279,14 @@
                 windowRef.addEventListener("scroll", positionFloatingTooltip, true);
                 windowRef.addEventListener("resize", positionFloatingTooltip, true);
             }
-            documentRef.addEventListener("pointerdown", hideFloatingTooltip, true);
-            documentRef.addEventListener("keydown", hideFloatingTooltip, true);
+            documentRef.addEventListener("pointerdown", () => {
+                focusFromTabKey = false;
+                hideFloatingTooltip();
+            }, true);
+            documentRef.addEventListener("keydown", (e) => {
+                focusFromTabKey = e?.key === "Tab";
+                hideFloatingTooltip();
+            }, true);
         }
 
         return Object.freeze({

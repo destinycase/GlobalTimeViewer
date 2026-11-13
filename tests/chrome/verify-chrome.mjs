@@ -1175,7 +1175,36 @@ function buildScenarios(ctx) {
                 const storedName = (await api.storedData())?.groups?.[0]?.fixedTimes?.[0]?.name;
                 assert(storedName === "회의", `슬롯 이름 저장: ${storedName}`);
 
-                return `제목 아래 구분선(위 ${titleDivider.gapAbove}px·아래 ${titleDivider.gapBelow}px), 하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘, 초기화 확인 창 "${confirmMessage}" 화면 안 창·취소/Esc 유지·확인 시 닫힘(${confirmCount}회), 슬롯 이름 화면 안 입력 창으로 "${slotTitle.trim()}"`;
+                // Hover a button (tooltip), click it (popup), close the popup: the button's tooltip
+                // must not stay on screen. Tab navigation still shows tooltips.
+                const tipText = () => api.ev(`(() => { const t = document.getElementById("app-floating-tooltip"); return t && t.classList.contains("visible") ? t.textContent : ""; })()`);
+                const centerOf = (selector) => api.ev(`(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+                const staleTips = [];
+                for (const [opener, closer, overlay] of [["#open-settings-btn", "#close-settings-btn", "settings-overlay"], ["#open-help-btn", "#close-help-btn", "help-overlay"], ["#group-tabs-container .group-tab.active .group-settings-btn", "#close-group-settings-btn", "group-settings-overlay"]]) {
+                    for (const how of ["button", "esc"]) {
+                        const at = await centerOf(opener);
+                        await api.mouse("mouseMoved", at.x, at.y);
+                        await sleep(200);
+                        const hoverTip = await tipText();
+                        await clickAt(opener);
+                        await until(`${overlay} 열림`, () => shown(overlay));
+                        if (how === "button") await clickAt(closer);
+                        else { await api.mouse("mouseMoved", 900, 700); await pressEscape(); }
+                        await until(`${overlay} 닫힘`, async () => !(await shown(overlay)));
+                        await sleep(200);
+                        const leftOver = await tipText();
+                        if (!hoverTip || leftOver) staleTips.push(`${opener}/${how}: 호버 "${hoverTip}" 닫은 뒤 "${leftOver}"`);
+                    }
+                }
+                assert(staleTips.length === 0, `팝업을 닫은 뒤 툴팁: ${staleTips.join(" | ")}`);
+                await api.ev(`document.getElementById("open-help-btn").focus()`);
+                await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
+                await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
+                await sleep(200);
+                const tabTip = await tipText();
+                assert(tabTip, "Tab으로 이동해도 툴팁이 나오지 않음");
+
+                return `팝업(설정·도움말·그룹 설정)을 닫기 버튼·Esc로 닫은 뒤 툴팁 남지 않음, Tab 이동 시 툴팁 "${tabTip}", 제목 아래 구분선(위 ${titleDivider.gapAbove}px·아래 ${titleDivider.gapBelow}px), 하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘, 초기화 확인 창 "${confirmMessage}" 화면 안 창·취소/Esc 유지·확인 시 닫힘(${confirmCount}회), 슬롯 이름 화면 안 입력 창으로 "${slotTitle.trim()}"`;
             }
         },
         {
