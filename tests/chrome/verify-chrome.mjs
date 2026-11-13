@@ -826,7 +826,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "14",
-            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음·계산기 날짜와 달력 버튼 한 줄·이동량 선택칸 잘림 없음·도구 한 줄(1280·1600px)",
+            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음·계산기 날짜와 달력 버튼 한 줄·이동량 선택칸 잘림 없음·도구 한 줄·실시간 표시 구분선·글자(1280·1600px)",
             async run() {
                 const { api } = ctx;
                 const zone = (id, name, ko, en) => ({ id, type: "standard", zone: name, name_ko: ko, name_en: en, fixedAbbr: "", fixedOffsetMinutes: null });
@@ -1025,6 +1025,22 @@ function buildScenarios(ctx) {
                             await api.switchTab(tab);
                             const tzRow = await measureToolRow();
                             assert(tzRow.first && tzRow.oneLine && !tzRow.outside && !tzRow.oldRow, `${width}px ${tab} 탭 도구 줄: ${JSON.stringify(tzRow)}`);
+                            if (tab === "fixed-time") {
+                                // A divider sits between the date picker and "Show Realtime", whose text
+                                // looks like the other tool labels.
+                                const liveNow = await api.ev(`(() => {
+                                    const fmt = (el) => { const cs = getComputedStyle(el); return [cs.fontSize, cs.fontWeight, cs.color].join("|"); };
+                                    const cal = document.getElementById("fixed-time-date-trigger");
+                                    const divider = cal.nextElementSibling;
+                                    const box = divider?.getBoundingClientRect();
+                                    return {
+                                        divider: !!divider && divider.classList.contains("control-inline-divider") && box.width >= 1 && box.height >= 12
+                                            && divider.nextElementSibling?.classList.contains("fixed-time-live-now-flag"),
+                                        sameText: fmt(document.querySelector('[data-i18n="label_fixed_time_live_now"]')) === fmt(document.querySelector(".option-add-tz-group .control-label-large"))
+                                    };
+                                })()`);
+                                assert(liveNow.divider && liveNow.sameText, `고정 날짜·실시간 표시: ${JSON.stringify(liveNow)}`);
+                            }
                         }
                         await api.switchTab("live");
                         await api.ev(`document.getElementById("show-all-tz").click()`);

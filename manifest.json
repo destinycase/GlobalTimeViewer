@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "Global Time Viewer",
-    "version": "3.16.15",
-    "version_name": "3.16.15",
+    "version": "3.16.16",
+    "version_name": "3.16.16",
     "description": "세계 시간 비교 / 계산 도구",
     "icons": {
         "16": "icons/icon16.png",

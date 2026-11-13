@@ -844,13 +844,11 @@ input[type=number] {
     padding: 4px 0;
 }
 
+/* The label text uses the shared .control-label-large style like the other tool labels. */
 #fixed-time-date-group .fixed-time-live-now-flag {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-left: 4px;
-    font-size: 14px;
-    color: var(--text-dim);
     cursor: pointer;
 }
 
@@ -4362,7 +4360,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 .time-adjust-divider,
-.multi-range-header-divider {
+.multi-range-header-divider,
+.control-inline-divider {
     display: inline-block;
     align-self: center;
     width: 1px;
@@ -4380,7 +4379,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 :root[data-theme="light"] #fixed-time-slot-count-group::before,
 :root[data-theme="light"] #fixed-time-date-group::before,
 :root[data-theme="light"] .time-adjust-divider,
-:root[data-theme="light"] .multi-range-header-divider {
+:root[data-theme="light"] .multi-range-header-divider,
+:root[data-theme="light"] .control-inline-divider {
     background: rgba(15, 23, 42, 0.12);
 }
 
