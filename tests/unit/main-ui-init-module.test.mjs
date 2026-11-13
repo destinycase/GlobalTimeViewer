@@ -348,6 +348,9 @@ describe("GTV main ui init module", () => {
         const baseTimeSelect = createNode({ id: "base-time-select", value: "utc" });
         const addCustomBtn = createNode({ id: "add-custom-btn" });
         const customAbbr = createNode({ id: "custom-abbr", value: " ab " });
+        const closeTzOverlayBtn = createNode({ id: "close-overlay" });
+        let closeTzOverlayClicks = 0;
+        closeTzOverlayBtn.click = () => { closeTzOverlayClicks += 1; };
         const customName = createNode({ id: "custom-name", value: "" });
         const addGroupBtn = createNode({ id: "add-group-btn" });
         const addMultiSubgroupBtn = createNode({ id: "add-multi-subgroup-btn" });
@@ -379,6 +382,7 @@ describe("GTV main ui init module", () => {
             ["base-time-select", baseTimeSelect],
             ["add-custom-btn", addCustomBtn],
             ["custom-abbr", customAbbr],
+            ["close-overlay", closeTzOverlayBtn],
             ["custom-name", customName],
             ["add-group-btn", addGroupBtn],
             ["add-multi-subgroup-btn", addMultiSubgroupBtn],
@@ -657,9 +661,10 @@ describe("GTV main ui init module", () => {
         await addCustomBtn.dispatch("click");
         expect(customAbbr.value).toBe(" ab ");
         expect(customName.value).toBe("City");
+        expect(closeTzOverlayClicks).toBe(0);
         await addCustomBtn.dispatch("click");
-        expect(customAbbr.value).toBe("");
-        expect(customName.value).toBe("");
+        // A successful add closes the add-timezone popup (the popup close empties the form).
+        expect(closeTzOverlayClicks).toBe(1);
         expect(calls.toasts.some((message) => String(message).includes("toast_custom_timezone_added"))).toBe(true);
         expect(calls.addTimezone.length).toBe(2);
 

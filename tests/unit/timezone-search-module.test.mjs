@@ -685,7 +685,13 @@ describe("GTV timezone search module", () => {
         const customAbbr = createElementStub("input");
         let customFocused = 0;
         customAbbr.focus = () => { customFocused += 1; };
+        const customName = createElementStub("input");
+        const customOffH = createElementStub("select");
+        const customOffM = createElementStub("select");
         const doc = createDocumentStub({
+            "custom-name": customName,
+            "custom-off-h": customOffH,
+            "custom-off-m": customOffM,
             "tz-tab-custom": customTabBtn,
             "tz-custom-panel": customPanel,
             "custom-abbr": customAbbr,
@@ -770,7 +776,13 @@ describe("GTV timezone search module", () => {
         expect(customPanel.style.display).toBe("none");
         expect(list.style.display).toBe("");
 
+        // Closing empties the custom form (abbreviation, name, offset back to +00:00).
+        customAbbr.value = "ABC";
+        customName.value = "Left over";
+        customOffH.value = "9";
+        customOffM.value = "30";
         closeOverlayBtn.onclick();
+        expect([customAbbr.value, customName.value, customOffH.value, customOffM.value]).toEqual(["", "", "0", "0"]);
         expect(overlay.style.display).toBe("none");
     });
 

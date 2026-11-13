@@ -174,12 +174,28 @@ function buildScenarios(ctx) {
                     document.getElementById("add-custom-btn").click();
                 })()`);
                 await until("팝업 닫힘", async () => !(await shownById("full-tz-overlay")));
+                // Closing empties the form: after the add, and after closing with text left in it.
+                const readForm = () => api.ev(`["custom-abbr", "custom-name", "custom-off-h", "custom-off-m"].map((id) => document.getElementById(id).value)`);
+                const openCustom = async () => {
+                    await api.ev(`document.getElementById("show-all-tz").click()`);
+                    await api.ev(`document.getElementById("tz-tab-custom").click()`);
+                    await until("커스텀 탭", () => shownById("tz-custom-panel"));
+                };
+                await openCustom();
+                const afterAdd = await readForm();
+                await ctx.page.client.send("Input.insertText", { text: "LEFT" });
+                await api.ev(`(() => { const h = document.getElementById("custom-off-h"); h.value = "5"; h.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+                await api.ev(`document.getElementById("close-overlay").click()`);
+                await openCustom();
+                const afterClose = await readForm();
+                await api.ev(`document.getElementById("close-overlay").click()`);
+                assert(JSON.stringify(afterAdd) === JSON.stringify(["", "", "0", "0"]) && JSON.stringify(afterClose) === JSON.stringify(["", "", "0", "0"]), `닫은 뒤 커스텀 입력값: 추가 후 ${JSON.stringify(afterAdd)}, 닫은 뒤 ${JSON.stringify(afterClose)}`);
                 await until("행 추가", () => api.ev(`[...document.querySelectorAll("#clocks-container .zone-name")].some((el) => el.textContent.includes("Chrome Check Zone"))`));
                 await until("저장", async () => JSON.stringify(await api.storedData() || {}).includes("Chrome Check Zone"));
                 await api.reload();
                 const kept = await api.ev(`[...document.querySelectorAll("#clocks-container .zone-name")].some((el) => el.textContent.includes("Chrome Check Zone"))`);
                 assert(kept, "다시 연 뒤 추가한 시간대가 없음");
-                return "본 화면 콤보박스 없음·\"타임존 추가\" → 팝업 커스텀 탭(목록·검색 숨김, 약어 칸 초점)에 입력 → 추가 후 팝업 닫힘, UTC+09:00 사용자 지정 시간대가 다시 연 뒤에도 표시됨";
+                return "본 화면 콤보박스 없음·\"타임존 추가\" → 팝업 커스텀 탭(목록·검색 숨김, 약어 칸 초점)에 입력 → 추가 후 팝업 닫힘, 닫으면 입력칸 비움(추가 후·입력 중 닫기 모두), UTC+09:00 사용자 지정 시간대가 다시 연 뒤에도 표시됨";
             }
         },
         {

@@ -591,12 +591,26 @@
             renderFullTimezoneOverlayList();
         }
 
+        // Closing the popup also empties the custom tab's form (abbreviation, name, offset +00:00),
+        // so text left from an unfinished or failed add does not come back next time.
+        function resetCustomTimezoneForm(doc) {
+            ["custom-abbr", "custom-name"].forEach((id) => {
+                const input = doc.getElementById(id);
+                if (input) input.value = "";
+            });
+            ["custom-off-h", "custom-off-m"].forEach((id) => {
+                const select = doc.getElementById(id);
+                if (select) select.value = "0";
+            });
+        }
+
         function closeFullTimezoneOverlay() {
             const doc = getDocumentRef();
             if (!doc || typeof doc.getElementById !== "function") return;
             const overlay = doc.getElementById("full-tz-overlay");
             if (overlay) overlay.style.display = "none";
             resetFullTimezoneOverlayQuery();
+            resetCustomTimezoneForm(doc);
         }
 
         function openFullTimezoneOverlay() {
