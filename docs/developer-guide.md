@@ -2,7 +2,7 @@
 
 이 문서는 현재 소스 트리의 구조와 실행 계약, 검증·배포·문서 관리 절차를 설명합니다. 프로그램은 단순한 정적 HTML 페이지가 아닙니다. 일반적인 ES 모듈 import 대신 전역 `GTV...` API와 순서가 지정된 스크립트 로더를 사용하는 브라우저 확장이므로, 파일 분리나 로드 순서를 바꾸기 전에 관련 경계를 먼저 이해해야 합니다.
 
-**기준:** 소스 구조와 현재 안정 버전 모두 v3.17.1(6차 안정 버전)입니다. 모듈별 실제 API와 전역 의존성은 [생성 인벤토리](module-dependency-inventory.md), 전체 연결은 [모듈 관계도](module-relationship-map.md), 기능별 탐색은 [코드 탐색 안내](code-navigation.md), 용어는 [용어 사전](Glossary.md)을 함께 참고하세요.
+**기준:** 소스 구조와 현재 안정 버전 모두 v3.17.1(6차 안정 버전)입니다. 이 문서는 변경할 때 지킬 규칙과 절차를 다룹니다. 실행 흐름·모듈 관계도·기능별 시작 파일·기능별 구현 메모는 [코드 구조 안내](code-navigation.md), 모듈별 실제 API와 전역 의존성은 [생성 인벤토리](module-dependency-inventory.md), 용어는 [용어 사전](Glossary.md)을 함께 참고하세요.
 
 ## 목차
 
@@ -36,14 +36,7 @@
 
 ## 2. 런타임 흐름과 로드 순서
 
-1. `src/index.html`은 DOM과 스타일을 준비하고 `js/source-script-loader.js`를 불러옵니다.
-2. 생성 로더는 `src/runtime-script-list.txt`에 선언된 순서대로 스크립트를 삽입합니다. 비동기 병렬 로드가 아니라 전역 등록 순서가 의미 있는 로드입니다.
-3. 설정, 번역, vendor, 모듈 API가 등록됩니다. 각 모듈은 보통 `window.GTV...` 또는 호스트 전역 객체에 API를 등록합니다.
-4. `main.js`가 `main-module-spec` 및 resolver를 사용해 필요한 모듈 API가 준비되었는지 확인하고 상태/의존성을 조립합니다.
-5. 도메인, UI, 지속성 서비스의 `createService(deps)` 경계를 통해 필요한 의존성을 전달하고 공개 API를 연결합니다.
-6. `GTVMainAppBootstrap`이 초기화 순서를 진행하고 성공 후 상호작용/시계 갱신을 시작합니다. 필수 초기화 실패 시 사용자용 오류 화면이 표시됩니다.
-
-배포 빌드는 같은 순서 목록을 하나의 축약 번들(`js/bundle.js`)로 합쳐 생성 로더 대신 사용합니다.
+`src/index.html`이 생성 로더(`js/source-script-loader.js`)를 불러오면, 로더가 `src/runtime-script-list.txt`에 적힌 순서대로 스크립트를 넣어 각 모듈이 전역 `GTV...` API를 등록합니다. 목록 끝의 `main.js`가 모듈을 확인해 서비스를 조립하고 `GTVMainAppBootstrap`이 앱을 시작합니다. 비동기 병렬 로드가 아니라 전역 등록 순서가 의미 있는 로드이며, 배포 빌드는 같은 목록을 하나의 축약 번들(`js/bundle.js`)로 합칩니다. 단계별 흐름과 관계도는 [코드 구조 안내 1~2장](code-navigation.md#1-실행-흐름)에 있습니다.
 
 런타임 파일을 추가/이동하거나 스크립트 순서를 바꾸는 변경은 아래를 한 묶음으로 다룹니다.
 
@@ -71,22 +64,11 @@
 - `GTVServiceInvokeUtils.createRequiredModuleService(모듈, 이름, deps, 필수 메서드, 오류 문구)`: 모듈 API를 확인하고 서비스를 만든 뒤 필요한 메서드가 있는지 검사합니다.
 - `GTVServiceInvokeUtils.createLateBoundForwarders(getService, 이름, 메서드 목록)`: 나중에 만들어지는 서비스를 호출할 때 찾아 부르는 함수 묶음을 만듭니다. 서비스가 없으면 `Missing required module API: <이름>.<메서드>` 오류를 냅니다.
 
-남은 `*-bindings.js`(`main-global-bindings`, `main-facade-bindings`, `main-runtime-public-api-bindings`)와 accessor proxy 4개(`bootstrap`, `core`, `operation`, `ui-bridge`)는 인수 기본값, 대체 처리, 여러 서비스 조합 같은 실제 동작을 가집니다. `main-runtime-reference-accessors.js`는 나중에 정해지는 서비스·상태를 읽는 함수 80개를 표 하나로 정의합니다. 변경 전 [코드 탐색 안내](code-navigation.md)의 `main.js` 연결 지점과 [관계도](module-relationship-map.md)를 보고, 새 파일이 실제로 응집도나 테스트 경계를 높이는지 확인하세요. 크기만 작은 공용 util 모듈을 추가하지 않습니다.
+남은 `*-bindings.js`(`main-global-bindings`, `main-facade-bindings`, `main-runtime-public-api-bindings`)와 accessor proxy 4개(`bootstrap`, `core`, `operation`, `ui-bridge`)는 인수 기본값, 대체 처리, 여러 서비스 조합 같은 실제 동작을 가집니다. `main-runtime-reference-accessors.js`는 나중에 정해지는 서비스·상태를 읽는 함수 80개를 표 하나로 정의합니다. 변경 전 [코드 구조 안내](code-navigation.md)의 `main.js` 연결 지점과 관계도를 보고, 새 파일이 실제로 응집도나 테스트 경계를 높이는지 확인하세요. 크기만 작은 공용 util 모듈을 추가하지 않습니다.
 
-### 주요 도메인 소유권
+### 기능 영역별 소유 모듈
 
-| 기능 영역 | 주요 모듈 계열 | 경계에서 확인할 것 |
-| --- | --- | --- |
-| 시간 계산 및 시간 입력 변경 | time-core, time-service, time-input-mutations, timer-engine | 시간대 변환/날짜 산술과 DOM 이벤트를 섞지 말고 기존 반환 데이터와 날짜 경계 의미를 유지합니다. |
-| 시간대 검색/표시 데이터 | timezone-data, timezone-search | 지역 식별자, 검색 결과 및 사용자 지정 고정 오프셋의 의미를 보존합니다. |
-| 그룹 및 화면 컨텍스트 | group-state, group-context-state, group-tabs, app-state-patcher | 현재 그룹/보조 그룹과 도메인 데이터 간 단일 소유 흐름을 유지합니다. |
-| 실시간 표와 표 이미지 | table-render, table-image-render, image-export-* | 표시 데이터와 이미지용 복제/렌더 경로를 혼동하지 말고 현재 UI 상태를 기준으로 합니다. |
-| 고정 시간/타임라인 | fixed-time-core, fixed-time-state, fixed-time-actions, fixed-time-table, fixed-time-timeline | 고정 날짜, 슬롯 상태, 표시 여부가 같이 움직이는 경로를 추적합니다. |
-| 다중 연속 시간 범위 | multi-state, multi-range-state, multi-range-render, multi-range-copy, multi-bulk-tools | 그룹/보조 그룹별 범위, 개수, 편집 옵션을 함께 유지합니다. |
-| 계산기/날짜 입력 | calculator, calculator-date-format, calculator-countdown, calculator-countdown-state, calculator-format-converter, calculator-actions, date-picker, time-adjust-* | 계산 결과 의미를 바꾸지 않고 DOM 입력 검증/피드백과 핵심 연산을 구분합니다. |
-| 저장/설정 가져오기 | persistence-state-normalizer, state-persistence, persistence-service-bundle, settings-io, data-transfer | 정규화, `localStorage` 읽기·쓰기, 구버전 읽기, 전체/그룹/보조 그룹 payload는 다른 책임입니다. |
-
-이 표는 탐색용 요약입니다. 정확한 파일별 전역 API/입력 계약은 생성 인벤토리를 기준으로 합니다.
+기능 영역마다 책임을 가진 모듈 계열과 경계에서 확인할 것은 [코드 구조 안내 3장](code-navigation.md#3-기능별-모듈과-시작-파일)의 표에 있습니다. 새 기능은 그 표의 소유 모듈에 둡니다.
 
 ## 4. 상태와 저장 데이터
 
@@ -94,19 +76,17 @@
 - 앱 상태 patching, 그룹 컨텍스트, 사용자 환경설정, 복사/표시 형식은 각각의 소유 모듈 경로를 통해 변경합니다. 이미 있는 updater/normalizer 경로를 우회해 직접 전역을 바꾸지 마세요.
 - 저장소 접근은 `state-persistence.js`가 맡고, **저장 위치는 확장 출처(origin)의 `localStorage` 하나**입니다. `manifest.json`에 `storage` 권한을 두지 않으므로 `chrome.storage`는 쓰지 않습니다. 저장 데이터는 `revision`, `updatedAt`, `data`로 감쌉니다. 읽기·쓰기 함수(`getStorageValue`, `setStorageValue`, `savePersistence`, `loadPersistence` 등)는 호출하는 쪽과의 약속대로 비동기(Promise) 함수로 유지합니다. 쓰기는 큐로 차례대로 처리하므로 나중에 요청한 저장이 마지막에 남습니다.
 - 현재 핵심 데이터 키는 `GTV_v324_Data`이고 구버전 키 목록은 `app-config.js`가 선언합니다. 테마, 언어, UI 배율은 별도 키(`GTV_Theme`, `GTV_Lang`, `GTV_UIScale`)입니다. 실제 저장 구조를 바꾸려면 normalizer, 마이그레이션/legacy fallback, 설정 내보내기/가져오기, 테스트를 함께 검토합니다.
-- 시간대 항목은 불러오거나 가져올 때 `group-state.js`가 정리합니다. 도시 시간대(IANA)에 그 도시의 1월 또는 7월 시차와 같은 고정 시차가 남아 있으면(v3.11.1 이전 국가-지역 목록이 저장한 "PDT 고정" 같은 항목) 고정 시차를 지워 서머타임 규칙을 따르게 합니다. 시차 목록에서 고른 항목(시간대 `UTC` + 고정 시차)과 두 계절 어느 쪽과도 다른 고정 시차는 그대로 둡니다.
-- 서머타임 표시는 시각마다 판단합니다. 판단은 `GTVTimeCore.isZoneInDaylightTime`(그 시각의 시차가 그 해 1월·7월 중 작은 시차보다 크면 서머타임)으로 하고, 사용자 지정·`UTC`·고정 시차 항목은 표시하지 않습니다. 표(`table-render`·`main-row-view-services`·`multi-range-render`)는 `snapshot.dstFlags`로, 고정 시간 탭은 payload의 `isDst`로 `.dst-badge`를 보이거나 숨기고, 텍스트 복사(`snapshot-format`·`fixed-time-actions`)와 이미지(`table-image-render`·`image-clone`)도 같은 값을 씁니다. 표시 여부는 시간 세부 항목 `dst`(기본 켜짐)로 정합니다.
-- 시각을 입력하면(`time-input-mutations.js`) 그 지역의 시차를 실제 순간에서 다시 확인합니다. 서머타임 시작으로 건너뛰는 시각은 건너뛴 만큼 뒤로 맞추고 `toast_dst_gap_adjusted`로 알리며, 서머타임 종료로 두 번 있는 시각은 첫 번째(서머타임 쪽)로 해석합니다. 고정 시간 표 칸은 시 0~23·분·초 0~59와 실제 날짜를 검사해 범위 밖이면 거부합니다.
+- 시간대 항목 정리, 서머타임 표시, 시각 입력 보정의 현재 구현은 [코드 구조 안내 4장](code-navigation.md#시간대-데이터와-서머타임)에 있습니다.
 - 설정 가져오기는 외부 JSON 입력이므로 `settings-io.js`와 `data-transfer.js`의 검증·정규화·저장 실패 경로를 건너뛰지 않습니다. 개별 그룹/보조 그룹 가져오기를 전체 설정 가져오기와 같은 payload로 가정하지 마세요.
 
 ## 5. 안전한 변경 절차
 
-1. **현행 구현을 찾습니다.** 먼저 [코드 탐색 안내](code-navigation.md)를 보고 생성 인벤토리에서 모듈의 API, 입력, 소비자를 확인합니다.
+1. **현행 구현을 찾습니다.** 먼저 [코드 구조 안내](code-navigation.md)를 보고 생성 인벤토리에서 모듈의 API, 입력, 소비자를 확인합니다.
 2. **변경 책임을 고릅니다.** 기능 동작은 소유 도메인에, 조립 변경은 기존 composition/bootstrap에, 사용자 안내/표시는 UI 경계에 둡니다. 단지 분리를 위한 새 파일을 만들지 않습니다.
 3. **계약을 기록합니다.** 함수 입력/반환, 비동기 여부, 상태 변경 소유자, 전역 API 및 저장 payload가 달라지는지 먼저 확인합니다. 핵심 기능과 데이터 결과를 바꾸는 UX 수정은 별도 동작 변경으로 검토해야 합니다.
 4. **최소 범위로 수정합니다.** 직접 관련 소비자만 바꾸고 fallback/오류 흐름을 보존합니다. 사용자 문자열은 `src/i18n.js`의 한국어/영어 양쪽에 추가합니다.
 5. **검증합니다.** 7장의 명령을 실행하고 변경한 도메인의 기존 테스트를 확인합니다. 저장, 날짜 경계, 시간대/서머타임, 가져오기 입력이라면 경계 사례 테스트가 필요합니다.
-6. **버전·이력·문서를 갱신합니다.** 제품 동작을 바꿨으면 7장의 버전 규칙에 따라 패치 버전을 올리고 [개발 이력](development-history.md)에 기능 변경을 적습니다. 동작은 같고 배포 번들이 바뀌는 구조 정리(리팩터링)도 패치 버전을 올리고 개발 이력에 "구조 정리" 항목으로 적습니다. 구조/모듈 계약이 바뀌면 이 가이드, 관계도/탐색 문서, 인벤토리 중 영향받는 곳을 같은 작업에서 반영합니다.
+6. **버전·이력·문서를 갱신합니다.** 제품 동작을 바꿨으면 7장의 버전 규칙에 따라 패치 버전을 올리고 [개발 이력](development-history.md)에 기능 변경을 적습니다. 동작은 같고 배포 번들이 바뀌는 구조 정리(리팩터링)도 패치 버전을 올리고 개발 이력에 "구조 정리" 항목으로 적습니다. 구조/모듈 계약이 바뀌면 이 가이드, 코드 구조 안내, 인벤토리 중 영향받는 곳을 같은 작업에서 반영합니다.
 
 ### 특히 피할 변경
 
@@ -133,15 +113,7 @@
 - 새 화면 문구는 한국어/영어 번역 키를 함께 추가하고 버튼/툴팁은 키 연결(`data-i18n`, `data-i18n-title`)을 확인합니다.
 - 저장 실패/선택 기능 fallback과 필수 초기화 오류는 서로 다른 상황입니다. 전자는 기존 fallback과 사용자 피드백을 보존하고, 후자는 fatal error 흐름을 숨기지 않습니다.
 - `src/style.css`는 맨 위 목차와 `§01`~`§23` 구역 머리 주석으로 나뉩니다(테마 변수, 컨트롤 패널, 시간 표, 타임라인, 계산기, 모달, DatePicker 등). 새 규칙은 해당 구역에 넣고, 밝은 테마 덮어쓰기(`:root[data-theme="light"]`)는 바꾸는 규칙 바로 옆에 둡니다. 구역을 새로 만들면 목차도 함께 고칩니다. 설정·도움말 팝업 스타일은 `§17`, 사이드바 아이콘 버튼은 `§16`에 있습니다. `§22 Visual hierarchy refinements`는 버튼 강조 단계·구분선·토글·타임라인 색·입력칸·표 정리를 항목별로 모아 앞 구역의 규칙을 덮어쓰며, 밝은 테마 덮어쓰기도 각 항목 안에 둡니다.
-- 도구 줄 안의 구분선은 묶음 경계(`option-with-divider`, `::before`)와 묶음 안의 짧은 세로선(`.control-inline-divider`, 시간 조정 줄 구분선과 같은 모양)으로 그립니다. 고정 날짜 묶음은 날짜 선택 버튼 뒤에 `.control-inline-divider`를 두고 `실시간 표시` 이름표에 다른 이름표와 같은 `.control-label-large`를 씁니다.
-- 툴팁은 `main-ui-utils.js`의 떠 있는 툴팁(`#app-floating-tooltip`)이 `data-tooltip` 요소에 마우스를 올리거나 초점이 오면 보입니다. 초점으로 띄우는 것은 Tab 키로 이동했을 때뿐이라서(직전 입력이 Tab 키일 때), 팝업이 닫히며 버튼으로 돌려준 초점이나 클릭으로 생긴 초점은 툴팁을 띄우지 않습니다. 팝업은 닫힐 때 초점을 연 버튼(또는 이전 요소)으로 `focus({ focusVisible: false, preventScroll: true })`로 돌려줘, Esc로 닫아도 키보드 초점 강조(`:focus-visible`)가 남지 않습니다(그룹 설정 `group-tabs.js`, 설정·도움말 `ui-settings-actions.js`, 화면 안 입력·확인 창 `main-foundation-services.js`).
-- 확인 창은 `main-foundation-services.js`의 `confirmFn`이 화면 안 확인 창(`#app-confirm-overlay`)으로 묻고 `true`/`false`를 돌려주는 비동기 함수입니다(취소에 첫 초점, 닫기 버튼·바깥 클릭·Esc는 취소). 표시용 요소가 없을 때만 주입된 브라우저 확인으로 대신합니다. 초기화(`state-persistence.js`)와 그룹·보조 그룹 삭제(`group-tabs.js`)가 결과를 기다립니다.
-- 그룹 설정 팝업(`#group-settings-overlay`)은 선택한 그룹 탭의 설정 버튼(`.group-settings-btn`)으로 열고 `group-tabs.js`의 `openGroupSettings`·`closeGroupSettings`가 열기·닫기(닫기 버튼, 바깥 클릭, Esc, 초점 복귀)를 맡습니다. 이름은 `변경` 버튼(`#group-settings-name-apply-btn`)을 눌렀을 때만 저장하고, 닫기로는 저장하지 않습니다. 기준 시간·낮/밤 선택칸은 예전과 같은 id(`base-time-select`, `day-start-select`, `night-start-select`)로 이 팝업 안에 있어 기존 처리기가 그대로 동작합니다. 팝업을 열면 `gtv:group-settings-opened` 문서 이벤트를 보내고, `main-ui-init.js`가 이를 받아 낮/밤 선택값을 현재 그룹 값으로 다시 맞춥니다.
-- 낮/밤 시간은 그룹의 선택 필드 `dayStartHour`·`nightStartHour`(0 ≤ 낮 < 밤 ≤ 23인 정수일 때만 유지, `group-state.js` 정규화)에 저장합니다. `ui-preferences-state.js`는 현재 그룹에 값이 있으면 그 값을, 없으면 공통 상태 값을 쓰고, 바꿀 때는 현재 그룹에 씁니다. 그룹 내보내기에는 그룹 값을, 전체 설정 내보내기의 환경설정에는 공통 값을 넣으므로 옛 파일도 그대로 가져올 수 있습니다.
-- 설정 팝업(`#settings-overlay`)과 도움말 팝업(`#help-overlay`)은 사이드바 아이콘(`#open-settings-btn`, `#open-help-btn`)으로 열고 `ui-settings-actions.js`의 `bindDialogControls`가 열기·닫기(닫기 버튼, 바깥 클릭, Esc, 초점 복귀)를 맡고, 초기화가 확인되거나(초기화 함수가 `true`) 설정 가져오기가 성공하면(`handleSettingsImportFile`이 `true`) 설정 팝업을 닫습니다. 설정 팝업 안의 선택칸·버튼은 예전 사이드바와 같은 id를 써서 기존 처리기가 그대로 동작합니다. 도움말 문구는 `i18n.js`의 `help_*` 키입니다.
-- 계산기의 날짜 칸(`.calc-date-input-wrap`)은 입력칸과 달력 버튼을 한 줄에 두고 오류 문구만 아래 줄로 보냅니다. 기간 계산은 시작일·종료일을 각각 라벨과 함께 `.calc-period-field`로 묶어 바꾸기 버튼과 한 줄(flex 줄바꿈)에 놓고, 한 칸이 날짜를 다 보여 줄 최소 너비(140px)보다 좁아지면 종료일이 다음 줄로 내려갑니다. 바꾸기 버튼은 라벨 높이만큼 내려 입력칸 줄에 맞춥니다. 날짜 이동의 단위·방향 선택칸은 `.calc-shift-selects`로 묶여 각자 최소 너비(`--calc-select-min`, 한국어 76px·영어 100px)를 지키고, 숫자 칸 옆에 자리가 모자라면 함께 다음 줄로 내려갑니다.
-- 시간대 추가는 `타임존 추가` 팝업(`#full-tz-overlay`) 하나로 합니다. 본 화면에는 도구 줄(`#control-option-row`) 맨 앞에 `타임존 추가` 이름표와 `목록` 버튼(`#show-all-tz`)만 있습니다. 팝업은 `timezone-search.js`가 맡고 탭은 `타임존 프리셋`(`tz-tab-country`, 먼저 열림)과 `사용자 커스텀`(`tz-tab-custom`) 두 개입니다(`setFullTimezoneOverlayTab`). 타임존 프리셋의 첫 타일 `표준시 (UTC)`(`utc-row` 항목)는 별도 시간대를 만들지 않고 표의 UTC 행을 다시 켭니다(이미 보이면 중복 안내). 나머지 타일은 도시 목록이며 도시·약어·UTC 오프셋으로 검색합니다. 사용자 커스텀 탭은 검색칸과 목록 대신 입력 양식(`#tz-custom-panel`)을 보이며, 입력칸 id(`custom-abbr` 등)는 예전과 같아 `main-ui-init.js`의 추가 처리기가 그대로 동작하고 추가에 성공하면 닫기 버튼으로 팝업을 닫습니다. 팝업을 닫는 길(닫기 버튼, 목록 항목 선택, 커스텀 추가 성공, Esc)은 모두 `closeFullTimezoneOverlay`를 거치며, 이때 커스텀 양식을 비우고 시차를 +00:00으로 되돌리고 초점을 `목록` 버튼으로 돌려줍니다(강조 없이). Esc는 화면 안 입력·확인 창이 위에 떠 있으면 그 창이 먼저 받습니다. 고정 시차 항목은 사용자 지정(custom) 항목입니다(`offH`/`offM`). v3.16.14까지 있던 `표준시 목록` 탭은 v3.16.15에서 없앴습니다. 그 탭이 v3.16.10까지 내부 시간대 `UTC`+고정 시차로 저장한 항목은 `group-state.js`가 불러올 때 같은 id의 사용자 지정 항목(약어 `UTC+09:00`, 이름 `UTC+09:00 표준시`; `time-core.js`의 `toCustomOffsetFields`)으로 바꾸고(시차 0은 UTC 행으로 합침), 이름 끝의 `표준시`/`Standard Time`은 화면 언어를 따릅니다(`getZoneDisplayName`). 내부 시간대 `UTC`는 모든 화면에서 UTC 행으로 다뤄지므로 표준 항목에 쓰지 않습니다.
-- 시간 조정 줄은 앞쪽 버튼(지금 시간·0시·정각, 기간 0일로 변경, 이전 구간 끝 가져오기)을 고정 폭 칸 `.time-adjust-lead`에 넣어 줄마다 뒤의 버튼 열이 같은 위치에 서게 합니다. 화면에서 너비를 재서 맞추는 코드는 두지 않습니다.
+- 팝업·확인 창·툴팁·타임존 추가·계산기 배치처럼 여러 모듈이 함께 움직이는 기능의 현재 구현은 [코드 구조 안내 4장](code-navigation.md#4-기능별-구현-메모)에 적습니다. 그런 기능의 구현을 바꾸면 그 메모를 같은 작업에서 고칩니다.
 - 텍스트 파일은 UTF-8, LF 줄바꿈으로 고정합니다(`.gitattributes`, `.editorconfig`). 포맷 변경 diff가 실제 코드 변경과 섞이지 않도록 주의합니다.
 
 ## 7. 개발 환경·검증·배포
@@ -245,7 +217,7 @@ ZIP 항목은 이름순으로, 고정된 시각·권한 값으로 기록하므�
 | --- | --- |
 | `README.md`·`docs/user-guide.md` | 프로그래밍 지식이 없는 사용자를 위한 소개·조작·문제 해결. 현재 안정 버전 기준 |
 | `docs/developer-guide.md` | 개발 용어를 아는 비프로그래머를 위한 구조·운영·검증 설명. 현재 소스 구조 기준 |
-| `docs/code-navigation.md`·`docs/module-relationship-map.md` | 기능별 코드 위치와 모듈 관계. 현재 소스 구조 기준 |
+| `docs/code-navigation.md` | 코드 구조 안내: 실행 흐름, 모듈 관계도, `main.js` 조립 계층, 기능별 시작 파일, 기능별 구현 메모. 현재 소스 구조 기준 |
 | `docs/module-dependency-inventory.md` | 소스에서 생성하는 모듈 API·의존성 목록. 직접 고치지 않고 `npm run docs:module-inventory`로 다시 만듭니다 |
 | `docs/Glossary.md` | 화면·기능·시간 개념·배포 용어의 공통 이름. 새 화면 요소나 개념을 추가하면 함께 갱신 |
 | `docs/development-history.md` | 공개용 버전별 기능 변경·구조 정리 이력 |

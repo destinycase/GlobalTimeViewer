@@ -47,8 +47,7 @@
 | [사용자 가이드](docs/user-guide.md) | 설치, 화면 사용, 설정 백업, 문제 해결 |
 | [용어 사전](docs/Glossary.md) | 화면·기능·시간 개념·배포 용어와 문의 예시 |
 | [개발자 가이드](docs/developer-guide.md) | 폴더 구조, 실행 흐름, 모듈 책임, 검증·배포·문서 관리 절차 |
-| [코드 탐색 안내](docs/code-navigation.md) | 기능별 코드 위치와 `main.js` 조립 단계 |
-| [모듈 관계도](docs/module-relationship-map.md) | 런타임 레이어와 주요 모듈 관계 |
+| [코드 구조 안내](docs/code-navigation.md) | 실행 흐름, 모듈 관계도, `main.js` 조립 단계, 기능별 코드 위치와 구현 메모 |
 | [모듈 의존성 인벤토리](docs/module-dependency-inventory.md) | 소스에서 생성한 모듈 API·의존성·로드 순서 |
 | [개발 이력](docs/development-history.md) | 버전별 기능 변경과 구조 정리 |
 | [6차 안정 버전 v3.17.1](docs/master-baseline-v3.17.1.md) | 현재 기준판의 고정 배포 파일과 직전 안정 버전 이후 추가·개선된 기능 |
