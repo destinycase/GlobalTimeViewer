@@ -246,7 +246,8 @@
                     overlay.removeEventListener("keydown", onKeydown);
                     overlay.style.display = "none";
                     if (activeConfirmFinalize === finalize) activeConfirmFinalize = null;
-                    if (typeof previousFocus?.focus === "function") previousFocus.focus();
+                    // Back to the previous element without the keyboard focus highlight.
+                    if (typeof previousFocus?.focus === "function") previousFocus.focus({ focusVisible: false, preventScroll: true });
                     resolve(value);
                 }
                 activeConfirmFinalize = finalize;

@@ -1193,10 +1193,13 @@ function buildScenarios(ctx) {
                         await until(`${overlay} 닫힘`, async () => !(await shown(overlay)));
                         await sleep(200);
                         const leftOver = await tipText();
+                        // Focus is back on the opener, but without the keyboard focus highlight.
+                        const focusState = await api.ev(`(() => { const b = document.querySelector(${JSON.stringify(opener)}); return { focused: document.activeElement === b, ring: b.matches(":focus-visible") }; })()`);
                         if (!hoverTip || leftOver) staleTips.push(`${opener}/${how}: 호버 "${hoverTip}" 닫은 뒤 "${leftOver}"`);
+                        if (!focusState.focused || focusState.ring) staleTips.push(`${opener}/${how}: 초점 복귀 ${focusState.focused}·강조 ${focusState.ring}`);
                     }
                 }
-                assert(staleTips.length === 0, `팝업을 닫은 뒤 툴팁: ${staleTips.join(" | ")}`);
+                assert(staleTips.length === 0, `팝업을 닫은 뒤 툴팁·강조: ${staleTips.join(" | ")}`);
                 await api.ev(`document.getElementById("open-help-btn").focus()`);
                 await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
                 await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
@@ -1204,7 +1207,7 @@ function buildScenarios(ctx) {
                 const tabTip = await tipText();
                 assert(tabTip, "Tab으로 이동해도 툴팁이 나오지 않음");
 
-                return `팝업(설정·도움말·그룹 설정)을 닫기 버튼·Esc로 닫은 뒤 툴팁 남지 않음, Tab 이동 시 툴팁 "${tabTip}", 제목 아래 구분선(위 ${titleDivider.gapAbove}px·아래 ${titleDivider.gapBelow}px), 하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘, 초기화 확인 창 "${confirmMessage}" 화면 안 창·취소/Esc 유지·확인 시 닫힘(${confirmCount}회), 슬롯 이름 화면 안 입력 창으로 "${slotTitle.trim()}"`;
+                return `팝업(설정·도움말·그룹 설정)을 닫기 버튼·Esc로 닫은 뒤 툴팁·버튼 강조 남지 않음(초점은 버튼으로 복귀), Tab 이동 시 툴팁 "${tabTip}", 제목 아래 구분선(위 ${titleDivider.gapAbove}px·아래 ${titleDivider.gapBelow}px), 하단 아이콘 ${footer.labels.join("·")}(왼쪽 ${footer.firstOffset}px), 설정 팝업 안 항목 7개·테마 ${next} 전환, Esc 닫힘(초점 ${focusBack}), 도움말 ${helpText}자·바깥 클릭 닫힘, 초기화 확인 창 "${confirmMessage}" 화면 안 창·취소/Esc 유지·확인 시 닫힘(${confirmCount}회), 슬롯 이름 화면 안 입력 창으로 "${slotTitle.trim()}"`;
             }
         },
         {

@@ -422,7 +422,10 @@
             const opener = groupSettingsOpener;
             groupSettingsOpener = null;
             groupSettingsIdx = -1;
-            if (typeof opener?.focus === "function" && opener.isConnected !== false) opener.focus();
+            // Focus goes back to the opener without the keyboard focus highlight, which would
+            // otherwise stay on the button after closing with Esc (browsers without the option
+            // simply show it).
+            if (typeof opener?.focus === "function" && opener.isConnected !== false) opener.focus({ focusVisible: false, preventScroll: true });
         }
 
         function bindGroupSettings() {

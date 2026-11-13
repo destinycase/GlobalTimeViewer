@@ -124,7 +124,10 @@
             overlay.style.display = "none";
             const opener = lastDialogOpener;
             lastDialogOpener = null;
-            if (typeof opener?.focus === "function") opener.focus();
+            // Focus goes back to the opener without the keyboard focus highlight, which would
+            // otherwise stay on the button after closing with Esc (browsers without the option
+            // simply show it).
+            if (typeof opener?.focus === "function") opener.focus({ focusVisible: false, preventScroll: true });
         }
 
         // Called after a confirmed reset or a successful import so the result is visible.
