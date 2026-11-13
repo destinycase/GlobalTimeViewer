@@ -190,205 +190,6 @@ describe("GTV timezone search module", () => {
         expect(service.getSelectableTZEntries()).toEqual([]);
     });
 
-    it("createStandardTimezoneFromSelectableEntry stores standard list offsets as fixed-offset custom entries", () => {
-        const module = loadTimezoneSearchModule();
-        const service = module.createService({ t: (key) => (key === "standard_time_suffix" ? "Standard Time" : key) });
-        const make = (offset) => service.createStandardTimezoneFromSelectableEntry({
-            kind: "standard_list", zone: "UTC", abbr: "x", fixedOffsetMinutes: offset
-        });
-
-        const plus = make(540);
-        expect(plus).toMatchObject({ type: "custom", abbr: "UTC+09:00", name: "UTC+09:00 Standard Time", offH: 9, offM: 0 });
-        expect(plus.id).toMatch(/^tz-c/);
-        expect(plus.zone).toBeUndefined();
-        expect(make(-570)).toMatchObject({ abbr: "UTC-09:30", offH: -9, offM: 30 });
-        expect(make(345)).toMatchObject({ abbr: "UTC+05:45", offH: 5, offM: 45 });
-        expect(make(-660)).toMatchObject({ abbr: "UTC-11:00", offH: -11, offM: 0 });
-        // The custom offset reads back to the same minutes.
-        const timeCore = globalThis.GTVTimeCore;
-        for (const offset of [540, -570, 345, -660, 840]) {
-            expect(timeCore.getCustomOffsetMinutes(make(offset))).toBe(offset);
-        }
-    });
-
-    it("standard list items: added as fixed-offset entries, the same offset again gives the notice", () => {
-        const group = { zones: [], showUtcRow: true };
-        const added = [];
-        const toasts = [];
-        const module = loadTimezoneSearchModule({
-            Intl: { supportedValuesOf: () => ["UTC", "Asia/Seoul", "Pacific/Pago_Pago"] }
-        });
-        const service = module.createService({
-            getCurrentGroup: () => group,
-            addTimezone: (zone) => { added.push(zone); group.zones.push(zone); return true; },
-            showToast: (message) => { toasts.push(message); },
-            t: (key) => key,
-            ...createOffsetAndAbbrDeps()
-        });
-        const keyFor = (offset) => service.getStandardTimezoneEntries().find((entry) => entry.fixedOffsetMinutes === offset)?.key;
-
-        expect(service.addFromSearchWithData(keyFor(540))).toBe(true);
-        expect(added.map((zone) => [zone.type, zone.abbr])).toEqual([["custom", "UTC+09:00"]]);
-        expect(service.addFromSearchWithData(keyFor(540))).toBe(false);
-        expect(toasts).toEqual(["toast_timezone_duplicate"]);
-        expect(added).toHaveLength(1);
-    });
-
-    it("getAllSupportedTimezoneNames falls back to TZ database when Intl is unavailable", () => {
-        const module = loadTimezoneSearchModule({
-            Intl: {
-                supportedValuesOf() {
-                    throw new Error("unsupported");
-                }
-            }
-        });
-        const service = module.createService({
-            TZ_DATABASE: [
-                { zone: "Asia/Seoul" },
-                { zone: "America/New_York" },
-                { zone: "Asia/Seoul" }
-            ]
-        });
-
-        const names = service.getAllSupportedTimezoneNames();
-
-        expect(names).toContain("UTC");
-        expect(names).toContain("Asia/Seoul");
-        expect(names).toContain("America/New_York");
-    });
-
-    it("getStandardTimezoneEntries generates sorted entries and returns cloned cache entries", () => {
-        const module = loadTimezoneSearchModule({
-            Intl: {
-                supportedValuesOf() {
-                    return ["UTC", "Asia/Seoul", "America/New_York"];
-                }
-            }
-        });
-        const service = module.createService({
-            ...createOffsetAndAbbrDeps(),
-            TZ_DATABASE: []
-        });
-
-        const first = service.getStandardTimezoneEntries();
-        first[0].abbr = "MUTATED";
-        const second = service.getStandardTimezoneEntries();
-
-        expect(second[0].abbr).not.toBe("MUTATED");
-        const offsets = second.map((entry) => entry.fixedOffsetMinutes);
-        const sortedOffsets = [...offsets].sort((a, b) => a - b);
-        expect(offsets).toEqual(sortedOffsets);
-        expect(second.some((entry) => entry.zone === "UTC" && entry.fixedOffsetMinutes === 0)).toBe(true);
-    });
-
-    it("getStandardTimezoneEntries dedupes standard list by UTC offset", () => {
-        const module = loadTimezoneSearchModule({
-            Intl: {
-                supportedValuesOf() {
-                    return ["UTC", "Pacific/Honolulu", "Pacific/Tahiti", "Pacific/Rarotonga"];
-                }
-            }
-        });
-        const service = module.createService({
-            getTimezoneOffset: (zone) => {
-                if (zone === "UTC") return 0;
-                if (zone === "Pacific/Honolulu") return -600;
-                if (zone === "Pacific/Tahiti") return -600;
-                if (zone === "Pacific/Rarotonga") return -600;
-                return Number.NaN;
-            },
-            getBetterAbbr: (zone) => {
-                if (zone === "UTC") return "UTC";
-                if (zone === "Pacific/Honolulu") return "HST";
-                if (zone === "Pacific/Tahiti") return "TAHT";
-                if (zone === "Pacific/Rarotonga") return "CKT";
-                return "";
-            }
-        });
-
-        const entries = service.getStandardTimezoneEntries();
-        const minusTenEntries = entries.filter((entry) => entry.fixedOffsetMinutes === -600);
-
-        expect(minusTenEntries).toHaveLength(1);
-        expect(minusTenEntries[0].abbr).toBe("UTC-10:00");
-    });
-
-    it("queueStandardTimezoneWarmup schedules only once via requestIdleCallback", () => {
-        let scheduled = 0;
-        let callback = null;
-        const module = loadTimezoneSearchModule({
-            requestIdleCallback(fn) {
-                scheduled += 1;
-                callback = fn;
-            },
-            Intl: {
-                supportedValuesOf() {
-                    return ["UTC"];
-                }
-            }
-        });
-        const service = module.createService({
-            ...createOffsetAndAbbrDeps(),
-            TZ_DATABASE: []
-        });
-
-        service.queueStandardTimezoneWarmup();
-        service.queueStandardTimezoneWarmup();
-        expect(scheduled).toBe(1);
-
-        callback();
-        service.queueStandardTimezoneWarmup();
-        expect(scheduled).toBe(1);
-    });
-
-    it("queueStandardTimezoneWarmup falls back to setTimeout when requestIdleCallback is absent", () => {
-        let delay = null;
-        let callback = null;
-        const module = loadTimezoneSearchModule({
-            setTimeout(fn, timeout) {
-                callback = fn;
-                delay = timeout;
-                return 1;
-            }
-        });
-        const service = module.createService({});
-
-        service.queueStandardTimezoneWarmup();
-
-        expect(delay).toBe(120);
-        expect(typeof callback).toBe("function");
-    });
-
-    it("queueStandardTimezoneWarmup prefers injected logWarn when warmup fails", () => {
-        let callback = null;
-        const supportedValues = ["UTC"];
-        supportedValues.forEach = () => {
-            throw new Error("warmup failed");
-        };
-        const module = loadTimezoneSearchModule({
-            requestIdleCallback(fn) {
-                callback = fn;
-            },
-            Intl: {
-                supportedValuesOf() {
-                    return supportedValues;
-                }
-            }
-        });
-        const warned = [];
-        const service = module.createService({
-            logWarn: (...args) => {
-                warned.push(args);
-            }
-        });
-
-        service.queueStandardTimezoneWarmup();
-        callback();
-
-        expect(warned).toHaveLength(1);
-        expect(String(warned[0][0])).toContain("Failed to warm up standard timezone cache.");
-    });
-
     it("renderFullTimezoneOverlayList prefers injected documentRef over global document", () => {
         const globalList = createElementStub("div");
         const injectedList = createElementStub("div");
@@ -606,23 +407,6 @@ describe("GTV timezone search module", () => {
         });
     });
 
-    it("getSelectableTZEntryByKey can resolve a standard-list key", () => {
-        const module = loadTimezoneSearchModule({
-            Intl: {
-                supportedValuesOf() {
-                    return ["UTC"];
-                }
-            }
-        });
-        const service = module.createService(createOffsetAndAbbrDeps());
-
-        const entry = service.getSelectableTZEntryByKey("std:UTC:0");
-
-        expect(entry).toBeTruthy();
-        expect(entry.kind).toBe("standard_list");
-        expect(entry.zone).toBe("UTC");
-    });
-
     it("initSearchAndSelect exits safely when the popup elements are missing", () => {
         const module = loadTimezoneSearchModule({
             document: {
@@ -635,15 +419,13 @@ describe("GTV timezone search module", () => {
 
         expect(() => service.initSearchAndSelect()).not.toThrow();
     });
-    it("UTC+00:00 in the standard list shows the hidden UTC row instead of adding an entry", () => {
+    it("the UTC tile shows the hidden UTC row instead of adding an entry", () => {
         const activeGroup = { showUtcRow: false, utcRowOrder: "invalid", zones: [] };
         let saveCalls = 0;
         let renderCalls = 0;
         const added = [];
         const toasts = [];
-        const module = loadTimezoneSearchModule({
-            Intl: { supportedValuesOf: () => ["UTC", "Asia/Seoul"] }
-        });
+        const module = loadTimezoneSearchModule();
         const service = module.createService({
             getCurrentGroup: () => activeGroup,
             savePersistence: () => { saveCalls += 1; },
@@ -653,10 +435,11 @@ describe("GTV timezone search module", () => {
             t: (key) => key,
             ...createOffsetAndAbbrDeps()
         });
-        const utcEntry = service.getStandardTimezoneEntries().find((entry) => entry.fixedOffsetMinutes === 0);
-        expect(utcEntry).toBeTruthy();
+        const utcEntry = service.getSelectableTZEntryByKey("utc-row");
+        expect(utcEntry).toMatchObject({ kind: "utc_row", abbr: "UTC", fixedOffsetMinutes: 0 });
+        expect(service.getTimezoneEntryTitle(utcEntry)).toBe("overlay_utc_row_title");
 
-        expect(service.addFromSearchWithData(utcEntry.key)).toBe(true);
+        expect(service.addFromSearchWithData("utc-row")).toBe(true);
         expect(activeGroup.showUtcRow).toBe(true);
         expect(activeGroup.utcRowOrder).toBe(0);
         expect(saveCalls).toBe(1);
@@ -664,7 +447,7 @@ describe("GTV timezone search module", () => {
         expect(added).toEqual([]);
 
         // Already shown: a notice, nothing else changes.
-        expect(service.addFromSearchWithData(utcEntry.key)).toBe(false);
+        expect(service.addFromSearchWithData("utc-row")).toBe(false);
         expect(toasts).toEqual(["toast_timezone_duplicate"]);
         expect(saveCalls).toBe(1);
         expect(added).toEqual([]);
@@ -674,7 +457,6 @@ describe("GTV timezone search module", () => {
         const overlay = createElementStub("div");
         overlay.style.display = "none";
         const list = createElementStub("div");
-        const standardTabBtn = createElementStub("button");
         const countryTabBtn = createElementStub("button");
         const searchInput = createElementStub("input");
         const clearSearchBtn = createElementStub("button");
@@ -698,21 +480,16 @@ describe("GTV timezone search module", () => {
             "show-all-tz": showAllBtn,
             "full-tz-overlay": overlay,
             "full-tz-list": list,
-            "tz-tab-standard": standardTabBtn,
             "tz-tab-country": countryTabBtn,
             "tz-search-input": searchInput,
             "tz-search-clear": clearSearchBtn,
             "close-overlay": closeOverlayBtn
         });
 
-        const module = loadTimezoneSearchModule({
-            document: doc,
-            Intl: {
-                supportedValuesOf() {
-                    return ["UTC", "Asia/Seoul"];
-                }
-            }
-        });
+        const keyListeners = [];
+        doc.addEventListener = (type, handler) => { if (type === "keydown") keyListeners.push(handler); };
+        const pressKey = (key) => keyListeners.forEach((handler) => handler({ key, preventDefault() { } }));
+        const module = loadTimezoneSearchModule({ document: doc });
         const service = module.createService({
             TZ_DATABASE: [
                 {
@@ -726,37 +503,28 @@ describe("GTV timezone search module", () => {
             ZONE_MAP: {
                 "Asia/Seoul": "KST"
             },
+            t: (key) => key,
             ...createOffsetAndAbbrDeps()
         });
 
         service.initSearchAndSelect();
+        // Esc does nothing while the popup is closed.
+        pressKey("Escape");
+        expect(overlay.style.display).toBe("none");
         showAllBtn.onclick();
 
         expect(overlay.style.display).toBe("flex");
-        expect(list.children.length).toBeGreaterThan(0);
-        expect(standardTabBtn.classList.contains("active")).toBe(true);
-        expect(standardTabBtn.getAttribute("aria-selected")).toBe("true");
+        // The presets tab opens first: the UTC tile, then the cities.
+        expect(countryTabBtn.classList.contains("active")).toBe(true);
+        expect(countryTabBtn.getAttribute("aria-selected")).toBe("true");
+        expect(list.children.map((item) => item.children[0].textContent)).toEqual(["overlay_utc_row_title", "Korea - Seoul"]);
+        expect(list.children[0].children[1].textContent).toBe("[UTC] [UTC +00:00]");
         expect(clearSearchBtn.disabled).toBe(true);
-        // The standard time list (offsets only) has its own search hint.
-        expect(searchInput.getAttribute("data-i18n")).toBe("placeholder_timezone_search_standard");
-        expect(searchInput.placeholder).toBe("placeholder_timezone_search_standard");
-
-        // A city name finds nothing in the standard list and points to the country list.
-        searchInput.value = "Seoul";
-        searchInput.dispatchEvent({ type: "input", target: searchInput });
-        expect(list.children).toHaveLength(1);
-        expect(list.children[0].textContent).toBe("overlay_no_tz_results_standard");
 
         searchInput.value = "UTC+09:00";
         searchInput.dispatchEvent({ type: "input", target: searchInput });
-        expect(list.children).toHaveLength(1);
+        expect(list.children.map((item) => item.children[0].textContent)).toEqual(["Korea - Seoul"]);
         expect(clearSearchBtn.disabled).toBe(false);
-
-        countryTabBtn.dispatchEvent({ type: "click", target: countryTabBtn });
-        expect(countryTabBtn.classList.contains("active")).toBe(true);
-        expect(countryTabBtn.getAttribute("aria-selected")).toBe("true");
-        expect(searchInput.getAttribute("data-i18n")).toBe("placeholder_timezone_search");
-        expect(searchInput.placeholder).toBe("placeholder_timezone_search");
         searchInput.value = "Nowhere";
         searchInput.dispatchEvent({ type: "input", target: searchInput });
         expect(list.children[0].textContent).toBe("overlay_no_tz_results");
@@ -772,7 +540,7 @@ describe("GTV timezone search module", () => {
         expect(customPanel.style.display).toBe("flex");
         expect(list.style.display).toBe("none");
         expect(customFocused).toBe(1);
-        standardTabBtn.dispatchEvent({ type: "click", target: standardTabBtn });
+        countryTabBtn.dispatchEvent({ type: "click", target: countryTabBtn });
         expect(customPanel.style.display).toBe("none");
         expect(list.style.display).toBe("");
 
@@ -784,21 +552,20 @@ describe("GTV timezone search module", () => {
         closeOverlayBtn.onclick();
         expect([customAbbr.value, customName.value, customOffH.value, customOffM.value]).toEqual(["", "", "0", "0"]);
         expect(overlay.style.display).toBe("none");
-    });
 
-    it("getTimezoneEntryTitle returns localized standard label", () => {
-        const module = loadTimezoneSearchModule();
-        const service = module.createService({
-            getCurrentLang: () => "ko"
-        });
-
-        const title = service.getTimezoneEntryTitle({
-            kind: "standard_list",
-            fixedOffsetMinutes: 540
-        });
-
-        expect(title).toContain("UTC+09:00");
-        expect(title).toContain("\uD45C\uC900\uC2DC");
+        // Esc closes the popup, but not while an in-page prompt is open above it.
+        showAllBtn.onclick();
+        const promptOverlay = createElementStub("div");
+        promptOverlay.style.display = "flex";
+        const getById = doc.getElementById;
+        doc.getElementById = (id) => (id === "app-prompt-overlay" ? promptOverlay : getById(id));
+        pressKey("Escape");
+        expect(overlay.style.display).toBe("flex");
+        promptOverlay.style.display = "none";
+        pressKey("Enter");
+        expect(overlay.style.display).toBe("flex");
+        pressKey("Escape");
+        expect(overlay.style.display).toBe("none");
     });
 
     it("getTimezoneEntryTitle localizes country-region label by language", () => {

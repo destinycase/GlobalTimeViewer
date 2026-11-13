@@ -533,7 +533,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "12",
-            title: "검수 결함 회귀: 변환기 손 입력·카운트다운 수정·DST 없는 시각·고정 시간 범위·표준시 검색 안내",
+            title: "검수 결함 회귀: 변환기 손 입력·카운트다운 수정·DST 없는 시각·고정 시간 범위·타임존 검색 안내",
             async run() {
                 const { api, page } = ctx;
                 const toastTexts = () => api.ev(`[...document.querySelectorAll("#toast-container .toast")].map((t) => t.textContent.trim())`);
@@ -608,14 +608,14 @@ function buildScenarios(ctx) {
                 const storedSlot = (await api.storedData())?.groups?.[0]?.fixedTimes?.[0]?.time;
                 assert(fixedAfter === fixedBefore && storedSlot === "09:00", `고정 시간 25:00: 표시 ${fixedBefore}→${fixedAfter}, 저장 ${storedSlot}`);
 
-                // e) The standard time list has its own search hint.
+                // e) The timezone presets search covers city, abbreviation and UTC offset.
                 await api.ev(`document.getElementById("show-all-tz").click()`);
                 await sleep(200);
                 const placeholder = await api.ev(`document.getElementById("tz-search-input").placeholder`);
                 await api.ev(`document.getElementById("close-overlay").click()`);
-                assert(/UTC/.test(placeholder) && !/도시|city/i.test(placeholder), `표준시 목록 안내: ${placeholder}`);
+                assert(/UTC/.test(placeholder) && /도시|city/i.test(placeholder), `타임존 프리셋 검색 안내: ${placeholder}`);
 
-                return `변환기 손 입력 ${typed.unixSec}, 카운트다운 ${countdown.shown}, 02:30 → ${gap.slice(11, 19)}(안내), 25:00 거부(${fixedAfter}), 표준시 안내 "${placeholder}"`;
+                return `변환기 손 입력 ${typed.unixSec}, 카운트다운 ${countdown.shown}, 02:30 → ${gap.slice(11, 19)}(안내), 25:00 거부(${fixedAfter}), 검색 안내 "${placeholder}"`;
             }
         },
         {
@@ -778,28 +778,30 @@ function buildScenarios(ctx) {
                     keptOn.push(tab);
                 }
 
-                // e) Standard time list items with different offsets can all be added to one group;
-                //    only the same offset again is refused.
-                const group2Offsets = async () => ((await api.storedData())?.groups?.[1]?.zones || []).map((zone) => zone.abbr);
-                await api.ev(`document.querySelectorAll("#toast-container .toast").forEach((t) => t.remove())`);
-                await addFromList("+09", "UTC+09:00", "standard");
-                await until("UTC+09:00 추가", async () => (await group2Offsets()).length === 1);
-                await addFromList("-05", "UTC-05:00", "standard");
-                await until("UTC-05:00 추가", async () => (await group2Offsets()).length === 2);
-                const stdToastsOk = await toastTexts();
-                assert(!stdToastsOk.some((text) => text.includes("이미 존재")), `다른 시차인데 중복 안내: ${JSON.stringify(stdToastsOk)}`);
-                await addFromList("+09", "UTC+09:00", "standard");
-                const stdDupToasts = await toastTexts();
-                const offsetsFinal = await group2Offsets();
-                assert(stdDupToasts.some((text) => text.includes("이미 존재")) && offsetsFinal.length === 2, `같은 시차 재추가: ${JSON.stringify({ stdDupToasts, offsetsFinal })}`);
+                // e) The popup has two tabs, "타임존 프리셋" (opened first, the UTC tile on top) and
+                //    "사용자 커스텀"; Esc closes it.
+                await api.ev(`document.getElementById("show-all-tz").click()`);
+                await until("시간대 목록 열림", () => api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none"`));
+                const popup = await api.ev(`({
+                    tabs: [...document.querySelectorAll("#full-tz-overlay .overlay-tab")].map((tab) => tab.textContent.trim()),
+                    active: document.querySelector("#full-tz-overlay .overlay-tab.active")?.textContent.trim(),
+                    first: document.querySelector("#full-tz-list .tz-item")?.textContent.replace(/\\s+/g, " ").trim()
+                })`);
+                assert(JSON.stringify(popup.tabs) === JSON.stringify(["타임존 프리셋", "사용자 커스텀"]) && popup.active === "타임존 프리셋", `팝업 탭: ${JSON.stringify(popup)}`);
+                assert(popup.first && popup.first.startsWith("표준시 (UTC)") && popup.first.includes("UTC +00:00"), `첫 타일: ${JSON.stringify(popup)}`);
+                await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+                await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+                await until("Esc로 팝업 닫힘", () => api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display === "none"`));
+                await addFromList("뉴욕", "뉴욕");
+                await until("새 그룹에 뉴욕 추가", async () => ((await api.storedData())?.groups?.[1]?.zones || []).length === 1);
 
-                // f) UTC+00:00 in the standard list stands for the UTC row: with the row shown it gives
-                //    the notice; with the row hidden it shows the row again. No entry is added either way.
+                // f) The UTC tile stands for the UTC row: with the row shown it gives the notice; with the
+                //    row hidden it shows the row again. No entry is added either way.
                 const group2 = async () => (await api.storedData())?.groups?.[1] || {};
                 await api.ev(`document.querySelectorAll("#toast-container .toast").forEach((t) => t.remove())`);
-                await addFromList("+00", "UTC+00:00", "standard");
+                await addFromList("UTC", "표준시 (UTC)");
                 const utcShownToasts = await toastTexts();
-                assert(utcShownToasts.some((text) => text.includes("이미 존재")) && (await group2()).zones.length === 2, `UTC 행이 있을 때 UTC+00:00: ${JSON.stringify(utcShownToasts)}`);
+                assert(utcShownToasts.some((text) => text.includes("이미 존재")) && (await group2()).zones.length === 1, `UTC 행이 있을 때 UTC 타일: ${JSON.stringify(utcShownToasts)}`);
                 // Hide the UTC row the way a user does: base time on another row (group settings),
                 // then the UTC row's remove button.
                 await api.switchTab("live");
@@ -814,12 +816,12 @@ function buildScenarios(ctx) {
                 await api.ev(`document.querySelector("#tz-row-utc .remove-row-btn").click()`);
                 await until("UTC 행 숨김", async () => (await group2()).showUtcRow === false);
                 assert((await group2()).showUtcRow === false, "UTC 행 숨김 준비 실패");
-                await addFromList("+00", "UTC+00:00", "standard");
+                await addFromList("UTC", "표준시 (UTC)");
                 await until("UTC 행 다시 표시", async () => (await group2()).showUtcRow === true);
-                assert((await group2()).zones.length === 2, "UTC+00:00이 별도 시간대로 추가됨");
+                assert((await group2()).zones.length === 1, "UTC 타일이 별도 시간대로 추가됨");
 
                 const promptKind = named.kind === "browser" ? "브라우저 기본 입력 창" : "화면 안 입력 창";
-                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")}), 표준시 ${offsetsFinal.join("·")} 함께 추가·같은 시차 재추가 거부, UTC+00:00은 UTC 행 표시(있으면 안내·숨김이면 다시 표시)`;
+                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")}), 팝업 탭 "타임존 프리셋"(먼저 열림·첫 타일 표준시 (UTC))·"사용자 커스텀"·Esc 닫힘, UTC 타일은 UTC 행 표시(있으면 안내·숨김이면 다시 표시)`;
             }
         },
         {
@@ -1327,7 +1329,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "17",
-            title: "표준시 목록 항목: 표에 표시·시각·다시 열기·옛 저장 형식 변환",
+            title: "옛 표준시 항목 변환·고정 시차 항목 표시·시각·다시 열기·언어",
             async run() {
                 const { api } = ctx;
                 // Saved up to v3.16.10: a standard list item as zone "UTC" plus a fixed offset (never shown).
@@ -1367,14 +1369,19 @@ function buildScenarios(ctx) {
                 const oldRow = await until("옛 항목 행", async () => (await rows()).find((row) => row.id === "tz-row-tz-old-9" && row.value === "2026-01-15 09:00:00"));
                 assert(oldRow.name === "UTC+09:00 표준시" && oldRow.abbr.includes("UTC+09:00"), `옛 항목 행: ${JSON.stringify(oldRow)}`);
 
-                // b) UTC-11:00 picked in the standard list appears with the right time.
+                // b) A fixed offset added in the custom tab (-11:00) appears with the right time.
                 await api.ev(`document.getElementById("show-all-tz").click()`);
-                await api.ev(`document.getElementById("tz-tab-standard").click()`);
-                await api.ev(`[...document.querySelectorAll("#full-tz-list .tz-item")].find((item) => item.querySelector(".tz-item-title")?.textContent.startsWith("UTC-11:00")).click()`);
-                const newRow = await until("UTC-11:00 행", async () => (await rows()).find((row) => row.name === "UTC-11:00 표준시"));
+                await api.ev(`document.getElementById("tz-tab-custom").click()`);
+                await api.ev(`(() => {
+                    document.getElementById("custom-abbr").value = "M11";
+                    document.getElementById("custom-name").value = "마이너스 11";
+                    document.getElementById("custom-off-h").value = "-11";
+                    document.getElementById("add-custom-btn").click();
+                })()`);
+                const newRow = await until("-11:00 행", async () => (await rows()).find((row) => row.name === "마이너스 11"));
                 await setUtc("2026-01-15 00:00:00");
-                const newValue = await until("UTC-11:00 시각", async () => {
-                    const row = (await rows()).find((r) => r.name === "UTC-11:00 표준시");
+                const newValue = await until("-11:00 시각", async () => {
+                    const row = (await rows()).find((r) => r.name === "마이너스 11");
                     return row && row.value === "2026-01-14 13:00:00" ? row.value : false;
                 });
 
@@ -1382,15 +1389,15 @@ function buildScenarios(ctx) {
                 await until("저장", async () => ((await api.storedData())?.groups?.[0]?.zones || []).length === 2);
                 await api.reload();
                 await api.switchTab("fixed");
-                const afterReload = (await rows()).filter((row) => row.name.endsWith("표준시") && row.id !== "tz-row-utc").map((row) => row.name);
-                assert(afterReload.length === 2, `다시 연 뒤: ${JSON.stringify(afterReload)}`);
+                const afterReload = (await rows()).filter((row) => row.id !== "tz-row-utc").map((row) => row.name);
+                assert(afterReload.includes("UTC+09:00 표준시") && afterReload.includes("마이너스 11"), `다시 연 뒤: ${JSON.stringify(afterReload)}`);
                 await api.ev(`localStorage.setItem("GTV_Lang", "en")`);
                 await api.reload();
                 await api.switchTab("fixed");
                 const english = (await rows()).filter((row) => row.id !== "tz-row-utc").map((row) => row.name);
                 await api.ev(`localStorage.setItem("GTV_Lang", "ko")`);
-                assert(english.includes("UTC+09:00 Standard Time") && english.includes("UTC-11:00 Standard Time"), `영어 이름: ${JSON.stringify(english)}`);
-                return `옛 형식 UTC+09:00 항목 변환(같은 id)·표시(UTC 00:00 → 09:00), 표준시 목록 UTC-11:00 추가·표시(${newRow.abbr}, UTC 00:00 → ${newValue}), 다시 연 뒤 2개 유지, 영어 이름 ${english.join(" / ")}`;
+                assert(english.includes("UTC+09:00 Standard Time") && english.includes("마이너스 11"), `영어 이름: ${JSON.stringify(english)}`);
+                return `옛 형식 UTC+09:00 항목 변환(같은 id)·표시(UTC 00:00 → 09:00), 사용자 커스텀 -11:00 추가·표시(${newRow.abbr}, UTC 00:00 → ${newValue}), 다시 연 뒤 유지, 영어 이름 ${english.join(" / ")}`;
             }
         }
     ];

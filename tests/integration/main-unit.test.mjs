@@ -265,25 +265,6 @@ test("formatUtcOffsetLabel returns signed padded UTC offset labels", () => {
     expect(sandbox.formatUtcOffsetLabel(570)).toBe("UTC+09:30");
 });
 
-test("createStandardTimezoneFromSelectableEntry builds a fixed-offset custom payload", () => {
-    const { sandbox } = createMainContext();
-    const result = sandbox.createStandardTimezoneFromSelectableEntry({
-        kind: "standard_list",
-        zone: "Asia/Seoul",
-        abbr: "gmt+9",
-        fixedOffsetMinutes: 540
-    });
-
-    expect(result).toMatchObject({
-        type: "custom",
-        abbr: "UTC+09:00",
-        offH: 9,
-        offM: 0
-    });
-    expect(result.name.startsWith("UTC+09:00 ")).toBe(true);
-    expect(result.id).toMatch(/^tz-c/);
-});
-
 test("applyCurrentGroupBaseTimezoneId rerenders list/timeline and persists", () => {
     const { sandbox, run } = createMainContext();
     let listRenderCount = 0;

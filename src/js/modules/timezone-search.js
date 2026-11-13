@@ -3,12 +3,8 @@
 
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
-        let standardTimezoneEntriesCache = null;
-        let standardTimezoneEntriesCacheYear = null;
-        let standardTimezoneWarmupQueued = false;
-        let fullTimezoneOverlayStandardEntries = [];
         let fullTimezoneOverlayCountryEntries = [];
-        let fullTimezoneOverlayActiveTab = "standard";
+        let fullTimezoneOverlayActiveTab = "country";
         let fullTimezoneOverlayQuery = "";
         let generatedTimezoneIdSeq = 0;
 
@@ -161,22 +157,6 @@
             return String(value || "").replace("GMT", "UTC").trim().toUpperCase();
         }
 
-        function getAllSupportedTimezoneNames() {
-            try {
-                if (typeof Intl !== "undefined" && typeof Intl.supportedValuesOf === "function") {
-                    const values = Intl.supportedValuesOf("timeZone");
-                    if (Array.isArray(values) && values.length) return values;
-                }
-            } catch (err) {
-                // 아래 대체 경로를 사용한다.
-            }
-            const fallback = new Set(["UTC"]);
-            getTZDatabase().forEach((tzData) => {
-                if (tzData?.zone) fallback.add(tzData.zone);
-            });
-            return [...fallback];
-        }
-
         function getSortedTZData(list) {
             const locale = getCurrentLang() === "en" ? "en-US" : "ko-KR";
             return [...list].sort((a, b) =>
@@ -224,102 +204,14 @@
             return entries;
         }
 
-        function getStandardTimezoneEntries() {
-            const now = new Date();
-            const currentYear = now.getUTCFullYear();
-            if (standardTimezoneEntriesCacheYear === currentYear && Array.isArray(standardTimezoneEntriesCache)) {
-                return standardTimezoneEntriesCache.map((entry) => ({ ...entry }));
-            }
-
-            const entries = [];
-            const seen = new Set();
-
-            const pushEntry = (_abbrValue, offsetMinutes, _zone = "UTC") => {
-                if (!Number.isFinite(offsetMinutes)) return;
-                const safeOffset = Math.min(14 * 60, Math.max(-14 * 60, Math.trunc(offsetMinutes)));
-                const abbr = safeOffset === 0 ? "UTC" : formatUtcOffsetLabel(safeOffset);
-                const dedupeKey = String(safeOffset);
-                if (seen.has(dedupeKey)) return;
-                seen.add(dedupeKey);
-                entries.push({
-                    kind: "standard_list",
-                    key: `std:${abbr}:${safeOffset}`,
-                    zone: "UTC",
-                    abbr,
-                    fixedOffsetMinutes: safeOffset
-                });
-            };
-
-            pushEntry("UTC", 0, "UTC");
-
-            const janDate = new Date(Date.UTC(currentYear, 0, 1, 12, 0, 0));
-            const julDate = new Date(Date.UTC(currentYear, 6, 1, 12, 0, 0));
-            getAllSupportedTimezoneNames().forEach((zone) => {
-                if (zone === "UTC") return;
-                const janOffset = getTimezoneOffsetSafe(zone, janDate);
-                const julOffset = getTimezoneOffsetSafe(zone, julDate);
-                if (!Number.isFinite(janOffset) || !Number.isFinite(julOffset)) return;
-
-                const janAbbr = normalizeZoneAbbreviation(getBetterAbbrSafe(zone, janDate)) || formatUtcOffsetLabel(janOffset);
-                const julAbbr = normalizeZoneAbbreviation(getBetterAbbrSafe(zone, julDate)) || formatUtcOffsetLabel(julOffset);
-
-                if (janOffset === julOffset) {
-                    pushEntry(janAbbr, janOffset, zone);
-                    return;
-                }
-
-                const standardOffset = Math.min(janOffset, julOffset);
-                const daylightOffset = Math.max(janOffset, julOffset);
-                const standardAbbr = (janOffset === standardOffset) ? janAbbr : julAbbr;
-                const daylightAbbr = (janOffset === daylightOffset) ? janAbbr : julAbbr;
-                pushEntry(daylightAbbr, daylightOffset, zone);
-                pushEntry(standardAbbr, standardOffset, zone);
-            });
-
-            const sorted = entries.sort((a, b) => {
-                const diff = a.fixedOffsetMinutes - b.fixedOffsetMinutes;
-                if (diff !== 0) return diff;
-                return a.abbr.localeCompare(b.abbr, "en-US", { sensitivity: "base" });
-            });
-            standardTimezoneEntriesCache = sorted.map((entry) => ({ ...entry }));
-            standardTimezoneEntriesCacheYear = currentYear;
-            return sorted;
-        }
-
-        function queueStandardTimezoneWarmup() {
-            const currentYear = new Date().getUTCFullYear();
-            if (standardTimezoneEntriesCacheYear === currentYear && Array.isArray(standardTimezoneEntriesCache)) return;
-            if (standardTimezoneWarmupQueued) return;
-            standardTimezoneWarmupQueued = true;
-
-            const warmup = () => {
-                standardTimezoneWarmupQueued = false;
-                try {
-                    getStandardTimezoneEntries();
-                } catch (err) {
-                    logWarn("Failed to warm up standard timezone cache.", err);
-                }
-            };
-
-            if (typeof globalObj.requestIdleCallback === "function") {
-                globalObj.requestIdleCallback(warmup, { timeout: 1200 });
-                return;
-            }
-            if (typeof globalObj.setTimeout === "function") {
-                globalObj.setTimeout(warmup, 120);
-                return;
-            }
-            warmup();
+        // First tile of the presets: the table's UTC row ("Standard Time (UTC)").
+        const UTC_ROW_ENTRY_KEY = "utc-row";
+        function getUtcRowEntry() {
+            return { kind: "utc_row", key: UTC_ROW_ENTRY_KEY, zone: "UTC", abbr: "UTC", fixedOffsetMinutes: 0 };
         }
 
         function getTimezoneEntryTitle(entry) {
-            if (entry?.kind === "standard_list") {
-                const parsedOffset = parseFixedOffsetMinutes(entry.fixedOffsetMinutes);
-                const offsetLabel = formatUtcOffsetLabel(parsedOffset === null ? 0 : parsedOffset);
-                return getCurrentLang() === "en"
-                    ? `${offsetLabel} Standard Time`
-                    : `${offsetLabel} \uD45C\uC900\uC2DC`;
-            }
+            if (entry?.kind === "utc_row") return translate("overlay_utc_row_title");
             return getLocalizedTZLabel(entry);
         }
 
@@ -358,28 +250,12 @@
         function getSelectableTZEntryByKey(entryKey) {
             const key = (typeof entryKey === "string") ? entryKey.trim() : "";
             if (!key) return null;
-            const countryEntry = getSelectableTZEntries().find((entry) => entry.key === key);
-            if (countryEntry) return countryEntry;
-            return getStandardTimezoneEntries().find((entry) => entry.key === key) || null;
+            if (key === UTC_ROW_ENTRY_KEY) return getUtcRowEntry();
+            return getSelectableTZEntries().find((entry) => entry.key === key) || null;
         }
 
         function createStandardTimezoneFromSelectableEntry(entry) {
             if (!entry || typeof entry !== "object") return null;
-            if (entry.kind === "standard_list") {
-                // A fixed offset without daylight saving time: stored as a custom entry, the type
-                // every screen draws and calculates with its own offset ("UTC+09:00").
-                const timeCore = globalObj?.GTVTimeCore || globalThis.GTVTimeCore;
-                const fields = timeCore?.toCustomOffsetFields?.(entry.fixedOffsetMinutes);
-                if (!fields) return null;
-                return {
-                    id: createUniqueTimezoneId("tz-c"),
-                    type: "custom",
-                    abbr: fields.abbr,
-                    name: `${fields.abbr} ${translate("standard_time_suffix")}`,
-                    offH: fields.offH,
-                    offM: fields.offM
-                };
-            }
             const entryKey = (typeof entry.key === "string") ? entry.key.trim() : "";
             const isAutoEntry = entryKey.endsWith("|auto");
             const keyHasFixedVariant = entryKey.endsWith("|dst") || entryKey.endsWith("|std");
@@ -400,8 +276,7 @@
             };
         }
 
-        // UTC+00:00 in the standard time list stands for the table's UTC row: it shows the row again
-        // when it is hidden instead of adding a separate fixed-offset entry.
+        // The UTC tile stands for the table's UTC row: it shows the row again when it is hidden.
         function showUtcRowFromList() {
             const activeGroup = dep.getCurrentGroup();
             if (!activeGroup) return false;
@@ -418,21 +293,9 @@
 
         function addFromSearchWithData(entryKey) {
             const entry = getSelectableTZEntryByKey(entryKey);
-            if (entry?.kind === "standard_list" && parseFixedOffsetMinutes(entry.fixedOffsetMinutes) === 0) {
-                return showUtcRowFromList();
-            }
+            if (entry?.kind === "utc_row") return showUtcRowFromList();
             const nextZone = createStandardTimezoneFromSelectableEntry(entry);
             if (!nextZone) return false;
-            if (nextZone.type === "custom") {
-                // The same offset already in the group gets the usual timezone notice.
-                const zones = dep.getCurrentGroup()?.zones;
-                const exists = Array.isArray(zones) && zones.some((zone) => zone?.type === "custom"
-                    && String(zone.abbr || "").toUpperCase() === nextZone.abbr);
-                if (exists) {
-                    dep.showToast(translate("toast_timezone_duplicate"), { type: "info" });
-                    return false;
-                }
-            }
             return addTimezoneSafe({ ...nextZone }) !== false;
         }
 
@@ -453,27 +316,17 @@
             title.textContent = getTimezoneEntryTitle(tzEntry);
             const abbr = doc.createElement("div");
             abbr.className = "tz-item-abbr";
-            const abbrText = tzEntry?.kind === "standard_list"
-                ? formatUtcOffsetLabel(parseFixedOffsetMinutes(tzEntry?.fixedOffsetMinutes) ?? 0)
-                : (
-                    normalizeZoneAbbreviation(tzEntry?.abbr)
-                    || normalizeZoneAbbreviation(getBetterAbbrSafe(tzEntry?.zone, new Date()))
-                    || "UTC"
-                );
-            if (tzEntry?.kind === "standard_list") {
-                abbr.textContent = `[${abbrText}]`;
+            const abbrText = normalizeZoneAbbreviation(tzEntry?.abbr)
+                || normalizeZoneAbbreviation(getBetterAbbrSafe(tzEntry?.zone, new Date()))
+                || "UTC";
+            const offsetMinutes = resolveTimezoneEntryOffsetMinutes(tzEntry);
+            if (Number.isFinite(offsetMinutes)) {
+                const offsetText = formatOffsetBadgeLabel(offsetMinutes);
+                abbr.textContent = toCanonicalOffsetText(abbrText) === toCanonicalOffsetText(offsetText)
+                    ? `[${abbrText}]`
+                    : `[${abbrText}] [${offsetText}]`;
             } else {
-                const offsetMinutes = resolveTimezoneEntryOffsetMinutes(tzEntry);
-                if (Number.isFinite(offsetMinutes)) {
-                    const offsetText = formatOffsetBadgeLabel(offsetMinutes);
-                    if (toCanonicalOffsetText(abbrText) === toCanonicalOffsetText(offsetText)) {
-                        abbr.textContent = `[${abbrText}]`;
-                    } else {
-                        abbr.textContent = `[${abbrText}] [${offsetText}]`;
-                    }
-                } else {
-                    abbr.textContent = `[${abbrText}]`;
-                }
+                abbr.textContent = `[${abbrText}]`;
             }
             item.appendChild(title);
             item.appendChild(abbr);
@@ -487,14 +340,11 @@
         }
 
         function sanitizeFullTimezoneOverlayTab(value) {
-            return (value === "country" || value === "custom") ? value : "standard";
+            return value === "custom" ? "custom" : "country";
         }
 
         function getActiveFullTimezoneOverlayEntries() {
-            const sourceEntries = fullTimezoneOverlayActiveTab === "country"
-                ? fullTimezoneOverlayCountryEntries
-                : fullTimezoneOverlayStandardEntries;
-            return filterTimezoneEntries(sourceEntries, fullTimezoneOverlayQuery);
+            return filterTimezoneEntries(fullTimezoneOverlayCountryEntries, fullTimezoneOverlayQuery);
         }
 
         function updateFullTimezoneOverlaySearchUi() {
@@ -504,15 +354,6 @@
             const clearBtn = doc.getElementById("tz-search-clear");
             if (searchInput && searchInput.value !== fullTimezoneOverlayQuery) {
                 searchInput.value = fullTimezoneOverlayQuery;
-            }
-            if (searchInput) {
-                // The standard time list holds offsets only (UTC+09:00), so it gets its own hint. The
-                // data-i18n key follows the tab so a language change keeps the matching text.
-                const placeholderKey = fullTimezoneOverlayActiveTab === "standard"
-                    ? "placeholder_timezone_search_standard"
-                    : "placeholder_timezone_search";
-                searchInput.setAttribute?.("data-i18n", placeholderKey);
-                searchInput.placeholder = translate(placeholderKey);
             }
             if (clearBtn) {
                 const hasQuery = !!String(fullTimezoneOverlayQuery || "").trim();
@@ -543,12 +384,7 @@
             if (!entries.length && typeof doc.createElement === "function") {
                 const emptyState = doc.createElement("div");
                 emptyState.className = "tz-empty-state";
-                const hasQuery = !!String(fullTimezoneOverlayQuery || "").trim();
-                emptyState.textContent = translate(
-                    (fullTimezoneOverlayActiveTab === "standard" && hasQuery)
-                        ? "overlay_no_tz_results_standard"
-                        : "overlay_no_tz_results"
-                );
+                emptyState.textContent = translate("overlay_no_tz_results");
                 list.appendChild(emptyState);
                 return;
             }
@@ -561,7 +397,7 @@
         function updateFullTimezoneOverlayTabButtons() {
             const doc = getDocumentRef();
             if (!doc || typeof doc.getElementById !== "function") return;
-            ["standard", "country", "custom"].forEach((tab) => {
+            ["country", "custom"].forEach((tab) => {
                 const tabBtn = doc.getElementById(`tz-tab-${tab}`);
                 if (!tabBtn) return;
                 tabBtn.classList.toggle("active", fullTimezoneOverlayActiveTab === tab);
@@ -611,6 +447,13 @@
             if (overlay) overlay.style.display = "none";
             resetFullTimezoneOverlayQuery();
             resetCustomTimezoneForm(doc);
+            // Focus back on the List button, without the keyboard focus highlight.
+            doc.getElementById("show-all-tz")?.focus?.({ focusVisible: false, preventScroll: true });
+        }
+
+        function isFullTimezoneOverlayOpen(doc) {
+            const overlay = doc.getElementById("full-tz-overlay");
+            return !!overlay && !!overlay.style && overlay.style.display === "flex";
         }
 
         function openFullTimezoneOverlay() {
@@ -618,10 +461,9 @@
             if (!doc || typeof doc.getElementById !== "function") return;
             const overlay = doc.getElementById("full-tz-overlay");
             if (!overlay) return;
-            fullTimezoneOverlayStandardEntries = getStandardTimezoneEntries();
-            fullTimezoneOverlayCountryEntries = getSelectableTZEntries();
+            fullTimezoneOverlayCountryEntries = [getUtcRowEntry(), ...getSelectableTZEntries()];
             fullTimezoneOverlayQuery = "";
-            setFullTimezoneOverlayTab("standard");
+            setFullTimezoneOverlayTab("country");
             overlay.style.display = "flex";
             const searchInput = doc.getElementById("tz-search-input");
             if (searchInput?.focus) {
@@ -644,7 +486,7 @@
                 };
             }
 
-            ["standard", "country", "custom"].forEach((tab) => {
+            ["country", "custom"].forEach((tab) => {
                 const tabBtn = doc.getElementById(`tz-tab-${tab}`);
                 if (tabBtn) tabBtn.addEventListener("click", () => setFullTimezoneOverlayTab(tab));
             });
@@ -671,16 +513,27 @@
                 };
             }
 
+            // Esc closes the popup, unless an in-page prompt or confirm is open above it.
+            if (typeof doc.addEventListener === "function") {
+                doc.addEventListener("keydown", (event) => {
+                    if (event?.key !== "Escape" || !isFullTimezoneOverlayOpen(doc)) return;
+                    const dialogAbove = ["app-prompt-overlay", "app-confirm-overlay"].some((id) => {
+                        const el = doc.getElementById(id);
+                        return !!el && !!el.style && !!el.style.display && el.style.display !== "none";
+                    });
+                    if (dialogAbove) return;
+                    event.preventDefault?.();
+                    closeFullTimezoneOverlay();
+                });
+            }
+
             updateFullTimezoneOverlaySearchUi();
         }
 
         return Object.freeze({
             formatUtcOffsetLabel,
             normalizeZoneAbbreviation,
-            getAllSupportedTimezoneNames,
             getSelectableTZEntries,
-            getStandardTimezoneEntries,
-            queueStandardTimezoneWarmup,
             getTimezoneEntryTitle,
             filterTimezoneEntries,
             getSelectableTZEntryByKey,
