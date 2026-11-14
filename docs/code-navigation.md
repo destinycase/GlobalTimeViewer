@@ -1,6 +1,6 @@
 # Global Time Viewer 코드 구조 안내
 
-> 기준: v3.17.1 소스 트리(6차 안정 버전). `src/runtime-script-list.txt`, `src/main.js`, `src/js/modules/main-module-spec.js` 및 각 서비스의 `createService(deps)` 배선을 기준으로 정리했습니다.
+> 기준: v3.18.1 소스 트리(7차 안정 버전). `src/runtime-script-list.txt`, `src/main.js`, `src/js/modules/main-module-spec.js` 및 각 서비스의 `createService(deps)` 배선을 기준으로 정리했습니다.
 
 이 문서는 "어디에 무엇이 있는지"를 보여 주는 코드 지도입니다. 실행 흐름, `main.js` 조립 계층, 기능별 시작 파일, 기능별 구현 메모를 한곳에 모았습니다. 변경할 때 지킬 규칙과 검증·배포 절차는 [개발자 가이드](developer-guide.md), 모듈 파일별 전역 API·입력 의존성 키·반환 API·`main.js` 조립 호출 목록은 소스에서 생성하는 [의존성 인벤토리](module-dependency-inventory.md)(`npm run docs:module-inventory`), 프로그램 사용 방법은 [사용자 가이드](user-guide.md)를 참고하세요.
 
