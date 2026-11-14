@@ -136,7 +136,7 @@ flowchart LR
 | 계산기·날짜 입력 | `calculator.js`(단위 변환·기간/날짜 이동·조립) | `calculator-date-format.js`(날짜 파싱·형식), `calculator-countdown.js`, `calculator-countdown-state.js`(상태 정규화·표시), `calculator-format-converter.js`(시간 포맷 변환기), `calculator-actions.js`, `date-picker.js`, `time-adjust-ui.js`, `time-adjust-actions.js` | 계산 결과 의미를 바꾸지 않고 DOM 입력 검증·피드백과 핵심 연산을 구분합니다. |
 | 저장 데이터 정규화 | `persistence-state-normalizer.js` | `state-persistence.js`, `format-profile-state.js`, `multi-state.js` | 들어오는 데이터의 기본값·형태 정규화를 맡습니다. |
 | 브라우저 저장소(`localStorage`)·설정 이동 | `state-persistence.js` | `persistence-service-bundle.js`, `settings-io.js`, `data-transfer.js` | `localStorage` 읽기·쓰기와 앱 상태 복구를 맡습니다(확장에 `storage` 권한이 없어 `chrome.storage`는 쓰지 않음). 공개 진입점은 `GTVStatePersistence.createService()`입니다. 정규화, 구버전 읽기, 전체·그룹·보조 그룹 payload는 서로 다른 책임입니다. |
-| 타임존 추가 팝업(타임존 프리셋·사용자 커스텀 탭) | `timezone-search.js`(`openFullTimezoneOverlay`, `setFullTimezoneOverlayTab`) | `index.html`의 `#full-tz-overlay`·`#tz-custom-panel`, `main-ui-init.js`(커스텀 추가 처리), `main-timezone-mutation-services.js`(중복 검사) | 4장 메모 참고 |
+| 시간대 추가 팝업(시간대 프리셋·사용자 커스텀 탭) | `timezone-search.js`(`openFullTimezoneOverlay`, `setFullTimezoneOverlayTab`) | `index.html`의 `#full-tz-overlay`·`#tz-custom-panel`, `main-ui-init.js`(커스텀 추가 처리), `main-timezone-mutation-services.js`(중복 검사) | 4장 메모 참고 |
 | 설정·도움말 팝업 | `ui-settings-actions.js`(`bindDialogControls`) | `index.html`의 `#settings-overlay`·`#help-overlay`, `i18n.js`의 `settings_*`·`help_*` 키, `main-ui-init.js`(연결), `format-controls.js` | 4장 메모 참고 |
 | 그룹 설정 팝업(이름·내보내기/가져오기·기준 시간·낮/밤·삭제) | `group-tabs.js`(`openGroupSettings`) | `index.html`의 `#group-settings-overlay`, `i18n.js`의 `group_settings_*` 키, `ui-preferences-state.js`(그룹별 낮/밤), `main-ui-init.js`(`gtv:group-settings-opened`로 낮/밤 선택값 동기화) | 4장 메모 참고 |
 | 초기화·알림 | `main-ui-init.js` | `app-feedback.js`, `main-foundation-services.js`(화면 안 입력·확인 창) | |
@@ -163,11 +163,11 @@ flowchart LR
 - 고정 날짜 입력은 없습니다. 탭을 열 때(`tab-ui.js`의 `switchMainTabUi`, 앱을 고정 시간 탭으로 시작할 때 포함) `markFixedTimeOpened()`가 그 순간을 `fixed-time-slot-utils.js`에 저장하고(저장 데이터에는 넣지 않음), `fixed-time-core.js`의 `resolveFixedTimeSlotUtcDate`가 그 순간의 기준 시간대 날짜에 슬롯 시각을 놓습니다. 탭을 연 적이 없으면 호출한 쪽이 넘긴 기준 시각(`getGlobalTime(0)`)을 씁니다. 타임라인보다 먼저 저장하도록 `switchMainTabUi`에서 화면을 그리기 전에 부릅니다.
 - 예전 버전이 그룹에 저장한 `fixedDate`는 `group-state.js`의 정규화와 `ensureGroupFixedTimes`가 지우므로, 불러온 뒤 다음 저장 때 빠집니다. 설정·그룹 내보내기에도 넣지 않습니다. 옛 파일을 가져와도 무시합니다.
 
-### 타임존 추가 팝업
+### 시간대 추가 팝업
 
-- 시간대 추가는 `타임존 추가` 팝업(`#full-tz-overlay`) 하나로 합니다. 본 화면에는 도구 줄(`#control-option-row`) 맨 앞에 `타임존 추가` 이름표와 `목록` 버튼(`#show-all-tz`)만 있습니다.
-- 팝업은 `timezone-search.js`가 맡고 탭은 `타임존 프리셋`(`tz-tab-country`, 먼저 열림)과 `사용자 커스텀`(`tz-tab-custom`) 두 개입니다(`setFullTimezoneOverlayTab`).
-- 타임존 프리셋의 첫 타일 `표준시 (UTC)`(`utc-row` 항목)는 별도 시간대를 만들지 않고 표의 UTC 행을 다시 켭니다(이미 보이면 중복 안내). 나머지 타일은 도시 목록이며 도시·약어·UTC 오프셋으로 검색합니다.
+- 시간대 추가는 `시간대 추가` 팝업(`#full-tz-overlay`) 하나로 합니다. 본 화면에는 도구 줄(`#control-option-row`) 맨 앞에 `시간대 추가` 이름표와 `목록` 버튼(`#show-all-tz`)만 있습니다.
+- 팝업은 `timezone-search.js`가 맡고 탭은 `시간대 프리셋`(`tz-tab-country`, 먼저 열림)과 `사용자 커스텀`(`tz-tab-custom`) 두 개입니다(`setFullTimezoneOverlayTab`).
+- 시간대 프리셋의 첫 타일 `표준시 (UTC)`(`utc-row` 항목)는 별도 시간대를 만들지 않고 표의 UTC 행을 다시 켭니다(이미 보이면 중복 안내). 나머지 타일은 도시 목록이며 도시·약어·UTC 오프셋으로 검색합니다.
 - 사용자 커스텀 탭은 검색칸과 목록 대신 입력 양식(`#tz-custom-panel`)을 보입니다. 입력칸 id(`custom-abbr` 등)는 예전과 같아 `main-ui-init.js`의 추가 처리기가 그대로 동작하고, 추가에 성공하면 닫기 버튼으로 팝업을 닫습니다.
 - 팝업을 닫는 길(닫기 버튼, 바깥 클릭, 목록 항목 선택, 커스텀 추가 성공, Esc)은 모두 `closeFullTimezoneOverlay`를 거칩니다. 이때 커스텀 양식을 비우고 시차를 +00:00으로 되돌리고 초점을 `목록` 버튼으로 돌려줍니다(강조 없이). Esc는 화면 안 입력·확인 창이 위에 떠 있으면 그 창이 먼저 받습니다.
 - 표를 다시 그리는 `renderList`(`main-timezone-table-facade.js`)는 실시간·시간 변경 탭에서는 표 렌더러가 `updateClocks`로 타임라인과 복사 미리보기까지 갱신합니다. 고정 시간 탭에서는 고정 시간 표만 그리므로 `renderList`가 이어서 타임라인(`renderTimelineFrame`)을 다시 그립니다. `실시간 표시`가 꺼져 있으면 1초마다 다시 그리는 일이 없어서, 이렇게 하지 않으면 UTC 타일로 다시 켠 행이 타임라인에 바로 나오지 않습니다. 복사 미리보기는 모든 탭에서 기준 시간 한 줄만 보여 주는 형식 예시라 행을 더하거나 빼도 바뀌지 않습니다.

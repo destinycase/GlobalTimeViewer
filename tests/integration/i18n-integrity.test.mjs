@@ -62,4 +62,21 @@ describe("i18n key integrity", () => {
             if (typeof koVal === "string") expect(koVal.trim().length).toBeGreaterThan(0);
         });
     });
+
+    it("uses one Korean word for time zone (시간대, not 타임존) in every Korean string", () => {
+        const i18nData = loadI18nData();
+        const collect = (value, keyPath, out) => {
+            if (typeof value === "string") out.push([keyPath, value]);
+            else if (Array.isArray(value)) value.forEach((item, i) => collect(item, `${keyPath}[${i}]`, out));
+            else if (value && typeof value === "object") Object.entries(value).forEach(([k, v]) => collect(v, `${keyPath}.${k}`, out));
+            return out;
+        };
+        const koStrings = collect(i18nData.ko, "ko", []);
+        expect(koStrings.length).toBeGreaterThan(100);
+        expect(koStrings.filter(([, text]) => text.includes("타임존"))).toEqual([]);
+        expect(koStrings.filter(([, text]) => text.includes("시간대")).length).toBeGreaterThan(5);
+        // Korean text written directly in the page markup or scripts follows the same rule.
+        const html = fs.readFileSync(INDEX_PATH, "utf8");
+        expect(html.includes("타임존")).toBe(false);
+    });
 });

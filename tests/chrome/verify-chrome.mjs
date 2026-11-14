@@ -150,15 +150,15 @@ function buildScenarios(ctx) {
         },
         {
             id: "3",
-            title: "타임존 추가 팝업의 커스텀 탭으로 시간대 추가 → 저장 → 다시 열어도 유지",
+            title: "시간대 추가 팝업의 커스텀 탭으로 시간대 추가 → 저장 → 다시 열어도 유지",
             async run() {
                 const { api } = ctx;
                 const shownById = (id) => api.ev(`(() => { const el = document.getElementById(${JSON.stringify(id)}); return !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().width > 0; })()`);
                 // The main screen has no city combo box; "Add Timezone" + List opens the popup.
                 const main = await api.ev(`({ combo: !!document.getElementById("tz-quick-select"), label: document.querySelector(".option-add-tz-group .control-label-large")?.textContent.trim() })`);
-                assert(!main.combo && main.label === "타임존 추가", `본 화면 타임존 추가: ${JSON.stringify(main)}`);
+                assert(!main.combo && main.label === "시간대 추가", `본 화면 시간대 추가: ${JSON.stringify(main)}`);
                 await api.ev(`document.getElementById("show-all-tz").click()`);
-                await until("타임존 추가 팝업", () => shownById("full-tz-overlay"));
+                await until("시간대 추가 팝업", () => shownById("full-tz-overlay"));
                 await api.ev(`document.getElementById("tz-tab-custom").click()`);
                 await until("커스텀 탭", () => shownById("tz-custom-panel"));
                 assert(!(await shownById("full-tz-list")) && !(await shownById("tz-search-input")), "커스텀 탭에서 목록·검색이 보임");
@@ -195,7 +195,7 @@ function buildScenarios(ctx) {
                 await api.reload();
                 const kept = await api.ev(`[...document.querySelectorAll("#clocks-container .zone-name")].some((el) => el.textContent.includes("Chrome Check Zone"))`);
                 assert(kept, "다시 연 뒤 추가한 시간대가 없음");
-                return "본 화면 콤보박스 없음·\"타임존 추가\" → 팝업 커스텀 탭(목록·검색 숨김, 약어 칸 초점)에 입력 → 추가 후 팝업 닫힘, 닫으면 입력칸 비움(추가 후·입력 중 닫기 모두), UTC+09:00 사용자 지정 시간대가 다시 연 뒤에도 표시됨";
+                return "본 화면 콤보박스 없음·\"시간대 추가\" → 팝업 커스텀 탭(목록·검색 숨김, 약어 칸 초점)에 입력 → 추가 후 팝업 닫힘, 닫으면 입력칸 비움(추가 후·입력 중 닫기 모두), UTC+09:00 사용자 지정 시간대가 다시 연 뒤에도 표시됨";
             }
         },
         {
@@ -551,7 +551,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "12",
-            title: "검수 결함 회귀: 변환기 손 입력·카운트다운 수정·DST 없는 시각·고정 시간 범위·타임존 검색 안내",
+            title: "검수 결함 회귀: 변환기 손 입력·카운트다운 수정·DST 없는 시각·고정 시간 범위·시간대 검색 안내",
             async run() {
                 const { api, page } = ctx;
                 const toastTexts = () => api.ev(`[...document.querySelectorAll("#toast-container .toast")].map((t) => t.textContent.trim())`);
@@ -631,7 +631,7 @@ function buildScenarios(ctx) {
                 await sleep(200);
                 const placeholder = await api.ev(`document.getElementById("tz-search-input").placeholder`);
                 await api.ev(`document.getElementById("close-overlay").click()`);
-                assert(/UTC/.test(placeholder) && /도시|city/i.test(placeholder), `타임존 프리셋 검색 안내: ${placeholder}`);
+                assert(/UTC/.test(placeholder) && /도시|city/i.test(placeholder), `시간대 프리셋 검색 안내: ${placeholder}`);
 
                 return `변환기 손 입력 ${typed.unixSec}, 카운트다운 ${countdown.shown}, 02:30 → ${gap.slice(11, 19)}(안내), 25:00 거부(${fixedAfter}), 검색 안내 "${placeholder}"`;
             }
@@ -796,7 +796,7 @@ function buildScenarios(ctx) {
                     keptOn.push(tab);
                 }
 
-                // e) The popup has two tabs, "타임존 프리셋" (opened first, the UTC tile on top) and
+                // e) The popup has two tabs, "시간대 프리셋" (opened first, the UTC tile on top) and
                 //    "사용자 커스텀"; Esc closes it.
                 await api.ev(`document.getElementById("show-all-tz").click()`);
                 await until("시간대 목록 열림", () => api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none"`));
@@ -805,7 +805,7 @@ function buildScenarios(ctx) {
                     active: document.querySelector("#full-tz-overlay .overlay-tab.active")?.textContent.trim(),
                     first: document.querySelector("#full-tz-list .tz-item")?.textContent.replace(/\\s+/g, " ").trim()
                 })`);
-                assert(JSON.stringify(popup.tabs) === JSON.stringify(["타임존 프리셋", "사용자 커스텀"]) && popup.active === "타임존 프리셋", `팝업 탭: ${JSON.stringify(popup)}`);
+                assert(JSON.stringify(popup.tabs) === JSON.stringify(["시간대 프리셋", "사용자 커스텀"]) && popup.active === "시간대 프리셋", `팝업 탭: ${JSON.stringify(popup)}`);
                 assert(popup.first && popup.first.startsWith("표준시 (UTC)") && popup.first.includes("UTC +00:00"), `첫 타일: ${JSON.stringify(popup)}`);
                 await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
                 await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
@@ -839,7 +839,7 @@ function buildScenarios(ctx) {
                 assert((await group2()).zones.length === 1, "UTC 타일이 별도 시간대로 추가됨");
 
                 const promptKind = named.kind === "browser" ? "브라우저 기본 입력 창" : "화면 안 입력 창";
-                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")}), 팝업 탭 "타임존 프리셋"(먼저 열림·첫 타일 표준시 (UTC))·"사용자 커스텀"·Esc 닫힘, UTC 타일은 UTC 행 표시(있으면 안내·숨김이면 다시 표시)`;
+                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")}), 팝업 탭 "시간대 프리셋"(먼저 열림·첫 타일 표준시 (UTC))·"사용자 커스텀"·Esc 닫힘, UTC 타일은 UTC 행 표시(있으면 안내·숨김이면 다시 표시)`;
             }
         },
         {
@@ -1444,7 +1444,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "18",
-            title: "고정 시간 탭에서 UTC 행 복원·도시 추가 시 타임라인 바로 갱신, 타임존 추가 팝업 바깥 클릭 닫기",
+            title: "고정 시간 탭에서 UTC 행 복원·도시 추가 시 타임라인 바로 갱신, 시간대 추가 팝업 바깥 클릭 닫기",
             async run() {
                 const { api } = ctx;
                 // Realtime marker off: no clock tick redraws the timeline on this tab.
