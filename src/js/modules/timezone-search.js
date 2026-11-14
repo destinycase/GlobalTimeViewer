@@ -513,6 +513,14 @@
                 };
             }
 
+            // A click on the dimmed area outside the popup box closes it, like the other popups.
+            const fullOverlay = doc.getElementById("full-tz-overlay");
+            if (fullOverlay && typeof fullOverlay.addEventListener === "function") {
+                fullOverlay.addEventListener("click", (event) => {
+                    if (event?.target === fullOverlay) closeFullTimezoneOverlay();
+                });
+            }
+
             // Esc closes the popup, unless an in-page prompt or confirm is open above it.
             if (typeof doc.addEventListener === "function") {
                 doc.addEventListener("keydown", (event) => {

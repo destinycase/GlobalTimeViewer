@@ -1418,7 +1418,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "18",
-            title: "고정 시간 탭에서 UTC 행 복원·도시 추가 시 타임라인 바로 갱신",
+            title: "고정 시간 탭에서 UTC 행 복원·도시 추가 시 타임라인 바로 갱신, 타임존 추가 팝업 바깥 클릭 닫기",
             async run() {
                 const { api } = ctx;
                 // Realtime marker off: no clock tick redraws the timeline on this tab.
@@ -1477,7 +1477,24 @@ function buildScenarios(ctx) {
                 if (await api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none"`)) await api.ev(`document.getElementById("close-overlay").click()`);
                 const afterCity = await view();
                 assert(afterCity.table === 3 && afterCity.timeline === 3, `도쿄 추가 표·타임라인: ${JSON.stringify(afterCity)}`);
-                return `실시간 표시 끔 상태에서 UTC 타일 → 표·타임라인 ${afterUtc.table}/${afterUtc.timeline}행, 도쿄 추가 → ${afterCity.table}/${afterCity.timeline}행 (${afterCity.labels.join(" / ")})`;
+                // c) Like the other popups, a real mouse click inside the box keeps the popup open
+                //    and a click on the dimmed area outside the box closes it.
+                await openList();
+                const points = await api.ev(`(() => {
+                    const box = document.querySelector("#full-tz-overlay .overlay-content").getBoundingClientRect();
+                    return { inside: { x: box.left + box.width / 2, y: box.top + 12 }, outside: { x: Math.max(4, box.left / 2), y: Math.max(4, box.top / 2) } };
+                })()`);
+                const clickPoint = async ({ x, y }) => {
+                    await api.mouse("mousePressed", x, y);
+                    await api.mouse("mouseReleased", x, y);
+                    await sleep(200);
+                };
+                const shown = () => api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none"`);
+                await clickPoint(points.inside);
+                assert(await shown(), "팝업 안을 클릭했는데 닫힘");
+                await clickPoint(points.outside);
+                assert(!(await shown()), `팝업 바깥 클릭으로 닫히지 않음: ${JSON.stringify(points.outside)}`);
+                return `실시간 표시 끔 상태에서 UTC 타일 → 표·타임라인 ${afterUtc.table}/${afterUtc.timeline}행, 도쿄 추가 → ${afterCity.table}/${afterCity.timeline}행 (${afterCity.labels.join(" / ")}), 팝업 안 클릭은 유지·바깥 클릭으로 닫힘`;
             }
         }
     ];

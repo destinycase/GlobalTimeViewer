@@ -553,6 +553,15 @@ describe("GTV timezone search module", () => {
         expect([customAbbr.value, customName.value, customOffH.value, customOffM.value]).toEqual(["", "", "0", "0"]);
         expect(overlay.style.display).toBe("none");
 
+        // A click inside the popup box keeps it open; a click on the area outside closes it.
+        showAllBtn.onclick();
+        customAbbr.value = "OUT";
+        overlay.dispatchEvent({ type: "click", target: list });
+        expect(overlay.style.display).toBe("flex");
+        overlay.dispatchEvent({ type: "click", target: overlay });
+        expect(overlay.style.display).toBe("none");
+        expect(customAbbr.value).toBe("");
+
         // Esc closes the popup, but not while an in-page prompt is open above it.
         showAllBtn.onclick();
         const promptOverlay = createElementStub("div");
