@@ -25,9 +25,10 @@ const STORAGE_KEY = "GTV_v324_Data";
 const FIXED_NOW_MS = Date.UTC(2026, 10, 17, 1, 30, 0);
 const APP_W = 1440;
 const APP_H = 900;
-// The continuous time edit screen has the longest tool rows, so it is captured in a wider window
-// (same 16:10 shape) to keep each adjust row and the range title on one line in both languages.
+// Screens whose tool rows wrap at APP_W are captured in a wider window of the same 16:10 shape, so
+// every tool row stays on one line in both languages (English needs the most room).
 const MULTI_W = 1600;
+const FIXED_W = 1760;
 const JPEG_QUALITY = 92;
 
 const log = (message) => process.stdout.write(`${message}\n`);
@@ -120,6 +121,22 @@ async function captureApp(session, extensionId, lang) {
         el.dispatchEvent(new Event("change", { bubbles: true }));
         el.blur();
     })()`);
+    // Line counting helpers live in the page; a row whose children sit at more than one height wraps.
+    await ev(`window.childLines = (el) => new Set([...el.children].filter((k) => k.getClientRects().length).map((k) => { const b = k.getBoundingClientRect(); return Math.round(b.top + b.height / 2); })).size;
+        window.toolbarLines = () => childLines(document.getElementById("control-option-row"));`);
+    // Captures at a wider 16:10 window after checking that every measured row is on one line.
+    const wideShot = async (width, label, measure) => {
+        await c.send("Emulation.setDeviceMetricsOverride", { width, height: Math.round(width * APP_H / APP_W), deviceScaleFactor: 1, mobile: false });
+        await sleep(600);
+        const wraps = await ev(measure);
+        if (wraps.rows.length === 0 || wraps.rows.some((n) => n !== 1) || wraps.titleLines !== 1) {
+            throw new Error(`${label} (${lang}) wraps at ${width}px: ${JSON.stringify(wraps)}`);
+        }
+        const data = await shot();
+        await c.send("Emulation.setDeviceMetricsOverride", { width: APP_W, height: APP_H, deviceScaleFactor: 1, mobile: false });
+        await sleep(400);
+        return data;
+    };
     const shots = {};
 
     // 1) Realtime with the timeline.
@@ -136,23 +153,12 @@ async function captureApp(session, extensionId, lang) {
     await setValue("#multi-ranges-container .base-row .time-input[data-slot=\"1\"]", "2026-11-17 18:00:00");
     await sleep(600);
     await ev(`window.scrollTo(0, 0)`);
-    const multiW = MULTI_W;
-    await c.send("Emulation.setDeviceMetricsOverride", { width: multiW, height: Math.round(multiW * APP_H / APP_W), deviceScaleFactor: 1, mobile: false });
-    await sleep(600);
-    // Each visible adjust row and the first range title must sit on a single line.
-    const wraps = await ev(`(() => {
-        const lines = (el) => new Set([...el.children].filter((k) => k.getClientRects().length).map((k) => { const b = k.getBoundingClientRect(); return Math.round(b.top + b.height / 2); })).size;
-        const rows = [...document.querySelectorAll("#multi-range-section .time-adjust-set")].filter((el) => el.getClientRects().length).map(lines);
+    shots.multi = await wideShot(MULTI_W, "continuous time edit", `(() => {
+        const rows = [toolbarLines(), ...[...document.querySelectorAll("#multi-range-section .time-adjust-set")].filter((el) => el.getClientRects().length).map(childLines)];
         const title = document.querySelector("#multi-ranges-container .multi-range-title");
         const lineHeight = parseFloat(getComputedStyle(title).lineHeight) || 20;
         return { rows, titleLines: Math.round(title.getBoundingClientRect().height / lineHeight) };
     })()`);
-    if (wraps.rows.length === 0 || wraps.rows.some((n) => n !== 1) || wraps.titleLines !== 1) {
-        throw new Error(`continuous time edit (${lang}) wraps at ${multiW}px: ${JSON.stringify(wraps)}`);
-    }
-    shots.multi = await shot();
-    await c.send("Emulation.setDeviceMetricsOverride", { width: APP_W, height: APP_H, deviceScaleFactor: 1, mobile: false });
-    await sleep(400);
 
     // 3) Fixed time: three meeting slots for today in Seoul.
     await tab("fixed-time");
@@ -166,7 +172,7 @@ async function captureApp(session, extensionId, lang) {
     await sleep(500);
     const slots = await ev(`[...document.querySelectorAll("#fixed-time-body tr:first-child .fixed-time-time-input")].map((el) => el.value).join(",")`);
     if (slots !== slotTimes.join(",")) throw new Error(`fixed time slots: ${slots}`);
-    shots.fixed = await shot();
+    shots.fixed = await wideShot(FIXED_W, "fixed time", `({ rows: [toolbarLines()], titleLines: 1 })`);
 
     // 4) Calculator with sample values.
     await tab("calc");
