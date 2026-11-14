@@ -614,6 +614,13 @@ input[type=number] {
     flex-direction: column;
 }
 
+/* The Manage button keeps the accent fill but not the blue glow, like the group add (+) button. */
+#show-all-tz {
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 var(--border-light);
+}
+
 #add-group-btn {
     border-radius: 12px;
     width: 40px;
