@@ -14,6 +14,7 @@
     "test:package": "vitest run tests/audit",
     "test:all": "vitest run",
     "verify:chrome": "node ./tests/chrome/verify-chrome.mjs",
+    "store:assets": "node ./scripts/store-assets/generate-cws-assets.mjs",
     "sync:source-loader": "node ./scripts/sync-source-script-loader.mjs",
     "docs:module-inventory": "node ./scripts/generate-module-dependency-inventory.mjs",
     "docs:module-inventory:check": "node ./scripts/generate-module-dependency-inventory.mjs --check",

@@ -22,8 +22,8 @@
 | `src/` | 제품 코드. 확장 화면(`index.html`, `style.css`, `i18n.js`, `main.js`), 기능 모듈 `js/modules/`, 외부 라이브러리 `js/vendor/`, 생성 로더 `js/source-script-loader.js`, 로드 순서 원본 `runtime-script-list.txt`, 서비스 워커 `background.js`. `src/` 안의 상대 경로는 배포물의 경로와 같습니다. | 포함 |
 | `manifest.json`(루트) | 확장 매니페스트. 아이콘·서비스 워커 경로는 배포물(`dist_extension/`) 기준입니다. | 포함 |
 | `Asset/icons/` | 앱 아이콘 원본. 빌드가 배포물의 `icons/`로 복사합니다. | 포함 |
-| `Asset/store_assets/chrome-web-store/` | 스토어 제출 이미지. 배포 ZIP에는 들어가지 않습니다. | 포함 |
-| `scripts/` | 빌드(`build-extension.mjs`), 패키징(`package-extension.mjs`, `zip-archive.mjs`), 로더 동기화, 인벤토리 생성 도구 | 포함 |
+| `Asset/store_assets/chrome-web-store/` | 스토어 제출 이미지(한국어·영어 스크린샷 1280×800 4장, 작은 홍보 타일 440×280, 마키 1400×560, 아이콘 128). `npm run build` 뒤 `npm run store:assets`로 다시 만듭니다. 배포 ZIP에는 들어가지 않습니다. | 포함 |
+| `scripts/` | 빌드(`build-extension.mjs`), 패키징(`package-extension.mjs`, `zip-archive.mjs`), 로더 동기화, 인벤토리 생성 도구, 스토어 이미지 생성(`store-assets/generate-cws-assets.mjs`) | 포함 |
 | `tests/` | 모든 검사. 구성은 7장 [검사 파일의 위치](#검사-파일의-위치) 참고. `tests/local/`만 Git 제외 | 포함(일부 제외) |
 | `docs/` | 공개 문서(8장 참고) | 포함 |
 | `dist/` | Vite 중간 빌드 출력 | 제외 |
