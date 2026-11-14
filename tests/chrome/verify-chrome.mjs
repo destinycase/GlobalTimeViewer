@@ -1415,6 +1415,70 @@ function buildScenarios(ctx) {
                 assert(english.includes("UTC+09:00 Standard Time") && english.includes("마이너스 11"), `영어 이름: ${JSON.stringify(english)}`);
                 return `옛 형식 UTC+09:00 항목 변환(같은 id)·표시(UTC 00:00 → 09:00), 사용자 커스텀 -11:00 추가·표시(${newRow.abbr}, UTC 00:00 → ${newValue}), 다시 연 뒤 유지, 영어 이름 ${english.join(" / ")}`;
             }
+        },
+        {
+            id: "18",
+            title: "고정 시간 탭에서 UTC 행 복원·도시 추가 시 타임라인 바로 갱신",
+            async run() {
+                const { api } = ctx;
+                // Realtime marker off: no clock tick redraws the timeline on this tab.
+                const saved = {
+                    groups: [{
+                        name: "Refresh Group",
+                        zones: [{ id: "tz-se", type: "standard", zone: "Asia/Seoul", name_ko: "대한민국 - 서울", name_en: "Korea - Seoul", fixedAbbr: "", fixedOffsetMinutes: null }],
+                        baseTimezoneId: "tz-se",
+                        showUtcRow: false,
+                        utcRowOrder: 0,
+                        fixedDate: "2026-07-01",
+                        fixedTimeShowLiveNow: false,
+                        fixedTimes: [{ id: "ft-1", name: "A", time: "09:00" }]
+                    }],
+                    activeGroupId: 0,
+                    currentMainTab: "fixed-time",
+                    activeGroupIdByMainTab: { live: 0, fixed: 0, "fixed-time": 0 },
+                    slotCount: 1
+                };
+                await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))}); localStorage.setItem("GTV_Lang", "ko")`);
+                await api.reload();
+                await api.switchTab("fixed-time");
+                await until("고정 시간 표", () => api.ev(`document.querySelectorAll("#fixed-time-body tr").length > 0`));
+                if (!(await api.ev(`document.getElementById("toggle-timeline").checked`))) await api.ev(`document.getElementById("toggle-timeline").click()`);
+                const view = () => api.ev(`(() => ({
+                    table: document.querySelectorAll("#fixed-time-body tr").length,
+                    timeline: document.querySelectorAll("#timeline-frame .timeline-timezone-row").length,
+                    labels: [...document.querySelectorAll("#timeline-frame .timeline-timezone-row .timeline-label")].map((el) => el.textContent.replace(/\\s+/g, " ").trim())
+                }))()`);
+                const before = await until("타임라인", async () => { const v = await view(); return v.timeline > 0 ? v : false; });
+                assert(before.table === 1 && before.timeline === 1, `처음 상태: ${JSON.stringify(before)}`);
+                assert(!(await api.ev(`!!document.getElementById("timeline-frame")?.querySelector(".live-now")`)), "실시간 표시가 켜져 있음");
+
+                const openList = async () => {
+                    await api.ev(`document.getElementById("show-all-tz").click()`);
+                    await until("시간대 목록 열림", () => api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none"`));
+                };
+                // a) The UTC tile shows the hidden UTC row: the table and the timeline gain it at once.
+                await openList();
+                await api.ev(`document.querySelector("#full-tz-list .tz-item").click()`);
+                await sleep(300);
+                const afterUtc = await view();
+                assert(afterUtc.table === 2, `UTC 행 표: ${JSON.stringify(afterUtc)}`);
+                assert(afterUtc.timeline === 2, `UTC 행이 타임라인에 바로 나오지 않음: ${JSON.stringify(afterUtc)}`);
+
+                // b) Adding a city from the presets reaches the timeline at once as well.
+                await openList();
+                await api.ev(`(() => {
+                    const input = document.getElementById("tz-search-input");
+                    input.value = "도쿄";
+                    input.dispatchEvent(new Event("input", { bubbles: true }));
+                })()`);
+                await until("도쿄 검색", () => api.ev(`[...document.querySelectorAll("#full-tz-list .tz-item")].some((item) => item.querySelector(".tz-item-title")?.textContent.includes("도쿄"))`));
+                await api.ev(`[...document.querySelectorAll("#full-tz-list .tz-item")].find((item) => item.querySelector(".tz-item-title")?.textContent.includes("도쿄")).click()`);
+                await sleep(300);
+                if (await api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none"`)) await api.ev(`document.getElementById("close-overlay").click()`);
+                const afterCity = await view();
+                assert(afterCity.table === 3 && afterCity.timeline === 3, `도쿄 추가 표·타임라인: ${JSON.stringify(afterCity)}`);
+                return `실시간 표시 끔 상태에서 UTC 타일 → 표·타임라인 ${afterUtc.table}/${afterUtc.timeline}행, 도쿄 추가 → ${afterCity.table}/${afterCity.timeline}행 (${afterCity.labels.join(" / ")})`;
+            }
         }
     ];
 }

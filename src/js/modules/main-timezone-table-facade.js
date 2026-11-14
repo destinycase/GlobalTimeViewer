@@ -21,10 +21,18 @@
         const renderFixedTimeTab = (typeof safeDeps.renderFixedTimeTab === "function")
             ? safeDeps.renderFixedTimeTab
             : (() => undefined);
+        const renderTimelineFrame = (typeof safeDeps.renderTimelineFrame === "function")
+            ? safeDeps.renderTimelineFrame
+            : (() => undefined);
 
         function renderList() {
             if (isFixedTimeTab()) {
-                return renderFixedTimeTab();
+                // The table render path redraws the timeline through updateClocks; the fixed
+                // time tab draws only its table, so redraw the timeline here (a shown or hidden
+                // row must appear there at once, even with the realtime marker off).
+                const result = renderFixedTimeTab();
+                renderTimelineFrame();
+                return result;
             }
             return callServiceMethod(
                 "tableRenderService",

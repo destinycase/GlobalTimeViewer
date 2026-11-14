@@ -112,7 +112,8 @@
             getMainTimezoneFacadeService: deps.getMainTimezoneFacadeService,
             getCopyActionsService: deps.getCopyActionsService,
             isFixedTimeTab: deps.isFixedTimeTab,
-            renderFixedTimeTab: deps.renderFixedTimeTab
+            renderFixedTimeTab: deps.renderFixedTimeTab,
+            renderTimelineFrame: deps.renderTimelineFrame
         });
 
         const mainTimeAdjustFacadeService = deps.GTV_MAIN_TIME_ADJUST_FACADE.createService({

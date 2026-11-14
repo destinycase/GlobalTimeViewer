@@ -103,6 +103,38 @@ describe("GTV main timezone table facade module", () => {
         expect(service.renderList()).toBe("fixed-rendered");
     });
 
+    it("redraws the timeline after drawing the fixed time table", () => {
+        const moduleApi = loadMainTimezoneTableFacadeModule();
+        const calls = [];
+        const service = moduleApi.createService({
+            callServiceMethod: createCallServiceMethod(),
+            isFixedTimeTab: () => true,
+            renderFixedTimeTab: () => { calls.push("fixed-table"); return "fixed-rendered"; },
+            renderTimelineFrame: () => { calls.push("timeline"); },
+            getCopyActionsService: () => ({ updateCopyFormatPreview: () => { calls.push("preview"); } }),
+            getTableRenderService: () => ({ renderList: () => { calls.push("table"); } })
+        });
+
+        expect(service.renderList()).toBe("fixed-rendered");
+        expect(calls).toEqual(["fixed-table", "timeline"]);
+    });
+
+    it("leaves the timeline redraw to the table renderer outside the fixed time tab", () => {
+        const moduleApi = loadMainTimezoneTableFacadeModule();
+        const calls = [];
+        const service = moduleApi.createService({
+            callServiceMethod: createCallServiceMethod(),
+            isFixedTimeTab: () => false,
+            renderFixedTimeTab: () => { calls.push("fixed-table"); },
+            renderTimelineFrame: () => { calls.push("timeline"); },
+            getCopyActionsService: () => ({ updateCopyFormatPreview: () => { calls.push("preview"); } }),
+            getTableRenderService: () => ({ renderList: () => { calls.push("table"); } })
+        });
+
+        service.renderList();
+        expect(calls).toEqual(["table"]);
+    });
+
     it("provides stable fallback values when dependencies are missing", async () => {
         const moduleApi = loadMainTimezoneTableFacadeModule({ withWindow: false });
         const service = moduleApi.createService({
