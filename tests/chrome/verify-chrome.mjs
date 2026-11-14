@@ -1616,10 +1616,12 @@ function buildScenarios(ctx) {
                         button: btn.textContent.trim(),
                         shadow: getComputedStyle(btn).boxShadow,
                         plusShadow: getComputedStyle(plus).boxShadow,
-                        fill: getComputedStyle(btn).backgroundImage === getComputedStyle(plus).backgroundImage
+                        fill: getComputedStyle(btn).backgroundImage === getComputedStyle(plus).backgroundImage,
+                        image: document.getElementById("save-table-image-btn").textContent.trim(),
+                        copy: document.getElementById("copy-all-btn").textContent.trim()
                     };
                 })()`);
-                assert(toolbar.label === "시간대" && toolbar.button === "관리" && toolbar.shadow === toolbar.plusShadow && toolbar.fill, `도구 줄 관리 버튼: ${JSON.stringify(toolbar)}`);
+                assert(toolbar.label === "시간대" && toolbar.button === "관리" && toolbar.shadow === toolbar.plusShadow && toolbar.fill && toolbar.image === "🖼️ 이미지 저장" && toolbar.copy === "📋 클립보드에 복사", `도구 줄 관리 버튼: ${JSON.stringify(toolbar)}`);
 
                 // b) The popup ("시간대 관리") opens on the group list, in table order, with the count on the tab.
                 await clickAt("#show-all-tz");
@@ -1691,7 +1693,7 @@ function buildScenarios(ctx) {
                 await api.switchTab("live");
                 const reloaded = await tableIds();
                 assert(JSON.stringify(reloaded) === JSON.stringify(finalList), `다시 연 뒤 순서: ${JSON.stringify({ reloaded, finalList })}`);
-                return `도구 줄 "시간대 [관리]"(+ 버튼과 같은 강조), 팝업 제목 "시간대 관리", 탭 전환 시 팝업 ${popupTop}, 표 순서·삭제 열 없음·본 화면에 기준 표기 없음, 팝업은 그룹 목록 (5)로 열림(라디오·화살표 없음, 맨 위 행에만 기준 표시·안내 문구, 맨 위 행도 손잡이·삭제 불가), 실제 마우스 끌기로 도쿄를 맨 위 바로 아래로, 런던을 맨 위로 끌어 기준 변경, 뉴욕 삭제, 프리셋 추가 후 팝업 유지·(5), 다시 연 뒤 순서 유지 ${reloaded.join(" / ")}`;
+                return `도구 줄 "시간대 [관리]"(+ 버튼과 같은 강조)·"${toolbar.image}"·"${toolbar.copy}", 팝업 제목 "시간대 관리", 탭 전환 시 팝업 ${popupTop}, 표 순서·삭제 열 없음·본 화면에 기준 표기 없음, 팝업은 그룹 목록 (5)로 열림(라디오·화살표 없음, 맨 위 행에만 기준 표시·안내 문구, 맨 위 행도 손잡이·삭제 불가), 실제 마우스 끌기로 도쿄를 맨 위 바로 아래로, 런던을 맨 위로 끌어 기준 변경, 뉴욕 삭제, 프리셋 추가 후 팝업 유지·(5), 다시 연 뒤 순서 유지 ${reloaded.join(" / ")}`;
             }
         }
     ];
