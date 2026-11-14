@@ -379,7 +379,7 @@
             return [baseId, ...ids];
         }
 
-        function getZoneOffsetMinutes(zone) {
+        function getZoneOffsetMinutes(zone, atDate = new Date()) {
             if (!zone) return 0;
             if (zone.type === "custom") {
                 const h = parseInt(zone.offH, 10) || 0;
@@ -388,7 +388,7 @@
             }
             const fixed = parseFixedOffsetMinutes(zone.fixedOffsetMinutes);
             if (fixed !== null) return fixed;
-            const live = getTimezoneOffsetSafe(zone.zone, new Date());
+            const live = getTimezoneOffsetSafe(zone.zone, atDate);
             return Number.isFinite(live) ? Math.trunc(live) : 0;
         }
 
@@ -396,14 +396,17 @@
             const group = getCurrentGroupSafe();
             if (!group) return [];
             const zonesById = new Map((Array.isArray(group.zones) ? group.zones : []).map((zone) => [zone?.id, zone]));
+            // Abbreviation and UTC offset use the same moment (now, like the preset tiles), so a
+            // row never mixes a summer abbreviation with a winter offset.
+            const now = new Date();
             return getGroupListOrderIds(group).map((id, index) => {
                 if (id === "utc") {
                     return { id, isBase: index === 0, isUtc: true, abbr: "UTC", name: translate("utc_name"), offsetText: formatUtcOffsetLabel(0) };
                 }
                 const zone = zonesById.get(id);
-                const abbr = String(dep.getZoneAbbreviation(zone) || zone?.abbr || "").trim();
+                const abbr = String(dep.getZoneAbbreviation(zone, now) || zone?.abbr || "").trim();
                 const name = String(dep.getZoneDisplayName(zone) || zone?.name || zone?.name_ko || "").trim();
-                return { id, isBase: index === 0, isUtc: false, isCustom: zone?.type === "custom", abbr, name, offsetText: formatUtcOffsetLabel(getZoneOffsetMinutes(zone)) };
+                return { id, isBase: index === 0, isUtc: false, isCustom: zone?.type === "custom", abbr, name, offsetText: formatUtcOffsetLabel(getZoneOffsetMinutes(zone, now)) };
             }).filter((entry) => entry.id === "utc" || zonesById.has(entry.id));
         }
 

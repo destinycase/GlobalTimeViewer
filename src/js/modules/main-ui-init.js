@@ -39,7 +39,6 @@
         const renderTimelineFrame = deps.renderTimelineFrame;
         const resetDisplayFormatForActiveContext = deps.resetDisplayFormatForActiveContext;
         const resetCopyFormatForActiveContext = deps.resetCopyFormatForActiveContext;
-        const applyCurrentGroupBaseTimezoneId = deps.applyCurrentGroupBaseTimezoneId;
         const addGroup = deps.addGroup;
         const addMultiSubgroup = deps.addMultiSubgroup;
         const copyAllTimezones = deps.copyAllTimezones;
@@ -321,13 +320,6 @@
                     resetCopyFormatForActiveContext();
                     renderCopyFormatControls();
                     savePersistence();
-                });
-            }
-
-            const baseTimeSelect = document.getElementById("base-time-select");
-            if (baseTimeSelect) {
-                baseTimeSelect.addEventListener("change", (e) => {
-                    applyCurrentGroupBaseTimezoneId(e.target.value || "utc", { persist: true });
                 });
             }
 

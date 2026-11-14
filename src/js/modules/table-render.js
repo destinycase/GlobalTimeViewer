@@ -281,17 +281,9 @@
             }
         }
 
-        function buildRowActionCells(copyButtonTitle, removeButtonText, removeButtonTitle = "") {
-            const copyCell = `<td class="export-exclude copy-cell"><div class="btn-group"><button class="sm-btn copy-row-btn" title="${copyButtonTitle}">&#128203;</button></div></td>`;
-            const removeTitleAttr = (typeof removeButtonTitle === "string" && removeButtonTitle.trim())
-                ? ` title="${removeButtonTitle.trim()}"`
-                : "";
-            // Rows are removed in the Add Timezone popup's group list; a remove cell is drawn only
-            // when a caller asks for a button.
-            const removeCell = removeButtonText
-                ? `<td class="export-exclude remove-cell"><div class="btn-group"><button class="sm-btn danger remove-row-btn"${removeTitleAttr}>${removeButtonText}</button></div></td>`
-                : "";
-            return `${copyCell}${removeCell}`;
+        // Rows end with the copy cell only; order and removal live in the Manage Timezones popup.
+        function buildRowActionCells(copyButtonTitle) {
+            return `<td class="export-exclude copy-cell"><div class="btn-group"><button class="sm-btn copy-row-btn" title="${copyButtonTitle}">&#128203;</button></div></td>`;
         }
 
         function createInteractiveTimezoneRow(tz, effectiveSlotCount, displayColumns, rowId = tz?.id, anchorDate = getSlotZeroAnchorDate()) {
@@ -310,7 +302,7 @@
             safeDisplayColumns.forEach((colKey) => {
                 inner += buildDynamicRowCell(colKey, effectiveSlotCount);
             });
-            inner += buildRowActionCells(translate("tooltip_copy"), "");
+            inner += buildRowActionCells(translate("tooltip_copy"));
             tr.insertAdjacentHTML('beforeend', inner);
 
             const zoneNameEl = tr.querySelector(".zone-name");
@@ -418,7 +410,7 @@
             displayColumns.forEach((colKey) => {
                 baseInner += buildStaticRowCell(colKey, effectiveSlotCount, baseRefName);
             });
-            baseInner += buildRowActionCells(translate("tooltip_copy"), "");
+            baseInner += buildRowActionCells(translate("tooltip_copy"));
             baseRow.insertAdjacentHTML('beforeend', baseInner);
             applyZoneCodeKindClass(baseRow.querySelector(".zone-code"), baseRef);
             const baseCopyBtn = baseRow.querySelector(".copy-row-btn");

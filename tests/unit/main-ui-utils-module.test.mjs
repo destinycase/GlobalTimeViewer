@@ -355,7 +355,7 @@ describe("GTV main ui utils module", () => {
         emptyTitle.setAttribute("title", "   ");
         const root = {
             querySelectorAll(selector) {
-                expect(selector).toBe("button.copy-row-btn[title], button.remove-row-btn[title]");
+                expect(selector).toBe("button.copy-row-btn[title]");
                 return [withTitle, emptyTitle];
             }
         };

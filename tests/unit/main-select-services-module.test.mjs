@@ -68,108 +68,24 @@ describe("GTV main select services module", () => {
             }
         }
     });
-    it("renders base-time options and persists when selected timezone changes", () => {
+    it("checks the group's base timezone and touches no select element", () => {
         const moduleApi = loadMainSelectServicesModule();
-        const baseSelect = createSelectElement();
-        let persistedCount = 0;
-        let selectedBaseId = "";
+        let ensureCalls = 0;
+        let documentReads = 0;
         const service = moduleApi.createService({
-            getDocumentRef: () => ({
-                getElementById: (id) => (id === "base-time-select" ? baseSelect : null),
-                createElement: (tag) => {
-                    if (tag === "canvas") {
-                        return {
-                            getContext: () => ({
-                                font: "",
-                                measureText: () => ({ width: 40 })
-                            })
-                        };
-                    }
-                    return createOptionElement();
-                }
-            }),
-            getComputedStyle: () => ({
-                fontStyle: "normal",
-                fontWeight: "400",
-                fontSize: "14px",
-                fontFamily: "Arial"
-            }),
-            ensureBaseTimezoneSelection: () => { },
-            getCurrentGroupBaseTimezoneId: () => "missing-id",
-            isCurrentGroupUtcRowVisible: () => false,
-            getCurrentGroupZones: () => ([
-                { id: "tz-a", zone: "Asia/Seoul" },
-                { id: "tz-b", zone: "Europe/London" }
-            ]),
-            getZoneAbbreviation: (tz) => (tz.id === "tz-a" ? "KST" : "GMT"),
-            getZoneDisplayName: (tz) => tz.zone,
-            setCurrentGroupBaseTimezoneId: (value) => {
-                selectedBaseId = value;
-                return true;
-            },
-            savePersistence: () => {
-                persistedCount += 1;
-            },
-            t: (key) => key
+            ensureBaseTimezoneSelection: () => { ensureCalls += 1; },
+            getDocumentRef: () => { documentReads += 1; return null; }
         });
 
-        service.renderBaseTimeSelect();
-
-        expect(baseSelect.options).toHaveLength(2);
-        expect(baseSelect.options[0].textContent).toBe("[KST] Asia/Seoul");
-        expect(baseSelect.value).toBe("tz-a");
-        expect(selectedBaseId).toBe("tz-a");
-        expect(persistedCount).toBe(1);
+        expect(service.renderBaseTimeSelect()).toBe(undefined);
+        expect(ensureCalls).toBe(1);
+        expect(documentReads).toBe(0);
+        expect(Object.keys(service)).toEqual(["renderBaseTimeSelect"]);
     });
 
-    it("uses safe fallback dependencies when rendering base-time select", () => {
+    it("works without dependencies", () => {
         const moduleApi = loadMainSelectServicesModule();
-        const baseSelect = createSelectElement();
-        const service = moduleApi.createService({
-            documentRef: {
-                getElementById: (id) => (id === "base-time-select" ? baseSelect : null),
-                createElement: (tag) => {
-                    if (tag === "canvas") {
-                        return {
-                            getContext: () => ({
-                                font: "",
-                                measureText: (text) => ({ width: text.length * 6 })
-                            })
-                        };
-                    }
-                    return createOptionElement();
-                }
-            }
-        });
-
+        const service = moduleApi.createService();
         expect(() => service.renderBaseTimeSelect()).not.toThrow();
-        expect(baseSelect.options[0]?.value).toBe("utc");
-    });
-
-    it("falls back to no-op persistence and setter when selected id changes", () => {
-        const moduleApi = loadMainSelectServicesModule();
-        const baseSelect = createSelectElement();
-        const service = moduleApi.createService({
-            getDocumentRef: () => ({
-                getElementById: (id) => (id === "base-time-select" ? baseSelect : null),
-                createElement: (tag) => {
-                    if (tag === "canvas") {
-                        return {
-                            getContext: () => ({
-                                font: "",
-                                measureText: () => ({ width: 40 })
-                            })
-                        };
-                    }
-                    return createOptionElement();
-                }
-            }),
-            getCurrentGroupBaseTimezoneId: () => "missing-id",
-            getCurrentGroupZones: () => ([{ id: "tz-z", zone: "Z" }])
-        });
-
-        expect(() => service.renderBaseTimeSelect()).not.toThrow();
-        expect(baseSelect.value).toBe("utc");
-        expect(baseSelect.options.some((opt) => opt.value === "tz-z")).toBe(true);
     });
 });

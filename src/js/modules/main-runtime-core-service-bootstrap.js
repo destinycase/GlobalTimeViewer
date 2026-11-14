@@ -49,21 +49,7 @@
 
         function buildMainSelectServicesConfig(d) {
             return {
-                ...pickAliasedDeps(d, {
-                    getDocumentRef: "getDocumentRefOrNull",
-                    getComputedStyle: "getComputedStyleSafely",
-                    savePersistence: "savePersistenceSafely",
-                    t: "gtvT"
-                }),
-                ...pickDepsFrom(d, [
-                    "ensureBaseTimezoneSelection",
-                    "getCurrentGroupBaseTimezoneId",
-                    "isCurrentGroupUtcRowVisible",
-                    "getCurrentGroupZones",
-                    "getZoneAbbreviation",
-                    "getZoneDisplayName",
-                    "setCurrentGroupBaseTimezoneId"
-                ])
+                ...pickDepsFrom(d, ["ensureBaseTimezoneSelection"])
             };
         }
 
@@ -140,19 +126,7 @@
         );
 
         const selectDeps = {
-            ...pickDeps([
-                "getDocumentRefOrNull",
-                "getComputedStyleSafely",
-                "ensureBaseTimezoneSelection",
-                "getCurrentGroupBaseTimezoneId",
-                "isCurrentGroupUtcRowVisible",
-                "getCurrentGroupZones",
-                "getZoneAbbreviation",
-                "getZoneDisplayName",
-                "setCurrentGroupBaseTimezoneId",
-                "savePersistenceSafely",
-                "gtvT"
-            ])
+            ...pickDeps(["ensureBaseTimezoneSelection"])
         };
         const mainSelectServicesConfig = buildMainSelectServicesConfig(selectDeps);
         const mainSelectServices = createMainSelectServices(mainSelectServicesConfig);

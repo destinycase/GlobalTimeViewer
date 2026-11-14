@@ -320,14 +320,15 @@ describe("GTV table render module", () => {
         expect(mainService.getDisplayColumnHeader("time_main")).toContain("th_time_day_main");
     });
 
-    it("buildRowActionCells includes remove title when provided", () => {
+    it("buildRowActionCells draws only the copy cell", () => {
         const module = loadTableRenderModule();
         const service = module.createService({});
         const html = service.buildRowActionCells("copy", "X", "remove-title");
 
         expect(html).toContain("copy-row-btn");
-        expect(html).toContain('title="remove-title"');
-        expect(html).toContain("remove-row-btn");
+        expect(html).toContain('title="copy"');
+        expect(html).not.toContain("remove-row-btn");
+        expect(html).not.toContain("remove-cell");
     });
 
     it("getRenderableTimezoneRows inserts utc row at configured order", () => {

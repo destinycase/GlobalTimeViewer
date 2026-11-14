@@ -163,7 +163,7 @@
             }
 
             const headerCells = Array.from(table.querySelectorAll(context.headerSelector) || [])
-                .filter((th) => !th.classList?.contains("export-exclude") && !th.classList?.contains("move-col"));
+                .filter((th) => !th.classList?.contains("export-exclude"));
             const bodyRows = Array.from(table.querySelectorAll(context.rowSelector) || []);
             if (!headerCells.length || !bodyRows.length) {
                 throw new Error("No table data to render");
@@ -206,7 +206,6 @@
             const isCenterBodyCell = (cell) => {
                 if (!cell) return false;
                 if (
-                    cell.classList?.contains("move-cell") ||
                     cell.classList?.contains("timezone-cell") ||
                     cell.classList?.contains("fixed-time-time") ||
                     cell.classList?.contains("period-days-cell") ||
@@ -253,7 +252,7 @@
 
                 let rowX = 0;
                 const cells = Array.from(row.children || [])
-                    .filter((td) => !td.classList?.contains("export-exclude") && !td.classList?.contains("move-cell"));
+                    .filter((td) => !td.classList?.contains("export-exclude"));
                 for (let c = 0; c < colCount; c++) {
                     const w = measuredColWidths[c];
                     const cell = cells[c];

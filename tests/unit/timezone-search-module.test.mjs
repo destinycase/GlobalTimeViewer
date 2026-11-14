@@ -497,6 +497,39 @@ describe("GTV timezone search module", () => {
         expect(group.zones.some((zone) => zone.id === "tz-se")).toBe(false);
     });
 
+    it("group list rows use one moment for the abbreviation and the UTC offset", () => {
+        const group = {
+            baseTimezoneId: "tz-ny",
+            showUtcRow: false,
+            zones: [{ id: "tz-ny", type: "standard", zone: "America/New_York", name_ko: "New York" }]
+        };
+        const abbrDates = [];
+        const offsetDates = [];
+        const module = loadTimezoneSearchModule();
+        const service = module.createService({
+            getCurrentGroup: () => group,
+            // A stale date (as the Time Edit tab may hold) must not reach the abbreviation.
+            getZoneAbbreviation: (_zone, date = new Date("2026-07-15T12:00:00Z")) => {
+                abbrDates.push(date.getTime());
+                return date.getUTCMonth() === 6 ? "EDT" : "EST";
+            },
+            getZoneDisplayName: (zone) => zone.name_ko,
+            getTimezoneOffset: (_zone, date) => {
+                offsetDates.push(date.getTime());
+                return date.getUTCMonth() === 6 ? -240 : -300;
+            },
+            getBetterAbbr: () => "",
+            t: (key) => key
+        });
+
+        const [row] = service.getGroupListEntries();
+        expect(abbrDates).toHaveLength(1);
+        expect(offsetDates).toHaveLength(1);
+        expect(abbrDates[0]).toBe(offsetDates[0]);
+        expect(Math.abs(abbrDates[0] - Date.now())).toBeLessThan(5000);
+        expect(row.abbr === "EDT" ? row.offsetText === "UTC-04:00" : row.offsetText === "UTC-05:00").toBe(true);
+    });
+
     it("initSearchAndSelect exits safely when the popup elements are missing", () => {
         const module = loadTimezoneSearchModule({
             document: {

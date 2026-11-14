@@ -137,6 +137,7 @@
             getCurrentGroupFixedTimeShowLiveNow: deps.getCurrentGroupFixedTimeShowLiveNow,
             getDocumentRef: deps.getDocumentRef,
             renderBaseTimeSelect: deps.renderBaseTimeSelect,
+            getCopyActionsService: deps.getCopyActionsService,
         });
 
         const mainFixedTimeFacadeService = deps.GTV_MAIN_FIXED_TIME_FACADE.createService({

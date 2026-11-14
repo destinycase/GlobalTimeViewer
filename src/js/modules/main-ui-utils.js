@@ -92,7 +92,7 @@
         function upgradeNativeTitleTooltips(root = getDocumentRef()) {
             if (!root || typeof root.querySelectorAll !== "function") return;
             const candidates = root.querySelectorAll(
-                'button.copy-row-btn[title], button.remove-row-btn[title]'
+                'button.copy-row-btn[title]'
             );
             candidates.forEach((el) => {
                 const text = (el.getAttribute("title") || "").trim();

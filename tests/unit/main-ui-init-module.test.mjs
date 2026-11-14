@@ -608,9 +608,10 @@ describe("GTV main ui init module", () => {
         await displayFormatResetBtn.dispatch("click");
         await copyFormatResetBtn.dispatch("click");
 
+        // The base select is gone; a stray element with the old id is not wired.
         baseTimeSelect.value = "tz-a";
         await baseTimeSelect.dispatch("change");
-        expect(calls.baseTimezone).toEqual(["tz-a"]);
+        expect(calls.baseTimezone).toEqual([]);
 
         customName.value = "";
         await addCustomBtn.dispatch("click");

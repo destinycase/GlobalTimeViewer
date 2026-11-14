@@ -27,6 +27,9 @@
         const renderBaseTimeSelect = (typeof safeDeps.renderBaseTimeSelect === "function")
             ? safeDeps.renderBaseTimeSelect
             : (() => undefined);
+        const getCopyActionsService = (typeof safeDeps.getCopyActionsService === "function")
+            ? safeDeps.getCopyActionsService
+            : (() => null);
 
         function getFixedTimeSlotLayoutMetrics(partsEnabled) {
             return callServiceMethod(
@@ -101,6 +104,15 @@
             renderBaseTimeSelect();
             renderFixedTimeControls(group, { ensureGroup: false });
             renderFixedTimeTable(false);
+            // The copy preview shows the top timezone at slot 1. Live ticks refresh it through
+            // updateClocks, but with the realtime marker off nothing ticks, so refresh it here
+            // after slot, order or top-row changes (it does nothing when the preview is hidden).
+            callServiceMethod(
+                "copyActionsService",
+                getCopyActionsService(),
+                "updateCopyFormatPreview",
+                []
+            );
         }
 
         return Object.freeze({

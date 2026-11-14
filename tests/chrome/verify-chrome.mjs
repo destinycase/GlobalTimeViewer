@@ -1461,7 +1461,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "18",
-            title: "고정 시간 탭에서 UTC 행 복원·도시 추가 시 타임라인 바로 갱신, 시간대 추가 팝업 바깥 클릭 닫기",
+            title: "고정 시간 탭에서 UTC 행 복원·도시 추가 시 타임라인 바로 갱신, 시간대 관리 팝업 바깥 클릭 닫기, 복사 미리보기 갱신",
             async run() {
                 const { api } = ctx;
                 // Realtime marker off: no clock tick redraws the timeline on this tab.
@@ -1538,7 +1538,31 @@ function buildScenarios(ctx) {
                 assert(await shown(), "팝업 안을 클릭했는데 닫힘");
                 await clickPoint(points.outside);
                 assert(!(await shown()), `팝업 바깥 클릭으로 닫히지 않음: ${JSON.stringify(points.outside)}`);
-                return `실시간 표시 끔 상태에서 UTC 타일 → 표·타임라인 ${afterUtc.table}/${afterUtc.timeline}행, 도쿄 추가 → ${afterCity.table}/${afterCity.timeline}행 (${afterCity.labels.join(" / ")}), 팝업 안 클릭은 유지·바깥 클릭으로 닫힘`;
+                // d) Copy preview (realtime marker off): it follows a slot time edit and a base change at once.
+                if (!(await api.ev(`document.getElementById("toggle-copy-format").checked`))) await api.ev(`document.getElementById("toggle-copy-format").click()`);
+                const preview = () => api.ev(`(document.getElementById("copy-format-preview")?.textContent || "").trim()`);
+                await until("복사 미리보기", async () => (await preview()).includes("09:00"));
+                await api.ev(`(() => {
+                    const input = document.querySelector("#fixed-time-body .fixed-time-time-input");
+                    input.value = "11:30:00";
+                    input.dispatchEvent(new Event("change", { bubbles: true }));
+                })()`);
+                await sleep(300);
+                const afterSlot = await preview();
+                assert(afterSlot.includes("11:30"), `슬롯 시각을 바꿨는데 복사 미리보기가 그대로: ${afterSlot}`);
+                await api.ev(`document.getElementById("show-all-tz").click()`);
+                const tokyoId = await api.ev(`(() => { const row = [...document.querySelectorAll("#tz-group-list .tz-group-row")].find((r) => r.textContent.includes("도쿄")); row.querySelector(".tz-group-handle").focus(); return row.dataset.id; })()`);
+                for (let i = 0; i < 3; i += 1) {
+                    await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "ArrowUp", code: "ArrowUp", windowsVirtualKeyCode: 38 });
+                    await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "ArrowUp", code: "ArrowUp", windowsVirtualKeyCode: 38 });
+                    await sleep(120);
+                }
+                await until("도쿄 맨 위", async () => (await api.storedData())?.groups?.[0]?.baseTimezoneId === tokyoId);
+                await api.ev(`document.getElementById("close-overlay").click()`);
+                await sleep(300);
+                const afterBase = await preview();
+                assert(afterBase.includes("JST") || afterBase.includes("도쿄"), `기준(맨 위)을 도쿄로 바꿨는데 복사 미리보기가 그대로: ${afterBase}`);
+                return `실시간 표시 끔 상태에서 UTC 타일 → 표·타임라인 ${afterUtc.table}/${afterUtc.timeline}행, 도쿄 추가 → ${afterCity.table}/${afterCity.timeline}행 (${afterCity.labels.join(" / ")}), 팝업 안 클릭은 유지·바깥 클릭으로 닫힘, 복사 미리보기가 슬롯 시각 변경(${afterSlot})·맨 위 변경(${afterBase})을 바로 반영`;
             }
         },
         {

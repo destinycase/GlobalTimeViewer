@@ -122,6 +122,24 @@ describe("GTV main fixed-time tab facade module", () => {
         expect(service.renderFixedTimeTab()).toBe(undefined);
     });
 
+    it("refreshes the copy preview after a full fixed time render, not on live ticks", () => {
+        const moduleApi = loadMainFixedTimeTabFacadeModule();
+        const calls = [];
+        const service = moduleApi.createService({
+            callServiceMethod: createCallServiceMethod(),
+            getFixedTimeTableService: () => ({ renderFixedTimeTable: (isTick) => { calls.push(isTick ? "tick" : "table"); } }),
+            getCurrentGroup: () => ({ id: 1 }),
+            getCopyActionsService: () => ({ updateCopyFormatPreview: () => { calls.push("preview"); } }),
+            getDocumentRef: () => ({ getElementById: () => null })
+        });
+
+        service.renderFixedTimeTab();
+        expect(calls).toEqual(["table", "preview"]);
+        calls.length = 0;
+        service.renderFixedTimeTab(true);
+        expect(calls).toEqual(["tick"]);
+    });
+
     it("supports omitted dependency wiring", () => {
         const moduleApi = loadMainFixedTimeTabFacadeModule({ withWindow: false });
         const service = moduleApi.createService();

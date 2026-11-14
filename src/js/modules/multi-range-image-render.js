@@ -130,7 +130,7 @@
                     if (!tableEl) return;
 
                     const headerCells = asArray(tableEl.querySelectorAll?.("thead th"))
-                        .filter((th) => !th.classList?.contains("export-exclude") && !th.classList?.contains("move-col"));
+                        .filter((th) => !th.classList?.contains("export-exclude"));
                     const bodyRows = asArray(tableEl.querySelectorAll?.("tbody tr.time-row"));
                     if (!headerCells.length || !bodyRows.length) return;
 
@@ -251,7 +251,7 @@
 
                     let rowX = 0;
                     const cells = asArray(row.children)
-                        .filter((td) => !td.classList?.contains("export-exclude") && !td.classList?.contains("move-cell"));
+                        .filter((td) => !td.classList?.contains("export-exclude"));
                     for (let c = 0; c < metric.colWidths.length; c++) {
                         const w = metric.colWidths[c];
                         const cell = cells[c];

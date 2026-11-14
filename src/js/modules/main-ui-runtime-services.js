@@ -155,7 +155,6 @@
                 "renderTimelineFrame",
                 "resetDisplayFormatForActiveContext",
                 "resetCopyFormatForActiveContext",
-                "applyCurrentGroupBaseTimezoneId",
                 "addGroup",
                 "addMultiSubgroup",
                 "copyAllTimezones",

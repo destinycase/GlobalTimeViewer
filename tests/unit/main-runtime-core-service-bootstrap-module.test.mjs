@@ -127,9 +127,7 @@ describe("GTV main runtime core service bootstrap module", () => {
             timeService: { name: "time-service" }
         });
 
-        expect(selectConfig.getDocumentRef()).toEqual({ id: "doc" });
-        expect(selectConfig.t).toBe(t);
-        expect(selectConfig.savePersistence()).toBe(true);
+        expect(Object.keys(selectConfig)).toEqual(["ensureBaseTimezoneSelection"]);
         expect(timezoneConfig.TZ_DATABASE).toEqual([{ id: "UTC" }]);
         expect(timezoneConfig.getZoneMap()).toEqual({ UTC: true });
         expect(timezoneConfig.renderList()).toBe("rows");
