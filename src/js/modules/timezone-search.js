@@ -512,7 +512,7 @@
                 row.setAttribute("role", "listitem");
 
                 const handle = doc.createElement(entry.isBase ? "span" : "button");
-                handle.className = entry.isBase ? "tz-group-pin" : "tz-group-handle drag-handle";
+                handle.className = entry.isBase ? "tz-group-pin" : "tz-group-handle";
                 if (entry.isBase) {
                     handle.textContent = "";
                     handle.title = translate("group_list_base_pinned");

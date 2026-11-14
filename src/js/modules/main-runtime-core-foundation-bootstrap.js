@@ -32,9 +32,7 @@
         "setCustomTooltip",
         "upgradeNativeTitleTooltips",
         "hideFloatingTooltip",
-        "bindFloatingTooltipEvents",
-        "clearDragGhost",
-        "createDragGhostFromRow"
+        "bindFloatingTooltipEvents"
     ]);
     const CORE_DOMAIN_SERVICE_KEYS = Object.freeze([
         "groupContextStateService",

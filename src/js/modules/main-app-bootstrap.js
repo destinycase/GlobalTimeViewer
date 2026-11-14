@@ -101,7 +101,6 @@
             applyVersionBranding,
             initUI,
             bindFloatingTooltipEvents,
-            initDragAndDrop,
             initSearchAndSelect,
             initCalculators,
             startRealtimeTicker,
@@ -123,7 +122,6 @@
             applyVersionBranding: noop,
             initUI: noop,
             bindFloatingTooltipEvents: noop,
-            initDragAndDrop: noop,
             initSearchAndSelect: noop,
             initCalculators: noop,
             startRealtimeTicker: noop,
@@ -210,7 +208,6 @@
                 applyVersionBranding();
                 initUI();
                 bindFloatingTooltipEvents();
-                initDragAndDrop();
                 initSearchAndSelect();
                 initCalculators();
                 startRealtimeTicker();

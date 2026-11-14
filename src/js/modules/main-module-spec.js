@@ -84,7 +84,6 @@
             GTV_MAIN_IMAGE_EXPORT_SERVICES: { globalName: "GTVMainImageExportServices", errorLabel: "GTVMainImageExportServices", requiredMethod: "createService" },
             GTV_MAIN_IMAGE_EXPORT_BRIDGE_PROXY: { globalName: "GTVMainImageExportBridgeProxy", errorLabel: "GTVMainImageExportBridgeProxy", requiredMethod: "createService" },
             GTV_MAIN_IMAGE_EXPORT_NAMING_PROXY: { globalName: "GTVMainImageExportNamingProxy", errorLabel: "GTVMainImageExportNamingProxy", requiredMethod: "createService" },
-            GTV_MAIN_ROW_ORDER_SERVICES: { globalName: "GTVMainRowOrderServices", errorLabel: "GTVMainRowOrderServices", requiredMethod: "createService" },
             GTV_MAIN_ROW_VIEW_SERVICES: { globalName: "GTVMainRowViewServices", errorLabel: "GTVMainRowViewServices", requiredMethod: "createService" },
             GTV_MAIN_SELECT_SERVICES: { globalName: "GTVMainSelectServices", errorLabel: "GTVMainSelectServices", requiredMethod: "createService" },
             GTV_MAIN_GROUP_LOCALIZATION_SERVICES: { globalName: "GTVMainGroupLocalizationServices", errorLabel: "GTVMainGroupLocalizationServices", requiredMethod: "createService" },

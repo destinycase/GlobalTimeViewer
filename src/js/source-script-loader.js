@@ -70,7 +70,6 @@
     "js/modules/main-image-export-services.js",
     "js/modules/main-image-export-bridge-proxy.js",
     "js/modules/main-image-export-naming-proxy.js",
-    "js/modules/main-row-order-services.js",
     "js/modules/main-row-view-services.js",
     "js/modules/main-select-services.js",
     "js/modules/main-group-localization-services.js",

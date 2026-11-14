@@ -78,7 +78,6 @@ const MAIN_IMAGE_RUNTIME_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "src
 const MAIN_IMAGE_EXPORT_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-image-export-services.js");
 const MAIN_IMAGE_EXPORT_BRIDGE_PROXY_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-image-export-bridge-proxy.js");
 const MAIN_IMAGE_EXPORT_NAMING_PROXY_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-image-export-naming-proxy.js");
-const MAIN_ROW_ORDER_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-row-order-services.js");
 const MAIN_ROW_VIEW_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-row-view-services.js");
 const MAIN_SELECT_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-select-services.js");
 const MAIN_GROUP_LOCALIZATION_SERVICES_MODULE_PATH = path.resolve(process.cwd(), "src", "js", "modules", "main-group-localization-services.js");
@@ -318,7 +317,6 @@ export function createMainContext() {
     const mainImageExportServicesCode = fs.readFileSync(MAIN_IMAGE_EXPORT_SERVICES_MODULE_PATH, "utf8");
     const mainImageExportBridgeProxyCode = fs.readFileSync(MAIN_IMAGE_EXPORT_BRIDGE_PROXY_MODULE_PATH, "utf8");
     const mainImageExportNamingProxyCode = fs.readFileSync(MAIN_IMAGE_EXPORT_NAMING_PROXY_MODULE_PATH, "utf8");
-    const mainRowOrderServicesCode = fs.readFileSync(MAIN_ROW_ORDER_SERVICES_MODULE_PATH, "utf8");
     const mainRowViewServicesCode = fs.readFileSync(MAIN_ROW_VIEW_SERVICES_MODULE_PATH, "utf8");
     const mainSelectServicesCode = fs.readFileSync(MAIN_SELECT_SERVICES_MODULE_PATH, "utf8");
     const mainGroupLocalizationServicesCode = fs.readFileSync(MAIN_GROUP_LOCALIZATION_SERVICES_MODULE_PATH, "utf8");
@@ -544,7 +542,6 @@ export function createMainContext() {
     vm.runInContext(mainImageExportServicesCode, sandbox, { filename: "js/modules/main-image-export-services.js" });
     vm.runInContext(mainImageExportBridgeProxyCode, sandbox, { filename: "js/modules/main-image-export-bridge-proxy.js" });
     vm.runInContext(mainImageExportNamingProxyCode, sandbox, { filename: "js/modules/main-image-export-naming-proxy.js" });
-    vm.runInContext(mainRowOrderServicesCode, sandbox, { filename: "js/modules/main-row-order-services.js" });
     vm.runInContext(mainRowViewServicesCode, sandbox, { filename: "js/modules/main-row-view-services.js" });
     vm.runInContext(mainSelectServicesCode, sandbox, { filename: "js/modules/main-select-services.js" });
     vm.runInContext(mainGroupLocalizationServicesCode, sandbox, { filename: "js/modules/main-group-localization-services.js" });

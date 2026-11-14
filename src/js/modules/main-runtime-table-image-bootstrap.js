@@ -97,26 +97,6 @@
             };
         }
 
-        function buildMainRowOrderConfig(deps = {}) {
-            const d = resolveDeps(deps);
-            return {
-                ...pickDeps(d,
-                    "requestUiFrame",
-                    "cancelUiFrame",
-                ),
-                ...pickAliasedDeps(d, {
-                    "getGroups": "getGroupsStateSnapshot",
-                    "getActiveGroupId": "getPatchedActiveGroupIdState",
-                }),
-                ...pickDeps(d, "getCurrentGroupBaseTimezoneId"),
-                ...pickAliasedDeps(d, {
-                    "getPersistenceService": "getPersistenceServiceRef",
-                    "getDocumentRef": "getDocumentRefOrNull",
-                }),
-                ...pickDeps(d, "NodeCtor")
-            };
-        }
-
         function buildMainRowViewConfig(deps = {}) {
             const d = resolveDeps(deps);
             return {
@@ -173,9 +153,7 @@
                 ...pickDeps(d,
                     "getZoneDisplayName",
                     "getZoneDisplayNameForUiAtDate",
-                    "removeTimezone",
                     "handleTimeChange",
-                    "saveOrder",
                     "getCurrentGroupZones",
                     "isCurrentGroupUtcRowVisible",
                     "getCurrentGroupUtcRowOrder",
@@ -189,8 +167,6 @@
                 ...pickDeps(d,
                     "hideFloatingTooltip",
                     "upgradeNativeTitleTooltips",
-                    "createDragGhostFromRow",
-                    "clearDragGhost",
                 ),
                 copyRow: bindFacade(d, d.getCopyActionsServiceRef, "copyRow")
             };
@@ -256,10 +232,6 @@
             mainCoreServices.createTimeInputMutationsService,
             "mainCoreServices.createTimeInputMutationsService"
         );
-        const createMainRowOrderServices = requireFunction(
-            mainCoreServices.createMainRowOrderServices,
-            "mainCoreServices.createMainRowOrderServices"
-        );
         const createMainRowViewServices = requireFunction(
             mainCoreServices.createMainRowViewServices,
             "mainCoreServices.createMainRowViewServices"
@@ -309,29 +281,6 @@
         });
         const timeInputMutationsService = createTimeInputMutationsService(timeInputMutationsConfig);
 
-        const mainRowOrderConfig = buildMainRowOrderConfig({
-            ...pickDeps([
-                "requestUiFrame",
-                "cancelUiFrame",
-                "getGroupsStateSnapshot",
-                "getPatchedActiveGroupIdState",
-                "getCurrentGroupBaseTimezoneId",
-                "getPersistenceServiceRef",
-                "getDocumentRefOrNull",
-                "NodeCtor",
-            ]),
-        });
-        const mainRowOrderServices = createMainRowOrderServices(mainRowOrderConfig);
-        const {
-            bindRowContainerDragAndDrop,
-            initDragAndDrop,
-            captureReorderableRowRects,
-            animateReorderTransition,
-            getAfter,
-            saveOrderForContainer,
-            saveOrder
-        } = mainRowOrderServices;
-
         const mainRowViewConfig = buildMainRowViewConfig({
             ...pickDeps([
                 "rowViewCache",
@@ -369,10 +318,8 @@
                 "escapeHtmlViaSharedUtils",
                 "getZoneDisplayName",
                 "getZoneDisplayNameForUiAtDate",
-                "removeTimezone",
                 "handleTimeChange",
             ]),
-            saveOrder,
             ...pickDeps([
                 "getCurrentGroupZones",
                 "isCurrentGroupUtcRowVisible",
@@ -384,8 +331,6 @@
                 "getUpdateClocksRef",
                 "hideFloatingTooltip",
                 "upgradeNativeTitleTooltips",
-                "createDragGhostFromRow",
-                "clearDragGhost",
                 "bindFacadeMethod",
                 "getCopyActionsServiceRef",
             ]),
@@ -465,13 +410,6 @@
 
         return Object.freeze({
             timeInputMutationsService,
-            bindRowContainerDragAndDrop,
-            initDragAndDrop,
-            captureReorderableRowRects,
-            animateReorderTransition,
-            getAfter,
-            saveOrderForContainer,
-            saveOrder,
             updateRow,
             tableRenderService,
             collectDocumentCssText,

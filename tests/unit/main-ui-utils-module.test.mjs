@@ -446,52 +446,6 @@ describe("GTV main ui utils module", () => {
         expect(tooltip.classList.contains("visible")).toBe(false);
     });
 
-    it("creates drag ghost rows, updates input values, and clears previous ghosts", () => {
-        const env = createUiTestEnv();
-        const moduleApi = loadMainUiUtilsModule({
-            window: env.windowMock,
-            document: env.documentMock,
-            console,
-            Element: FakeElement,
-            HTMLElement: FakeHTMLElement
-        });
-        const service = moduleApi.createService();
-
-        const rowA = makeRow(["10:00", "11:00"], 480);
-        const ghostA = service.createDragGhostFromRow(rowA);
-        expect(ghostA).toBeTruthy();
-        expect(ghostA.style.width).toBe("480px");
-
-        const ghostRowA = ghostA.children[0].children[0];
-        const ghostInputsA = ghostRowA.querySelectorAll(".time-input");
-        expect(ghostInputsA.map((input) => input.value)).toEqual(["10:00", "11:00"]);
-        expect(ghostInputsA.every((input) => input.getAttribute("readonly") === "readonly")).toBe(true);
-        expect(ghostRowA.classList.contains("dragging")).toBe(false);
-        expect(ghostRowA.classList.contains("drag-ghost-row")).toBe(true);
-
-        const rowB = makeRow(["12:30"], 200);
-        const ghostB = service.createDragGhostFromRow(rowB);
-        expect(ghostB.style.width).toBe("420px");
-        expect(ghostA.parentNode).toBe(null);
-
-        service.clearDragGhost();
-        expect(ghostB.parentNode).toBe(null);
-    });
-
-    it("returns null for non-HTMLElement rows when HTMLElement is defined", () => {
-        const env = createUiTestEnv();
-        const moduleApi = loadMainUiUtilsModule({
-            window: env.windowMock,
-            document: env.documentMock,
-            console,
-            Element: FakeElement,
-            HTMLElement: FakeHTMLElement
-        });
-        const service = moduleApi.createService();
-
-        expect(service.createDragGhostFromRow({})).toBe(null);
-    });
-
     it("uses injected documentRef/windowRef when globals are unavailable", () => {
         const env = createUiTestEnv();
         const moduleApi = loadMainUiUtilsModule({

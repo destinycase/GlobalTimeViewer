@@ -172,7 +172,7 @@ flowchart LR
   - 기준: `setGroupListBase`가 `baseTimezoneId`를 바꾸고 이전 기준을 새 기준 바로 아래에 둡니다(UTC가 기준이 되면 `showUtcRow`를 켜고 `utcRowOrder` 0).
   - 삭제: `removeGroupListEntry`가 시간대를 지우거나 UTC 행을 숨깁니다(`showUtcRow` false).
   - 바꿀 때마다 저장, 표(`renderList`)·타임라인(`renderTimelineFrame`)을 다시 그리고, 기준이 바뀌면 시간 조정 줄(`updateTimeAdjustPanel`)도 맞춥니다. 저장 데이터 형식은 그대로입니다.
-- 본 화면 표(`table-render.js`)에는 `순서`·`삭제` 열이 없고, 기준 행의 `기준` 표시(`.base-order-label`)는 시간대 칸(없으면 이름 칸) 안에 둡니다. 이미지와 복사 글은 시간대·이름 글자만 읽으므로 이 표시는 들어가지 않습니다. `main-row-order-services.js`의 표 끌기 처리는 표에 손잡이가 없어 더는 쓰이지 않습니다.
+- 본 화면 표(`table-render.js`)에는 `순서`·`삭제` 열이 없고, 기준 행의 `기준` 표시(`.base-order-label`)는 시간대 칸(없으면 이름 칸) 안에 둡니다. 이미지와 복사 글은 시간대·이름 글자만 읽으므로 이 표시는 들어가지 않습니다. 표 행을 끌어 옮기던 처리(`main-row-order-services.js`, 끌기 그림자)는 v3.17.7에서 지웠습니다.
 - 시간대 프리셋의 첫 타일 `표준시 (UTC)`(`utc-row` 항목)는 별도 시간대를 만들지 않고 표의 UTC 행을 다시 켭니다(이미 보이면 중복 안내). 나머지 타일은 도시 목록이며 도시·약어·UTC 오프셋으로 검색합니다.
 - 사용자 커스텀 탭은 검색칸과 목록 대신 입력 양식(`#tz-custom-panel`)을 보입니다. 입력칸 id(`custom-abbr` 등)는 예전과 같아 `main-ui-init.js`의 추가 처리기가 그대로 동작하고, 추가에 성공하면 팝업은 열린 채 양식을 비우고 약어 칸에 초점을 둡니다. 그룹 목록 개수는 같은 버튼에 나중에 단 `timezone-search.js`의 처리기가 고칩니다.
 - 프리셋 타일을 골라 추가해도 팝업은 닫히지 않고 `toast_timezone_added` 안내와 함께 개수만 늘어납니다. 팝업을 닫는 길(닫기 버튼, 바깥 클릭, Esc)은 모두 `closeFullTimezoneOverlay`를 거칩니다. 이때 커스텀 양식을 비우고 시차를 +00:00으로 되돌리고 초점을 `목록` 버튼으로 돌려줍니다(강조 없이). Esc는 화면 안 입력·확인 창이 위에 떠 있으면 그 창이 먼저 받습니다.
@@ -196,6 +196,6 @@ flowchart LR
 
 ## 5. 모듈 경계와 이 문서의 한계
 
-- `js/modules/`에는 기능 모듈(약 58개)과 `main-*` 조립 모듈(86개)이 함께 있습니다. `main-*`에는 bootstrap, config builder, facade, 서비스 묶음, 남은 accessor proxy와 `*-bindings`가 있습니다. 이름이 비슷해도 기본값·대체 처리·여러 서비스 조합 같은 동작을 가진 경우가 있으므로, 내용과 테스트를 확인하기 전에는 중복 모듈로 간주하지 않습니다.
+- `js/modules/`에는 기능 모듈(약 58개)과 `main-*` 조립 모듈(85개)이 함께 있습니다. `main-*`에는 bootstrap, config builder, facade, 서비스 묶음, 남은 accessor proxy와 `*-bindings`가 있습니다. 이름이 비슷해도 기본값·대체 처리·여러 서비스 조합 같은 동작을 가진 경우가 있으므로, 내용과 테스트를 확인하기 전에는 중복 모듈로 간주하지 않습니다.
 - 공통 도메인 서비스는 대체로 `createService(deps)` 형태이고 의존성을 명시적으로 전달합니다. `main.js`는 레거시 호환과 전역 상태 연결을 담당하므로 새 도메인 로직은 기능 모듈에 두고 조립부에서 연결합니다.
 - 이 문서의 관계도는 현재 소스의 로더 순서와 조립 계층을 요약한 것입니다. 모듈 간 모든 개별 메서드 호출이나 상태 읽기·쓰기를 자동 추출한 그래프가 아니므로, 세부 관계를 바꿀 때는 해당 `createService` 호출부와 모듈 테스트를 함께 추적합니다.

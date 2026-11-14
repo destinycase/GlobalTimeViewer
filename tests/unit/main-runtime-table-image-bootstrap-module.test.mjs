@@ -58,15 +58,6 @@ describe("GTV main runtime table-image bootstrap module", () => {
     it("builds table/image runtime services from local dependency mappings and core factories", () => {
         const moduleApi = loadMainRuntimeTableImageBootstrapModule();
         const createTimeInputMutationsService = vi.fn(() => ({ name: "time-input-service" }));
-        const createMainRowOrderServices = vi.fn(() => ({
-            bindRowContainerDragAndDrop: () => "bind-dnd",
-            initDragAndDrop: () => "init-dnd",
-            captureReorderableRowRects: () => "capture-rects",
-            animateReorderTransition: () => "animate-reorder",
-            getAfter: () => "after-row",
-            saveOrderForContainer: () => "save-container-order",
-            saveOrder: () => "save-order"
-        }));
         const createMainRowViewServices = vi.fn(() => ({
             updateRow: () => "row-updated"
         }));
@@ -123,7 +114,6 @@ describe("GTV main runtime table-image bootstrap module", () => {
             GTV_IMAGE_CLONE: imageCloneApi,
             mainCoreServices: {
                 createTimeInputMutationsService,
-                createMainRowOrderServices,
                 createMainRowViewServices,
                 createTableRenderService,
                 createMainImageExportBridgeProxy,
@@ -132,8 +122,6 @@ describe("GTV main runtime table-image bootstrap module", () => {
         });
 
         expect(createTimeInputMutationsService.mock.calls[0][0].t("x")).toBe("tx:x");
-        expect(createMainRowOrderServices.mock.calls[0][0].getGroups).toBe(getGroupsStateSnapshot);
-        expect(createMainRowOrderServices.mock.calls[0][0].getPersistenceService).toBe(getPersistenceServiceRef);
         expect(createMainRowViewServices.mock.calls[0][0].maxRuntimeCacheSize).toBe(72);
         expect(createMainRowViewServices.mock.calls[0][0].getDocumentRef).toBe(getDocumentRefOrNull);
         expect(createTableRenderService.mock.calls[0][0].t("x")).toBe("ui:x");
@@ -143,7 +131,6 @@ describe("GTV main runtime table-image bootstrap module", () => {
         expect(createMainImageRuntimeServices.mock.calls[0][0].document).toEqual({ name: "document" });
 
         expect(createTimeInputMutationsService).toHaveBeenCalledTimes(1);
-        expect(createMainRowOrderServices).toHaveBeenCalledTimes(1);
         expect(createMainRowViewServices).toHaveBeenCalledTimes(1);
         expect(createTableRenderService).toHaveBeenCalledTimes(1);
         expect(createMainImageExportBridgeProxy).toHaveBeenCalledTimes(1);
@@ -153,8 +140,9 @@ describe("GTV main runtime table-image bootstrap module", () => {
         expect(service.tableRenderService).toEqual({ name: "table-render-service" });
         expect(service.imageExportBridgeService).toEqual({ name: "image-bridge-service" });
         expect(service.multiRangeImageRenderService).toEqual({ name: "multi-range-image-render-service" });
-        expect(typeof service.saveOrder).toBe("function");
         expect(typeof service.saveTimezoneTableImage).toBe("function");
+        expect(service.saveOrder).toBeUndefined();
+        expect(service.initDragAndDrop).toBeUndefined();
         expect(Object.isFrozen(service)).toBe(true);
     });
 

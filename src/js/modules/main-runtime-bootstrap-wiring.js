@@ -60,7 +60,7 @@
                 "applyVersionBranding"
             ),
             initUI: bindFacade(safeDeps.getMainUiInitServiceRef, "initUI"),
-            ...pickDeps("bindFloatingTooltipEvents", "initDragAndDrop"),
+            ...pickDeps("bindFloatingTooltipEvents"),
             initSearchAndSelect: bindFacade(safeDeps.getTimezoneSearchServiceRef, "initSearchAndSelect"),
             ...pickDeps("initCalculators"),
             startRealtimeTicker: bindFacade(safeDeps.getTimerEngineServiceRef, "startRealtimeTicker"),

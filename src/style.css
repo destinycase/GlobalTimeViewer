@@ -391,8 +391,6 @@ td {
 .sm-btn,
 .icon-btn,
 .off-btn,
-#timezone-section .drag-handle,
-#fixed-time-section .drag-handle,
 .group-del-btn,
 .group-edit-btn,
 .group-export-btn,
@@ -411,8 +409,6 @@ td {
 .sm-btn:hover,
 .icon-btn:hover,
 .off-btn:hover,
-#timezone-section .drag-handle:hover,
-#fixed-time-section .drag-handle:hover,
 .group-del-btn:hover,
 .group-edit-btn:hover,
 .group-export-btn:hover,
@@ -429,8 +425,6 @@ td {
 :root[data-theme="light"] .sm-btn,
 :root[data-theme="light"] .icon-btn,
 :root[data-theme="light"] .off-btn,
-:root[data-theme="light"] #timezone-section .drag-handle,
-:root[data-theme="light"] #fixed-time-section .drag-handle,
 :root[data-theme="light"] .group-del-btn,
 :root[data-theme="light"] .group-edit-btn,
 :root[data-theme="light"] .group-export-btn,
@@ -2397,16 +2391,6 @@ input[type=number] {
     text-align: left;
 }
 
-.data-table th.move-col,
-.time-row td.move-cell {
-    text-align: center !important;
-    width: 70px;
-    min-width: 70px;
-    max-width: 70px;
-    padding-left: 4px !important;
-    padding-right: 4px !important;
-}
-
 .data-table th.col-w-70 {
     width: 70px;
 }
@@ -2424,8 +2408,7 @@ input[type=number] {
 }
 
 .time-row td.timezone-cell,
-.time-row td.copy-cell,
-.time-row td.remove-cell {
+.time-row td.copy-cell {
     text-align: center !important;
 }
 
@@ -2466,15 +2449,6 @@ input[type=number] {
     gap: 6px;
 }
 
-.drag-handle,
-.drag-spacer {
-    width: 36px;
-    height: 30px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
 .base-order-label {
     margin-left: 6px;
     min-width: 36px;
@@ -2490,42 +2464,6 @@ input[type=number] {
     background: rgba(148, 163, 184, 0.12);
     border: 1px solid var(--border);
     line-height: 1;
-}
-
-.drag-handle {
-    border-radius: 4px;
-    cursor: grab;
-    line-height: 1;
-    padding: 0;
-    font-size: 14px;
-    font-family: 'JetBrains Mono', 'Segoe UI Symbol', monospace;
-}
-
-.drag-handle:active {
-    cursor: grabbing;
-}
-
-.dragging {
-    opacity: 0.55;
-}
-
-.drag-ghost-table {
-    border-collapse: collapse;
-    border-spacing: 0;
-    background: rgba(15, 23, 42, 0.985);
-    box-shadow: 0 18px 38px rgba(2, 6, 23, 0.45);
-    border: 1px solid rgba(56, 189, 248, 0.45);
-    border-radius: 8px;
-    overflow: hidden;
-    opacity: 1;
-}
-
-.drag-ghost-table .time-row {
-    background: rgba(30, 41, 59, 0.97);
-}
-
-.drag-ghost-table .time-row td {
-    border-color: rgba(148, 163, 184, 0.25);
 }
 
 .zone-code {
@@ -3553,6 +3491,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .tz-group-handle {
     width: 30px;
     height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-family: 'JetBrains Mono', 'Segoe UI Symbol', monospace;
     padding: 0;
     border-radius: 6px;
     border: 1px solid var(--border);
@@ -4305,9 +4248,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
       accent through the !important rules in §05), deletion buttons subdued until hover. */
 .sm-btn,
 .icon-btn,
-.off-btn,
-#timezone-section .drag-handle,
-#fixed-time-section .drag-handle {
+.off-btn {
     background: rgba(148, 163, 184, 0.1);
     border-color: rgba(148, 163, 184, 0.22);
     color: #cbd5e1;
@@ -4318,9 +4259,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
 .sm-btn:hover,
 .icon-btn:hover,
-.off-btn:hover,
-#timezone-section .drag-handle:hover,
-#fixed-time-section .drag-handle:hover {
+.off-btn:hover {
     background: rgba(148, 163, 184, 0.2);
     border-color: rgba(148, 163, 184, 0.45);
     color: #f1f5f9;
@@ -4329,9 +4268,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
 :root[data-theme="light"] .sm-btn,
 :root[data-theme="light"] .icon-btn,
-:root[data-theme="light"] .off-btn,
-:root[data-theme="light"] #timezone-section .drag-handle,
-:root[data-theme="light"] #fixed-time-section .drag-handle {
+:root[data-theme="light"] .off-btn {
     background: #ffffff;
     border-color: rgba(15, 23, 42, 0.15);
     color: #334155;
@@ -4340,39 +4277,33 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
 :root[data-theme="light"] .sm-btn:hover,
 :root[data-theme="light"] .icon-btn:hover,
-:root[data-theme="light"] .off-btn:hover,
-:root[data-theme="light"] #timezone-section .drag-handle:hover,
-:root[data-theme="light"] #fixed-time-section .drag-handle:hover {
+:root[data-theme="light"] .off-btn:hover {
     background: #f1f5f9;
     border-color: rgba(15, 23, 42, 0.3);
     color: #0f172a;
 }
 
-.sm-btn.danger,
-.time-row .remove-cell .sm-btn {
+.sm-btn.danger {
     background: rgba(239, 68, 68, 0.08);
     border-color: rgba(239, 68, 68, 0.22);
     color: #fca5a5;
     box-shadow: none;
 }
 
-.sm-btn.danger:hover,
-.time-row .remove-cell .sm-btn:hover {
+.sm-btn.danger:hover {
     background: rgba(239, 68, 68, 0.22);
     border-color: rgba(239, 68, 68, 0.65);
     color: #fee2e2;
 }
 
-:root[data-theme="light"] .sm-btn.danger,
-:root[data-theme="light"] .time-row .remove-cell .sm-btn {
+:root[data-theme="light"] .sm-btn.danger {
     background: rgba(239, 68, 68, 0.06);
     border-color: rgba(220, 38, 38, 0.25);
     color: #dc2626;
     box-shadow: none;
 }
 
-:root[data-theme="light"] .sm-btn.danger:hover,
-:root[data-theme="light"] .time-row .remove-cell .sm-btn:hover {
+:root[data-theme="light"] .sm-btn.danger:hover {
     background: rgba(220, 38, 38, 0.12);
     border-color: rgba(220, 38, 38, 0.6);
     color: #b91c1c;
@@ -4807,13 +4738,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
 #timezone-section td.dynamic-cell {
     min-width: calc(222px * var(--ui-scale));
-}
-
-#timezone-section .data-table th.move-col,
-#timezone-section .time-row td.move-cell {
-    width: 56px;
-    min-width: 56px;
-    max-width: 56px;
 }
 
 #timezone-section .period-time-cell {

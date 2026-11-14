@@ -148,8 +148,6 @@ describe("GTV main foundation services module", () => {
                     upgradeNativeTitleTooltips: () => "upgrade",
                     hideFloatingTooltip: () => "hide",
                     bindFloatingTooltipEvents: () => "bind",
-                    clearDragGhost: () => "clear",
-                    createDragGhostFromRow: () => "ghost"
                 })
             },
             GTV_APP_FEEDBACK: {
@@ -200,7 +198,6 @@ describe("GTV main foundation services module", () => {
         expect(service.appFeedbackService.type).toBe("feedback");
         expect(service.calculatorActionsService.type).toBe("calculator-actions");
         expect(service.setCustomTooltip()).toBe("tooltip");
-        expect(service.createDragGhostFromRow()).toBe("ghost");
 
         await feedbackConfig.resetAllSettings();
         expect(resetCalled).toBe(1);
@@ -258,8 +255,6 @@ describe("GTV main foundation services module", () => {
                         upgradeNativeTitleTooltips: () => {},
                         hideFloatingTooltip: () => {},
                         bindFloatingTooltipEvents: () => {},
-                        clearDragGhost: () => {},
-                        createDragGhostFromRow: () => {}
                     })
                 },
                 GTV_APP_FEEDBACK: {
@@ -338,8 +333,6 @@ describe("GTV main foundation services module", () => {
                     upgradeNativeTitleTooltips: () => {},
                     hideFloatingTooltip: () => {},
                     bindFloatingTooltipEvents: () => {},
-                    clearDragGhost: () => {},
-                    createDragGhostFromRow: () => {}
                 })
             },
             GTV_APP_FEEDBACK: {
@@ -410,8 +403,6 @@ describe("GTV main foundation services module", () => {
                     upgradeNativeTitleTooltips: () => {},
                     hideFloatingTooltip: () => {},
                     bindFloatingTooltipEvents: () => {},
-                    clearDragGhost: () => {},
-                    createDragGhostFromRow: () => {}
                 })
             },
             GTV_APP_FEEDBACK: {
@@ -464,8 +455,6 @@ describe("GTV main foundation services module", () => {
                         upgradeNativeTitleTooltips: () => {},
                         hideFloatingTooltip: () => {},
                         bindFloatingTooltipEvents: () => {},
-                        clearDragGhost: () => {},
-                        createDragGhostFromRow: () => {}
                     })
                 },
                 GTV_APP_FEEDBACK: {
@@ -511,8 +500,6 @@ describe("GTV main foundation services module", () => {
                     upgradeNativeTitleTooltips: () => {},
                     hideFloatingTooltip: () => {},
                     bindFloatingTooltipEvents: () => {},
-                    clearDragGhost: () => {},
-                    createDragGhostFromRow: () => {}
                 })
             },
             GTV_APP_FEEDBACK: {
@@ -567,8 +554,6 @@ describe("GTV main foundation services module", () => {
                     upgradeNativeTitleTooltips: () => {},
                     hideFloatingTooltip: () => {},
                     bindFloatingTooltipEvents: () => {},
-                    clearDragGhost: () => {},
-                    createDragGhostFromRow: () => {}
                 })
             },
             GTV_APP_FEEDBACK: { createService: () => ({}) },
@@ -649,8 +634,6 @@ describe("GTV main foundation services module", () => {
                     upgradeNativeTitleTooltips: () => {},
                     hideFloatingTooltip: () => {},
                     bindFloatingTooltipEvents: () => {},
-                    clearDragGhost: () => {},
-                    createDragGhostFromRow: () => {}
                 })
             },
             GTV_APP_FEEDBACK: {

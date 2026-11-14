@@ -366,7 +366,6 @@
             createTimezoneSearchService: (config = {}) => deps.GTV_TIMEZONE_SEARCH.createService(config),
             createSnapshotFormatService: (config = {}) => deps.GTV_SNAPSHOT_FORMAT.createService(config),
             createTimeInputMutationsService: (config = {}) => deps.GTV_TIME_INPUT_MUTATIONS.createService(config),
-            createMainRowOrderServices: (config = {}) => deps.GTV_MAIN_ROW_ORDER_SERVICES.createService(config),
             createMainRowViewServices: (config = {}) => deps.GTV_MAIN_ROW_VIEW_SERVICES.createService(config),
             createTableRenderService: (config = {}) => deps.GTV_TABLE_RENDER.createService(config),
             createMainImageExportBridgeProxy: (config = {}) => deps.GTV_MAIN_IMAGE_EXPORT_BRIDGE_PROXY.createService(config),

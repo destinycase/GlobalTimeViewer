@@ -418,9 +418,7 @@
             setCustomTooltip: mainUiUtilsService.setCustomTooltip,
             upgradeNativeTitleTooltips: mainUiUtilsService.upgradeNativeTitleTooltips,
             hideFloatingTooltip: mainUiUtilsService.hideFloatingTooltip,
-            bindFloatingTooltipEvents: mainUiUtilsService.bindFloatingTooltipEvents,
-            clearDragGhost: mainUiUtilsService.clearDragGhost,
-            createDragGhostFromRow: mainUiUtilsService.createDragGhostFromRow
+            bindFloatingTooltipEvents: mainUiUtilsService.bindFloatingTooltipEvents
         });
     }
 

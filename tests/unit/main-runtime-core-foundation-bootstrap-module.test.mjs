@@ -98,8 +98,6 @@ describe("GTV main runtime core foundation bootstrap module", () => {
             upgradeNativeTitleTooltips: vi.fn(),
             hideFloatingTooltip: vi.fn(),
             bindFloatingTooltipEvents: vi.fn(),
-            clearDragGhost: vi.fn(),
-            createDragGhostFromRow: vi.fn(),
             groupContextStateService: { tag: "foundation-copy-must-not-win" }
         };
         const createFoundationServices = vi.fn(() => ({ mainFoundationServices: foundationServices }));
@@ -144,7 +142,6 @@ describe("GTV main runtime core foundation bootstrap module", () => {
         expect(service.timeService).toBe(coreServices.timeService);
         expect(service.groupContextStateService).toBe(coreServices.groupContextStateService);
         expect(service.serviceBootstrap).toBe(foundationServices.serviceBootstrap);
-        expect(service.createDragGhostFromRow).toBe(foundationServices.createDragGhostFromRow);
         expect(service).not.toHaveProperty("unrelatedCoreService");
         expect(Object.isFrozen(service)).toBe(true);
     });

@@ -7,7 +7,6 @@
         let floatingTooltipTarget = null;
         let floatingTooltipBound = false;
         let focusFromTabKey = false;
-        let dragGhostEl = null;
 
         function getDocumentRef() {
             if (typeof safeDeps.getDocumentRef === "function") {
@@ -73,13 +72,6 @@
             const ElementCtor = safeDeps.ElementCtor || safeDeps.Element || globalObj?.Element || globalThis?.Element;
             if (typeof ElementCtor !== "function") return true;
             return value instanceof ElementCtor;
-        }
-
-        function isHtmlElementInstance(value) {
-            if (!value || typeof value !== "object") return false;
-            const HTMLElementCtor = safeDeps.HTMLElementCtor || safeDeps.HTMLElement || globalObj?.HTMLElement || globalThis?.HTMLElement;
-            if (typeof HTMLElementCtor !== "function") return true;
-            return value instanceof HTMLElementCtor;
         }
 
         function setCustomTooltip(el, text) {
@@ -189,53 +181,6 @@
             positionFloatingTooltip();
         }
 
-        function clearDragGhost() {
-            if (!dragGhostEl) return;
-            if (dragGhostEl.parentNode) {
-                dragGhostEl.parentNode.removeChild(dragGhostEl);
-            }
-            dragGhostEl = null;
-        }
-
-        function createDragGhostFromRow(row) {
-            if (!isHtmlElementInstance(row)) return null;
-            clearDragGhost();
-            const documentRef = getDocumentRef();
-            if (!documentRef || typeof documentRef.createElement !== "function") return null;
-            if (!documentRef.body || typeof documentRef.body.appendChild !== "function") return null;
-
-            const ghostTable = documentRef.createElement("table");
-            ghostTable.className = "data-table drag-ghost-table";
-            ghostTable.setAttribute("aria-hidden", "true");
-
-            const ghostBody = documentRef.createElement("tbody");
-            const ghostRow = row.cloneNode(true);
-            if (isHtmlElementInstance(ghostRow)) {
-                ghostRow.classList.remove("dragging");
-                ghostRow.classList.add("drag-ghost-row");
-                const sourceInputs = [...row.querySelectorAll(".time-input")];
-                ghostRow.querySelectorAll(".time-input").forEach((input, idx) => {
-                    const sourceValue = sourceInputs[idx]?.value;
-                    if (typeof sourceValue === "string") input.value = sourceValue;
-                    input.setAttribute("readonly", "readonly");
-                });
-            }
-            ghostBody.appendChild(ghostRow);
-            ghostTable.appendChild(ghostBody);
-
-            const rect = row.getBoundingClientRect();
-            ghostTable.style.width = `${Math.max(420, Math.round(rect.width))}px`;
-            ghostTable.style.position = "fixed";
-            ghostTable.style.left = "-10000px";
-            ghostTable.style.top = "-10000px";
-            ghostTable.style.pointerEvents = "none";
-            ghostTable.style.zIndex = "10000";
-
-            documentRef.body.appendChild(ghostTable);
-            dragGhostEl = ghostTable;
-            return ghostTable;
-        }
-
         function bindFloatingTooltipEvents() {
             if (floatingTooltipBound) return;
             const documentRef = getDocumentRef();
@@ -294,8 +239,6 @@
             upgradeNativeTitleTooltips,
             hideFloatingTooltip,
             bindFloatingTooltipEvents,
-            clearDragGhost,
-            createDragGhostFromRow
         });
     }
 

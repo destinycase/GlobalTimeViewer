@@ -66,7 +66,6 @@
                     "GTV_TIMEZONE_SEARCH",
                     "GTV_SNAPSHOT_FORMAT",
                     "GTV_TIME_INPUT_MUTATIONS",
-                    "GTV_MAIN_ROW_ORDER_SERVICES",
                     "GTV_MAIN_ROW_VIEW_SERVICES",
                     "GTV_TABLE_RENDER",
                     "GTV_MAIN_IMAGE_EXPORT_BRIDGE_PROXY",

@@ -59,7 +59,7 @@ describe("GTV main module spec", () => {
         expect(specMap.GTV_CALCULATOR.optional).toBe(true);
         expect(typeof specMap.GTV_TIMEZONE_DATA.validate).toBe("function");
         expect(specMap.GTV_MAIN_IMAGE_EXPORT_BRIDGE_PROXY.globalName).toBe("GTVMainImageExportBridgeProxy");
-        expect(specMap.GTV_MAIN_ROW_ORDER_SERVICES.globalName).toBe("GTVMainRowOrderServices");
+        expect(specMap.GTV_MAIN_ROW_ORDER_SERVICES).toBeUndefined();
         expect(specMap.GTV_MAIN_ROW_VIEW_SERVICES.globalName).toBe("GTVMainRowViewServices");
         expect(specMap.GTV_MAIN_SELECT_SERVICES.globalName).toBe("GTVMainSelectServices");
         expect(specMap.GTV_MAIN_GROUP_LOCALIZATION_SERVICES.globalName).toBe("GTVMainGroupLocalizationServices");

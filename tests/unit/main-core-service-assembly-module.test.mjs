@@ -86,7 +86,6 @@ describe("GTV main core service assembly module", () => {
             GTV_TIMEZONE_SEARCH: makeApi("timezoneSearch"),
             GTV_SNAPSHOT_FORMAT: makeApi("snapshotFormat"),
             GTV_TIME_INPUT_MUTATIONS: makeApi("timeInputMutations"),
-            GTV_MAIN_ROW_ORDER_SERVICES: makeApi("rowOrder"),
             GTV_MAIN_ROW_VIEW_SERVICES: makeApi("rowView"),
             GTV_TABLE_RENDER: makeApi("tableRender"),
             GTV_MAIN_IMAGE_EXPORT_BRIDGE_PROXY: makeApi("imageExportBridgeProxy"),
@@ -319,7 +318,6 @@ describe("GTV main core service assembly module", () => {
         expect(assembled.createTimezoneSearchService({ a: 1 })).toEqual({ name: "timezoneSearch" });
         expect(assembled.createSnapshotFormatService({ a: 1 })).toEqual({ name: "snapshotFormat" });
         expect(assembled.createTimeInputMutationsService({ a: 1 })).toEqual({ name: "timeInputMutations" });
-        expect(assembled.createMainRowOrderServices({ a: 1 })).toEqual({ name: "rowOrder" });
         expect(assembled.createMainRowViewServices({ a: 1 })).toEqual({ name: "rowView" });
         expect(assembled.createTableRenderService({ a: 1 })).toEqual({ name: "tableRender" });
         expect(assembled.createMainImageExportBridgeProxy({ a: 1 })).toEqual({ name: "imageExportBridgeProxy" });
@@ -418,7 +416,6 @@ describe("GTV main core service assembly module", () => {
             GTV_TIMEZONE_SEARCH: makeApi("ts"),
             GTV_SNAPSHOT_FORMAT: makeApi("sf"),
             GTV_TIME_INPUT_MUTATIONS: makeApi("ti"),
-            GTV_MAIN_ROW_ORDER_SERVICES: makeApi("ro"),
             GTV_MAIN_ROW_VIEW_SERVICES: makeApi("rv"),
             GTV_TABLE_RENDER: makeApi("tr"),
             GTV_MAIN_IMAGE_EXPORT_BRIDGE_PROXY: makeApi("iebp"),
