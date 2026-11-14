@@ -442,22 +442,35 @@ describe("GTV timezone search module", () => {
         expect(entries[2]).toMatchObject({ isUtc: true, abbr: "UTC", name: "utc_name", offsetText: "UTC+00:00" });
         expect(entries[3]).toMatchObject({ abbr: "P530", name: "India", offsetText: "UTC+05:30" });
 
-        // Drag result: a new order of the rows under the base.
-        expect(service.applyGroupListOrder(["tz-tk", "tz-ny", "tz-c", "utc"])).toBe(true);
+        // Drag result with the same top row: only the order below changes, the base stays.
+        expect(service.applyGroupListOrder(["tz-se", "tz-tk", "tz-ny", "tz-c", "utc"])).toBe(true);
         expect(order()).toEqual(["tz-se", "tz-tk", "tz-ny", "tz-c", "utc"]);
+        expect(group.baseTimezoneId).toBe("tz-se");
         expect(group.utcRowOrder).toBe(3);
         expect(group.zones.map((zone) => zone.id)).toEqual(["tz-se", "tz-tk", "tz-ny", "tz-c"]);
         expect(calls).toEqual({ save: 1, render: 1, timeline: 1, adjust: 0 });
         // Same order or a list that does not match the rows changes nothing.
-        expect(service.applyGroupListOrder(["tz-tk", "tz-ny", "tz-c", "utc"])).toBe(false);
+        expect(service.applyGroupListOrder(["tz-se", "tz-tk", "tz-ny", "tz-c", "utc"])).toBe(false);
         expect(service.applyGroupListOrder(["tz-tk", "tz-ny"])).toBe(false);
         expect(calls.save).toBe(1);
 
-        // Arrow keys on the handle move one step; the base row cannot move.
-        expect(service.moveGroupListEntry("utc", 0)).toBe(true);
+        // Arrow keys on a handle move one step within the whole list.
+        expect(service.moveGroupListEntry("utc", 1)).toBe(true);
         expect(order()).toEqual(["tz-se", "utc", "tz-tk", "tz-ny", "tz-c"]);
         expect(group.utcRowOrder).toBe(0);
-        expect(service.moveGroupListEntry("tz-se", 2)).toBe(false);
+        // Moving the top row down makes the next row the base.
+        expect(service.moveGroupListEntry("tz-se", 2)).toBe(true);
+        expect(group.baseTimezoneId).toBe("utc");
+        expect(order()).toEqual(["utc", "tz-tk", "tz-se", "tz-ny", "tz-c"]);
+        expect(calls.adjust).toBe(1);
+        // A drag that puts a city on top makes it the base; the UTC row keeps its place below.
+        expect(service.applyGroupListOrder(["tz-se", "utc", "tz-tk", "tz-ny", "tz-c"])).toBe(true);
+        expect(group.baseTimezoneId).toBe("tz-se");
+        expect(order()).toEqual(["tz-se", "utc", "tz-tk", "tz-ny", "tz-c"]);
+        expect(group.showUtcRow).toBe(true);
+        expect(group.utcRowOrder).toBe(0);
+        expect(calls.adjust).toBe(2);
+        calls.adjust = 0;
 
         // New base: it goes on top and the previous base sits right below it.
         expect(service.setGroupListBase("tz-ny")).toBe(true);

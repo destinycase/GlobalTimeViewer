@@ -415,63 +415,53 @@
             renderGroupList();
         }
 
-        // Applies a new order of the rows under the base row (ids, "utc" for the UTC row).
+        // Applies a new order of all rows ("utc" for the UTC row). The top row becomes the base
+        // timezone; the others keep the given order (zones array order and utcRowOrder).
         function applyGroupListOrder(orderedIds) {
             const group = getCurrentGroupSafe();
             if (!group || !Array.isArray(orderedIds)) return false;
-            const current = getGroupListOrderIds(group).slice(1);
-            const next = orderedIds.filter((id) => current.includes(id));
+            const current = getGroupListOrderIds(group);
+            const next = orderedIds.filter((id, i) => current.includes(id) && orderedIds.indexOf(id) === i);
             if (next.length !== current.length || next.every((id, i) => id === current[i])) return false;
-            const zoneOrder = next.filter((id) => id !== "utc");
+            const prevBaseId = current[0];
+            const nextBaseId = next[0];
+            const rest = next.slice(1);
+            group.baseTimezoneId = nextBaseId;
             const zones = Array.isArray(group.zones) ? group.zones : [];
+            const zoneOrder = rest.filter((id) => id !== "utc");
             const listed = zoneOrder.map((id) => zones.find((zone) => zone?.id === id)).filter(Boolean);
             group.zones = [...zones.filter((zone) => !zoneOrder.includes(zone?.id)), ...listed];
-            const utcIndex = next.indexOf("utc");
-            if (utcIndex >= 0) group.utcRowOrder = utcIndex;
-            commitGroupListChange();
-            return true;
-        }
-
-        function moveGroupListEntry(id, toIndex) {
-            const group = getCurrentGroupSafe();
-            if (!group) return false;
-            const rest = getGroupListOrderIds(group).slice(1);
-            const from = rest.indexOf(id);
-            if (from < 0) return false;
-            const target = Math.min(Math.max(Math.trunc(Number(toIndex)) || 0, 0), rest.length - 1);
-            if (target === from) return false;
-            rest.splice(from, 1);
-            rest.splice(target, 0, id);
-            return applyGroupListOrder(rest);
-        }
-
-        // Makes a row the base timezone; the previous base goes right below it.
-        function setGroupListBase(id) {
-            const group = getCurrentGroupSafe();
-            if (!group) return false;
-            const prevBaseId = getGroupBaseId(group);
-            if (id === prevBaseId) return false;
-            const zones = Array.isArray(group.zones) ? group.zones : [];
-            if (id !== "utc" && !zones.some((zone) => zone?.id === id)) return false;
-            const rest = getGroupListOrderIds(group).slice(1).filter((rowId) => rowId !== id);
-            const nextRest = [prevBaseId, ...rest];
-            group.baseTimezoneId = id;
-            if (id === "utc") {
+            if (nextBaseId === "utc") {
                 group.showUtcRow = true;
                 group.utcRowOrder = 0;
-            }
-            const zoneOrder = nextRest.filter((rowId) => rowId !== "utc");
-            const listed = zoneOrder.map((rowId) => zones.find((zone) => zone?.id === rowId)).filter(Boolean);
-            group.zones = [...zones.filter((zone) => !zoneOrder.includes(zone?.id)), ...listed];
-            if (id !== "utc") {
-                const utcIndex = nextRest.indexOf("utc");
+            } else {
+                const utcIndex = rest.indexOf("utc");
                 if (utcIndex >= 0) {
                     group.showUtcRow = true;
                     group.utcRowOrder = utcIndex;
                 }
             }
-            commitGroupListChange({ baseChanged: true });
+            commitGroupListChange({ baseChanged: nextBaseId !== prevBaseId });
             return true;
+        }
+
+        // Moves one row to a position in the whole list (0 = top, which makes it the base).
+        function moveGroupListEntry(id, toIndex) {
+            const group = getCurrentGroupSafe();
+            if (!group) return false;
+            const ids = getGroupListOrderIds(group);
+            const from = ids.indexOf(id);
+            if (from < 0) return false;
+            const target = Math.min(Math.max(Math.trunc(Number(toIndex)) || 0, 0), ids.length - 1);
+            if (target === from) return false;
+            ids.splice(from, 1);
+            ids.splice(target, 0, id);
+            return applyGroupListOrder(ids);
+        }
+
+        // Makes a row the base timezone by moving it to the top; the previous base goes right below it.
+        function setGroupListBase(id) {
+            return moveGroupListEntry(id, 0);
         }
 
         // Removes a row (the UTC row is hidden). The base row cannot be removed.
@@ -505,24 +495,23 @@
             if (!listEl) return;
             const focusedId = doc.activeElement?.closest?.(".tz-group-row")?.dataset?.id || "";
             listEl.textContent = "";
+            const hint = doc.createElement("p");
+            hint.className = "settings-desc tz-group-list-hint";
+            hint.textContent = translate("group_list_base_hint");
+            listEl.appendChild(hint);
             getGroupListEntries().forEach((entry) => {
                 const row = doc.createElement("div");
                 row.className = `tz-group-row${entry.isBase ? " is-base" : ""}`;
                 row.dataset.id = entry.id;
                 row.setAttribute("role", "listitem");
 
-                const handle = doc.createElement(entry.isBase ? "span" : "button");
-                handle.className = entry.isBase ? "tz-group-pin" : "tz-group-handle";
-                if (entry.isBase) {
-                    handle.textContent = "";
-                    handle.title = translate("group_list_base_pinned");
-                } else {
-                    handle.type = "button";
-                    handle.textContent = "\u22EE\u22EE";
-                    handle.title = translate("group_list_drag_hint");
-                    handle.setAttribute("aria-label", `${translate("group_list_drag_hint")}: ${entry.name}`);
-                    bindGroupListHandle(handle, row, entry.id);
-                }
+                const handle = doc.createElement("button");
+                handle.type = "button";
+                handle.className = "tz-group-handle";
+                handle.textContent = "\u22EE\u22EE";
+                handle.title = translate("group_list_drag_hint");
+                handle.setAttribute("aria-label", `${translate("group_list_drag_hint")}: ${entry.name}`);
+                bindGroupListHandle(handle, row, entry.id);
 
                 const info = doc.createElement("div");
                 info.className = "tz-group-info";
@@ -539,21 +528,13 @@
                 info.appendChild(name);
                 info.appendChild(offset);
 
-                const baseLabel = doc.createElement("label");
-                baseLabel.className = "tz-group-base";
-                const radio = doc.createElement("input");
-                radio.type = "radio";
-                radio.name = "tz-group-base";
-                radio.value = entry.id;
-                radio.checked = entry.isBase;
-                radio.setAttribute("aria-label", `${translate("label_base_order")}: ${entry.name}`);
-                radio.addEventListener("change", () => {
-                    if (radio.checked) setGroupListBase(entry.id);
-                });
-                const baseText = doc.createElement("span");
-                baseText.textContent = translate("label_base_order");
-                baseLabel.appendChild(radio);
-                baseLabel.appendChild(baseText);
+                // Only this popup shows which row is the base: the top row.
+                const baseMark = doc.createElement("span");
+                baseMark.className = "tz-group-base-mark";
+                if (entry.isBase) {
+                    baseMark.textContent = translate("label_base_order");
+                    baseMark.title = translate("group_list_base_hint");
+                }
 
                 const remove = doc.createElement("button");
                 remove.type = "button";
@@ -570,7 +551,7 @@
 
                 row.appendChild(handle);
                 row.appendChild(info);
-                row.appendChild(baseLabel);
+                row.appendChild(baseMark);
                 row.appendChild(remove);
                 listEl.appendChild(row);
             });
@@ -581,14 +562,14 @@
         }
 
         // Drag with the handle (pointer events cover mouse, pen and touch); the row follows the
-        // pointer among the other non-base rows and the order is saved on release.
+        // pointer among the other rows and the order is saved on release. Arrow keys on a
+        // focused handle move it one step.
         function bindGroupListHandle(handle, row, id) {
             handle.addEventListener("keydown", (event) => {
                 if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
                 event.preventDefault?.();
-                const group = getCurrentGroupSafe();
-                const rest = getGroupListOrderIds(group).slice(1);
-                const from = rest.indexOf(id);
+                const ids = getGroupListOrderIds(getCurrentGroupSafe());
+                const from = ids.indexOf(id);
                 moveGroupListEntry(id, from + (event.key === "ArrowUp" ? -1 : 1));
             });
             handle.addEventListener("pointerdown", (event) => {
@@ -599,7 +580,7 @@
                 try { handle.setPointerCapture?.(event.pointerId); } catch (_err) { /* capture is optional */ }
                 row.classList.add("is-dragging");
                 const onMove = (moveEvent) => {
-                    const others = [...listEl.querySelectorAll(".tz-group-row:not(.is-base):not(.is-dragging)")];
+                    const others = [...listEl.querySelectorAll(".tz-group-row:not(.is-dragging)")];
                     const before = others.find((other) => {
                         const box = other.getBoundingClientRect();
                         return moveEvent.clientY < box.top + box.height / 2;
@@ -618,7 +599,7 @@
                     moveTarget.removeEventListener("pointerup", onEnd);
                     moveTarget.removeEventListener("pointercancel", onEnd);
                     row.classList.remove("is-dragging");
-                    const ids = [...listEl.querySelectorAll(".tz-group-row:not(.is-base)")].map((el) => el.dataset.id);
+                    const ids = [...listEl.querySelectorAll(".tz-group-row")].map((el) => el.dataset.id);
                     if (!applyGroupListOrder(ids)) renderGroupList();
                 };
                 moveTarget.addEventListener("pointermove", onMove);

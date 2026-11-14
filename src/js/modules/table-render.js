@@ -420,12 +420,6 @@
             });
             baseInner += buildRowActionCells(translate("tooltip_copy"), "");
             baseRow.insertAdjacentHTML('beforeend', baseInner);
-            // The base mark sits next to the abbreviation (or the name when that column is hidden);
-            // images and copied text read only the code and name spans, so it stays out of them.
-            const baseMarkHost = baseRow.querySelector(".abbr-cell") || baseRow.querySelector(".zone-info");
-            if (baseMarkHost) {
-                baseMarkHost.insertAdjacentHTML('beforeend', `<span class="base-order-label export-exclude">${translate("label_base_order")}</span>`);
-            }
             applyZoneCodeKindClass(baseRow.querySelector(".zone-code"), baseRef);
             const baseCopyBtn = baseRow.querySelector(".copy-row-btn");
             if (baseCopyBtn) baseCopyBtn.addEventListener("click", () => dep.copyRow(baseRef.id));

@@ -2449,8 +2449,7 @@ input[type=number] {
     gap: 6px;
 }
 
-.base-order-label {
-    margin-left: 6px;
+.tz-group-base-mark:not(:empty) {
     min-width: 36px;
     height: 22px;
     display: inline-flex;
@@ -3543,13 +3542,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     white-space: nowrap;
 }
 
-.tz-group-base {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--text-dim);
-    cursor: pointer;
+.tz-group-list-hint {
+    margin: 0 0 8px;
 }
 
 .tz-group-remove:disabled {

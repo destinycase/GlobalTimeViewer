@@ -828,14 +828,13 @@ function buildScenarios(ctx) {
                 await addFromList("UTC", "표준시 (UTC)");
                 const utcShownToasts = await toastTexts();
                 assert(utcShownToasts.some((text) => text.includes("이미 존재")) && (await group2()).zones.length === 1, `UTC 행이 있을 때 UTC 타일: ${JSON.stringify(utcShownToasts)}`);
-                // Hide the UTC row the way a user does now: in the group list, make another row the
-                // base, then delete the UTC row.
+                // Hide the UTC row the way a user does now: in the group list, move a city to the top
+                // (arrow key on its handle), then delete the UTC row.
                 await api.switchTab("live");
                 await api.ev(`document.getElementById("show-all-tz").click()`);
-                await api.ev(`(() => {
-                    const rows = [...document.querySelectorAll("#tz-group-list .tz-group-row")];
-                    rows.find((row) => row.dataset.id !== "utc").querySelector("input[type=radio]").click();
-                })()`);
+                await api.ev(`[...document.querySelectorAll("#tz-group-list .tz-group-row")].find((row) => row.dataset.id !== "utc").querySelector(".tz-group-handle").focus()`);
+                await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "ArrowUp", code: "ArrowUp", windowsVirtualKeyCode: 38 });
+                await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "ArrowUp", code: "ArrowUp", windowsVirtualKeyCode: 38 });
                 await until("기준 시간 변경", async () => (await group2()).baseTimezoneId !== "utc");
                 await api.ev(`document.querySelector('#tz-group-list .tz-group-row[data-id="utc"] .tz-group-remove').click()`);
                 await until("UTC 행 숨김", async () => (await group2()).showUtcRow === false);
@@ -1326,9 +1325,16 @@ function buildScenarios(ctx) {
                 });
                 await clickAt("#close-group-settings-btn");
                 assert(!(await shown("group-settings-overlay")), "닫기 버튼으로 닫히지 않음");
-                // The base time is chosen in the Add Timezone popup's group list.
+                // The base time follows the top row of the Add Timezone popup's group list.
                 await clickAt("#show-all-tz");
-                await clickAt('#tz-group-list .tz-group-row[data-id="tz-ny"] input[type=radio]');
+                const nyHandle = await api.ev(`(() => { const r = document.querySelector('#tz-group-list .tz-group-row[data-id="tz-ny"] .tz-group-handle').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+                const topY = await api.ev(`document.querySelector("#tz-group-list .tz-group-row").getBoundingClientRect().top + 3`);
+                await api.mouse("mousePressed", nyHandle.x, nyHandle.y);
+                for (let i = 1; i <= 6; i += 1) {
+                    await api.mouse("mouseMoved", nyHandle.x, nyHandle.y + ((topY - nyHandle.y) * i) / 6);
+                    await sleep(30);
+                }
+                await api.mouse("mouseReleased", nyHandle.x, topY);
                 await until("기준 시간 저장", async () => (await stored())?.groups?.[0]?.baseTimezoneId === "tz-ny");
                 await clickAt("#close-overlay");
                 const baseRow = await api.ev(`document.querySelector("#clocks-container .base-row .zone-name")?.textContent || ""`);
@@ -1377,7 +1383,7 @@ function buildScenarios(ctx) {
                 const remaining = (await stored()).groups[0];
                 assert(remaining.name === "업무" && remaining.dayStartHour === 8, `남은 그룹: ${JSON.stringify({ name: remaining.name, day: remaining.dayStartHour })}`);
 
-                return `탭 버튼 ${layout.buttons.join(",")}·본 화면과 그룹 설정에 기준 시간 없음(그룹 목록에서 지정), "${popupName}" 기준 뉴욕·낮 08~20시 저장, 그룹 2는 공통 06~18시 유지, 팝업 안에서 이름 "출장" 변경(변경 버튼)·제목 반영·Esc 닫힘, 설정 버튼 테두리·배경 있음, 삭제 취소 유지·확인 시 삭제·닫힘`;
+                return `탭 버튼 ${layout.buttons.join(",")}·본 화면과 그룹 설정에 기준 시간 없음(그룹 목록 맨 위로 끌어 지정), "${popupName}" 기준 뉴욕·낮 08~20시 저장, 그룹 2는 공통 06~18시 유지, 팝업 안에서 이름 "출장" 변경(변경 버튼)·제목 반영·Esc 닫힘, 설정 버튼 테두리·배경 있음, 삭제 취소 유지·확인 시 삭제·닫힘`;
             }
         },
         {
@@ -1537,7 +1543,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "19",
-            title: "시간대 추가 팝업 그룹 목록: 손잡이 끌기·기준 지정·삭제·추가 후 유지, 본 화면 표 순서·삭제 열 없음",
+            title: "시간대 추가 팝업 그룹 목록: 손잡이 끌기·맨 위가 기준·삭제·추가 후 유지, 본 화면 표 순서·삭제 열과 기준 표기 없음",
             async run() {
                 const { api } = ctx;
                 const z = (id, zone, ko) => ({ id, type: "standard", zone, name_ko: ko, name_en: ko, fixedAbbr: "", fixedOffsetMinutes: null });
@@ -1572,16 +1578,16 @@ function buildScenarios(ctx) {
                 const table = await api.ev(`(() => ({
                     heads: [...document.querySelectorAll("#table-head th")].map((th) => th.textContent.trim()),
                     handles: document.querySelectorAll("#clocks-container .drag-handle, #clocks-container .remove-row-btn, #clocks-container .move-cell, #clocks-container .remove-cell").length,
-                    baseMark: document.querySelector("#clocks-container .base-row .base-order-label")?.textContent.trim() || ""
+                    baseWord: ["#timezone-section", "#top-control-bar", "#group-tabs-container"].some((sel) => (document.querySelector(sel)?.innerText || "").includes("기준"))
                 }))()`);
-                assert(!table.heads.includes("순서") && !table.heads.includes("삭제") && table.handles === 0 && table.baseMark === "기준", `본 화면 표: ${JSON.stringify(table)}`);
+                assert(!table.heads.includes("순서") && !table.heads.includes("삭제") && table.handles === 0 && !table.baseWord, `본 화면 표: ${JSON.stringify(table)}`);
                 assert(!(await api.ev(`!!document.getElementById("base-time-select")`)), "그룹 설정에 기준 시간 선택이 남아 있음");
 
                 // b) The popup opens on the group list, in table order, with the count on the tab.
                 await clickAt("#show-all-tz");
-                const opened = await api.ev(`({ active: document.querySelector("#full-tz-overlay .overlay-tab.active")?.id, count: document.getElementById("tz-tab-list-count").textContent, baseRemove: document.querySelector("#tz-group-list .tz-group-row.is-base .tz-group-remove")?.disabled, baseHandle: !!document.querySelector("#tz-group-list .tz-group-row.is-base .tz-group-handle"), arrows: document.querySelectorAll("#tz-group-list .tz-group-row button[aria-label*='위로'], #tz-group-list .tz-group-row button[aria-label*='아래로']").length })`);
+                const opened = await api.ev(`({ active: document.querySelector("#full-tz-overlay .overlay-tab.active")?.id, count: document.getElementById("tz-tab-list-count").textContent, baseRemove: document.querySelector("#tz-group-list .tz-group-row.is-base .tz-group-remove")?.disabled, baseHandle: !!document.querySelector("#tz-group-list .tz-group-row.is-base .tz-group-handle"), radios: document.querySelectorAll("#tz-group-list input[type=radio]").length, topMark: document.querySelector("#tz-group-list .tz-group-row .tz-group-base-mark")?.textContent || "", otherMarks: [...document.querySelectorAll("#tz-group-list .tz-group-row:not(.is-base) .tz-group-base-mark")].map((el) => el.textContent).join(""), hint: document.querySelector("#tz-group-list .tz-group-list-hint")?.textContent || "", arrows: document.querySelectorAll("#tz-group-list .tz-group-row button[aria-label*='위로'], #tz-group-list .tz-group-row button[aria-label*='아래로']").length })`);
                 const startOrder = await listIds();
-                assert(opened.active === "tz-tab-list" && opened.count === "(5)" && opened.baseRemove === true && !opened.baseHandle && opened.arrows === 0, `팝업 처음 상태: ${JSON.stringify(opened)}`);
+                assert(opened.active === "tz-tab-list" && opened.count === "(5)" && opened.baseRemove === true && opened.baseHandle && opened.radios === 0 && opened.topMark === "기준" && opened.otherMarks === "" && opened.hint.includes("맨 위") && opened.arrows === 0, `팝업 처음 상태: ${JSON.stringify(opened)}`);
                 assert(JSON.stringify(startOrder) === JSON.stringify(await tableIds()), `목록과 표 순서: ${JSON.stringify({ list: startOrder, table: await tableIds() })}`);
 
                 // c) Drag Tokyo's handle with the real mouse to right below the base row.
@@ -1598,12 +1604,20 @@ function buildScenarios(ctx) {
                 const afterDrag = await stored();
                 assert(afterDrag.groups[0].utcRowOrder === 1 && afterDrag.groups[0].zones.map((zone) => zone.id).join() === "tz-se,tz-tk,tz-ny,tz-ld", `끌기 저장값: ${JSON.stringify(afterDrag.groups[0])}`);
 
-                // d) Base: pick London; it goes on top, Seoul right below, the table follows.
-                await clickAt('#tz-group-list .tz-group-row[data-id="tz-ld"] input[type=radio]');
+                // d) Base: drag London to the top; it becomes the base, Seoul goes right below, the table follows.
+                const ldHandle = await center('#tz-group-list .tz-group-row[data-id="tz-ld"] .tz-group-handle');
+                const topRowY = await api.ev(`document.querySelector("#tz-group-list .tz-group-row").getBoundingClientRect().top + 3`);
+                await api.mouse("mousePressed", ldHandle.x, ldHandle.y);
+                for (let i = 1; i <= 8; i += 1) {
+                    await api.mouse("mouseMoved", ldHandle.x, ldHandle.y + ((topRowY - ldHandle.y) * i) / 8);
+                    await sleep(30);
+                }
+                await api.mouse("mouseReleased", ldHandle.x, topRowY);
                 await until("기준 변경", async () => (await stored())?.groups?.[0]?.baseTimezoneId === "tz-ld");
                 await until("기준 순서", async () => JSON.stringify(await listIds()) === JSON.stringify(["tz-ld", "tz-se", "tz-tk", "utc", "tz-ny"]));
                 const baseTable = await tableIds();
-                assert(baseTable[0] === "tz-ld" && JSON.stringify(baseTable) === JSON.stringify(await listIds()), `기준 변경 후 표: ${JSON.stringify(baseTable)}`);
+                const marks = await api.ev(`[...document.querySelectorAll("#tz-group-list .tz-group-row")].map((row) => row.querySelector(".tz-group-base-mark")?.textContent || "")`);
+                assert(baseTable[0] === "tz-ld" && JSON.stringify(baseTable) === JSON.stringify(await listIds()) && marks[0] === "기준" && marks.slice(1).every((m) => !m), `기준 변경 후 표·표시: ${JSON.stringify({ baseTable, marks })}`);
 
                 // e) Delete New York with the real mouse; the count and the table follow.
                 await clickAt('#tz-group-list .tz-group-row[data-id="tz-ny"] .tz-group-remove');
@@ -1626,7 +1640,7 @@ function buildScenarios(ctx) {
                 await api.switchTab("live");
                 const reloaded = await tableIds();
                 assert(JSON.stringify(reloaded) === JSON.stringify(finalList), `다시 연 뒤 순서: ${JSON.stringify({ reloaded, finalList })}`);
-                return `표 순서·삭제 열 없음·기준 표시, 팝업은 그룹 목록 (5)로 열림(화살표 없음·기준 행 손잡이·삭제 없음), 실제 마우스 끌기로 도쿄를 기준 바로 아래로, 런던 기준 지정, 뉴욕 삭제, 프리셋 추가 후 팝업 유지·(5), 다시 연 뒤 순서 유지 ${reloaded.join(" / ")}`;
+                return `표 순서·삭제 열 없음·본 화면에 기준 표기 없음, 팝업은 그룹 목록 (5)로 열림(라디오·화살표 없음, 맨 위 행에만 기준 표시·안내 문구, 맨 위 행도 손잡이·삭제 불가), 실제 마우스 끌기로 도쿄를 맨 위 바로 아래로, 런던을 맨 위로 끌어 기준 변경, 뉴욕 삭제, 프리셋 추가 후 팝업 유지·(5), 다시 연 뒤 순서 유지 ${reloaded.join(" / ")}`;
             }
         }
     ];

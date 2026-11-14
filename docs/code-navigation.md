@@ -167,12 +167,12 @@ flowchart LR
 
 - 시간대 추가는 `시간대 추가` 팝업(`#full-tz-overlay`) 하나로 합니다. 본 화면에는 도구 줄(`#control-option-row`) 맨 앞에 `시간대 추가` 이름표와 `목록` 버튼(`#show-all-tz`)만 있습니다.
 - 팝업은 `timezone-search.js`가 맡고 탭은 `그룹 목록`(`tz-tab-list`, 먼저 열림, 이름 뒤 `#tz-tab-list-count`에 개수), `시간대 프리셋`(`tz-tab-country`), `사용자 커스텀`(`tz-tab-custom`) 세 개입니다(`setFullTimezoneOverlayTab`).
-- 그룹 목록(`#tz-group-list`, `renderGroupList`)은 현재 그룹의 시간대를 표와 같은 순서로 보입니다. 순서는 `getGroupListOrderIds`가 표의 `getRenderableTimezoneRows`(`table-render.js`)와 같은 규칙(기준 행 맨 위, 나머지는 `zones` 순서에 UTC 행을 `utcRowOrder` 위치에 끼움)으로 만듭니다. 줄마다 손잡이, 약어·이름·UTC 시차, `기준` 라디오, 삭제 버튼이 있고 기준 행은 손잡이 없이 고정되며 삭제할 수 없습니다.
-  - 순서: 손잡이를 끌면(포인터 이벤트, 문서에서 움직임을 받음) 줄이 다른 줄 사이로 옮겨지고 놓을 때 `applyGroupListOrder`가 `zones` 순서와 `utcRowOrder`를 저장합니다. 손잡이에 초점이 있을 때 위·아래 방향키로도 한 칸씩 옮깁니다(`moveGroupListEntry`).
-  - 기준: `setGroupListBase`가 `baseTimezoneId`를 바꾸고 이전 기준을 새 기준 바로 아래에 둡니다(UTC가 기준이 되면 `showUtcRow`를 켜고 `utcRowOrder` 0).
+- 그룹 목록(`#tz-group-list`, `renderGroupList`)은 현재 그룹의 시간대를 표와 같은 순서로 보입니다. 순서는 `getGroupListOrderIds`가 표의 `getRenderableTimezoneRows`(`table-render.js`)와 같은 규칙(기준 행 맨 위, 나머지는 `zones` 순서에 UTC 행을 `utcRowOrder` 위치에 끼움)으로 만듭니다. **맨 위 행이 기준 시간대**입니다(따로 고르는 장치 없음). 목록 위에 안내 한 줄(`group_list_base_hint`)이 있고, 줄마다 손잡이, 약어·이름·UTC 시차, 삭제 버튼이 있으며 맨 위 행에만 `기준` 표시(`.tz-group-base-mark`)가 붙습니다. 맨 위 행도 끌 수 있지만 삭제할 수는 없습니다. `기준`이라는 글자는 이 팝업에만 나오고 본 화면 표·도구 줄에는 없습니다.
+  - 순서: 손잡이를 끌면(포인터 이벤트, 문서에서 움직임을 받음) 줄이 다른 줄 사이로 옮겨지고 놓을 때 `applyGroupListOrder`가 전체 순서를 받아 맨 위 행을 `baseTimezoneId`로, 나머지를 `zones` 순서와 `utcRowOrder`로 저장합니다(맨 위가 바뀌면 시간 조정 줄도 갱신). 손잡이에 초점이 있을 때 위·아래 방향키로도 한 칸씩 옮깁니다(`moveGroupListEntry`, 0번 자리로 가면 기준).
+  - 기준: 맨 위로 옮기는 것과 같습니다(`setGroupListBase` = 0번 자리로 이동). 이전 기준은 새 기준 바로 아래에 옵니다. UTC가 맨 위면 `showUtcRow`를 켜고 `utcRowOrder` 0입니다.
   - 삭제: `removeGroupListEntry`가 시간대를 지우거나 UTC 행을 숨깁니다(`showUtcRow` false).
   - 바꿀 때마다 저장, 표(`renderList`)·타임라인(`renderTimelineFrame`)을 다시 그리고, 기준이 바뀌면 시간 조정 줄(`updateTimeAdjustPanel`)도 맞춥니다. 저장 데이터 형식은 그대로입니다.
-- 본 화면 표(`table-render.js`)에는 `순서`·`삭제` 열이 없고, 기준 행의 `기준` 표시(`.base-order-label`)는 시간대 칸(없으면 이름 칸) 안에 둡니다. 이미지와 복사 글은 시간대·이름 글자만 읽으므로 이 표시는 들어가지 않습니다. 표 행을 끌어 옮기던 처리(`main-row-order-services.js`, 끌기 그림자)는 v3.17.7에서 지웠습니다.
+- 본 화면 표(`table-render.js`)에는 `순서`·`삭제` 열과 `기준` 표시가 없습니다. 기준 행은 표에서도 맨 위에 옵니다. 표 행을 끌어 옮기던 처리(`main-row-order-services.js`, 끌기 그림자)는 v3.17.7에서 지웠습니다.
 - 시간대 프리셋의 첫 타일 `표준시 (UTC)`(`utc-row` 항목)는 별도 시간대를 만들지 않고 표의 UTC 행을 다시 켭니다(이미 보이면 중복 안내). 나머지 타일은 도시 목록이며 도시·약어·UTC 오프셋으로 검색합니다.
 - 사용자 커스텀 탭은 검색칸과 목록 대신 입력 양식(`#tz-custom-panel`)을 보입니다. 입력칸 id(`custom-abbr` 등)는 예전과 같아 `main-ui-init.js`의 추가 처리기가 그대로 동작하고, 추가에 성공하면 팝업은 열린 채 양식을 비우고 약어 칸에 초점을 둡니다. 그룹 목록 개수는 같은 버튼에 나중에 단 `timezone-search.js`의 처리기가 고칩니다.
 - 프리셋 타일을 골라 추가해도 팝업은 닫히지 않고 `toast_timezone_added` 안내와 함께 개수만 늘어납니다. 팝업을 닫는 길(닫기 버튼, 바깥 클릭, Esc)은 모두 `closeFullTimezoneOverlay`를 거칩니다. 이때 커스텀 양식을 비우고 시차를 +00:00으로 되돌리고 초점을 `목록` 버튼으로 돌려줍니다(강조 없이). Esc는 화면 안 입력·확인 창이 위에 떠 있으면 그 창이 먼저 받습니다.
