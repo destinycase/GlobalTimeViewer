@@ -23,12 +23,10 @@ const STORAGE_KEY = "GTV_v324_Data";
 // Tuesday 2026-11-17 10:30:00 in Seoul. Every capture shows this moment, so the images do not
 // depend on when they are made.
 const FIXED_NOW_MS = Date.UTC(2026, 10, 17, 1, 30, 0);
-const APP_W = 1440;
-const APP_H = 900;
-// Screens whose tool rows wrap at APP_W are captured in a wider window of the same 16:10 shape, so
-// every tool row stays on one line in both languages (English needs the most room).
-const MULTI_W = 1600;
-const FIXED_W = 1760;
+// Every screen is captured in this 16:10 window. It is the narrowest width at which the longest
+// tool rows (English fixed time toolbar) stay on one line, so all screenshots share one scale.
+const APP_W = 1760;
+const APP_H = 1100;
 const JPEG_QUALITY = 92;
 
 const log = (message) => process.stdout.write(`${message}\n`);
@@ -124,25 +122,20 @@ async function captureApp(session, extensionId, lang) {
     // Line counting helpers live in the page; a row whose children sit at more than one height wraps.
     await ev(`window.childLines = (el) => new Set([...el.children].filter((k) => k.getClientRects().length).map((k) => { const b = k.getBoundingClientRect(); return Math.round(b.top + b.height / 2); })).size;
         window.toolbarLines = () => childLines(document.getElementById("control-option-row"));`);
-    // Captures at a wider 16:10 window after checking that every measured row is on one line.
-    const wideShot = async (width, label, measure) => {
-        await c.send("Emulation.setDeviceMetricsOverride", { width, height: Math.round(width * APP_H / APP_W), deviceScaleFactor: 1, mobile: false });
-        await sleep(600);
+    // Captures only after checking that every measured row is on one line.
+    const checkedShot = async (label, measure) => {
         const wraps = await ev(measure);
         if (wraps.rows.length === 0 || wraps.rows.some((n) => n !== 1) || wraps.titleLines !== 1) {
-            throw new Error(`${label} (${lang}) wraps at ${width}px: ${JSON.stringify(wraps)}`);
+            throw new Error(`${label} (${lang}) wraps at ${APP_W}px: ${JSON.stringify(wraps)}`);
         }
-        const data = await shot();
-        await c.send("Emulation.setDeviceMetricsOverride", { width: APP_W, height: APP_H, deviceScaleFactor: 1, mobile: false });
-        await sleep(400);
-        return data;
+        return shot();
     };
     const shots = {};
 
     // 1) Realtime with the timeline.
     await ev(`(() => { const t = document.getElementById("toggle-timeline"); if (!t.checked) t.click(); })()`);
     await sleep(600);
-    shots.realtime = await shot();
+    shots.realtime = await checkedShot("realtime", `({ rows: [toolbarLines()], titleLines: 1 })`);
 
     // 2) Continuous time edit: two ranges, the first a 09:00-18:00 working day in Seoul.
     await tab("multi");
@@ -153,7 +146,7 @@ async function captureApp(session, extensionId, lang) {
     await setValue("#multi-ranges-container .base-row .time-input[data-slot=\"1\"]", "2026-11-17 18:00:00");
     await sleep(600);
     await ev(`window.scrollTo(0, 0)`);
-    shots.multi = await wideShot(MULTI_W, "continuous time edit", `(() => {
+    shots.multi = await checkedShot("continuous time edit", `(() => {
         const rows = [toolbarLines(), ...[...document.querySelectorAll("#multi-range-section .time-adjust-set")].filter((el) => el.getClientRects().length).map(childLines)];
         const title = document.querySelector("#multi-ranges-container .multi-range-title");
         const lineHeight = parseFloat(getComputedStyle(title).lineHeight) || 20;
@@ -172,7 +165,7 @@ async function captureApp(session, extensionId, lang) {
     await sleep(500);
     const slots = await ev(`[...document.querySelectorAll("#fixed-time-body tr:first-child .fixed-time-time-input")].map((el) => el.value).join(",")`);
     if (slots !== slotTimes.join(",")) throw new Error(`fixed time slots: ${slots}`);
-    shots.fixed = await wideShot(FIXED_W, "fixed time", `({ rows: [toolbarLines()], titleLines: 1 })`);
+    shots.fixed = await checkedShot("fixed time", `({ rows: [toolbarLines()], titleLines: 1 })`);
 
     // 4) Calculator with sample values.
     await tab("calc");
