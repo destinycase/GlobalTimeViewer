@@ -1567,7 +1567,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "19",
-            title: "시간대 추가 팝업 그룹 목록: 손잡이 끌기·맨 위가 기준·삭제·추가 후 유지, 본 화면 표 순서·삭제 열과 기준 표기 없음",
+            title: "시간대 관리 팝업 그룹 목록·탭 전환 시 위치 고정: 손잡이 끌기·맨 위가 기준·삭제·추가 후 유지, 본 화면 표 순서·삭제 열과 기준 표기 없음",
             async run() {
                 const { api } = ctx;
                 const z = (id, zone, ko) => ({ id, type: "standard", zone, name_ko: ko, name_en: ko, fixedAbbr: "", fixedOffsetMinutes: null });
@@ -1625,6 +1625,17 @@ function buildScenarios(ctx) {
                 await clickAt("#show-all-tz");
                 const popupTitle = await api.ev(`document.querySelector("#full-tz-overlay .overlay-header h3").textContent.trim()`);
                 assert(popupTitle === "시간대 관리", `팝업 제목: ${popupTitle}`);
+                // The popup's top edge stays put while its height changes between tabs.
+                const boxAt = async (tab) => {
+                    await clickAt(`#${tab}`);
+                    return api.ev(`(() => { const r = document.querySelector("#full-tz-overlay .overlay-content").getBoundingClientRect(); return { top: Math.round(r.top), height: Math.round(r.height), bottom: Math.round(r.bottom), vh: innerHeight }; })()`);
+                };
+                const tabBoxes = {};
+                for (const tab of ["tz-tab-country", "tz-tab-custom", "tz-tab-list"]) tabBoxes[tab] = await boxAt(tab);
+                const boxList = Object.values(tabBoxes);
+                assert(new Set(boxList.map((b) => b.height)).size > 1, `탭별 팝업 높이가 같아 위치 고정을 확인할 수 없음: ${JSON.stringify(tabBoxes)}`);
+                assert(new Set(boxList.map((b) => b.top)).size === 1 && boxList.every((b) => b.top > 0 && b.bottom <= b.vh), `탭 전환 시 팝업 위쪽 위치: ${JSON.stringify(tabBoxes)}`);
+                const popupTop = `위 ${boxList[0].top}px 고정(높이 ${boxList.map((b) => b.height).join("·")}px)`;
                 const opened = await api.ev(`({ active: document.querySelector("#full-tz-overlay .overlay-tab.active")?.id, count: document.getElementById("tz-tab-list-count").textContent, baseRemove: document.querySelector("#tz-group-list .tz-group-row.is-base .tz-group-remove")?.disabled, baseHandle: !!document.querySelector("#tz-group-list .tz-group-row.is-base .tz-group-handle"), radios: document.querySelectorAll("#tz-group-list input[type=radio]").length, topMark: document.querySelector("#tz-group-list .tz-group-row .tz-group-base-mark")?.textContent || "", otherMarks: [...document.querySelectorAll("#tz-group-list .tz-group-row:not(.is-base) .tz-group-base-mark")].map((el) => el.textContent).join(""), hint: document.querySelector("#tz-group-list .tz-group-list-hint")?.textContent || "", arrows: document.querySelectorAll("#tz-group-list .tz-group-row button[aria-label*='위로'], #tz-group-list .tz-group-row button[aria-label*='아래로']").length })`);
                 const startOrder = await listIds();
                 assert(opened.active === "tz-tab-list" && opened.count === "(5)" && opened.baseRemove === true && opened.baseHandle && opened.radios === 0 && opened.topMark === "기준" && opened.otherMarks === "" && opened.hint.includes("맨 위") && opened.arrows === 0, `팝업 처음 상태: ${JSON.stringify(opened)}`);
@@ -1680,7 +1691,7 @@ function buildScenarios(ctx) {
                 await api.switchTab("live");
                 const reloaded = await tableIds();
                 assert(JSON.stringify(reloaded) === JSON.stringify(finalList), `다시 연 뒤 순서: ${JSON.stringify({ reloaded, finalList })}`);
-                return `도구 줄 "시간대 [관리]"(+ 버튼과 같은 강조), 팝업 제목 "시간대 관리", 표 순서·삭제 열 없음·본 화면에 기준 표기 없음, 팝업은 그룹 목록 (5)로 열림(라디오·화살표 없음, 맨 위 행에만 기준 표시·안내 문구, 맨 위 행도 손잡이·삭제 불가), 실제 마우스 끌기로 도쿄를 맨 위 바로 아래로, 런던을 맨 위로 끌어 기준 변경, 뉴욕 삭제, 프리셋 추가 후 팝업 유지·(5), 다시 연 뒤 순서 유지 ${reloaded.join(" / ")}`;
+                return `도구 줄 "시간대 [관리]"(+ 버튼과 같은 강조), 팝업 제목 "시간대 관리", 탭 전환 시 팝업 ${popupTop}, 표 순서·삭제 열 없음·본 화면에 기준 표기 없음, 팝업은 그룹 목록 (5)로 열림(라디오·화살표 없음, 맨 위 행에만 기준 표시·안내 문구, 맨 위 행도 손잡이·삭제 불가), 실제 마우스 끌기로 도쿄를 맨 위 바로 아래로, 런던을 맨 위로 끌어 기준 변경, 뉴욕 삭제, 프리셋 추가 후 팝업 유지·(5), 다시 연 뒤 순서 유지 ${reloaded.join(" / ")}`;
             }
         }
     ];

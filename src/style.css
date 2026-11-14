@@ -3401,6 +3401,14 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     justify-content: center;
 }
 
+/* The Manage Timezones popup changes height between tabs; pin its top edge so it does not jump.
+   7.5vh above + 85vh max height keeps it inside the window. */
+#full-tz-overlay {
+    align-items: flex-start;
+    padding-top: 7.5vh;
+    box-sizing: border-box;
+}
+
 .overlay-header {
     padding: 20px;
     border-bottom: 1px solid var(--border);
