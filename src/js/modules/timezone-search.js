@@ -4,7 +4,7 @@
     function createService(deps = {}) {
         const safeDeps = (deps && typeof deps === "object") ? deps : {};
         let fullTimezoneOverlayCountryEntries = [];
-        let fullTimezoneOverlayActiveTab = "country";
+        let fullTimezoneOverlayActiveTab = "list";
         let fullTimezoneOverlayQuery = "";
         let generatedTimezoneIdSeq = 0;
 
@@ -42,7 +42,11 @@
                 "getCurrentGroup",
                 "savePersistence",
                 "renderList",
-                "showToast"
+                "showToast",
+                "renderTimelineFrame",
+                "updateTimeAdjustPanel",
+                "getZoneAbbreviation",
+                "getZoneDisplayName"
             ])
         });
 
@@ -331,7 +335,11 @@
             item.appendChild(title);
             item.appendChild(abbr);
             item.addEventListener("click", () => {
-                addFromSearchWithData(tzEntry.key);
+                const added = addFromSearchWithData(tzEntry.key);
+                if (added === true) {
+                    dep.showToast(`${translate("toast_timezone_added")} ${getTimezoneEntryTitle(tzEntry)}`, { type: "success" });
+                    refreshGroupListCount();
+                }
                 if (closeOverlay) {
                     closeFullTimezoneOverlay();
                 }
@@ -339,8 +347,288 @@
             return item;
         }
 
+        // ---- Group list tab: the current group's timezones in table order. The base row is
+        // pinned on top; the others are reordered with the drag handle (or arrow keys on it).
+        function getCurrentGroupSafe() {
+            const group = dep.getCurrentGroup();
+            return (group && typeof group === "object") ? group : null;
+        }
+
+        function getGroupBaseId(group) {
+            const id = (typeof group?.baseTimezoneId === "string") ? group.baseTimezoneId.trim() : "";
+            if (id && id !== "utc" && Array.isArray(group.zones) && group.zones.some((zone) => zone?.id === id)) return id;
+            return "utc";
+        }
+
+        function isUtcZoneEntry(zone) {
+            return !!zone && zone.type === "standard" && zone.zone === "UTC";
+        }
+
+        // Same order as the table: zones in saved order, the UTC row placed at utcRowOrder.
+        function getGroupListOrderIds(group) {
+            if (!group) return [];
+            const baseId = getGroupBaseId(group);
+            const ids = (Array.isArray(group.zones) ? group.zones : [])
+                .filter((zone) => zone && typeof zone === "object" && zone.id !== baseId && !isUtcZoneEntry(zone))
+                .map((zone) => zone.id);
+            if (baseId !== "utc" && group.showUtcRow !== false) {
+                const order = parseInt(group.utcRowOrder, 10);
+                const insertAt = Math.min(Math.max(Number.isFinite(order) ? order : 0, 0), ids.length);
+                ids.splice(insertAt, 0, "utc");
+            }
+            return [baseId, ...ids];
+        }
+
+        function getZoneOffsetMinutes(zone) {
+            if (!zone) return 0;
+            if (zone.type === "custom") {
+                const h = parseInt(zone.offH, 10) || 0;
+                const m = parseInt(zone.offM, 10) || 0;
+                return h * 60 + (h < 0 ? -m : m);
+            }
+            const fixed = parseFixedOffsetMinutes(zone.fixedOffsetMinutes);
+            if (fixed !== null) return fixed;
+            const live = getTimezoneOffsetSafe(zone.zone, new Date());
+            return Number.isFinite(live) ? Math.trunc(live) : 0;
+        }
+
+        function getGroupListEntries() {
+            const group = getCurrentGroupSafe();
+            if (!group) return [];
+            const zonesById = new Map((Array.isArray(group.zones) ? group.zones : []).map((zone) => [zone?.id, zone]));
+            return getGroupListOrderIds(group).map((id, index) => {
+                if (id === "utc") {
+                    return { id, isBase: index === 0, isUtc: true, abbr: "UTC", name: translate("utc_name"), offsetText: formatUtcOffsetLabel(0) };
+                }
+                const zone = zonesById.get(id);
+                const abbr = String(dep.getZoneAbbreviation(zone) || zone?.abbr || "").trim();
+                const name = String(dep.getZoneDisplayName(zone) || zone?.name || zone?.name_ko || "").trim();
+                return { id, isBase: index === 0, isUtc: false, isCustom: zone?.type === "custom", abbr, name, offsetText: formatUtcOffsetLabel(getZoneOffsetMinutes(zone)) };
+            }).filter((entry) => entry.id === "utc" || zonesById.has(entry.id));
+        }
+
+        function commitGroupListChange(options = {}) {
+            dep.savePersistence();
+            dep.renderList();
+            dep.renderTimelineFrame();
+            if (options.baseChanged) dep.updateTimeAdjustPanel();
+            renderGroupList();
+        }
+
+        // Applies a new order of the rows under the base row (ids, "utc" for the UTC row).
+        function applyGroupListOrder(orderedIds) {
+            const group = getCurrentGroupSafe();
+            if (!group || !Array.isArray(orderedIds)) return false;
+            const current = getGroupListOrderIds(group).slice(1);
+            const next = orderedIds.filter((id) => current.includes(id));
+            if (next.length !== current.length || next.every((id, i) => id === current[i])) return false;
+            const zoneOrder = next.filter((id) => id !== "utc");
+            const zones = Array.isArray(group.zones) ? group.zones : [];
+            const listed = zoneOrder.map((id) => zones.find((zone) => zone?.id === id)).filter(Boolean);
+            group.zones = [...zones.filter((zone) => !zoneOrder.includes(zone?.id)), ...listed];
+            const utcIndex = next.indexOf("utc");
+            if (utcIndex >= 0) group.utcRowOrder = utcIndex;
+            commitGroupListChange();
+            return true;
+        }
+
+        function moveGroupListEntry(id, toIndex) {
+            const group = getCurrentGroupSafe();
+            if (!group) return false;
+            const rest = getGroupListOrderIds(group).slice(1);
+            const from = rest.indexOf(id);
+            if (from < 0) return false;
+            const target = Math.min(Math.max(Math.trunc(Number(toIndex)) || 0, 0), rest.length - 1);
+            if (target === from) return false;
+            rest.splice(from, 1);
+            rest.splice(target, 0, id);
+            return applyGroupListOrder(rest);
+        }
+
+        // Makes a row the base timezone; the previous base goes right below it.
+        function setGroupListBase(id) {
+            const group = getCurrentGroupSafe();
+            if (!group) return false;
+            const prevBaseId = getGroupBaseId(group);
+            if (id === prevBaseId) return false;
+            const zones = Array.isArray(group.zones) ? group.zones : [];
+            if (id !== "utc" && !zones.some((zone) => zone?.id === id)) return false;
+            const rest = getGroupListOrderIds(group).slice(1).filter((rowId) => rowId !== id);
+            const nextRest = [prevBaseId, ...rest];
+            group.baseTimezoneId = id;
+            if (id === "utc") {
+                group.showUtcRow = true;
+                group.utcRowOrder = 0;
+            }
+            const zoneOrder = nextRest.filter((rowId) => rowId !== "utc");
+            const listed = zoneOrder.map((rowId) => zones.find((zone) => zone?.id === rowId)).filter(Boolean);
+            group.zones = [...zones.filter((zone) => !zoneOrder.includes(zone?.id)), ...listed];
+            if (id !== "utc") {
+                const utcIndex = nextRest.indexOf("utc");
+                if (utcIndex >= 0) {
+                    group.showUtcRow = true;
+                    group.utcRowOrder = utcIndex;
+                }
+            }
+            commitGroupListChange({ baseChanged: true });
+            return true;
+        }
+
+        // Removes a row (the UTC row is hidden). The base row cannot be removed.
+        function removeGroupListEntry(id) {
+            const group = getCurrentGroupSafe();
+            if (!group || id === getGroupBaseId(group)) return false;
+            if (id === "utc") {
+                if (group.showUtcRow === false) return false;
+                group.showUtcRow = false;
+                group.utcRowOrder = 0;
+            } else {
+                const zones = Array.isArray(group.zones) ? group.zones : [];
+                if (!zones.some((zone) => zone?.id === id)) return false;
+                group.zones = zones.filter((zone) => zone?.id !== id);
+            }
+            commitGroupListChange();
+            return true;
+        }
+
+        function refreshGroupListCount() {
+            const doc = getDocumentRef();
+            const countEl = doc?.getElementById?.("tz-tab-list-count");
+            if (countEl) countEl.textContent = `(${getGroupListEntries().length})`;
+        }
+
+        function renderGroupList() {
+            refreshGroupListCount();
+            const doc = getDocumentRef();
+            if (!doc || typeof doc.getElementById !== "function" || typeof doc.createElement !== "function") return;
+            const listEl = doc.getElementById("tz-group-list");
+            if (!listEl) return;
+            const focusedId = doc.activeElement?.closest?.(".tz-group-row")?.dataset?.id || "";
+            listEl.textContent = "";
+            getGroupListEntries().forEach((entry) => {
+                const row = doc.createElement("div");
+                row.className = `tz-group-row${entry.isBase ? " is-base" : ""}`;
+                row.dataset.id = entry.id;
+                row.setAttribute("role", "listitem");
+
+                const handle = doc.createElement(entry.isBase ? "span" : "button");
+                handle.className = entry.isBase ? "tz-group-pin" : "tz-group-handle drag-handle";
+                if (entry.isBase) {
+                    handle.textContent = "";
+                    handle.title = translate("group_list_base_pinned");
+                } else {
+                    handle.type = "button";
+                    handle.textContent = "\u22EE\u22EE";
+                    handle.title = translate("group_list_drag_hint");
+                    handle.setAttribute("aria-label", `${translate("group_list_drag_hint")}: ${entry.name}`);
+                    bindGroupListHandle(handle, row, entry.id);
+                }
+
+                const info = doc.createElement("div");
+                info.className = "tz-group-info";
+                const abbr = doc.createElement("span");
+                abbr.className = "tz-group-abbr";
+                abbr.textContent = entry.abbr;
+                const name = doc.createElement("span");
+                name.className = "tz-group-name";
+                name.textContent = entry.name;
+                const offset = doc.createElement("span");
+                offset.className = "tz-group-offset";
+                offset.textContent = entry.offsetText;
+                info.appendChild(abbr);
+                info.appendChild(name);
+                info.appendChild(offset);
+
+                const baseLabel = doc.createElement("label");
+                baseLabel.className = "tz-group-base";
+                const radio = doc.createElement("input");
+                radio.type = "radio";
+                radio.name = "tz-group-base";
+                radio.value = entry.id;
+                radio.checked = entry.isBase;
+                radio.setAttribute("aria-label", `${translate("label_base_order")}: ${entry.name}`);
+                radio.addEventListener("change", () => {
+                    if (radio.checked) setGroupListBase(entry.id);
+                });
+                const baseText = doc.createElement("span");
+                baseText.textContent = translate("label_base_order");
+                baseLabel.appendChild(radio);
+                baseLabel.appendChild(baseText);
+
+                const remove = doc.createElement("button");
+                remove.type = "button";
+                remove.className = "sm-btn danger tz-group-remove";
+                remove.textContent = "X";
+                if (entry.isBase) {
+                    remove.disabled = true;
+                    remove.title = translate("group_list_base_locked");
+                } else {
+                    remove.title = translate("tooltip_remove_row");
+                    remove.setAttribute("aria-label", `${translate("tooltip_remove_row")}: ${entry.name}`);
+                    remove.addEventListener("click", () => removeGroupListEntry(entry.id));
+                }
+
+                row.appendChild(handle);
+                row.appendChild(info);
+                row.appendChild(baseLabel);
+                row.appendChild(remove);
+                listEl.appendChild(row);
+            });
+            if (focusedId) {
+                const again = [...(listEl.querySelectorAll?.(".tz-group-row") || [])].find((row) => row.dataset.id === focusedId);
+                again?.querySelector?.(".tz-group-handle")?.focus?.({ preventScroll: true });
+            }
+        }
+
+        // Drag with the handle (pointer events cover mouse, pen and touch); the row follows the
+        // pointer among the other non-base rows and the order is saved on release.
+        function bindGroupListHandle(handle, row, id) {
+            handle.addEventListener("keydown", (event) => {
+                if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+                event.preventDefault?.();
+                const group = getCurrentGroupSafe();
+                const rest = getGroupListOrderIds(group).slice(1);
+                const from = rest.indexOf(id);
+                moveGroupListEntry(id, from + (event.key === "ArrowUp" ? -1 : 1));
+            });
+            handle.addEventListener("pointerdown", (event) => {
+                if (event.button !== undefined && event.button !== 0) return;
+                event.preventDefault?.();
+                const listEl = row.parentElement;
+                if (!listEl) return;
+                try { handle.setPointerCapture?.(event.pointerId); } catch (_err) { /* capture is optional */ }
+                row.classList.add("is-dragging");
+                const onMove = (moveEvent) => {
+                    const others = [...listEl.querySelectorAll(".tz-group-row:not(.is-base):not(.is-dragging)")];
+                    const before = others.find((other) => {
+                        const box = other.getBoundingClientRect();
+                        return moveEvent.clientY < box.top + box.height / 2;
+                    });
+                    if (before) {
+                        if (row.nextElementSibling !== before) listEl.insertBefore(row, before);
+                    } else if (listEl.lastElementChild !== row) {
+                        listEl.appendChild(row);
+                    }
+                };
+                // Listen on the document so the drag keeps going when the pointer leaves the handle
+                // (pointer capture is used too where available).
+                const moveTarget = handle.ownerDocument || getDocumentRef();
+                const onEnd = () => {
+                    moveTarget.removeEventListener("pointermove", onMove);
+                    moveTarget.removeEventListener("pointerup", onEnd);
+                    moveTarget.removeEventListener("pointercancel", onEnd);
+                    row.classList.remove("is-dragging");
+                    const ids = [...listEl.querySelectorAll(".tz-group-row:not(.is-base)")].map((el) => el.dataset.id);
+                    if (!applyGroupListOrder(ids)) renderGroupList();
+                };
+                moveTarget.addEventListener("pointermove", onMove);
+                moveTarget.addEventListener("pointerup", onEnd);
+                moveTarget.addEventListener("pointercancel", onEnd);
+            });
+        }
+
         function sanitizeFullTimezoneOverlayTab(value) {
-            return value === "custom" ? "custom" : "country";
+            return (value === "custom" || value === "country") ? value : "list";
         }
 
         function getActiveFullTimezoneOverlayEntries() {
@@ -389,7 +677,8 @@
                 return;
             }
             entries.forEach((entry) => {
-                const item = createTimezoneListItem(entry, true);
+                // The popup stays open after adding, so several timezones can be added in a row.
+                const item = createTimezoneListItem(entry, false);
                 if (item) list.appendChild(item);
             });
         }
@@ -397,22 +686,23 @@
         function updateFullTimezoneOverlayTabButtons() {
             const doc = getDocumentRef();
             if (!doc || typeof doc.getElementById !== "function") return;
-            ["country", "custom"].forEach((tab) => {
+            ["list", "country", "custom"].forEach((tab) => {
                 const tabBtn = doc.getElementById(`tz-tab-${tab}`);
                 if (!tabBtn) return;
                 tabBtn.classList.toggle("active", fullTimezoneOverlayActiveTab === tab);
                 tabBtn.setAttribute("aria-selected", fullTimezoneOverlayActiveTab === tab ? "true" : "false");
             });
-            // The custom tab shows its form instead of the search box and the list.
-            const isCustom = fullTimezoneOverlayActiveTab === "custom";
+            // Each tab shows its own panel: the group list, the presets (search and tiles), or the custom form.
+            const isCountry = fullTimezoneOverlayActiveTab === "country";
             const setShown = (id, shown, display) => {
                 const el = doc.getElementById(id);
                 if (el?.style) el.style.display = shown ? display : "none";
             };
-            setShown("tz-custom-panel", isCustom, "flex");
-            setShown("full-tz-list", !isCustom, "");
+            setShown("tz-group-list", fullTimezoneOverlayActiveTab === "list", "flex");
+            setShown("tz-custom-panel", fullTimezoneOverlayActiveTab === "custom", "flex");
+            setShown("full-tz-list", isCountry, "");
             const searchRow = doc.getElementById("tz-search-input")?.closest?.(".overlay-search-row");
-            if (searchRow?.style) searchRow.style.display = isCustom ? "none" : "";
+            if (searchRow?.style) searchRow.style.display = isCountry ? "" : "none";
         }
 
         function setFullTimezoneOverlayTab(value) {
@@ -422,8 +712,14 @@
             if (fullTimezoneOverlayActiveTab === "custom") {
                 const doc = getDocumentRef();
                 doc?.getElementById?.("custom-abbr")?.focus?.();
+                refreshGroupListCount();
                 return;
             }
+            if (fullTimezoneOverlayActiveTab === "list") {
+                renderGroupList();
+                return;
+            }
+            refreshGroupListCount();
             renderFullTimezoneOverlayList();
         }
 
@@ -463,15 +759,12 @@
             if (!overlay) return;
             fullTimezoneOverlayCountryEntries = [getUtcRowEntry(), ...getSelectableTZEntries()];
             fullTimezoneOverlayQuery = "";
-            setFullTimezoneOverlayTab("country");
+            setFullTimezoneOverlayTab("list");
             overlay.style.display = "flex";
-            const searchInput = doc.getElementById("tz-search-input");
-            if (searchInput?.focus) {
-                if (typeof globalObj.setTimeout === "function") {
-                    globalObj.setTimeout(() => searchInput.focus(), 0);
-                } else {
-                    searchInput.focus();
-                }
+            // The group list opens first; focus its tab so the keyboard starts inside the popup.
+            const listTab = doc.getElementById("tz-tab-list");
+            if (listTab?.focus) {
+                listTab.focus({ focusVisible: false, preventScroll: true });
             }
         }
 
@@ -486,10 +779,16 @@
                 };
             }
 
-            ["country", "custom"].forEach((tab) => {
+            ["list", "country", "custom"].forEach((tab) => {
                 const tabBtn = doc.getElementById(`tz-tab-${tab}`);
                 if (tabBtn) tabBtn.addEventListener("click", () => setFullTimezoneOverlayTab(tab));
             });
+            // A custom timezone is added by main-ui-init's handler on the same button, registered
+            // earlier; this one runs after it and only updates the group list count.
+            const addCustomBtn = doc.getElementById("add-custom-btn");
+            if (addCustomBtn && typeof addCustomBtn.addEventListener === "function") {
+                addCustomBtn.addEventListener("click", () => refreshGroupListCount());
+            }
 
             const searchInput = doc.getElementById("tz-search-input");
             if (searchInput) {
@@ -549,6 +848,12 @@
             renderFullTimezoneOverlayList,
             updateFullTimezoneOverlayTabButtons,
             setFullTimezoneOverlayTab,
+            getGroupListEntries,
+            applyGroupListOrder,
+            moveGroupListEntry,
+            setGroupListBase,
+            removeGroupListEntry,
+            renderGroupList,
             initSearchAndSelect,
             createStandardTimezoneFromSelectableEntry,
             addFromSearchWithData

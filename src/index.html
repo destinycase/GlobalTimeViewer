@@ -208,14 +208,12 @@
                 <table class="data-table">
                     <thead id="table-head">
                         <tr>
-                            <th class="move-col col-w-70" data-i18n="th_order">Order</th>
                             <th class="col-w-110" data-i18n="th_tz_abbr">Timezone</th>
                             <th class="col-w-180" data-i18n="th_region">Name</th>
                             <th class="col-w-110" data-i18n="th_utc_offset">UTC</th>
                             <!-- Day/Time columns dynamic -->
                             <th class="dynamic-col" data-i18n="th_time_day_main">Time</th>
                             <th class="export-exclude col-w-70" data-i18n="th_copy">Copy</th>
-                            <th class="export-exclude col-w-70" data-i18n="th_remove">Remove</th>
                         </tr>
                     </thead>
                     <tbody id="clocks-container">
@@ -675,14 +673,6 @@
                             <p class="settings-desc" data-i18n="group_settings_import_desc"></p>
                         </div>
                     </section>
-                    <section class="settings-section" aria-labelledby="group-settings-section-base">
-                        <h4 id="group-settings-section-base" data-i18n="label_base_time">Base Time</h4>
-                        <div class="settings-row">
-                            <label class="settings-label" for="base-time-select" data-i18n="label_add_tz">Timezone</label>
-                            <select id="base-time-select" class="form-select sidebar-select"></select>
-                            <p class="settings-desc" data-i18n="group_settings_base_desc"></p>
-                        </div>
-                    </section>
                     <section class="settings-section" aria-labelledby="group-settings-section-daynight">
                         <h4 id="group-settings-section-daynight" data-i18n="group_settings_section_daynight">Day / Night</h4>
                         <div class="settings-row">
@@ -758,7 +748,10 @@
                         aria-label="Close">&times;</button>
                 </div>
                 <div class="overlay-tabs" role="tablist" aria-label="Timezone list type">
-                    <button id="tz-tab-country" class="overlay-tab active" type="button" role="tab" aria-selected="true"
+                    <button id="tz-tab-list" class="overlay-tab active" type="button" role="tab" aria-selected="true"><span
+                            data-i18n="overlay_group_list">Group List</span> <span id="tz-tab-list-count"
+                            class="overlay-tab-count">(0)</span></button>
+                    <button id="tz-tab-country" class="overlay-tab" type="button" role="tab" aria-selected="false"
                         data-i18n="overlay_tz_presets">Timezone Presets</button>
                     <button id="tz-tab-custom" class="overlay-tab" type="button" role="tab" aria-selected="false"
                         data-i18n="overlay_custom_tz">User Custom</button>
@@ -770,6 +763,7 @@
                     <button id="tz-search-clear" class="icon-btn overlay-search-clear" type="button"
                         data-i18n="btn_clear">Clear</button>
                 </div>
+                <div id="tz-group-list" class="tz-group-list" role="list"></div>
                 <div id="full-tz-list" class="tz-grid"></div>
                 <div id="tz-custom-panel" class="tz-custom-panel" style="display: none;">
                     <p class="settings-desc" data-i18n="custom_tz_help">Enter an abbreviation, a name and a UTC offset.</p>

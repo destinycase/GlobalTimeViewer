@@ -356,9 +356,12 @@
                     if (added === true) {
                         showToast(`${t("toast_custom_timezone_added")} ${abbr} · ${name}`, { type: "success" });
                     }
-                    // The form lives in the add-timezone popup; close it after a successful add
-                    // like the list tabs do (closing also empties the form).
-                    document.getElementById("close-overlay")?.click?.();
+                    // The popup stays open after adding; the form is emptied for the next entry.
+                    if (abbrInput) abbrInput.value = "";
+                    if (nameInput) nameInput.value = "";
+                    if (offHInput) offHInput.value = "0";
+                    if (offMInput) offMInput.value = "0";
+                    abbrInput?.focus?.();
                 });
             }
 

@@ -346,7 +346,8 @@ describe("GTV table render module", () => {
         expect(rows.map((row) => row.id)).toEqual(["tokyo", "utc", "ny"]);
     });
 
-    it("createInteractiveTimezoneRow wires row handlers and drag lifecycle", () => {
+    it("createInteractiveTimezoneRow wires copy and time handlers without order or remove cells", () => {
+        let rowHtml = "";
         let copyCalls = 0;
         let removeCalls = 0;
         const timeChanges = [];
@@ -385,6 +386,7 @@ describe("GTV table render module", () => {
             };
             tr.querySelector = (selector) => selectorMap[selector] || null;
             tr.querySelectorAll = (selector) => listMap[selector] || [];
+            tr.insertAdjacentHTML = (_where, html) => { rowHtml += html; };
             tr.__copyBtn = copyBtn;
             tr.__removeBtn = removeBtn;
             tr.__dragHandle = dragHandle;
@@ -457,13 +459,18 @@ describe("GTV table render module", () => {
         });
         tr.__dragHandle.dispatch("dragend");
 
+        // Order and removal moved to the Add Timezone popup: no handle or remove cell, no handlers.
+        expect(rowHtml).not.toContain("move-cell");
+        expect(rowHtml).not.toContain("drag-handle");
+        expect(rowHtml).not.toContain("remove-cell");
+        expect(rowHtml).toContain("copy-row-btn");
         expect(copyCalls).toBe(1);
-        expect(removeCalls).toBe(1);
+        expect(removeCalls).toBe(0);
         expect(timeChanges).toHaveLength(2);
         expect(tr.__slot0.blurCalls).toBe(1);
-        expect(clearGhostCalls).toBe(1);
-        expect(saveOrderCalls).toBe(1);
-        expect(updateCalls).toBe(1);
+        expect(clearGhostCalls).toBe(0);
+        expect(saveOrderCalls).toBe(0);
+        expect(updateCalls).toBe(0);
         expect(pickerCreateCalls).toBe(1);
         expect(tr.__zoneCode.classList.contains("zone-code-standard")).toBe(true);
     });
@@ -629,7 +636,9 @@ describe("GTV table render module", () => {
 
         service.renderList();
 
-        expect(headHtml).toContain("th_order");
+        expect(headHtml).not.toContain("th_order");
+        expect(headHtml).not.toContain("th_remove");
+        expect(headHtml).toContain("th_copy");
         expect(container.children.length).toBe(2);
         expect(baseSelectCalls).toBe(1);
         expect(adjustPanelCalls).toBe(1);

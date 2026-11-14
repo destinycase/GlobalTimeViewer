@@ -150,7 +150,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "3",
-            title: "시간대 추가 팝업의 커스텀 탭으로 시간대 추가 → 저장 → 다시 열어도 유지",
+            title: "시간대 추가 팝업의 커스텀 탭으로 시간대 추가(팝업 유지·입력칸 비움) → 저장 → 다시 열어도 유지",
             async run() {
                 const { api } = ctx;
                 const shownById = (id) => api.ev(`(() => { const el = document.getElementById(${JSON.stringify(id)}); return !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().width > 0; })()`);
@@ -173,16 +173,19 @@ function buildScenarios(ctx) {
                     document.getElementById("custom-off-m").value = "0";
                     document.getElementById("add-custom-btn").click();
                 })()`);
-                await until("팝업 닫힘", async () => !(await shownById("full-tz-overlay")));
-                // Closing empties the form: after the add, and after closing with text left in it.
+                // The popup stays open after the add and the form is emptied for the next entry.
                 const readForm = () => api.ev(`["custom-abbr", "custom-name", "custom-off-h", "custom-off-m"].map((id) => document.getElementById(id).value)`);
                 const openCustom = async () => {
                     await api.ev(`document.getElementById("show-all-tz").click()`);
                     await api.ev(`document.getElementById("tz-tab-custom").click()`);
                     await until("커스텀 탭", () => shownById("tz-custom-panel"));
                 };
-                await openCustom();
+                await until("행 추가", () => api.ev(`[...document.querySelectorAll("#clocks-container .zone-name")].some((el) => el.textContent.includes("Chrome Check Zone"))`));
+                assert(await shownById("full-tz-overlay") && await shownById("tz-custom-panel"), "추가 후 팝업이 닫힘");
                 const afterAdd = await readForm();
+                const focusedAfter = await api.ev(`document.activeElement?.id`);
+                assert(focusedAfter === "custom-abbr", `추가 후 초점: ${focusedAfter}`);
+                // Closing with text left in the form empties it too.
                 await ctx.page.client.send("Input.insertText", { text: "LEFT" });
                 await api.ev(`(() => { const h = document.getElementById("custom-off-h"); h.value = "5"; h.dispatchEvent(new Event("change", { bubbles: true })); })()`);
                 await api.ev(`document.getElementById("close-overlay").click()`);
@@ -195,7 +198,7 @@ function buildScenarios(ctx) {
                 await api.reload();
                 const kept = await api.ev(`[...document.querySelectorAll("#clocks-container .zone-name")].some((el) => el.textContent.includes("Chrome Check Zone"))`);
                 assert(kept, "다시 연 뒤 추가한 시간대가 없음");
-                return "본 화면 콤보박스 없음·\"시간대 추가\" → 팝업 커스텀 탭(목록·검색 숨김, 약어 칸 초점)에 입력 → 추가 후 팝업 닫힘, 닫으면 입력칸 비움(추가 후·입력 중 닫기 모두), UTC+09:00 사용자 지정 시간대가 다시 연 뒤에도 표시됨";
+                return "본 화면 콤보박스 없음·\"시간대 추가\" → 팝업 커스텀 탭(목록·검색 숨김, 약어 칸 초점)에 입력 → 추가 후 팝업 유지·입력칸 비움·약어 칸 초점, 입력 중 닫으면 비움, UTC+09:00 사용자 지정 시간대가 다시 연 뒤에도 표시됨";
             }
         },
         {
@@ -382,9 +385,10 @@ function buildScenarios(ctx) {
                             const cells = [...tr.querySelectorAll("td")].map((td) => td.textContent.trim());
                             const dstBadge = tr.querySelector(".dst-slot-0");
                             return {
-                                abbr: cells[1],
-                                name: cells[2],
-                                utc: cells[3],
+                                abbr: (tr.querySelector(".zone-code")?.textContent || "").trim(),
+                                name: (tr.querySelector(".zone-name")?.textContent || "").trim(),
+                                utc: (tr.querySelector(".offset-text")?.textContent || "").trim(),
+                                cellCount: cells.length,
                                 input: tr.querySelector('.time-input[data-slot="0"]').value,
                                 dstVisible: !!dstBadge && !dstBadge.classList.contains("is-hidden") && getComputedStyle(dstBadge).display !== "none"
                             };
@@ -796,16 +800,20 @@ function buildScenarios(ctx) {
                     keptOn.push(tab);
                 }
 
-                // e) The popup has two tabs, "시간대 프리셋" (opened first, the UTC tile on top) and
-                //    "사용자 커스텀"; Esc closes it.
+                // e) The popup has three tabs, "그룹 목록 (n)" (opened first), "시간대 프리셋" (the UTC
+                //    tile on top) and "사용자 커스텀"; Esc closes it.
                 await api.ev(`document.getElementById("show-all-tz").click()`);
                 await until("시간대 목록 열림", () => api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none"`));
+                const tabsAtOpen = await api.ev(`({
+                    tabs: [...document.querySelectorAll("#full-tz-overlay .overlay-tab")].map((tab) => tab.textContent.replace(/\\s+/g, " ").trim()),
+                    active: document.querySelector("#full-tz-overlay .overlay-tab.active")?.textContent.replace(/\\s+/g, " ").trim()
+                })`);
+                await api.ev(`document.getElementById("tz-tab-country").click()`);
                 const popup = await api.ev(`({
-                    tabs: [...document.querySelectorAll("#full-tz-overlay .overlay-tab")].map((tab) => tab.textContent.trim()),
-                    active: document.querySelector("#full-tz-overlay .overlay-tab.active")?.textContent.trim(),
+                    tabs: [...document.querySelectorAll("#full-tz-overlay .overlay-tab")].map((tab) => tab.textContent.replace(/\\s+/g, " ").trim()),
                     first: document.querySelector("#full-tz-list .tz-item")?.textContent.replace(/\\s+/g, " ").trim()
                 })`);
-                assert(JSON.stringify(popup.tabs) === JSON.stringify(["시간대 프리셋", "사용자 커스텀"]) && popup.active === "시간대 프리셋", `팝업 탭: ${JSON.stringify(popup)}`);
+                assert(/^그룹 목록 \(\d+\)$/.test(tabsAtOpen.tabs[0]) && JSON.stringify(tabsAtOpen.tabs.slice(1)) === JSON.stringify(["시간대 프리셋", "사용자 커스텀"]) && tabsAtOpen.active === tabsAtOpen.tabs[0], `팝업 탭: ${JSON.stringify(tabsAtOpen)}`);
                 assert(popup.first && popup.first.startsWith("표준시 (UTC)") && popup.first.includes("UTC +00:00"), `첫 타일: ${JSON.stringify(popup)}`);
                 await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
                 await ctx.page.client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
@@ -820,26 +828,25 @@ function buildScenarios(ctx) {
                 await addFromList("UTC", "표준시 (UTC)");
                 const utcShownToasts = await toastTexts();
                 assert(utcShownToasts.some((text) => text.includes("이미 존재")) && (await group2()).zones.length === 1, `UTC 행이 있을 때 UTC 타일: ${JSON.stringify(utcShownToasts)}`);
-                // Hide the UTC row the way a user does: base time on another row (group settings),
-                // then the UTC row's remove button.
+                // Hide the UTC row the way a user does now: in the group list, make another row the
+                // base, then delete the UTC row.
                 await api.switchTab("live");
+                await api.ev(`document.getElementById("show-all-tz").click()`);
                 await api.ev(`(() => {
-                    document.querySelector(".group-tab.active .group-settings-btn").click();
-                    const select = document.getElementById("base-time-select");
-                    select.value = [...select.options].find((option) => option.value !== "utc").value;
-                    select.dispatchEvent(new Event("change", { bubbles: true }));
-                    document.getElementById("close-group-settings-btn").click();
+                    const rows = [...document.querySelectorAll("#tz-group-list .tz-group-row")];
+                    rows.find((row) => row.dataset.id !== "utc").querySelector("input[type=radio]").click();
                 })()`);
                 await until("기준 시간 변경", async () => (await group2()).baseTimezoneId !== "utc");
-                await api.ev(`document.querySelector("#tz-row-utc .remove-row-btn").click()`);
+                await api.ev(`document.querySelector('#tz-group-list .tz-group-row[data-id="utc"] .tz-group-remove').click()`);
                 await until("UTC 행 숨김", async () => (await group2()).showUtcRow === false);
+                await api.ev(`document.getElementById("close-overlay").click()`);
                 assert((await group2()).showUtcRow === false, "UTC 행 숨김 준비 실패");
                 await addFromList("UTC", "표준시 (UTC)");
                 await until("UTC 행 다시 표시", async () => (await group2()).showUtcRow === true);
                 assert((await group2()).zones.length === 1, "UTC 타일이 별도 시간대로 추가됨");
 
                 const promptKind = named.kind === "browser" ? "브라우저 기본 입력 창" : "화면 안 입력 창";
-                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")}), 팝업 탭 "시간대 프리셋"(먼저 열림·첫 타일 표준시 (UTC))·"사용자 커스텀"·Esc 닫힘, UTC 타일은 UTC 행 표시(있으면 안내·숨김이면 다시 표시)`;
+                return `취소 시 그룹 1개 유지, ${promptKind} "${named.title}"에 이름 입력 → 탭 "QA 새 그룹" 선택·저장·다시 연 뒤 유지, 뉴욕 재추가 거부(안내), 서울 1회 추가 후 재추가 거부(안내), 표 ${namesFinal.join(" / ")}, 탭 이동 중 그룹 유지(${keptOn.join("→")}), 팝업 탭 "${tabsAtOpen.tabs[0]}"(먼저 열림)·"시간대 프리셋"(첫 타일 표준시 (UTC))·"사용자 커스텀"·Esc 닫힘, UTC 타일은 UTC 행 표시(있으면 안내·그룹 목록에서 지워 숨기면 다시 표시)`;
             }
         },
         {
@@ -1256,7 +1263,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "16",
-            title: "그룹 설정 팝업: 탭은 이름·설정만, 기준 시간·낮/밤(그룹별)·이름·내보내기·가져오기·삭제",
+            title: "그룹 설정 팝업: 탭은 이름·설정만, 기준 시간 없음, 낮/밤(그룹별)·이름·내보내기·가져오기·삭제",
             async run() {
                 const { api } = ctx;
                 const z = (id, zone, ko, en) => ({ id, type: "standard", zone, name_ko: ko, name_en: en, fixedAbbr: "", fixedOffsetMinutes: null });
@@ -1298,8 +1305,8 @@ function buildScenarios(ctx) {
                     return {
                         buttons: [...active.querySelectorAll("button")].map((b) => b.classList.contains("group-settings-btn") ? "group-settings-btn" : b.className),
                         name: active.querySelector(".group-name-label")?.textContent,
-                        mainHasBase: !!document.querySelector(".control-panel #base-time-select, #top-control-bar #base-time-select"),
-                        selectsInPopup: ["base-time-select", "day-start-select", "night-start-select"].every((id) => document.getElementById(id)?.closest("#group-settings-overlay"))
+                        mainHasBase: !!document.getElementById("base-time-select"),
+                        selectsInPopup: ["day-start-select", "night-start-select"].every((id) => document.getElementById(id)?.closest("#group-settings-overlay"))
                     };
                 })()`);
                 assert(JSON.stringify(layout.buttons) === JSON.stringify(["group-settings-btn"]) && layout.name === "업무", `그룹 탭 구성: ${JSON.stringify(layout)}`);
@@ -1311,17 +1318,21 @@ function buildScenarios(ctx) {
                 const popupName = await api.ev(`document.getElementById("group-settings-name-input").value`);
                 const popupTitle = await api.ev(`document.getElementById("group-settings-title").textContent`);
                 assert(popupTitle.includes("업무"), `팝업 제목: ${popupTitle}`);
-                await select("base-time-select", "tz-ny");
                 await select("day-start-select", 8);
                 await select("night-start-select", 20);
                 await until("그룹 1 저장", async () => {
                     const d = await stored();
-                    return d?.groups?.[0]?.dayStartHour === 8 && d.groups[0].nightStartHour === 20 && d.groups[0].baseTimezoneId === "tz-ny";
+                    return d?.groups?.[0]?.dayStartHour === 8 && d.groups[0].nightStartHour === 20;
                 });
-                const baseRow = await api.ev(`document.querySelector("#clocks-container .base-row .zone-name")?.textContent || ""`);
-                assert(baseRow.includes("뉴욕"), `기준 시간 반영: ${baseRow}`);
                 await clickAt("#close-group-settings-btn");
                 assert(!(await shown("group-settings-overlay")), "닫기 버튼으로 닫히지 않음");
+                // The base time is chosen in the Add Timezone popup's group list.
+                await clickAt("#show-all-tz");
+                await clickAt('#tz-group-list .tz-group-row[data-id="tz-ny"] input[type=radio]');
+                await until("기준 시간 저장", async () => (await stored())?.groups?.[0]?.baseTimezoneId === "tz-ny");
+                await clickAt("#close-overlay");
+                const baseRow = await api.ev(`document.querySelector("#clocks-container .base-row .zone-name")?.textContent || ""`);
+                assert(baseRow.includes("뉴욕"), `기준 시간 반영: ${baseRow}`);
 
                 // Group 2 keeps the shared 06:00-18:00 and shows it in its own popup.
                 await clickAt("#group-tabs-container .group-tab:nth-child(2) .group-name-label");
@@ -1366,7 +1377,7 @@ function buildScenarios(ctx) {
                 const remaining = (await stored()).groups[0];
                 assert(remaining.name === "업무" && remaining.dayStartHour === 8, `남은 그룹: ${JSON.stringify({ name: remaining.name, day: remaining.dayStartHour })}`);
 
-                return `탭 버튼 ${layout.buttons.join(",")}·본 화면에 기준 시간 없음, "${popupName}" 기준 뉴욕·낮 08~20시 저장, 그룹 2는 공통 06~18시 유지, 팝업 안에서 이름 "출장" 변경(변경 버튼)·제목 반영·Esc 닫힘, 설정 버튼 테두리·배경 있음, 삭제 취소 유지·확인 시 삭제·닫힘`;
+                return `탭 버튼 ${layout.buttons.join(",")}·본 화면과 그룹 설정에 기준 시간 없음(그룹 목록에서 지정), "${popupName}" 기준 뉴욕·낮 08~20시 저장, 그룹 2는 공통 06~18시 유지, 팝업 안에서 이름 "출장" 변경(변경 버튼)·제목 반영·Esc 닫힘, 설정 버튼 테두리·배경 있음, 삭제 취소 유지·확인 시 삭제·닫힘`;
             }
         },
         {
@@ -1481,6 +1492,7 @@ function buildScenarios(ctx) {
                 const openList = async () => {
                     await api.ev(`document.getElementById("show-all-tz").click()`);
                     await until("시간대 목록 열림", () => api.ev(`getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none"`));
+                    await api.ev(`document.getElementById("tz-tab-country").click()`);
                 };
                 // a) The UTC tile shows the hidden UTC row: the table and the timeline gain it at once.
                 await openList();
@@ -1521,6 +1533,100 @@ function buildScenarios(ctx) {
                 await clickPoint(points.outside);
                 assert(!(await shown()), `팝업 바깥 클릭으로 닫히지 않음: ${JSON.stringify(points.outside)}`);
                 return `실시간 표시 끔 상태에서 UTC 타일 → 표·타임라인 ${afterUtc.table}/${afterUtc.timeline}행, 도쿄 추가 → ${afterCity.table}/${afterCity.timeline}행 (${afterCity.labels.join(" / ")}), 팝업 안 클릭은 유지·바깥 클릭으로 닫힘`;
+            }
+        },
+        {
+            id: "19",
+            title: "시간대 추가 팝업 그룹 목록: 손잡이 끌기·기준 지정·삭제·추가 후 유지, 본 화면 표 순서·삭제 열 없음",
+            async run() {
+                const { api } = ctx;
+                const z = (id, zone, ko) => ({ id, type: "standard", zone, name_ko: ko, name_en: ko, fixedAbbr: "", fixedOffsetMinutes: null });
+                const saved = {
+                    groups: [{
+                        name: "목록 그룹",
+                        zones: [z("tz-se", "Asia/Seoul", "대한민국 - 서울"), z("tz-ny", "America/New_York", "미국 - 뉴욕"), z("tz-ld", "Europe/London", "영국 - 런던"), z("tz-tk", "Asia/Tokyo", "일본 - 도쿄")],
+                        baseTimezoneId: "tz-se",
+                        showUtcRow: true,
+                        utcRowOrder: 0
+                    }],
+                    activeGroupId: 0,
+                    currentMainTab: "live",
+                    activeGroupIdByMainTab: { live: 0, fixed: 0 },
+                    slotCount: 1
+                };
+                await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))}); localStorage.setItem("GTV_Lang", "ko")`);
+                await api.reload();
+                await api.switchTab("live");
+                const tableIds = () => api.ev(`[...document.querySelectorAll("#clocks-container tr.time-row")].map((tr) => tr.id.replace("tz-row-", ""))`);
+                const listIds = () => api.ev(`[...document.querySelectorAll("#tz-group-list .tz-group-row")].map((row) => row.dataset.id)`);
+                const stored = () => api.storedData();
+                const center = (selector) => api.ev(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); el.scrollIntoView({ block: "center" }); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+                const clickAt = async (selector) => {
+                    const pt = await center(selector);
+                    await api.mouse("mousePressed", pt.x, pt.y);
+                    await api.mouse("mouseReleased", pt.x, pt.y);
+                    await sleep(200);
+                };
+
+                // a) The main table has no order or remove column and marks the base row.
+                const table = await api.ev(`(() => ({
+                    heads: [...document.querySelectorAll("#table-head th")].map((th) => th.textContent.trim()),
+                    handles: document.querySelectorAll("#clocks-container .drag-handle, #clocks-container .remove-row-btn, #clocks-container .move-cell, #clocks-container .remove-cell").length,
+                    baseMark: document.querySelector("#clocks-container .base-row .base-order-label")?.textContent.trim() || ""
+                }))()`);
+                assert(!table.heads.includes("순서") && !table.heads.includes("삭제") && table.handles === 0 && table.baseMark === "기준", `본 화면 표: ${JSON.stringify(table)}`);
+                assert(!(await api.ev(`!!document.getElementById("base-time-select")`)), "그룹 설정에 기준 시간 선택이 남아 있음");
+
+                // b) The popup opens on the group list, in table order, with the count on the tab.
+                await clickAt("#show-all-tz");
+                const opened = await api.ev(`({ active: document.querySelector("#full-tz-overlay .overlay-tab.active")?.id, count: document.getElementById("tz-tab-list-count").textContent, baseRemove: document.querySelector("#tz-group-list .tz-group-row.is-base .tz-group-remove")?.disabled, baseHandle: !!document.querySelector("#tz-group-list .tz-group-row.is-base .tz-group-handle"), arrows: document.querySelectorAll("#tz-group-list .tz-group-row button[aria-label*='위로'], #tz-group-list .tz-group-row button[aria-label*='아래로']").length })`);
+                const startOrder = await listIds();
+                assert(opened.active === "tz-tab-list" && opened.count === "(5)" && opened.baseRemove === true && !opened.baseHandle && opened.arrows === 0, `팝업 처음 상태: ${JSON.stringify(opened)}`);
+                assert(JSON.stringify(startOrder) === JSON.stringify(await tableIds()), `목록과 표 순서: ${JSON.stringify({ list: startOrder, table: await tableIds() })}`);
+
+                // c) Drag Tokyo's handle with the real mouse to right below the base row.
+                const from = await center('#tz-group-list .tz-group-row[data-id="tz-tk"] .tz-group-handle');
+                const target = await api.ev(`(() => { const r = document.querySelector('#tz-group-list .tz-group-row[data-id="utc"]').getBoundingClientRect(); return { y: r.top + 4 }; })()`);
+                await api.mouse("mousePressed", from.x, from.y);
+                for (let i = 1; i <= 8; i += 1) {
+                    await api.mouse("mouseMoved", from.x, from.y + ((target.y - from.y) * i) / 8);
+                    await sleep(30);
+                }
+                await api.mouse("mouseReleased", from.x, target.y);
+                await until("끌기 저장", async () => JSON.stringify(await listIds()) === JSON.stringify(["tz-se", "tz-tk", "utc", "tz-ny", "tz-ld"]));
+                await until("표 순서 반영", async () => JSON.stringify(await tableIds()) === JSON.stringify(["tz-se", "tz-tk", "utc", "tz-ny", "tz-ld"]));
+                const afterDrag = await stored();
+                assert(afterDrag.groups[0].utcRowOrder === 1 && afterDrag.groups[0].zones.map((zone) => zone.id).join() === "tz-se,tz-tk,tz-ny,tz-ld", `끌기 저장값: ${JSON.stringify(afterDrag.groups[0])}`);
+
+                // d) Base: pick London; it goes on top, Seoul right below, the table follows.
+                await clickAt('#tz-group-list .tz-group-row[data-id="tz-ld"] input[type=radio]');
+                await until("기준 변경", async () => (await stored())?.groups?.[0]?.baseTimezoneId === "tz-ld");
+                await until("기준 순서", async () => JSON.stringify(await listIds()) === JSON.stringify(["tz-ld", "tz-se", "tz-tk", "utc", "tz-ny"]));
+                const baseTable = await tableIds();
+                assert(baseTable[0] === "tz-ld" && JSON.stringify(baseTable) === JSON.stringify(await listIds()), `기준 변경 후 표: ${JSON.stringify(baseTable)}`);
+
+                // e) Delete New York with the real mouse; the count and the table follow.
+                await clickAt('#tz-group-list .tz-group-row[data-id="tz-ny"] .tz-group-remove');
+                await until("삭제", async () => !(await stored())?.groups?.[0]?.zones?.some((zone) => zone.id === "tz-ny"));
+                const afterDelete = { list: await listIds(), table: await tableIds(), count: await api.ev(`document.getElementById("tz-tab-list-count").textContent`) };
+                assert(!afterDelete.table.includes("tz-ny") && afterDelete.count === "(4)" && JSON.stringify(afterDelete.list) === JSON.stringify(afterDelete.table), `삭제 후: ${JSON.stringify(afterDelete)}`);
+
+                // f) Adding from the presets keeps the popup open and raises the count.
+                await clickAt("#tz-tab-country");
+                await api.ev(`(() => { const input = document.getElementById("tz-search-input"); input.value = "시드니"; input.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+                await until("시드니 검색", () => api.ev(`[...document.querySelectorAll("#full-tz-list .tz-item")].some((item) => item.textContent.includes("시드니"))`));
+                const sydneyIndex = await api.ev(`[...document.querySelectorAll("#full-tz-list .tz-item")].findIndex((item) => item.textContent.includes("시드니")) + 1`);
+                await clickAt(`#full-tz-list .tz-item:nth-child(${sydneyIndex})`);
+                const afterAdd = await api.ev(`({ open: getComputedStyle(document.getElementById("full-tz-overlay")).display !== "none", count: document.getElementById("tz-tab-list-count").textContent, toast: [...document.querySelectorAll("#toast-container .toast")].map((t) => t.textContent).join(" | ") })`);
+                assert(afterAdd.open && afterAdd.count === "(5)" && afterAdd.toast.includes("시간대를 추가했습니다"), `프리셋 추가 후: ${JSON.stringify(afterAdd)}`);
+                await clickAt("#tz-tab-list");
+                const finalList = await listIds();
+                await clickAt("#close-overlay");
+                await api.reload();
+                await api.switchTab("live");
+                const reloaded = await tableIds();
+                assert(JSON.stringify(reloaded) === JSON.stringify(finalList), `다시 연 뒤 순서: ${JSON.stringify({ reloaded, finalList })}`);
+                return `표 순서·삭제 열 없음·기준 표시, 팝업은 그룹 목록 (5)로 열림(화살표 없음·기준 행 손잡이·삭제 없음), 실제 마우스 끌기로 도쿄를 기준 바로 아래로, 런던 기준 지정, 뉴욕 삭제, 프리셋 추가 후 팝업 유지·(5), 다시 연 뒤 순서 유지 ${reloaded.join(" / ")}`;
             }
         }
     ];

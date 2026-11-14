@@ -290,9 +290,11 @@
             const removeTitleAttr = (typeof removeButtonTitle === "string" && removeButtonTitle.trim())
                 ? ` title="${removeButtonTitle.trim()}"`
                 : "";
+            // Rows are removed in the Add Timezone popup's group list; a remove cell is drawn only
+            // when a caller asks for a button.
             const removeCell = removeButtonText
                 ? `<td class="export-exclude remove-cell"><div class="btn-group"><button class="sm-btn danger remove-row-btn"${removeTitleAttr}>${removeButtonText}</button></div></td>`
-                : `<td class="export-exclude remove-cell"></td>`;
+                : "";
             return `${copyCell}${removeCell}`;
         }
 
@@ -307,12 +309,12 @@
             tr.id = `tz-row-${safeRowId}`;
             tr.draggable = false;
 
-            const dragHandleHtml = `<button type="button" class="drag-handle" draggable="true">&#8942;&#8942;</button>`;
-            let inner = `<td class="move-cell"><div class="btn-group">${dragHandleHtml}</div></td>`;
+            // Order and removal live in the Add Timezone popup's group list.
+            let inner = "";
             safeDisplayColumns.forEach((colKey) => {
                 inner += buildDynamicRowCell(colKey, effectiveSlotCount);
             });
-            inner += buildRowActionCells(translate("tooltip_copy"), "X", translate("tooltip_remove_row"));
+            inner += buildRowActionCells(translate("tooltip_copy"), "");
             tr.insertAdjacentHTML('beforeend', inner);
 
             const zoneNameEl = tr.querySelector(".zone-name");
@@ -321,9 +323,6 @@
 
             const copyBtn = tr.querySelector(".copy-row-btn");
             if (copyBtn) copyBtn.addEventListener("click", () => dep.copyRow(safeRowId));
-
-            const removeBtn = tr.querySelector(".remove-row-btn");
-            if (removeBtn) removeBtn.addEventListener("click", () => dep.removeTimezone(safeRowId));
 
             Array.from(tr.querySelectorAll(".time-input") || []).forEach((input) => {
                 const slotIdx = parseInt(input.dataset.slot, 10);
@@ -362,25 +361,6 @@
                 }
             });
 
-            const dragHandle = tr.querySelector(".drag-handle");
-            if (dragHandle) dragHandle.draggable = true;
-            if (dragHandle) {
-                dragHandle.addEventListener("dragstart", (e) => {
-                    tr.classList.add("dragging");
-                    if (e.dataTransfer) {
-                        e.dataTransfer.effectAllowed = "move";
-                        e.dataTransfer.setData("text/plain", safeRowId);
-                        const ghost = dep.createDragGhostFromRow(tr);
-                        e.dataTransfer.setDragImage(ghost || tr, 20, 20);
-                    }
-                });
-                dragHandle.addEventListener("dragend", () => {
-                    tr.classList.remove("dragging");
-                    dep.clearDragGhost();
-                    dep.saveOrder();
-                    dep.updateClocks();
-                });
-            }
 
             return tr;
         }
@@ -423,10 +403,8 @@
             const theadRow = doc.querySelector?.("#table-head tr");
 
             if (theadRow) {
-                const headCells = [`<th class="move-col" style="width: 56px;">${translate("th_order")}</th>`];
-                headCells.push(...displayColumns.map(getDisplayColumnHeader).filter(Boolean));
+                const headCells = [...displayColumns.map(getDisplayColumnHeader).filter(Boolean)];
                 headCells.push(`<th class="export-exclude" style="width: 56px;">${translate("th_copy")}</th>`);
-                headCells.push(`<th class="export-exclude" style="width: 56px;">${translate("th_remove")}</th>`);
                 theadRow.textContent = "";
                 theadRow.insertAdjacentHTML('beforeend', headCells.join(""));
             }
@@ -440,12 +418,18 @@
             const baseRow = doc.createElement("tr");
             baseRow.className = "time-row static base-row";
             baseRow.id = `tz-row-${baseRef.id}`;
-            let baseInner = `<td class="move-cell"><span class="base-order-label">${translate("label_base_order")}</span></td>`;
+            let baseInner = "";
             displayColumns.forEach((colKey) => {
                 baseInner += buildStaticRowCell(colKey, effectiveSlotCount, baseRefName);
             });
             baseInner += buildRowActionCells(translate("tooltip_copy"), "");
             baseRow.insertAdjacentHTML('beforeend', baseInner);
+            // The base mark sits next to the abbreviation (or the name when that column is hidden);
+            // images and copied text read only the code and name spans, so it stays out of them.
+            const baseMarkHost = baseRow.querySelector(".abbr-cell") || baseRow.querySelector(".zone-info");
+            if (baseMarkHost) {
+                baseMarkHost.insertAdjacentHTML('beforeend', `<span class="base-order-label export-exclude">${translate("label_base_order")}</span>`);
+            }
             applyZoneCodeKindClass(baseRow.querySelector(".zone-code"), baseRef);
             const baseCopyBtn = baseRow.querySelector(".copy-row-btn");
             if (baseCopyBtn) baseCopyBtn.addEventListener("click", () => dep.copyRow(baseRef.id));

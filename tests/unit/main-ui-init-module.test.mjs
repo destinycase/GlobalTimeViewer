@@ -623,8 +623,10 @@ describe("GTV main ui init module", () => {
         expect(customName.value).toBe("City");
         expect(closeTzOverlayClicks).toBe(0);
         await addCustomBtn.dispatch("click");
-        // A successful add closes the add-timezone popup (the popup close empties the form).
-        expect(closeTzOverlayClicks).toBe(1);
+        // A successful add keeps the popup open and empties the form for the next entry.
+        expect(closeTzOverlayClicks).toBe(0);
+        expect(customAbbr.value).toBe("");
+        expect(customName.value).toBe("");
         expect(calls.toasts.some((message) => String(message).includes("toast_custom_timezone_added"))).toBe(true);
         expect(calls.addTimezone.length).toBe(2);
 

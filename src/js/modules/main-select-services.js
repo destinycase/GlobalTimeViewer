@@ -41,10 +41,12 @@
         function renderBaseTimeSelect() {
             const documentRef = getDocumentRef();
             if (!documentRef || typeof documentRef.getElementById !== "function") return;
+            // The base timezone is chosen in the Add Timezone popup's group list; without the old
+            // select element only the selection check runs.
+            ensureBaseTimezoneSelection();
             const select = documentRef.getElementById("base-time-select");
             if (!select) return;
 
-            ensureBaseTimezoneSelection();
             const selectedBefore = getCurrentGroupBaseTimezoneId();
             select.textContent = "";
 

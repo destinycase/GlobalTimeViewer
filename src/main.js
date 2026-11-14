@@ -1610,6 +1610,8 @@ const {
     getCurrentGroup,
     deferDynamicCall,
     getRenderListRef,
+    getRenderTimelineFrameRef,
+    updateTimeAdjustPanelSafely,
     addTimezone,
     createUniqueTimezoneId,
     showToast,

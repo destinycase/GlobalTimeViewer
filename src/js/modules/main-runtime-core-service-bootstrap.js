@@ -83,9 +83,13 @@
                     "getCurrentGroup",
                     "addTimezone",
                     "createUniqueTimezoneId",
-                    "showToast"
+                    "showToast",
+                    "getZoneAbbreviation",
+                    "getZoneDisplayName"
                 ]),
-                renderList: deferDynamic(d, d.getRenderListRef)
+                renderList: deferDynamic(d, d.getRenderListRef),
+                renderTimelineFrame: deferDynamic(d, d.getRenderTimelineFrameRef),
+                updateTimeAdjustPanel: (typeof d.updateTimeAdjustPanelSafely === "function") ? d.updateTimeAdjustPanelSafely : (() => undefined)
             };
         }
 
@@ -169,9 +173,13 @@
                 "savePersistenceSafely",
                 "deferDynamicCall",
                 "getRenderListRef",
+                "getRenderTimelineFrameRef",
+                "updateTimeAdjustPanelSafely",
                 "addTimezone",
                 "createUniqueTimezoneId",
-                "showToast"
+                "showToast",
+                "getZoneAbbreviation",
+                "getZoneDisplayName"
             ])
         });
         const timezoneSearchService = createTimezoneSearchService(timezoneSearchConfig);

@@ -136,9 +136,9 @@ flowchart LR
 | 계산기·날짜 입력 | `calculator.js`(단위 변환·기간/날짜 이동·조립) | `calculator-date-format.js`(날짜 파싱·형식), `calculator-countdown.js`, `calculator-countdown-state.js`(상태 정규화·표시), `calculator-format-converter.js`(시간 포맷 변환기), `calculator-actions.js`, `date-picker.js`, `time-adjust-ui.js`, `time-adjust-actions.js` | 계산 결과 의미를 바꾸지 않고 DOM 입력 검증·피드백과 핵심 연산을 구분합니다. |
 | 저장 데이터 정규화 | `persistence-state-normalizer.js` | `state-persistence.js`, `format-profile-state.js`, `multi-state.js` | 들어오는 데이터의 기본값·형태 정규화를 맡습니다. |
 | 브라우저 저장소(`localStorage`)·설정 이동 | `state-persistence.js` | `persistence-service-bundle.js`, `settings-io.js`, `data-transfer.js` | `localStorage` 읽기·쓰기와 앱 상태 복구를 맡습니다(확장에 `storage` 권한이 없어 `chrome.storage`는 쓰지 않음). 공개 진입점은 `GTVStatePersistence.createService()`입니다. 정규화, 구버전 읽기, 전체·그룹·보조 그룹 payload는 서로 다른 책임입니다. |
-| 시간대 추가 팝업(시간대 프리셋·사용자 커스텀 탭) | `timezone-search.js`(`openFullTimezoneOverlay`, `setFullTimezoneOverlayTab`) | `index.html`의 `#full-tz-overlay`·`#tz-custom-panel`, `main-ui-init.js`(커스텀 추가 처리), `main-timezone-mutation-services.js`(중복 검사) | 4장 메모 참고 |
+| 시간대 추가 팝업(그룹 목록·시간대 프리셋·사용자 커스텀 탭) | `timezone-search.js`(`openFullTimezoneOverlay`, `setFullTimezoneOverlayTab`, `renderGroupList`) | `index.html`의 `#full-tz-overlay`·`#tz-group-list`·`#tz-custom-panel`, `main-ui-init.js`(커스텀 추가 처리), `main-timezone-mutation-services.js`(중복 검사) | 4장 메모 참고 |
 | 설정·도움말 팝업 | `ui-settings-actions.js`(`bindDialogControls`) | `index.html`의 `#settings-overlay`·`#help-overlay`, `i18n.js`의 `settings_*`·`help_*` 키, `main-ui-init.js`(연결), `format-controls.js` | 4장 메모 참고 |
-| 그룹 설정 팝업(이름·내보내기/가져오기·기준 시간·낮/밤·삭제) | `group-tabs.js`(`openGroupSettings`) | `index.html`의 `#group-settings-overlay`, `i18n.js`의 `group_settings_*` 키, `ui-preferences-state.js`(그룹별 낮/밤), `main-ui-init.js`(`gtv:group-settings-opened`로 낮/밤 선택값 동기화) | 4장 메모 참고 |
+| 그룹 설정 팝업(이름·내보내기/가져오기·낮/밤·삭제) | `group-tabs.js`(`openGroupSettings`) | `index.html`의 `#group-settings-overlay`, `i18n.js`의 `group_settings_*` 키, `ui-preferences-state.js`(그룹별 낮/밤), `main-ui-init.js`(`gtv:group-settings-opened`로 낮/밤 선택값 동기화) | 4장 메모 참고 |
 | 초기화·알림 | `main-ui-init.js` | `app-feedback.js`, `main-foundation-services.js`(화면 안 입력·확인 창) | |
 | 화면 스타일 | `style.css` | 맨 위 목차에서 `§번호`로 구역을 찾음(테마 변수, 컨트롤 패널, 시간 표, 타임라인, 계산기, 모달, DatePicker 등) | 구역 규칙은 개발자 가이드 6장 |
 | 핵심·표·이미지 서비스 의존성 구성 | `main-runtime-core-service-bootstrap.js`, `main-runtime-table-image-bootstrap.js` | 각 조립부가 생성할 서비스의 설정 | |
@@ -166,16 +166,22 @@ flowchart LR
 ### 시간대 추가 팝업
 
 - 시간대 추가는 `시간대 추가` 팝업(`#full-tz-overlay`) 하나로 합니다. 본 화면에는 도구 줄(`#control-option-row`) 맨 앞에 `시간대 추가` 이름표와 `목록` 버튼(`#show-all-tz`)만 있습니다.
-- 팝업은 `timezone-search.js`가 맡고 탭은 `시간대 프리셋`(`tz-tab-country`, 먼저 열림)과 `사용자 커스텀`(`tz-tab-custom`) 두 개입니다(`setFullTimezoneOverlayTab`).
+- 팝업은 `timezone-search.js`가 맡고 탭은 `그룹 목록`(`tz-tab-list`, 먼저 열림, 이름 뒤 `#tz-tab-list-count`에 개수), `시간대 프리셋`(`tz-tab-country`), `사용자 커스텀`(`tz-tab-custom`) 세 개입니다(`setFullTimezoneOverlayTab`).
+- 그룹 목록(`#tz-group-list`, `renderGroupList`)은 현재 그룹의 시간대를 표와 같은 순서로 보입니다. 순서는 `getGroupListOrderIds`가 표의 `getRenderableTimezoneRows`(`table-render.js`)와 같은 규칙(기준 행 맨 위, 나머지는 `zones` 순서에 UTC 행을 `utcRowOrder` 위치에 끼움)으로 만듭니다. 줄마다 손잡이, 약어·이름·UTC 시차, `기준` 라디오, 삭제 버튼이 있고 기준 행은 손잡이 없이 고정되며 삭제할 수 없습니다.
+  - 순서: 손잡이를 끌면(포인터 이벤트, 문서에서 움직임을 받음) 줄이 다른 줄 사이로 옮겨지고 놓을 때 `applyGroupListOrder`가 `zones` 순서와 `utcRowOrder`를 저장합니다. 손잡이에 초점이 있을 때 위·아래 방향키로도 한 칸씩 옮깁니다(`moveGroupListEntry`).
+  - 기준: `setGroupListBase`가 `baseTimezoneId`를 바꾸고 이전 기준을 새 기준 바로 아래에 둡니다(UTC가 기준이 되면 `showUtcRow`를 켜고 `utcRowOrder` 0).
+  - 삭제: `removeGroupListEntry`가 시간대를 지우거나 UTC 행을 숨깁니다(`showUtcRow` false).
+  - 바꿀 때마다 저장, 표(`renderList`)·타임라인(`renderTimelineFrame`)을 다시 그리고, 기준이 바뀌면 시간 조정 줄(`updateTimeAdjustPanel`)도 맞춥니다. 저장 데이터 형식은 그대로입니다.
+- 본 화면 표(`table-render.js`)에는 `순서`·`삭제` 열이 없고, 기준 행의 `기준` 표시(`.base-order-label`)는 시간대 칸(없으면 이름 칸) 안에 둡니다. 이미지와 복사 글은 시간대·이름 글자만 읽으므로 이 표시는 들어가지 않습니다. `main-row-order-services.js`의 표 끌기 처리는 표에 손잡이가 없어 더는 쓰이지 않습니다.
 - 시간대 프리셋의 첫 타일 `표준시 (UTC)`(`utc-row` 항목)는 별도 시간대를 만들지 않고 표의 UTC 행을 다시 켭니다(이미 보이면 중복 안내). 나머지 타일은 도시 목록이며 도시·약어·UTC 오프셋으로 검색합니다.
-- 사용자 커스텀 탭은 검색칸과 목록 대신 입력 양식(`#tz-custom-panel`)을 보입니다. 입력칸 id(`custom-abbr` 등)는 예전과 같아 `main-ui-init.js`의 추가 처리기가 그대로 동작하고, 추가에 성공하면 닫기 버튼으로 팝업을 닫습니다.
-- 팝업을 닫는 길(닫기 버튼, 바깥 클릭, 목록 항목 선택, 커스텀 추가 성공, Esc)은 모두 `closeFullTimezoneOverlay`를 거칩니다. 이때 커스텀 양식을 비우고 시차를 +00:00으로 되돌리고 초점을 `목록` 버튼으로 돌려줍니다(강조 없이). Esc는 화면 안 입력·확인 창이 위에 떠 있으면 그 창이 먼저 받습니다.
+- 사용자 커스텀 탭은 검색칸과 목록 대신 입력 양식(`#tz-custom-panel`)을 보입니다. 입력칸 id(`custom-abbr` 등)는 예전과 같아 `main-ui-init.js`의 추가 처리기가 그대로 동작하고, 추가에 성공하면 팝업은 열린 채 양식을 비우고 약어 칸에 초점을 둡니다. 그룹 목록 개수는 같은 버튼에 나중에 단 `timezone-search.js`의 처리기가 고칩니다.
+- 프리셋 타일을 골라 추가해도 팝업은 닫히지 않고 `toast_timezone_added` 안내와 함께 개수만 늘어납니다. 팝업을 닫는 길(닫기 버튼, 바깥 클릭, Esc)은 모두 `closeFullTimezoneOverlay`를 거칩니다. 이때 커스텀 양식을 비우고 시차를 +00:00으로 되돌리고 초점을 `목록` 버튼으로 돌려줍니다(강조 없이). Esc는 화면 안 입력·확인 창이 위에 떠 있으면 그 창이 먼저 받습니다.
 - 표를 다시 그리는 `renderList`(`main-timezone-table-facade.js`)는 실시간·시간 변경 탭에서는 표 렌더러가 `updateClocks`로 타임라인과 복사 미리보기까지 갱신합니다. 고정 시간 탭에서는 고정 시간 표만 그리므로 `renderList`가 이어서 타임라인(`renderTimelineFrame`)을 다시 그립니다. `실시간 표시`가 꺼져 있으면 1초마다 다시 그리는 일이 없어서, 이렇게 하지 않으면 UTC 타일로 다시 켠 행이 타임라인에 바로 나오지 않습니다. 복사 미리보기는 모든 탭에서 기준 시간 한 줄만 보여 주는 형식 예시라 행을 더하거나 빼도 바뀌지 않습니다.
 - 고정 시차 항목은 사용자 지정(custom) 항목입니다(`offH`/`offM`). 예전 `표준시 목록` 탭이 내부 시간대 `UTC`+고정 시차로 저장한 항목은 `group-state.js`가 불러올 때 같은 id의 사용자 지정 항목(약어 `UTC+09:00`, 이름 `UTC+09:00 표준시`; `time-core.js`의 `toCustomOffsetFields`)으로 바꾸고(시차 0은 UTC 행으로 합침), 이름 끝의 `표준시`/`Standard Time`은 화면 언어를 따릅니다(`getZoneDisplayName`). 내부 시간대 `UTC`는 모든 화면에서 UTC 행으로 다뤄지므로 표준 항목에 쓰지 않습니다.
 
 ### 팝업·확인 창·툴팁
 
-- 그룹 설정 팝업(`#group-settings-overlay`)은 선택한 그룹 탭의 설정 버튼(`.group-settings-btn`)으로 열고 `group-tabs.js`의 `openGroupSettings`·`closeGroupSettings`가 열기·닫기(닫기 버튼, 바깥 클릭, Esc, 초점 복귀)를 맡습니다. 이름은 `변경` 버튼(`#group-settings-name-apply-btn`)을 눌렀을 때만 저장하고, 닫기로는 저장하지 않습니다. 기준 시간·낮/밤 선택칸은 예전과 같은 id(`base-time-select`, `day-start-select`, `night-start-select`)로 이 팝업 안에 있어 기존 처리기가 그대로 동작합니다. 팝업을 열면 `gtv:group-settings-opened` 문서 이벤트를 보내고, `main-ui-init.js`가 이를 받아 낮/밤 선택값을 현재 그룹 값으로 다시 맞춥니다.
+- 그룹 설정 팝업(`#group-settings-overlay`)은 선택한 그룹 탭의 설정 버튼(`.group-settings-btn`)으로 열고 `group-tabs.js`의 `openGroupSettings`·`closeGroupSettings`가 열기·닫기(닫기 버튼, 바깥 클릭, Esc, 초점 복귀)를 맡습니다. 이름은 `변경` 버튼(`#group-settings-name-apply-btn`)을 눌렀을 때만 저장하고, 닫기로는 저장하지 않습니다. 낮/밤 선택칸은 예전과 같은 id(`day-start-select`, `night-start-select`)로 이 팝업 안에 있어 기존 처리기가 그대로 동작합니다. 기준 시간 선택은 시간대 추가 팝업의 그룹 목록으로 옮겼고, `renderBaseTimeSelect`(`main-select-services.js`)는 선택칸이 없어도 기준 시간대 확인(`ensureBaseTimezoneSelection`)만 합니다. 팝업을 열면 `gtv:group-settings-opened` 문서 이벤트를 보내고, `main-ui-init.js`가 이를 받아 낮/밤 선택값을 현재 그룹 값으로 다시 맞춥니다.
 - 낮/밤 시간은 그룹의 선택 필드 `dayStartHour`·`nightStartHour`(0 ≤ 낮 < 밤 ≤ 23인 정수일 때만 유지, `group-state.js` 정규화)에 저장합니다. `ui-preferences-state.js`는 현재 그룹에 값이 있으면 그 값을, 없으면 공통 상태 값을 쓰고, 바꿀 때는 현재 그룹에 씁니다. 그룹 내보내기에는 그룹 값을, 전체 설정 내보내기의 환경설정에는 공통 값을 넣으므로 옛 파일도 그대로 가져올 수 있습니다.
 - 설정 팝업(`#settings-overlay`)과 도움말 팝업(`#help-overlay`)은 사이드바 아이콘(`#open-settings-btn`, `#open-help-btn`)으로 열고 `ui-settings-actions.js`의 `bindDialogControls`가 열기·닫기(닫기 버튼, 바깥 클릭, Esc, 초점 복귀)를 맡습니다. 초기화가 확인되거나(초기화 함수가 `true`) 설정 가져오기가 성공하면(`handleSettingsImportFile`이 `true`) 설정 팝업을 닫습니다. 설정 팝업 안의 선택칸·버튼은 예전 사이드바와 같은 id를 써서 기존 처리기가 그대로 동작합니다. 도움말 문구는 `i18n.js`의 `help_*` 키입니다.
 - 확인 창은 `main-foundation-services.js`의 `confirmFn`이 화면 안 확인 창(`#app-confirm-overlay`)으로 묻고 `true`/`false`를 돌려주는 비동기 함수입니다(취소에 첫 초점, 닫기 버튼·바깥 클릭·Esc는 취소). 표시용 요소가 없을 때만 주입된 브라우저 확인으로 대신합니다. 초기화(`state-persistence.js`)와 그룹·보조 그룹 삭제(`group-tabs.js`)가 결과를 기다립니다.
