@@ -225,7 +225,6 @@ function createBaseDeps(state, overrides = {}) {
         upgradeNativeTitleTooltips: () => { },
         getDefaultMultiSubgroupName: (index) => `Subgroup ${Number(index) + 1}`,
         getDefaultFixedTimes: () => [],
-        getDefaultFixedDate: () => "",
         createMultiSubgroupState: (name, index) => ({
             id: `sg-${Number(index) + 1}`,
             name: String(name || "").trim() || `Subgroup ${Number(index) + 1}`,
@@ -277,7 +276,7 @@ describe("GTV group tabs module", () => {
         expect(state.activeGroupId).toBe(0);
     });
 
-    it("addGroup initializes fixedDate from dependency", async () => {
+    it("addGroup creates a group without a fixed date", async () => {
         const module = loadGroupTabsModule({
             prompt: () => "With Date"
         });
@@ -287,13 +286,12 @@ describe("GTV group tabs module", () => {
             currentMainTab: "fixed-time",
             activeGroupIdByMainTab: { live: 0, fixed: 0 }
         };
-        const service = module.createService(createBaseDeps(state, {
-            getDefaultFixedDate: () => "2026-03-15"
-        }));
+        const service = module.createService(createBaseDeps(state, {}));
 
         await service.addGroup();
 
-        expect(state.groups[0].fixedDate).toBe("2026-03-15");
+        expect(state.groups[0].name).toBe("With Date");
+        expect("fixedDate" in state.groups[0]).toBe(false);
     });
 
     it("activateGroupTab clamps out-of-range index", () => {

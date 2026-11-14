@@ -138,6 +138,7 @@
                     "getIsRealtime": "getIsRealtimeState",
                     "setIsRealtime": "setIsRealtimeState",
                 }),
+                markFixedTimeOpened: (typeof d.markFixedTimeOpened === "function") ? d.markFixedTimeOpened : (() => undefined),
                 syncRealtimeNow: () => {
                     if (typeof d.setGlobalTimeState === "function") {
                         d.setGlobalTimeState(0, new Date());

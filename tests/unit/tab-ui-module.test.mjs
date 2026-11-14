@@ -200,7 +200,7 @@ describe("GTV tab UI module", () => {
         const copyGroup = makeNode();
         const timelineGroup = makeNode();
         const fixedTimeSlotCountGroup = makeNode();
-        const fixedTimeDateGroup = makeNode();
+        const fixedTimeLiveNowGroup = makeNode();
         const saveTableImageBtn = makeNode();
         const saveMultiTitlesImageBtn = makeNode();
         const elements = {
@@ -209,7 +209,7 @@ describe("GTV tab UI module", () => {
             "toggle-copy-format": { closest: () => copyGroup },
             "toggle-timeline": { closest: () => timelineGroup },
             "fixed-time-slot-count-group": fixedTimeSlotCountGroup,
-            "fixed-time-date-group": fixedTimeDateGroup,
+            "fixed-time-live-now-group": fixedTimeLiveNowGroup,
             "copy-format-row": makeNode(),
             "multi-range-count-group": makeNode(),
             "multi-tools-row": makeNode(),
@@ -261,7 +261,7 @@ describe("GTV tab UI module", () => {
         expect(copyGroup.style.display).toBe("flex");
         expect(timelineGroup.style.display).toBe("flex");
         expect(fixedTimeSlotCountGroup.style.display).toBe("flex");
-        expect(fixedTimeDateGroup.style.display).toBe("flex");
+        expect(fixedTimeLiveNowGroup.style.display).toBe("flex");
 
         const serviceMulti = module.createService({
             isMultiTab: () => true,
@@ -276,7 +276,7 @@ describe("GTV tab UI module", () => {
         expect(copyGroup.style.display).toBe("flex");
         expect(timelineGroup.style.display).toBe("none");
         expect(fixedTimeSlotCountGroup.style.display).toBe("none");
-        expect(fixedTimeDateGroup.style.display).toBe("none");
+        expect(fixedTimeLiveNowGroup.style.display).toBe("none");
     });
 
     it("refreshOptionToggleDividers updates divider class only for visible groups", () => {
@@ -336,7 +336,7 @@ describe("GTV tab UI module", () => {
             "toggle-timeline": timelineToggle,
             "copy-format-row": createElementStub(),
             "fixed-time-slot-count-group": createElementStub(),
-            "fixed-time-date-group": createElementStub(),
+            "fixed-time-live-now-group": createElementStub(),
             "multi-range-count-group": createElementStub(),
             "multi-tools-row": createElementStub(),
             "multi-subgroup-row": createElementStub(),
@@ -450,7 +450,7 @@ describe("GTV tab UI module", () => {
             "toggle-timeline": timelineToggle,
             "copy-format-row": createElementStub(),
             "fixed-time-slot-count-group": createElementStub(),
-            "fixed-time-date-group": createElementStub(),
+            "fixed-time-live-now-group": createElementStub(),
             "multi-range-count-group": createElementStub(),
             "multi-tools-row": createElementStub(),
             "multi-subgroup-row": createElementStub(),
@@ -490,6 +490,8 @@ describe("GTV tab UI module", () => {
             },
             getIsRealtime: () => realtime,
             syncRealtimeNow: () => calls.push("syncRealtimeNow"),
+            markFixedTimeOpened: () => calls.push("markFixedTimeOpened"),
+            renderFixedTimeTab: () => calls.push("renderFixedTimeTab"),
             getSlotCount: () => 3,
             getShowCopyFormat: () => false,
             getShowTimeline: () => true,
@@ -508,10 +510,18 @@ describe("GTV tab UI module", () => {
         expect(extraToggle.disabled).toBe(true);
         expect(extraToggle.checked).toBe(false);
         expect(calls).toContain("syncRealtimeNow");
+        expect(calls).not.toContain("markFixedTimeOpened");
         expect(calls).toContain("renderList");
         expect(calls).toContain("updateTimeAdjustPanel");
         expect(groupTabsContainer.style.display).toBe("flex");
         expect(topControlBar.style.display).toBe("flex");
+
+        // Opening the fixed time tab records the opening moment before the timeline and table draw.
+        calls.length = 0;
+        service.switchMainTab("fixed-time");
+        expect(calls.indexOf("markFixedTimeOpened")).toBeGreaterThanOrEqual(0);
+        expect(calls.indexOf("markFixedTimeOpened")).toBeLessThan(calls.indexOf("renderTimelineFrame"));
+        expect(calls.indexOf("markFixedTimeOpened")).toBeLessThan(calls.indexOf("renderFixedTimeTab"));
 
         calls.length = 0;
         service.switchMainTab("calc");

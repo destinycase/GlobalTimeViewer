@@ -84,7 +84,6 @@
                     }),
                     ...pickDeps(d,
                         "getDefaultFixedTimes",
-                        "getDefaultFixedDate",
                     ),
                     ...pickAliasedDeps(d, {
                         "createMultiSubgroupState": "createMultiSubgroupStateViaState",
@@ -155,7 +154,6 @@
                     ...pickDeps(d,
                         "VERSION",
                         "getDefaultFixedTimes",
-                        "getDefaultFixedDate",
                     ),
                     ...pickAliasedDeps(d, {
                         "getState": "getPersistenceState",
@@ -368,10 +366,8 @@
                         "getFixedTimeSlotCountForCurrentGroup",
                         "setFixedTimeSlotCount",
                         "refreshFixedTimeSlotCountControls",
-                        "setCurrentGroupFixedDate",
                         "getCurrentGroupFixedTimeShowLiveNow",
                         "setCurrentGroupFixedTimeShowLiveNow",
-                        "sanitizeFixedDateValue",
                     ),
                     showToast: deferDynamic(d, d.getShowToastRef),
                     ...pickDeps(d,

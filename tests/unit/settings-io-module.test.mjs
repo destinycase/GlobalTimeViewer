@@ -105,7 +105,6 @@ function createBaseDeps(overrides = {}) {
         }),
         sanitizeMultiStatePayload: () => null,
         sanitizeMultiRangeTitle: (value) => String(value || ""),
-        getDefaultFixedDate: () => "",
         getDefaultFixedTimes: () => [],
         persistStorageSnapshot: async () => ({ ok: true, error: null }),
         setStorageValue: async () => ({ ok: true, error: null }),
@@ -558,7 +557,6 @@ describe("GTV settings IO module", () => {
         const service = loaded.module.createService(createBaseDeps({
             sanitizeGroup: undefined,
             t: () => "   ",
-            getDefaultFixedDate: undefined,
             getDefaultFixedTimes: undefined,
             persistStorageSnapshot: async (snapshot) => {
                 persisted = snapshot;
@@ -571,7 +569,7 @@ describe("GTV settings IO module", () => {
         expect(Array.isArray(persisted.groups)).toBe(true);
         expect(persisted.groups.length).toBe(1);
         expect(persisted.groups[0].name).toBe("Group");
-        expect(persisted.groups[0].fixedDate).toBe("");
+        expect("fixedDate" in persisted.groups[0]).toBe(false);
         expect(persisted.groups[0].fixedTimes).toEqual([]);
     });
 

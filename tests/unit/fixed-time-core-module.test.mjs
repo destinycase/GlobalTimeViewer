@@ -228,29 +228,44 @@ describe("GTV fixed time core module", () => {
         expect(throwService.resolveFixedTimeSlotUtcDate({ time: "09:00" }, { zone: "UTC" })).toBe(null);
     });
 
-    it("resolveFixedTimeSlotUtcDate prefers fixed date parts over anchor local date", () => {
+    it("resolveFixedTimeSlotUtcDate uses the base date at the moment the tab was opened", () => {
         const module = loadFixedTimeCoreModule();
         const captured = [];
+        const localAnchors = [];
+        let openedAt = new Date("2027-04-08T03:00:00.000Z");
         const service = module.createService({
             DEFAULT_FIXED_TIME_VALUE: "09:00",
             sanitizeFixedTimeValue: (value, fallback) => value || fallback,
             getFixedOffsetForDisplayAtDate: () => 0,
-            getLocalPartsByTimezone: () => ({ year: 2026, month: 3, day: 7 }),
-            getFixedDateParts: () => ({ year: 2027, month: 4, day: 8 }),
+            getLocalPartsByTimezone: (date) => {
+                localAnchors.push(date.toISOString());
+                return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() };
+            },
+            getFixedTimeOpenedAt: () => openedAt,
             getUTCDateFromLocalParts: (parts) => {
                 captured.push(parts);
                 return new Date(Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second));
             }
         });
 
+        // The opened-at moment wins over the caller's anchor date.
         const result = service.resolveFixedTimeSlotUtcDate(
             { time: "10:11" },
             { zone: "UTC" },
             new Date("2026-03-07T00:00:00.000Z")
         );
-
         expect(result.toISOString()).toBe("2027-04-08T10:11:00.000Z");
         expect(captured[0]).toMatchObject({ year: 2027, month: 4, day: 8, hour: 10, minute: 11, second: 0 });
+        expect(localAnchors[0]).toBe("2027-04-08T03:00:00.000Z");
+
+        // Before the tab has been opened the caller's anchor date is used.
+        openedAt = null;
+        const fallback = service.resolveFixedTimeSlotUtcDate(
+            { time: "10:11" },
+            { zone: "UTC" },
+            new Date("2026-03-07T00:00:00.000Z")
+        );
+        expect(fallback.toISOString()).toBe("2026-03-07T10:11:00.000Z");
     });
 
     it("builds payload/night marker and handles payload formatting fallback", () => {

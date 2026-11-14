@@ -222,7 +222,7 @@ td {
     flex-shrink: 0;
 }
 
-/* Logo: the app name on one line (sized to fit the sidebar) and the version below it. */
+/* Logo: the app name on one line (sized to fit the sidebar) and the version below it, right-aligned. */
 .logo {
     margin-bottom: 14px;
     padding-left: 4px;
@@ -247,7 +247,10 @@ td {
     white-space: nowrap;
 }
 
+/* The version sits on its own line, aligned to the right edge of the title area. */
 .version-badge {
+    align-self: flex-end;
+    text-align: right;
     font-size: 12px;
     font-weight: 600;
     color: var(--text-dim);
@@ -794,7 +797,7 @@ input[type=number] {
     padding-left: 16px;
 }
 
-#fixed-time-date-group {
+#fixed-time-live-now-group {
     align-items: center;
     gap: 6px;
     position: relative;
@@ -803,7 +806,7 @@ input[type=number] {
 }
 
 #fixed-time-slot-count-group::before,
-#fixed-time-date-group::before {
+#fixed-time-live-now-group::before {
     content: "|";
     position: absolute;
     left: 4px;
@@ -830,22 +833,8 @@ input[type=number] {
     padding: 4px 0;
 }
 
-#fixed-time-date-input {
-    width: 110px;
-    text-align: center;
-    padding-left: 6px;
-    padding-right: 6px;
-    font-family: 'JetBrains Mono', monospace;
-}
-
-#fixed-time-date-group .calendar-btn {
-    min-width: 30px;
-    width: 30px;
-    padding: 4px 0;
-}
-
 /* The label text uses the shared .control-label-large style like the other tool labels. */
-#fixed-time-date-group .fixed-time-live-now-flag {
+#fixed-time-live-now-group .fixed-time-live-now-flag {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -4351,7 +4340,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .control-row-options .option-toggle-group.option-with-divider::after,
 #multi-range-count-group::after,
 #fixed-time-slot-count-group::before,
-#fixed-time-date-group::before {
+#fixed-time-live-now-group::before {
     content: "";
     width: 1px;
     height: 18px;
@@ -4377,7 +4366,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 :root[data-theme="light"] .control-row-options .option-toggle-group.option-with-divider::after,
 :root[data-theme="light"] #multi-range-count-group::after,
 :root[data-theme="light"] #fixed-time-slot-count-group::before,
-:root[data-theme="light"] #fixed-time-date-group::before,
+:root[data-theme="light"] #fixed-time-live-now-group::before,
 :root[data-theme="light"] .time-adjust-divider,
 :root[data-theme="light"] .multi-range-header-divider,
 :root[data-theme="light"] .control-inline-divider {

@@ -101,62 +101,9 @@ describe("GTV fixed time state module", () => {
         expect(ensureCalls).toBe(1);
     });
 
-    it("setCurrentGroupFixedDate updates state and triggers rerender/persist conditions", () => {
-        const module = loadFixedTimeStateModule();
-        const group = { fixedDate: "2026-03-07", fixedTimes: [] };
-        let renderFixedCount = 0;
-        let renderTimelineCount = 0;
-        let saveCount = 0;
-        const service = module.createService({
-            getCurrentGroup: () => group,
-            ensureGroupFixedTimes: () => { },
-            sanitizeFixedDateValue: (value, fallback) => String(value || fallback || ""),
-            isFixedTimeTab: () => true,
-            renderFixedTimeTab: () => {
-                renderFixedCount += 1;
-            },
-            renderTimelineFrame: () => {
-                renderTimelineCount += 1;
-            },
-            savePersistence: () => {
-                saveCount += 1;
-            }
-        });
-
-        expect(service.setCurrentGroupFixedDate("2026-03-08")).toBe(true);
-        expect(group.fixedDate).toBe("2026-03-08");
-        expect(renderFixedCount).toBe(1);
-        expect(renderTimelineCount).toBe(1);
-        expect(saveCount).toBe(1);
-
-        expect(service.setCurrentGroupFixedDate("2026-03-08")).toBe(false);
-    });
-
-    it("setCurrentGroupFixedDate honors rerender/persist options and missing group guard", () => {
-        const module = loadFixedTimeStateModule();
-        const serviceNoGroup = module.createService({
-            getCurrentGroup: () => null
-        });
-        expect(serviceNoGroup.setCurrentGroupFixedDate("2026-03-08")).toBe(false);
-
-        const group = { fixedDate: "", fixedTimes: [] };
-        let saveCount = 0;
-        const service = module.createService({
-            getCurrentGroup: () => group,
-            ensureGroupFixedTimes: () => { },
-            sanitizeFixedDateValue: (value) => String(value || ""),
-            isFixedTimeTab: () => false,
-            savePersistence: () => {
-                saveCount += 1;
-            }
-        });
-        expect(service.setCurrentGroupFixedDate("2026-03-08", { persist: false, rerender: false })).toBe(true);
-        expect(saveCount).toBe(0);
-    });
-
     it("get/set fixed-time realtime-visibility flag with persistence and rerender hooks", () => {
         const module = loadFixedTimeStateModule();
-        const group = { fixedDate: "", fixedTimes: [], fixedTimeShowLiveNow: false };
+        const group = { fixedTimes: [], fixedTimeShowLiveNow: false };
         let saveCount = 0;
         let renderFixedCount = 0;
         let renderTimelineCount = 0;

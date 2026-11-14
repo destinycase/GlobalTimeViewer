@@ -56,16 +56,15 @@ describe("GTV main state domain proxies module", () => {
         const moduleApi = loadMainStateDomainProxiesModule();
         const fixedTimeSlotUtilsService = {
             getDefaultFixedTimeName: vi.fn(() => "Slot"),
-            getDefaultFixedDate: vi.fn(() => "2026-03-28"),
             getDefaultFixedTimes: vi.fn(() => []),
             sanitizeFixedTimeSlotCount: vi.fn((value) => Number(value)),
             createDefaultFixedTimeSlot: vi.fn((id) => ({ id })),
             sanitizeFixedTimeId: vi.fn((value) => String(value || "")),
             sanitizeFixedTimeName: vi.fn((value, fallback) => value || fallback),
             sanitizeFixedTimeValue: vi.fn((value, fallback) => value || fallback),
-            sanitizeFixedDateValue: vi.fn((value, fallback) => value || fallback),
             sanitizeFixedTimeShowLiveNow: vi.fn((value) => !!value),
-            getFixedDatePartsFromGroup: vi.fn(() => ({})),
+            getFixedTimeOpenedAt: vi.fn(() => null),
+            markFixedTimeOpened: vi.fn((date) => date),
             sanitizeFixedTimes: vi.fn((v) => v || []),
             ensureGroupFixedTimes: vi.fn((group) => group),
             createUniqueFixedTimeId: vi.fn(() => "ft-1")
@@ -87,6 +86,10 @@ describe("GTV main state domain proxies module", () => {
         expect(service.sanitizeFixedTimeName("", "Fallback")).toBe("Fallback");
         expect(service.sanitizeFixedTimeValue("", "11:00")).toBe("11:00");
         expect(service.createUniqueFixedTimeId()).toBe("ft-1");
+        expect(service.getFixedTimeOpenedAt()).toBeNull();
+        const opened = new Date("2026-11-14T00:00:00.000Z");
+        expect(service.markFixedTimeOpened(opened)).toBe(opened);
+        expect(fixedTimeSlotUtilsService.markFixedTimeOpened).toHaveBeenCalledWith(opened);
     });
 
     it("delegates multi-range and fixed-time state actions", () => {
@@ -116,7 +119,6 @@ describe("GTV main state domain proxies module", () => {
         };
         const fixedTimeStateService = {
             getFixedTimeSlotCount: vi.fn(() => 1),
-            setCurrentGroupFixedDate: vi.fn(() => {}),
             setCurrentGroupFixedTimeShowLiveNow: vi.fn(() => {}),
             refreshFixedTimeSlotCountControls: vi.fn(() => {}),
             setFixedTimeSlotCount: vi.fn(() => {})
@@ -124,16 +126,15 @@ describe("GTV main state domain proxies module", () => {
         const service = moduleApi.createService({
             fixedTimeSlotUtilsService: {
                 getDefaultFixedTimeName: () => "Slot",
-                getDefaultFixedDate: () => "2026-03-28",
                 getDefaultFixedTimes: () => [],
                 sanitizeFixedTimeSlotCount: (value) => value,
                 createDefaultFixedTimeSlot: () => ({}),
                 sanitizeFixedTimeId: (value) => value,
                 sanitizeFixedTimeName: (value) => value,
                 sanitizeFixedTimeValue: (value) => value,
-                sanitizeFixedDateValue: (value) => value,
                 sanitizeFixedTimeShowLiveNow: (value) => value,
-                getFixedDatePartsFromGroup: () => ({}),
+                getFixedTimeOpenedAt: () => null,
+                markFixedTimeOpened: (date) => date,
                 sanitizeFixedTimes: (value) => value,
                 ensureGroupFixedTimes: (value) => value,
                 createUniqueFixedTimeId: () => "ft-1"
@@ -148,10 +149,8 @@ describe("GTV main state domain proxies module", () => {
         });
 
         service.setMultiRangeCount(3);
-        service.setCurrentGroupFixedDate("2026-03-28");
 
         expect(multiRangeStateService.setMultiRangeCount).toHaveBeenCalledWith(3, {});
-        expect(fixedTimeStateService.setCurrentGroupFixedDate).toHaveBeenCalledWith("2026-03-28", {});
         expect(service.isMultiTab()).toBe(true);
     });
 
@@ -181,16 +180,15 @@ describe("GTV main state domain proxies module", () => {
         const service = moduleApi.createService({
             fixedTimeSlotUtilsService: {
                 getDefaultFixedTimeName: () => "Slot",
-                getDefaultFixedDate: () => "2026-03-28",
                 getDefaultFixedTimes: () => [],
                 sanitizeFixedTimeSlotCount: (value) => value,
                 createDefaultFixedTimeSlot: () => ({}),
                 sanitizeFixedTimeId: (value) => value,
                 sanitizeFixedTimeName: (value) => value,
                 sanitizeFixedTimeValue: (value) => value,
-                sanitizeFixedDateValue: (value) => value,
                 sanitizeFixedTimeShowLiveNow: (value) => value,
-                getFixedDatePartsFromGroup: () => ({}),
+                getFixedTimeOpenedAt: () => null,
+                markFixedTimeOpened: (date) => date,
                 sanitizeFixedTimes: (value) => value,
                 ensureGroupFixedTimes: (value) => value,
                 createUniqueFixedTimeId: () => "ft-1"

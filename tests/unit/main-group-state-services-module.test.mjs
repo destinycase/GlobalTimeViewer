@@ -95,8 +95,7 @@ describe("GTV main group state services module", () => {
             normalizeZoneAbbreviation: (value) => value,
             sanitizeBaseTimezoneId: (value) => value,
             sanitizeUtcRowOrder: (value) => value,
-            sanitizeFixedTimes: (value) => value,
-            sanitizeFixedDateValue: (value) => value
+            sanitizeFixedTimes: (value) => value
         });
 
         expect(services.multiStateService).toBe(multiStateServiceStub);

@@ -15,7 +15,6 @@
                 "getCurrentGroup",
                 "ensureGroupFixedTimes",
                 "sanitizeFixedTimeSlotCount",
-                "sanitizeFixedDateValue",
                 "isFixedTimeTab",
                 "renderFixedTimeTab",
                 "renderTimelineFrame",
@@ -72,22 +71,6 @@
             dep.ensureGroupFixedTimes(safeGroup);
             const sanitizeCount = dep.sanitizeFixedTimeSlotCount(safeGroup.fixedTimes?.length);
             return Number.isFinite(sanitizeCount) ? sanitizeCount : getMinSlotCount();
-        }
-
-        function setCurrentGroupFixedDate(rawValue, options = {}) {
-            const { persist = true, rerender = true } = options;
-            const group = dep.getCurrentGroup();
-            if (!group) return false;
-            dep.ensureGroupFixedTimes(group);
-            const nextDate = dep.sanitizeFixedDateValue(rawValue, group.fixedDate || "");
-            if (group.fixedDate === nextDate) return false;
-            group.fixedDate = nextDate;
-            if (rerender && dep.isFixedTimeTab()) {
-                dep.renderFixedTimeTab();
-                dep.renderTimelineFrame();
-            }
-            if (persist) dep.savePersistence();
-            return true;
         }
 
         function getCurrentGroupFixedTimeShowLiveNow(group = dep.getCurrentGroup()) {
@@ -182,7 +165,6 @@
 
         return Object.freeze({
             getFixedTimeSlotCount,
-            setCurrentGroupFixedDate,
             getCurrentGroupFixedTimeShowLiveNow,
             setCurrentGroupFixedTimeShowLiveNow,
             refreshFixedTimeSlotCountControls,

@@ -171,13 +171,6 @@ test("sanitizeFixedTimeValue normalizes HH:mm and falls back invalid input", () 
     expect(sandbox.sanitizeFixedTimeValue("", "10:00")).toBe("10:00");
 });
 
-test("sanitizeFixedDateValue normalizes YYYY-MM-DD and rejects invalid date", () => {
-    const { sandbox } = createMainContext();
-    expect(sandbox.sanitizeFixedDateValue("2026-3-7", "")).toBe("");
-    expect(sandbox.sanitizeFixedDateValue("2026-03-07", "")).toBe("2026-03-07");
-    expect(sandbox.sanitizeFixedDateValue("2026-02-31", "2026-03-01")).toBe("2026-03-01");
-});
-
 test("sanitizeFixedTimes enforces uniqueness, defaults, and max slot count", () => {
     const { sandbox } = createMainContext();
     const fixedTimes = sandbox.sanitizeFixedTimes([
@@ -222,7 +215,7 @@ test("sanitizeGroup keeps fixedTimes in normalized form", () => {
     expect(sanitized.fixedTimes[0].name).toBe("label_fixed_time_default");
     expect(sanitized.fixedTimes[0].time).toBe("09:00");
     expect(sanitized.fixedTimes[1].name).toBe("Release");
-    expect(sanitized.fixedDate).toBe("2026-03-07");
+    expect("fixedDate" in sanitized).toBe(false);
 });
 
 test("getFixedOffsetForDisplayAtDate treats null/blank as no fixed offset", () => {

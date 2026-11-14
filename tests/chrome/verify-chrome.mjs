@@ -408,54 +408,72 @@ function buildScenarios(ctx) {
         },
         {
             id: "10",
-            title: "고정 시간 탭: 고정 날짜 기준 DST 표시·시간대 약어",
+            title: "고정 시간 탭: 고정 날짜 칸 없음·탭을 연 날짜 기준 DST 표시·시간대 약어",
             async run() {
                 const { api } = ctx;
-                const readFixedTable = async (fixedDate) => {
-                    const saved = {
-                        groups: [{
-                            name: "Fixed DST Group",
-                            zones: [
-                                { id: "tz-la", type: "standard", zone: "America/Los_Angeles", name_ko: "미국 - 로스앤젤레스", name_en: "USA - Los Angeles", fixedAbbr: "", fixedOffsetMinutes: null },
-                                { id: "tz-seoul", type: "standard", zone: "Asia/Seoul", name_ko: "대한민국 - 서울", name_en: "Korea - Seoul", fixedAbbr: "", fixedOffsetMinutes: null }
-                            ],
-                            baseTimezoneId: "tz-la",
-                            showUtcRow: true,
-                            utcRowOrder: 0,
-                            fixedDate,
-                            fixedTimeShowLiveNow: false,
-                            fixedTimes: [
-                                { id: "ft-1", name: "A", time: "09:00" },
-                                { id: "ft-2", name: "B", time: "00:30" }
-                            ]
-                        }],
-                        activeGroupId: 0,
-                        currentMainTab: "fixed-time",
-                        activeGroupIdByMainTab: { live: 0, fixed: 0 },
-                        slotCount: 1
-                    };
-                    await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))})`);
-                    await api.reload();
-                    await api.switchTab("fixed-time");
-                    return until(`고정 시간 표 ${fixedDate}`, async () => {
-                        const rows = await api.ev(`[...document.querySelectorAll("#fixed-time-body tr")].map((tr) => ({
-                            abbr: (tr.querySelector(".zone-code")?.textContent || "").trim(),
-                            utc: (tr.querySelector(".offset-text")?.textContent || "").trim(),
-                            dst: [...tr.querySelectorAll(".fixed-time-time .dst-badge")].map((b) => !b.classList.contains("is-hidden") && getComputedStyle(b).display !== "none")
-                        }))`);
-                        return rows.length >= 3 && rows[0].dst.length === 2 ? rows : false;
-                    });
+                // An older save still carries a fixed date (2026-10-31); it must be ignored.
+                const saved = {
+                    groups: [{
+                        name: "Fixed DST Group",
+                        zones: [
+                            { id: "tz-la", type: "standard", zone: "America/Los_Angeles", name_ko: "미국 - 로스앤젤레스", name_en: "USA - Los Angeles", fixedAbbr: "", fixedOffsetMinutes: null },
+                            { id: "tz-seoul", type: "standard", zone: "Asia/Seoul", name_ko: "대한민국 - 서울", name_en: "Korea - Seoul", fixedAbbr: "", fixedOffsetMinutes: null }
+                        ],
+                        baseTimezoneId: "tz-la",
+                        showUtcRow: true,
+                        utcRowOrder: 0,
+                        fixedDate: "2026-10-31",
+                        fixedTimeShowLiveNow: false,
+                        fixedTimes: [
+                            { id: "ft-1", name: "A", time: "09:00" },
+                            { id: "ft-2", name: "B", time: "00:30" }
+                        ]
+                    }],
+                    activeGroupId: 0,
+                    currentMainTab: "fixed-time",
+                    activeGroupIdByMainTab: { live: 0, fixed: 0 },
+                    slotCount: 1
                 };
-                const inDst = await readFixedTable("2026-10-31");
-                const [laDst, , seoulDst] = inDst;
-                assert(laDst.abbr === "PDT" && laDst.utc === "UTC-07:00", `10-31 LA: ${laDst.abbr} ${laDst.utc}`);
-                assert(laDst.dst.every(Boolean), `10-31 LA 슬롯 DST 표시: ${JSON.stringify(laDst.dst)}`);
-                assert(!seoulDst.dst.some(Boolean), "서울에 DST 표시");
-                const afterDst = await readFixedTable("2026-11-02");
-                const laStd = afterDst[0];
-                assert(laStd.abbr === "PST" && laStd.utc === "UTC-08:00", `11-02 LA: ${laStd.abbr} ${laStd.utc}`);
-                assert(!laStd.dst.some(Boolean), `11-02 LA 슬롯 DST 표시: ${JSON.stringify(laStd.dst)}`);
-                return `10-31 LA ${laDst.abbr} ${laDst.utc} 슬롯 DST ${laDst.dst.length}/2, 11-02 LA ${laStd.abbr} ${laStd.utc} DST 없음, 서울 표시 없음`;
+                await api.ev(`localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(saved))})`);
+                await api.reload();
+                await api.switchTab("fixed-time");
+                const rows = await until("고정 시간 표", async () => {
+                    const list = await api.ev(`[...document.querySelectorAll("#fixed-time-body tr")].map((tr) => ({
+                        abbr: (tr.querySelector(".zone-code")?.textContent || "").trim(),
+                        utc: (tr.querySelector(".offset-text")?.textContent || "").trim(),
+                        dst: [...tr.querySelectorAll(".fixed-time-time .dst-badge")].map((b) => !b.classList.contains("is-hidden") && getComputedStyle(b).display !== "none")
+                    }))`);
+                    return list.length >= 3 && list[0].dst.length === 2 ? list : false;
+                });
+                // Expected values from the browser's own time zone data for today's date in Los Angeles.
+                const expected = await api.ev(`(() => {
+                    const zone = "America/Los_Angeles";
+                    const parts = (date, opts) => Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: zone, hourCycle: "h23", ...opts }).formatToParts(date).map((p) => [p.type, p.value]));
+                    const today = parts(new Date(), { year: "numeric", month: "2-digit", day: "2-digit" });
+                    const instant = (h, m) => {
+                        for (const off of [7, 8]) {
+                            const t = new Date(Date.UTC(+today.year, +today.month - 1, +today.day, h + off, m));
+                            const p = parts(t, { hour: "2-digit", minute: "2-digit" });
+                            if (+p.hour === h && +p.minute === m) return t;
+                        }
+                        return null;
+                    };
+                    const abbr = (t) => parts(t, { timeZoneName: "short" }).timeZoneName;
+                    const a = instant(9, 0);
+                    const b = instant(0, 30);
+                    return { date: today.year + "-" + today.month + "-" + today.day, abbrA: abbr(a), dst: [abbr(a) === "PDT", abbr(b) === "PDT"] };
+                })()`);
+                const [la, , seoul] = rows;
+                assert(!(await api.ev(`!!document.getElementById("fixed-time-date-input") || !!document.getElementById("fixed-time-date-trigger")`)), "고정 날짜 칸이 남아 있음");
+                const wantUtc = expected.abbrA === "PDT" ? "UTC-07:00" : "UTC-08:00";
+                assert(la.abbr === expected.abbrA && la.utc === wantUtc, `오늘(${expected.date}) LA: ${la.abbr} ${la.utc}, 기대 ${expected.abbrA} ${wantUtc}`);
+                assert(JSON.stringify(la.dst) === JSON.stringify(expected.dst), `LA 슬롯 DST 표시: ${JSON.stringify(la.dst)}, 기대 ${JSON.stringify(expected.dst)}`);
+                assert(!seoul.dst.some(Boolean), "서울에 DST 표시");
+                await until("저장에서 고정 날짜 빠짐", async () => {
+                    const g = (await api.storedData())?.groups?.[0];
+                    return !!g && !("fixedDate" in g);
+                });
+                return `고정 날짜 칸 없음, 옛 저장의 고정 날짜(2026-10-31) 무시·저장에서 빠짐, 오늘(${expected.date}) LA ${la.abbr} ${la.utc} 슬롯 DST ${JSON.stringify(la.dst)}, 서울 표시 없음`;
             }
         },
         {
@@ -826,7 +844,7 @@ function buildScenarios(ctx) {
         },
         {
             id: "14",
-            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음·계산기 날짜와 달력 버튼 한 줄·이동량 선택칸 잘림 없음·도구 한 줄·실시간 표시 구분선·글자(1280·1600px)",
+            title: "화면 배치: 연속 시간 셀 겹침·변환기 글자 잘림 없음·계산기 날짜와 달력 버튼 한 줄·이동량 선택칸 잘림 없음·도구 한 줄·고정 날짜 칸 없음·실시간 표시 글자(1280·1600px)",
             async run() {
                 const { api } = ctx;
                 const zone = (id, name, ko, en) => ({ id, type: "standard", zone: name, name_ko: ko, name_en: en, fixedAbbr: "", fixedOffsetMinutes: null });
@@ -1026,20 +1044,19 @@ function buildScenarios(ctx) {
                             const tzRow = await measureToolRow();
                             assert(tzRow.first && tzRow.oneLine && !tzRow.outside && !tzRow.oldRow, `${width}px ${tab} 탭 도구 줄: ${JSON.stringify(tzRow)}`);
                             if (tab === "fixed-time") {
-                                // A divider sits between the date picker and "Show Realtime", whose text
-                                // looks like the other tool labels.
+                                // No fixed date field; "Show Realtime" stands in its own group, with its
+                                // text like the other tool labels.
                                 const liveNow = await api.ev(`(() => {
                                     const fmt = (el) => { const cs = getComputedStyle(el); return [cs.fontSize, cs.fontWeight, cs.color].join("|"); };
-                                    const cal = document.getElementById("fixed-time-date-trigger");
-                                    const divider = cal.nextElementSibling;
-                                    const box = divider?.getBoundingClientRect();
+                                    const group = document.getElementById("fixed-time-live-now-group");
+                                    const box = group?.getBoundingClientRect();
                                     return {
-                                        divider: !!divider && divider.classList.contains("control-inline-divider") && box.width >= 1 && box.height >= 12
-                                            && divider.nextElementSibling?.classList.contains("fixed-time-live-now-flag"),
+                                        noDate: !document.getElementById("fixed-time-date-input") && !document.getElementById("fixed-time-date-trigger"),
+                                        shown: !!group && box.width > 0 && getComputedStyle(group).display !== "none",
                                         sameText: fmt(document.querySelector('[data-i18n="label_fixed_time_live_now"]')) === fmt(document.querySelector(".option-add-tz-group .control-label-large"))
                                     };
                                 })()`);
-                                assert(liveNow.divider && liveNow.sameText, `고정 날짜·실시간 표시: ${JSON.stringify(liveNow)}`);
+                                assert(liveNow.noDate && liveNow.shown && liveNow.sameText, `고정 날짜 칸 없음·실시간 표시: ${JSON.stringify(liveNow)}`);
                             }
                         }
                         await api.switchTab("live");
@@ -1115,6 +1132,15 @@ function buildScenarios(ctx) {
                     return { gapAbove: Math.round(box.top - logo.bottom), gapBelow: Math.round(nav.top - box.bottom), height: box.height, width: Math.round(box.width), visible: bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent" };
                 })()`);
                 assert(titleDivider && titleDivider.gapAbove > 0 && titleDivider.gapBelow > 0 && titleDivider.height >= 1 && titleDivider.width > 100 && titleDivider.visible, `제목 아래 구분선: ${JSON.stringify(titleDivider)}`);
+
+                // The version sits below the title, aligned to the right edge of the title area.
+                const versionAlign = await api.ev(`(() => {
+                    const area = document.querySelector(".logo-text").getBoundingClientRect();
+                    const title = document.querySelector(".logo-text h1").getBoundingClientRect();
+                    const version = document.getElementById("version-badge").getBoundingClientRect();
+                    return { rightGap: Math.round(area.right - version.right), below: version.top >= title.bottom - 1, startsRight: version.left > area.left + area.width / 2 };
+                })()`);
+                assert(Math.abs(versionAlign.rightGap) <= 1 && versionAlign.below && versionAlign.startsRight, `버전 오른쪽 정렬: ${JSON.stringify(versionAlign)}`);
 
                 // Settings: open with a real click, change the theme inside, close with Esc.
                 await clickAt("#open-settings-btn");

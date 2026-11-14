@@ -130,9 +130,6 @@
                 baseTimezoneId: "utc",
                 showUtcRow: true,
                 utcRowOrder: 0,
-                fixedDate: (typeof safeDeps.getDefaultFixedDate === "function")
-                    ? safeDeps.getDefaultFixedDate()
-                    : "",
                 fixedTimeShowLiveNow: false,
                 fixedTimes: (typeof safeDeps.getDefaultFixedTimes === "function")
                     ? safeDeps.getDefaultFixedTimes()

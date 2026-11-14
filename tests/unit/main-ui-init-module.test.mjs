@@ -283,7 +283,6 @@ describe("GTV main ui init module", () => {
             dayNightRange: [],
             multiRangeCount: [],
             fixedSlotCount: [],
-            fixedDate: [],
             toasts: [],
             addTimezone: [],
             setSlotCount: [],
@@ -321,7 +320,7 @@ describe("GTV main ui init module", () => {
         let nightStartHour = 18;
         let currentTheme = "dark";
         let currentLang = "ko";
-        let currentGroup = { fixedDate: "2026-01-02" };
+        let currentGroup = { fixedTimes: [] };
         const addResults = [false, true];
         const navLive = createNode({ dataset: { tab: "live" } });
         const navMulti = createNode({ dataset: { tab: "multi" } });
@@ -336,8 +335,6 @@ describe("GTV main ui init module", () => {
         const fixedTimeSlotCountInput = createNode({ id: "fixed-time-slot-count-input", value: "5x" });
         const fixedTimeSlotDecreaseBtn = createNode({ id: "fixed-time-slot-count-decrease" });
         const fixedTimeSlotIncreaseBtn = createNode({ id: "fixed-time-slot-count-increase" });
-        const fixedTimeDateInput = createNode({ id: "fixed-time-date-input", value: "" });
-        const fixedTimeDateTrigger = createNode({ id: "fixed-time-date-trigger" });
         const customOffH = createNode({ id: "custom-off-h", value: "0" });
         const customOffM = createNode({ id: "custom-off-m", value: "30" });
         const extraTimeToggle = createNode({ id: "toggle-extra-time", checked: false });
@@ -370,8 +367,6 @@ describe("GTV main ui init module", () => {
             ["fixed-time-slot-count-input", fixedTimeSlotCountInput],
             ["fixed-time-slot-count-decrease", fixedTimeSlotDecreaseBtn],
             ["fixed-time-slot-count-increase", fixedTimeSlotIncreaseBtn],
-            ["fixed-time-date-input", fixedTimeDateInput],
-            ["fixed-time-date-trigger", fixedTimeDateTrigger],
             ["custom-off-h", customOffH],
             ["custom-off-m", customOffM],
             ["toggle-extra-time", extraTimeToggle],
@@ -451,20 +446,7 @@ describe("GTV main ui init module", () => {
             refreshFixedTimeSlotCountControls: () => {
                 calls.refreshFixedTimeSlotCountControls += 1;
             },
-            bindCustomDatePickerForInput: () => {},
             getCurrentGroup: () => currentGroup,
-            ensureGroupFixedTimes: () => {},
-            setCurrentGroupFixedDate: (value) => {
-                calls.fixedDate.push(value);
-                if (!currentGroup) return false;
-                if (value === "2026-01-04") {
-                    currentGroup.fixedDate = "2026-01-05";
-                    return false;
-                }
-                currentGroup.fixedDate = value;
-                return true;
-            },
-            sanitizeFixedDateValue: (rawInput) => (rawInput === "bad-date" ? "" : rawInput),
             showToast: (message) => calls.toasts.push(message),
             normalizeCustomAbbr: (value) => String(value || "").trim().toUpperCase(),
             addTimezone: (payload) => {
@@ -611,28 +593,6 @@ describe("GTV main ui init module", () => {
         await fixedTimeSlotDecreaseBtn.dispatch("click");
         await fixedTimeSlotIncreaseBtn.dispatch("click");
         expect(calls.fixedSlotCount.length).toBeGreaterThanOrEqual(5);
-
-        currentGroup = null;
-        fixedTimeDateInput.value = "2026-01-01";
-        await fixedTimeDateInput.dispatch("change");
-
-        currentGroup = { fixedDate: "2026-01-02" };
-        fixedTimeDateInput.value = "";
-        await fixedTimeDateInput.dispatch("change");
-        expect(currentGroup.fixedDate).toBe("");
-        fixedTimeDateInput.value = "bad-date";
-        await fixedTimeDateInput.dispatch("blur");
-        expect(calls.toasts.includes("toast_invalid_date")).toBe(true);
-        expect(fixedTimeDateInput.value).toBe("");
-
-        fixedTimeDateInput.value = "2026-01-03";
-        await fixedTimeDateInput.dispatch("keydown", { key: "Enter" });
-        expect(fixedTimeDateInput.value).toBe("2026-01-03");
-        expect(fixedTimeDateInput.blurCallCount).toBe(1);
-
-        fixedTimeDateInput.value = "2026-01-04";
-        await fixedTimeDateInput.dispatch("change");
-        expect(fixedTimeDateInput.value).toBe("2026-01-05");
 
         extraTimeToggle.checked = true;
         await extraTimeToggle.dispatch("change");

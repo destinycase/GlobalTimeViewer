@@ -38,7 +38,7 @@
                 "getDisplayTimePartsEnabled",
                 "getDefaultFixedTimeName",
                 "sanitizeFixedTimeName",
-                "getFixedDateParts",
+                "getFixedTimeOpenedAt",
                 "getDayNightMarkerByHour"
             ])
         });

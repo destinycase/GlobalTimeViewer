@@ -131,7 +131,7 @@ flowchart LR
 | 시간대 검색·표시 데이터 | `timezone-data.js` | `timezone-search.js` | 지역 식별자, 검색 결과, 사용자 지정 고정 오프셋의 의미를 보존합니다. |
 | 그룹·탭 상태 | `group-state.js` | `group-context-state.js`, `group-tabs.js`, `app-state-patcher.js`, `app-persistence-state.js`, `ui-preferences-state.js`, `format-profile-state.js` | 현재 그룹·보조 그룹과 도메인 데이터 간 단일 소유 흐름을 유지합니다. |
 | 실시간 표·복사·이미지 | `table-render.js` | `table-image-render.js`, `copy-actions.js`, `image-export.js`, `image-export-actions.js`, `image-export-bridge.js`, `image-export-naming.js`, `image-clone.js`, `image-foreign-render.js` | 표시 데이터와 이미지용 복제·렌더 경로를 혼동하지 말고 현재 UI 상태를 기준으로 합니다. |
-| 고정 시간·타임라인 | `fixed-time-state.js` | `fixed-time-core.js`, `fixed-time-slot-utils.js`, `fixed-time-actions.js`, `fixed-time-table.js`, `fixed-time-timeline.js`, `timeline-frame.js` | 고정 날짜, 슬롯 상태, 표시 여부가 같이 움직이는 경로를 추적합니다. |
+| 고정 시간·타임라인 | `fixed-time-state.js` | `fixed-time-core.js`, `fixed-time-slot-utils.js`, `fixed-time-actions.js`, `fixed-time-table.js`, `fixed-time-timeline.js`, `timeline-frame.js` | 탭을 연 날짜, 슬롯 상태, 표시 여부가 같이 움직이는 경로를 추적합니다. |
 | 연속 시간 변경 | `multi-state.js` | `multi-range-state.js`, `multi-range-render.js`, `multi-range-copy.js`, `multi-range-image-render.js`, `multi-bulk-tools.js` | 그룹·보조 그룹별 범위, 개수, 편집 옵션을 함께 유지합니다. |
 | 계산기·날짜 입력 | `calculator.js`(단위 변환·기간/날짜 이동·조립) | `calculator-date-format.js`(날짜 파싱·형식), `calculator-countdown.js`, `calculator-countdown-state.js`(상태 정규화·표시), `calculator-format-converter.js`(시간 포맷 변환기), `calculator-actions.js`, `date-picker.js`, `time-adjust-ui.js`, `time-adjust-actions.js` | 계산 결과 의미를 바꾸지 않고 DOM 입력 검증·피드백과 핵심 연산을 구분합니다. |
 | 저장 데이터 정규화 | `persistence-state-normalizer.js` | `state-persistence.js`, `format-profile-state.js`, `multi-state.js` | 들어오는 데이터의 기본값·형태 정규화를 맡습니다. |
@@ -158,6 +158,11 @@ flowchart LR
 - 서머타임 표시는 시각마다 판단합니다. 판단은 `GTVTimeCore.isZoneInDaylightTime`(그 시각의 시차가 그 해 1월·7월 중 작은 시차보다 크면 서머타임)으로 하고, 사용자 지정·`UTC`·고정 시차 항목은 표시하지 않습니다. 표(`table-render`·`main-row-view-services`·`multi-range-render`)는 `snapshot.dstFlags`로, 고정 시간 탭은 payload의 `isDst`로 `.dst-badge`를 보이거나 숨기고, 텍스트 복사(`snapshot-format`·`fixed-time-actions`)와 이미지(`table-image-render`·`image-clone`)도 같은 값을 씁니다. 표시 여부는 시간 세부 항목 `dst`(기본 켜짐)로 정합니다.
 - 시각을 입력하면(`time-input-mutations.js`) 그 지역의 시차를 실제 순간에서 다시 확인합니다. 서머타임 시작으로 건너뛰는 시각은 건너뛴 만큼 뒤로 맞추고 `toast_dst_gap_adjusted`로 알리며, 서머타임 종료로 두 번 있는 시각은 첫 번째(서머타임 쪽)로 해석합니다. 고정 시간 표 칸은 시 0~23·분·초 0~59와 실제 날짜를 검사해 범위 밖이면 거부합니다.
 
+### 고정 시간 탭의 날짜
+
+- 고정 날짜 입력은 없습니다. 탭을 열 때(`tab-ui.js`의 `switchMainTabUi`, 앱을 고정 시간 탭으로 시작할 때 포함) `markFixedTimeOpened()`가 그 순간을 `fixed-time-slot-utils.js`에 저장하고(저장 데이터에는 넣지 않음), `fixed-time-core.js`의 `resolveFixedTimeSlotUtcDate`가 그 순간의 기준 시간대 날짜에 슬롯 시각을 놓습니다. 탭을 연 적이 없으면 호출한 쪽이 넘긴 기준 시각(`getGlobalTime(0)`)을 씁니다. 타임라인보다 먼저 저장하도록 `switchMainTabUi`에서 화면을 그리기 전에 부릅니다.
+- 예전 버전이 그룹에 저장한 `fixedDate`는 `group-state.js`의 정규화와 `ensureGroupFixedTimes`가 지우므로, 불러온 뒤 다음 저장 때 빠집니다. 설정·그룹 내보내기에도 넣지 않습니다. 옛 파일을 가져와도 무시합니다.
+
 ### 타임존 추가 팝업
 
 - 시간대 추가는 `타임존 추가` 팝업(`#full-tz-overlay`) 하나로 합니다. 본 화면에는 도구 줄(`#control-option-row`) 맨 앞에 `타임존 추가` 이름표와 `목록` 버튼(`#show-all-tz`)만 있습니다.
@@ -179,7 +184,7 @@ flowchart LR
 
 ### 도구 줄·계산기·시간 조정 배치
 
-- 도구 줄 안의 구분선은 묶음 경계(`option-with-divider`, `::before`)와 묶음 안의 짧은 세로선(`.control-inline-divider`, 시간 조정 줄 구분선과 같은 모양)으로 그립니다. 고정 날짜 묶음은 날짜 선택 버튼 뒤에 `.control-inline-divider`를 두고 `실시간 표시` 이름표에 다른 이름표와 같은 `.control-label-large`를 씁니다.
+- 도구 줄 안의 구분선은 묶음 경계(`option-with-divider`, `::before`)와 묶음 안의 짧은 세로선(`.control-inline-divider`, 시간 조정 줄 구분선과 같은 모양)으로 그립니다. 고정 시간 탭의 `실시간 표시`는 자기 묶음(`#fixed-time-live-now-group`, 앞에 묶음 경계선)에 있고 이름표에 다른 이름표와 같은 `.control-label-large`를 씁니다.
 - 계산기의 날짜 칸(`.calc-date-input-wrap`)은 입력칸과 달력 버튼을 한 줄에 두고 오류 문구만 아래 줄로 보냅니다. 기간 계산은 시작일·종료일을 각각 라벨과 함께 `.calc-period-field`로 묶어 바꾸기 버튼과 한 줄(flex 줄바꿈)에 놓고, 한 칸이 날짜를 다 보여 줄 최소 너비(140px)보다 좁아지면 종료일이 다음 줄로 내려갑니다. 바꾸기 버튼은 라벨 높이만큼 내려 입력칸 줄에 맞춥니다. 날짜 이동의 단위·방향 선택칸은 `.calc-shift-selects`로 묶여 각자 최소 너비(`--calc-select-min`, 한국어 76px·영어 100px)를 지키고, 숫자 칸 옆에 자리가 모자라면 함께 다음 줄로 내려갑니다.
 - 시간 조정 줄은 앞쪽 버튼(지금 시간·0시·정각, 기간 0일로 변경, 이전 구간 끝 가져오기)을 고정 폭 칸 `.time-adjust-lead`에 넣어 줄마다 뒤의 버튼 열이 같은 위치에 서게 합니다. 화면에서 너비를 재서 맞추는 코드는 두지 않습니다.
 

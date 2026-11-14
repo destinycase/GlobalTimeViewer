@@ -99,7 +99,6 @@ describe("GTV main group tabs service module", () => {
             upgradeNativeTitleTooltips: () => {},
             getDefaultMultiSubgroupName: () => "Subgroup 1",
             getDefaultFixedTimes: () => [],
-            getDefaultFixedDate: () => "",
             createMultiSubgroupState: () => ({}),
             sanitizeMultiSubgroupName: (value) => value,
             sanitizeMultiRangeTitle: (value) => value,

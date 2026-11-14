@@ -46,6 +46,7 @@
                 "normalizeGroupTabState",
                 "setIsRealtime",
                 "syncRealtimeNow",
+                "markFixedTimeOpened",
                 "getSlotCount",
                 "renderTimelineFrame",
                 "renderBaseTimeSelect",
@@ -148,7 +149,7 @@
             const timelineGroup = doc.getElementById("toggle-timeline")?.closest?.(".control-group");
             const copyFormatRow = doc.getElementById("copy-format-row");
             const fixedTimeSlotCountGroup = doc.getElementById("fixed-time-slot-count-group");
-            const fixedTimeDateGroup = doc.getElementById("fixed-time-date-group");
+            const fixedTimeLiveNowGroup = doc.getElementById("fixed-time-live-now-group");
             const rangeCountGroup = doc.getElementById("multi-range-count-group");
             const multiToolsRow = doc.getElementById("multi-tools-row");
             const multiSubgroupRow = doc.getElementById("multi-subgroup-row");
@@ -164,7 +165,7 @@
             setElementDisplay(copyFormatGroup, "flex");
             setElementDisplay(timelineGroup, isMulti ? "none" : "flex");
             setElementDisplay(fixedTimeSlotCountGroup, isFixedTime ? "flex" : "none");
-            setElementDisplay(fixedTimeDateGroup, isFixedTime ? "flex" : "none");
+            setElementDisplay(fixedTimeLiveNowGroup, isFixedTime ? "flex" : "none");
             setElementDisplay(rangeCountGroup, isMulti ? "flex" : "none");
             setElementDisplay(multiControlsFrame, isMulti ? "block" : "none");
             setElementDisplay(multiSubgroupRow, isMulti ? "flex" : "none");
@@ -228,6 +229,11 @@
             const isRealtime = getBooleanDep(dep.getIsRealtime);
             if (isRealtime) {
                 dep.syncRealtimeNow();
+            }
+            // Opening the fixed time tab fixes the date its slots fall on (today in the base
+            // timezone); it stays until the tab is opened again.
+            if (isFixedTime) {
+                dep.markFixedTimeOpened();
             }
             const extraTimeToggle = doc?.getElementById?.("toggle-extra-time");
             const copyFormatToggle = doc?.getElementById?.("toggle-copy-format");

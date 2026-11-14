@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import { createMainContext } from "../helpers/create-main-context.mjs";
 
-function seedGroupWithFixedTimes(run, fixedTimes = [], fixedDate = "") {
+function seedGroupWithFixedTimes(run, fixedTimes = [], fixedDate = undefined) {
     run(`
         groups = [{
             name: "Team A",
@@ -10,7 +10,7 @@ function seedGroupWithFixedTimes(run, fixedTimes = [], fixedDate = "") {
             baseTimezoneId: "utc",
             showUtcRow: true,
             utcRowOrder: 0,
-            fixedDate: ${JSON.stringify(fixedDate)},
+            ${fixedDate === undefined ? "" : `fixedDate: ${JSON.stringify(fixedDate)},`}
             fixedTimes: ${JSON.stringify(fixedTimes)},
             activeMultiSubgroupId: "subgroup-0",
             multiSubgroups: [{
@@ -70,7 +70,6 @@ test("fixed-time slot remove action respects minimum slot count", () => {
 
 test("fixed-time UTC resolution follows selected base timezone", () => {
     const { sandbox, run } = createMainContext();
-    run("if (Array.isArray(groups) && groups[0]) { groups[0].fixedDate = \"\"; }");
     const slot = { id: "ft-1", name: "Daily", time: "09:00" };
     const anchorDate = new Date("2026-03-07T00:00:00.000Z");
     const utcBase = { id: "utc", type: "standard", zone: "UTC", name_ko: "UTC", name_en: "UTC" };
@@ -85,7 +84,6 @@ test("fixed-time UTC resolution follows selected base timezone", () => {
 
 test("fixed-time display for other timezone changes when base timezone changes", () => {
     const { sandbox, run } = createMainContext();
-    run("if (Array.isArray(groups) && groups[0]) { groups[0].fixedDate = \"\"; }");
     const slot = { id: "ft-1", name: "Daily", time: "09:00" };
     const anchorDate = new Date("2026-03-07T00:00:00.000Z");
     const utcBase = { id: "utc", type: "standard", zone: "UTC", name_ko: "UTC", name_en: "UTC" };
@@ -102,16 +100,20 @@ test("fixed-time display for other timezone changes when base timezone changes",
     expect(tokyoFromSeoulBase).toBe("09:00:00");
 });
 
-test("fixed-time UTC resolution uses group fixedDate when provided", () => {
+test("fixed-time UTC resolution uses the base date when the tab was opened, not a saved fixedDate", () => {
     const { sandbox, run } = createMainContext();
+    // An older save still carries a fixed date; it no longer decides the slot date.
     seedGroupWithFixedTimes(run, [{ id: "ft-1", name: "Daily", time: "09:00" }], "2026-03-10");
 
     const slot = run("groups[0].fixedTimes[0]");
-    const baseRef = { id: "utc", type: "standard", zone: "UTC", name_ko: "UTC", name_en: "UTC" };
+    const utcBase = { id: "utc", type: "standard", zone: "UTC", name_ko: "UTC", name_en: "UTC" };
+    const seoulBase = { id: "tz-seoul", type: "standard", zone: "Asia/Seoul", name_ko: "Korea", name_en: "Korea" };
     const anchorDate = new Date("2026-03-07T00:00:00.000Z");
-    const result = sandbox.resolveFixedTimeSlotUtcDate(slot, baseRef, anchorDate);
 
-    expect(result.toISOString()).toBe("2026-03-10T09:00:00.000Z");
+    // Opened at 2026-11-14 20:00 UTC: still the 14th in UTC, already the 15th in Seoul.
+    run("markFixedTimeOpened(new Date(\"2026-11-14T20:00:00.000Z\"))");
+    expect(sandbox.resolveFixedTimeSlotUtcDate(slot, utcBase, anchorDate).toISOString()).toBe("2026-11-14T09:00:00.000Z");
+    expect(sandbox.resolveFixedTimeSlotUtcDate(slot, seoulBase, anchorDate).toISOString()).toBe("2026-11-15T00:00:00.000Z");
 });
 
 test("fixed-time slot header label supports custom names and default numbering", () => {

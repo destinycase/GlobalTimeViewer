@@ -28,7 +28,6 @@
                 "sanitizeUtcRowOrder",
                 "sanitizeMultiSubgroupId",
                 "sanitizeFixedTimes",
-                "sanitizeFixedDateValue",
                 "sanitizeFixedTimeShowLiveNow",
                 "ensureGroupMultiSubgroups"
             ])
@@ -206,8 +205,6 @@
             const activeMultiSubgroupId = String(dep.sanitizeMultiSubgroupId(group.activeMultiSubgroupId) || "");
             const fixedTimesRaw = dep.sanitizeFixedTimes(group.fixedTimes);
             const fixedTimes = Array.isArray(fixedTimesRaw) ? fixedTimesRaw : [];
-            const fixedDateRaw = dep.sanitizeFixedDateValue(group.fixedDate, "");
-            const fixedDate = (typeof fixedDateRaw === "string") ? fixedDateRaw : "";
             const fixedTimeShowLiveNowRaw = dep.sanitizeFixedTimeShowLiveNow(group.fixedTimeShowLiveNow, false);
             const fixedTimeShowLiveNow = (fixedTimeShowLiveNowRaw === undefined)
                 ? !!group.fixedTimeShowLiveNow
@@ -224,7 +221,6 @@
                 showUtcRow,
                 utcRowOrder,
                 fixedTimes,
-                fixedDate,
                 fixedTimeShowLiveNow,
                 activeMultiSubgroupId,
                 multiSubgroups

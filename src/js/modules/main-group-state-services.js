@@ -54,7 +54,6 @@
             sanitizeMultiSubgroupId: (value) => multiStateService.sanitizeMultiSubgroupId(value),
             ...pickDeps([
                 "sanitizeFixedTimes",
-                "sanitizeFixedDateValue",
                 "sanitizeFixedTimeShowLiveNow"
             ]),
             ensureGroupMultiSubgroups: (group, options = {}) =>

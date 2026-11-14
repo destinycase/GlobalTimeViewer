@@ -76,7 +76,6 @@ describe("GTV fixed time slot utils module", () => {
         });
 
         expect(service.getDefaultFixedTimeName()).toBe("Fixed Slot");
-        expect(service.getDefaultFixedDate(new Date("2026-01-02T10:00:00.000Z"))).toBe("2026-01-02");
         expect(service.getDefaultFixedTimes()).toEqual([{ id: "", name: "Fixed Slot", time: "08:30" }]);
 
         expect(service.sanitizeFixedTimeSlotCount("99")).toBe(4);
@@ -92,10 +91,6 @@ describe("GTV fixed time slot utils module", () => {
         expect(service.sanitizeFixedTimeValue("9:7", "10:00")).toBe("09:07");
         expect(service.sanitizeFixedTimeValue("25:00", "10:00")).toBe("10:00");
 
-        expect(service.sanitizeFixedDateValue("2026-03-07", "")).toBe("2026-03-07");
-        expect(service.sanitizeFixedDateValue("2026-13-07", "fallback")).toBe("fallback");
-        expect(service.sanitizeFixedDateValue("invalid", "fallback")).toBe("fallback");
-
         expect(service.createDefaultFixedTimeSlot(" custom-id ")).toEqual({
             id: "custom-id",
             name: "Fixed Slot",
@@ -103,7 +98,7 @@ describe("GTV fixed time slot utils module", () => {
         });
     });
 
-    it("normalizes fixed-time collections, group date parsing, and unique id generation", () => {
+    it("normalizes fixed-time collections, the tab opened-at date, and unique id generation", () => {
         const moduleApi = loadFixedTimeSlotUtilsModule();
         let seed = 0;
         const service = moduleApi.createService({
@@ -132,16 +127,24 @@ describe("GTV fixed time slot utils module", () => {
         expect(sanitized[1].time).toBe("09:00");
         expect(sanitized[2].name).toBe("Third");
 
+        // A saved fixed date from older versions is dropped; it no longer sets the slot date.
         const group = {
             fixedDate: "2026-03-07",
             fixedTimes: [{ id: "a", name: "One", time: "01:10" }]
         };
         service.ensureGroupFixedTimes(group);
         expect(group.fixedTimes).toHaveLength(2);
-        expect(group.fixedDate).toBe("2026-03-07");
+        expect("fixedDate" in group).toBe(false);
 
-        expect(service.getFixedDatePartsFromGroup(group)).toEqual({ year: 2026, month: 3, day: 7 });
-        expect(service.getFixedDatePartsFromGroup({ fixedDate: "invalid" })).toBeNull();
+        // The opened-at moment is kept at runtime only and returned as a copy.
+        expect(service.getFixedTimeOpenedAt()).toBeNull();
+        const opened = new Date("2026-11-14T01:02:03.000Z");
+        expect(service.markFixedTimeOpened(opened).toISOString()).toBe("2026-11-14T01:02:03.000Z");
+        const readBack = service.getFixedTimeOpenedAt();
+        expect(readBack.toISOString()).toBe("2026-11-14T01:02:03.000Z");
+        readBack.setUTCFullYear(2000);
+        expect(service.getFixedTimeOpenedAt().toISOString()).toBe("2026-11-14T01:02:03.000Z");
+        expect(service.markFixedTimeOpened("bad") instanceof Date).toBe(true);
 
         const nextUnique = service.createUniqueFixedTimeId({
             fixedTimes: [{ id: "ft-1" }, { id: "ft-2" }]

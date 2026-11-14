@@ -86,7 +86,6 @@ describe("GTV main persistence services module", () => {
             I18N_DATA: {},
             VERSION: "1.0.0",
             getDefaultFixedTimes: () => [],
-            getDefaultFixedDate: () => "",
             getState: () => ({}),
             setState: () => {},
             getPersistenceSnapshot: () => ({}),

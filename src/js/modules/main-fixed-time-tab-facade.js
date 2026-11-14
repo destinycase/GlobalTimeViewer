@@ -71,32 +71,23 @@
             refreshFixedTimeSlotCountControls();
 
             const doc = getDocumentRef();
-            const dateInput = doc && typeof doc.getElementById === "function"
-                ? doc.getElementById("fixed-time-date-input")
-                : null;
             const liveNowToggle = doc && typeof doc.getElementById === "function"
                 ? doc.getElementById("fixed-time-live-now-toggle")
                 : null;
-            if (!dateInput) return;
+            if (!liveNowToggle) return;
 
             const safeGroup = group || getCurrentGroup();
             if (!safeGroup) {
-                dateInput.value = "";
-                if (liveNowToggle) {
-                    liveNowToggle.checked = false;
-                    liveNowToggle.disabled = true;
-                }
+                liveNowToggle.checked = false;
+                liveNowToggle.disabled = true;
                 return;
             }
 
             if (options.ensureGroup !== false) {
                 ensureGroupFixedTimes(safeGroup);
             }
-            dateInput.value = safeGroup.fixedDate || "";
-            if (liveNowToggle) {
-                liveNowToggle.disabled = false;
-                liveNowToggle.checked = !!getCurrentGroupFixedTimeShowLiveNow(safeGroup);
-            }
+            liveNowToggle.disabled = false;
+            liveNowToggle.checked = !!getCurrentGroupFixedTimeShowLiveNow(safeGroup);
         }
 
         function renderFixedTimeTab(isTick = false) {

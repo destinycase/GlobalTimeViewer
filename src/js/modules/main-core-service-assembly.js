@@ -278,7 +278,6 @@
             showToast: deps.showToast,
             getCurrentGroup: deps.getCurrentGroup,
             ensureGroupFixedTimes: deps.ensureGroupFixedTimes,
-            sanitizeFixedDateValue: deps.sanitizeFixedDateValue,
             sanitizeFixedTimeShowLiveNow: deps.sanitizeFixedTimeShowLiveNow,
             sanitizeFixedTimeSlotCount: deps.sanitizeFixedTimeSlotCount,
             isFixedTimeTab: deps.isFixedTimeTab,

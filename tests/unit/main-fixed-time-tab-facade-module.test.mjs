@@ -65,7 +65,8 @@ describe("GTV main fixed-time tab facade module", () => {
     it("delegates fixed-time table methods and tab rendering flow", () => {
         const moduleApi = loadMainFixedTimeTabFacadeModule();
         const calls = [];
-        const dateInput = { value: "" };
+        const liveNowToggle = { checked: false, disabled: true };
+        const liveNowByGroup = new Map();
         const fixedTimeTableService = {
             getFixedTimeSlotLayoutMetrics: () => ({ inputWidthPx: 220, columnMinWidthPx: 300 }),
             getFixedTimeDisplayColumns: () => ["timezone", "time_slots"],
@@ -78,11 +79,12 @@ describe("GTV main fixed-time tab facade module", () => {
         const service = moduleApi.createService({
             callServiceMethod: createCallServiceMethod(),
             getFixedTimeTableService: () => fixedTimeTableService,
-            getCurrentGroup: () => ({ id: 1, fixedDate: "2026-03-21" }),
+            getCurrentGroup: () => ({ id: 1 }),
             ensureGroupFixedTimes: () => { calls.push("ensure"); },
             refreshFixedTimeSlotCountControls: () => { calls.push("refresh"); },
+            getCurrentGroupFixedTimeShowLiveNow: (group) => liveNowByGroup.get(group?.id) === true,
             getDocumentRef: () => ({
-                getElementById: () => dateInput
+                getElementById: (id) => (id === "fixed-time-live-now-toggle" ? liveNowToggle : null)
             }),
             renderBaseTimeSelect: () => { calls.push("base"); },
         });
@@ -91,22 +93,23 @@ describe("GTV main fixed-time tab facade module", () => {
         expect(service.getFixedTimeDisplayColumns()).toEqual(["timezone", "time_slots"]);
         expect(service.getFixedTimeOffsetTextAtDate({}, new Date())).toBe("+09:00");
         expect(service.renderFixedTimeTable()).toBe("table-rendered");
-        expect(service.renderFixedTimeControls({ fixedDate: "2026-03-22" })).toBe(undefined);
-        expect(dateInput.value).toBe("2026-03-22");
+        liveNowByGroup.set(2, true);
+        expect(service.renderFixedTimeControls({ id: 2 })).toBe(undefined);
+        expect(liveNowToggle).toEqual({ checked: true, disabled: false });
         expect(service.renderFixedTimeTab()).toBe(undefined);
-        expect(dateInput.value).toBe("2026-03-21");
+        expect(liveNowToggle).toEqual({ checked: false, disabled: false });
         expect(calls).toEqual(["table", "refresh", "ensure", "ensure", "base", "refresh", "table"]);
     });
 
     it("returns fallback values when fixed-time table service is unavailable", () => {
         const moduleApi = loadMainFixedTimeTabFacadeModule({ withWindow: false });
-        const dateInput = { value: "keep" };
+        const liveNowToggle = { checked: true, disabled: false };
         const service = moduleApi.createService({
             callServiceMethod: createCallServiceMethod(),
             getFixedTimeTableService: () => null,
             getCurrentGroup: () => null,
             getDocumentRef: () => ({
-                getElementById: () => dateInput
+                getElementById: (id) => (id === "fixed-time-live-now-toggle" ? liveNowToggle : null)
             })
         });
 
@@ -115,7 +118,7 @@ describe("GTV main fixed-time tab facade module", () => {
         expect(service.getFixedTimeOffsetTextAtDate({}, new Date())).toBe("");
         expect(service.renderFixedTimeTable()).toBe(undefined);
         expect(service.renderFixedTimeControls()).toBe(undefined);
-        expect(dateInput.value).toBe("");
+        expect(liveNowToggle).toEqual({ checked: false, disabled: true });
         expect(service.renderFixedTimeTab()).toBe(undefined);
     });
 

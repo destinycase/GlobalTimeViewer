@@ -54,11 +54,6 @@
             return (typeof translated === "string" && translated.trim()) ? translated.trim() : "Fixed Time";
         }
 
-        function getDefaultFixedDate(anchorDate = new Date()) {
-            const safeDate = (anchorDate instanceof Date && Number.isFinite(anchorDate.getTime())) ? anchorDate : new Date();
-            return `${safeDate.getFullYear()}-${pad2(safeDate.getMonth() + 1)}-${pad2(safeDate.getDate())}`;
-        }
-
         function getDefaultFixedTimes() {
             return [{
                 id: "",
@@ -97,31 +92,6 @@
             return `${pad2(hour)}:${pad2(minute)}`;
         }
 
-        function sanitizeFixedDateValue(value, fallback = "") {
-            const source = (typeof value === "string") ? value.trim() : "";
-            if (!source) return fallback;
-            const parseDateTimeParts = safeDeps.parseDateTimeParts;
-            if (typeof parseDateTimeParts !== "function") return fallback;
-
-            const parsed = parseDateTimeParts(source, "date");
-            if (!Array.isArray(parsed) || parsed.length < 3) return fallback;
-            const year = parseInt(parsed[0], 10);
-            const month = parseInt(parsed[1], 10);
-            const day = parseInt(parsed[2], 10);
-            if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return fallback;
-
-            const strictDate = dep.buildStrictUtcDateFromParts({
-                year,
-                month,
-                day,
-                hour: 0,
-                minute: 0,
-                second: 0
-            });
-            if (!(strictDate instanceof Date) || !Number.isFinite(strictDate.getTime())) return fallback;
-            return `${String(year).padStart(4, "0")}-${pad2(month)}-${pad2(day)}`;
-        }
-
         function sanitizeFixedTimeShowLiveNow(value, fallback = false) {
             if (typeof value === "boolean") return value;
             if (typeof value === "number") return value !== 0;
@@ -146,22 +116,17 @@
             };
         }
 
-        function getFixedDatePartsFromGroup(group = undefined) {
-            const targetGroup = (group && typeof group === "object") ? group : getCurrentGroupSafe();
-            if (!targetGroup) return null;
-            const fixedDate = sanitizeFixedDateValue(targetGroup.fixedDate, "");
-            if (!fixedDate) return null;
+        // The fixed time tab shows its slots on the date when the tab was opened (runtime only,
+        // not saved). Until the tab has been opened, readers fall back to their own anchor date.
+        let fixedTimeOpenedAt = null;
 
-            const parseDateTimeParts = safeDeps.parseDateTimeParts;
-            if (typeof parseDateTimeParts !== "function") return null;
-            const parsed = parseDateTimeParts(fixedDate, "date");
-            if (!Array.isArray(parsed) || parsed.length < 3) return null;
+        function markFixedTimeOpened(date = new Date()) {
+            fixedTimeOpenedAt = (date instanceof Date && Number.isFinite(date.getTime())) ? new Date(date.getTime()) : new Date();
+            return new Date(fixedTimeOpenedAt.getTime());
+        }
 
-            const year = parseInt(parsed[0], 10);
-            const month = parseInt(parsed[1], 10);
-            const day = parseInt(parsed[2], 10);
-            if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
-            return { year, month, day };
+        function getFixedTimeOpenedAt() {
+            return fixedTimeOpenedAt ? new Date(fixedTimeOpenedAt.getTime()) : null;
         }
 
         function sanitizeFixedTimes(rawFixedTimes) {
@@ -209,7 +174,7 @@
         function ensureGroupFixedTimes(group) {
             if (!group || typeof group !== "object") return;
             group.fixedTimes = sanitizeFixedTimes(group.fixedTimes);
-            group.fixedDate = sanitizeFixedDateValue(group.fixedDate, "");
+            delete group.fixedDate;
             group.fixedTimeShowLiveNow = sanitizeFixedTimeShowLiveNow(group.fixedTimeShowLiveNow, false);
         }
 
@@ -234,16 +199,15 @@
 
         return Object.freeze({
             getDefaultFixedTimeName,
-            getDefaultFixedDate,
             getDefaultFixedTimes,
             sanitizeFixedTimeSlotCount,
             createDefaultFixedTimeSlot,
             sanitizeFixedTimeId,
             sanitizeFixedTimeName,
             sanitizeFixedTimeValue,
-            sanitizeFixedDateValue,
             sanitizeFixedTimeShowLiveNow,
-            getFixedDatePartsFromGroup,
+            getFixedTimeOpenedAt,
+            markFixedTimeOpened,
             sanitizeFixedTimes,
             ensureGroupFixedTimes,
             createUniqueFixedTimeId

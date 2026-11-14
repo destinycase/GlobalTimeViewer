@@ -17,13 +17,9 @@
         const getFixedTimeSlotCountForCurrentGroup = deps.getFixedTimeSlotCountForCurrentGroup;
         const setFixedTimeSlotCount = deps.setFixedTimeSlotCount;
         const refreshFixedTimeSlotCountControls = deps.refreshFixedTimeSlotCountControls;
-        const bindCustomDatePickerForInput = deps.bindCustomDatePickerForInput;
         const getCurrentGroup = deps.getCurrentGroup;
-        const ensureGroupFixedTimes = deps.ensureGroupFixedTimes;
-        const setCurrentGroupFixedDate = deps.setCurrentGroupFixedDate;
         const getCurrentGroupFixedTimeShowLiveNow = deps.getCurrentGroupFixedTimeShowLiveNow;
         const setCurrentGroupFixedTimeShowLiveNow = deps.setCurrentGroupFixedTimeShowLiveNow;
-        const sanitizeFixedDateValue = deps.sanitizeFixedDateValue;
         const showToast = deps.showToast;
         const normalizeCustomAbbr = deps.normalizeCustomAbbr;
         const addTimezone = deps.addTimezone;
@@ -202,8 +198,6 @@
             const fixedTimeSlotCountInput = document.getElementById("fixed-time-slot-count-input");
             const fixedTimeSlotDecreaseBtn = document.getElementById("fixed-time-slot-count-decrease");
             const fixedTimeSlotIncreaseBtn = document.getElementById("fixed-time-slot-count-increase");
-            const fixedTimeDateInput = document.getElementById("fixed-time-date-input");
-            const fixedTimeDateTrigger = document.getElementById("fixed-time-date-trigger");
             const fixedTimeLiveNowToggle = document.getElementById("fixed-time-live-now-toggle");
             if (fixedTimeSlotCountInput) {
                 const commitFixedTimeSlotCount = () => {
@@ -230,42 +224,6 @@
                 fixedTimeSlotIncreaseBtn.addEventListener("click", () => {
                     const nextCount = getFixedTimeSlotCountForCurrentGroup() + 1;
                     setFixedTimeSlotCount(nextCount, { persist: true, rerender: true, showBoundaryToast: true });
-                });
-            }
-            if (fixedTimeDateInput && fixedTimeDateTrigger) {
-                bindCustomDatePickerForInput(fixedTimeDateInput, fixedTimeDateTrigger, { preserveValue: true, type: "date" });
-            }
-            if (fixedTimeDateInput) {
-                const commitFixedDate = () => {
-                    const group = getCurrentGroup();
-                    if (!group) return;
-                    ensureGroupFixedTimes(group);
-                    const before = group.fixedDate || "";
-                    const rawInput = String(fixedTimeDateInput.value || "").trim();
-                    if (!rawInput) {
-                        setCurrentGroupFixedDate("", { persist: true, rerender: true });
-                        fixedTimeDateInput.value = "";
-                        return;
-                    }
-                    const normalized = sanitizeFixedDateValue(rawInput, "");
-                    if (!normalized) {
-                        showToast(t("toast_invalid_date"));
-                        fixedTimeDateInput.value = before;
-                        fixedTimeDateInput.focus?.();
-                        return;
-                    }
-                    const changed = setCurrentGroupFixedDate(normalized, { persist: true, rerender: true });
-                    fixedTimeDateInput.value = changed ? normalized : (getCurrentGroup()?.fixedDate || normalized);
-                };
-                fixedTimeDateInput.addEventListener("input", () => {
-                    fixedTimeDateInput.value = String(fixedTimeDateInput.value || "").replace(/[^0-9-]/g, "").slice(0, 10);
-                });
-                fixedTimeDateInput.addEventListener("change", commitFixedDate);
-                fixedTimeDateInput.addEventListener("blur", commitFixedDate);
-                fixedTimeDateInput.addEventListener("keydown", (e) => {
-                    if (e.key !== "Enter") return;
-                    commitFixedDate();
-                    fixedTimeDateInput.blur();
                 });
             }
             if (fixedTimeLiveNowToggle) {

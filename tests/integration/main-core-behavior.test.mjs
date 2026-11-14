@@ -121,7 +121,8 @@ test("core/persistence: loadPersistence hydrates current storage snapshot includ
     await run("loadPersistence()");
 
     expect(run("groups[0].name")).toBe("Imported Snapshot");
-    expect(run("groups[0].fixedDate")).toBe("2026-03-08");
+    // A fixed date from an older save is dropped when loading.
+    expect(run("\"fixedDate\" in groups[0]")).toBe(false);
     expect(run("groups[0].fixedTimes.length")).toBe(1);
     expect(run("groups[0].fixedTimes[0].time")).toBe("12:30");
     expect(run("currentMainTab")).toBe("fixed-time");
@@ -138,7 +139,6 @@ test("core/fixed-time: setFixedTimeSlotCount grows and shrinks slots while prese
             baseTimezoneId: "utc",
             showUtcRow: true,
             utcRowOrder: 0,
-            fixedDate: "",
             fixedTimes: [{ id: "ft-1", name: "A", time: "09:00" }],
             activeMultiSubgroupId: "subgroup-0",
             multiSubgroups: [{
@@ -165,33 +165,3 @@ test("core/fixed-time: setFixedTimeSlotCount grows and shrinks slots while prese
     expect(run("groups[0].fixedTimes[0].id")).toBe("ft-1");
 });
 
-test("core/fixed-time: setCurrentGroupFixedDate supports non-rerender/non-persist update path", () => {
-    const { sandbox, run } = createMainContext();
-    let renderFixedCalls = 0;
-    let renderTimelineCalls = 0;
-    let saveCalls = 0;
-    sandbox.renderFixedTimeTab = () => { renderFixedCalls += 1; };
-    sandbox.renderTimelineFrame = () => { renderTimelineCalls += 1; };
-    sandbox.savePersistenceSafely = () => { saveCalls += 1; };
-
-    run(`
-        groups = [{
-            name: "Fixed Group",
-            zones: [],
-            baseTimezoneId: "utc",
-            showUtcRow: true,
-            utcRowOrder: 0,
-            fixedDate: "2026-03-07",
-            fixedTimes: [{ id: "ft-1", name: "A", time: "09:00" }]
-        }];
-        activeGroupId = 0;
-        currentMainTab = "fixed-time";
-    `);
-
-    expect(sandbox.setCurrentGroupFixedDate("2026-03-08", { rerender: false, persist: false })).toBe(true);
-    expect(run("groups[0].fixedDate")).toBe("2026-03-08");
-    expect(renderFixedCalls).toBe(0);
-    expect(renderTimelineCalls).toBe(0);
-    expect(saveCalls).toBe(0);
-    expect(sandbox.setCurrentGroupFixedDate("2026-03-08", { rerender: false, persist: false })).toBe(false);
-});

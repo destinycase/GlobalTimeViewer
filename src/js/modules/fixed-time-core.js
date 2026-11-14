@@ -17,7 +17,7 @@
                 "sanitizeFixedTimeValue",
                 "getFixedOffsetForDisplayAtDate",
                 "getLocalPartsByTimezone",
-                "getFixedDateParts",
+                "getFixedTimeOpenedAt",
                 "getUTCDateFromLocalParts",
                 "sanitizeTimePartsEnabledForContext",
                 "getDisplayTimePartsEnabled",
@@ -90,18 +90,16 @@
             const slotParts = getFixedTimeSlotParts(slot);
             if (!slotParts) return null;
 
-            const safeAnchor = isValidDate(anchorDate) ? anchorDate : new Date();
+            // The slots fall on the base timezone's date at the moment the tab was opened.
+            const openedAt = dep.getFixedTimeOpenedAt();
+            const safeAnchor = isValidDate(openedAt) ? openedAt : (isValidDate(anchorDate) ? anchorDate : new Date());
             try {
                 const baseOffset = dep.getFixedOffsetForDisplayAtDate(baseRef, safeAnchor);
                 const baseLocal = dep.getLocalPartsByTimezone(safeAnchor, baseRef, baseOffset);
-                const fixedDateParts = dep.getFixedDateParts();
-                const year = Number.isFinite(fixedDateParts?.year) ? fixedDateParts.year : baseLocal.year;
-                const month = Number.isFinite(fixedDateParts?.month) ? fixedDateParts.month : baseLocal.month;
-                const day = Number.isFinite(fixedDateParts?.day) ? fixedDateParts.day : baseLocal.day;
                 const utcDate = dep.getUTCDateFromLocalParts({
-                    year,
-                    month,
-                    day,
+                    year: baseLocal.year,
+                    month: baseLocal.month,
+                    day: baseLocal.day,
                     hour: slotParts.hour,
                     minute: slotParts.minute,
                     second: 0

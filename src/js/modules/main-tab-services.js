@@ -81,6 +81,7 @@
                 "getIsRealtime",
                 "setIsRealtime",
                 "syncRealtimeNow",
+                "markFixedTimeOpened",
                 "getCurrentMainTab",
                 "setCurrentMainTab",
                 "getActiveGroupId",

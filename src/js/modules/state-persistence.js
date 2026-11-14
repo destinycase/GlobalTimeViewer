@@ -86,7 +86,6 @@
                 "t",
                 "getState",
                 "setState",
-                "getDefaultFixedDate",
                 "getDefaultFixedTimes",
                 "loadThemePreference",
                 "loadUiScalePreference",
@@ -193,7 +192,6 @@
         const stateNormalizer = stateNormalizerModule.createService({
             ...safeDeps,
             t: translate,
-            getDefaultFixedDate,
             getDefaultFixedTimes,
             ensureGroupMultiSubgroupsSafe
         });
@@ -212,11 +210,6 @@
         function setState(nextState) {
             if (!nextState || typeof nextState !== "object") return;
             dep.setState(nextState);
-        }
-
-        function getDefaultFixedDate() {
-            const value = dep.getDefaultFixedDate();
-            return (typeof value === "string") ? value : "";
         }
 
         function getDefaultFixedTimes() {
@@ -603,7 +596,6 @@
                             baseTimezoneId: group?.baseTimezoneId,
                             showUtcRow: group?.showUtcRow,
                             utcRowOrder: group?.utcRowOrder,
-                            fixedDate: group?.fixedDate,
                             fixedTimeShowLiveNow: group?.fixedTimeShowLiveNow,
                             fixedTimes: group?.fixedTimes
                         }, idx, null);

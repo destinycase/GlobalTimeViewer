@@ -254,7 +254,6 @@ describe("GTV main core service assembly module", () => {
             parseDateTimeParts: () => null,
             buildStrictUtcDateFromParts: () => new Date(),
             getNextFixedTimeSeed: () => 1,
-            sanitizeFixedDateValue: (value) => value,
             sanitizeFixedTimeSlotCount: (value) => value,
             renderTimelineFrame: () => {},
             createUniqueFixedTimeId: () => "fixed-1",

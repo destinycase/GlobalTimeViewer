@@ -389,7 +389,6 @@
                     baseTimezoneId: sourceGroup.baseTimezoneId,
                     showUtcRow: sourceGroup.showUtcRow,
                     utcRowOrder: sourceGroup.utcRowOrder,
-                    fixedDate: sourceGroup.fixedDate,
                     fixedTimeShowLiveNow: sourceGroup.fixedTimeShowLiveNow,
                     fixedTimes: sourceGroup.fixedTimes,
                     activeMultiSubgroupId: sourceGroup.activeMultiSubgroupId,

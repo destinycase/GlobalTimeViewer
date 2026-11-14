@@ -72,7 +72,7 @@
                     "sanitizeFixedTimeName",
                 ),
                 ...pickAliasedDeps(d, {
-                    "getFixedDateParts": "getFixedDatePartsFromGroup",
+                    "getFixedTimeOpenedAt": "getFixedTimeOpenedAt",
                 }),
                 ...pickDeps(d,
                     "getDayNightMarkerByHour",
@@ -341,7 +341,6 @@
                 }),
                 ...pickDeps(d,
                     "sanitizeFixedTimes",
-                    "sanitizeFixedDateValue",
                 ),
                 ...pickDeps(d, "sanitizeFixedTimeShowLiveNow")
             };
@@ -398,7 +397,8 @@
                 "getPatchedDisplayTimePartsEnabledState",
                 "getDefaultFixedTimeName",
                 "sanitizeFixedTimeName",
-                "getFixedDatePartsFromGroup",
+                "getFixedTimeOpenedAt",
+                "markFixedTimeOpened",
                 "getDayNightMarkerByHour",
                 "getCurrentGroup",
                 "ensureGroupFixedTimes",
@@ -587,7 +587,6 @@
                 "sanitizeBaseTimezoneId",
                 "sanitizeUtcRowOrderViaTimeCore",
                 "sanitizeFixedTimes",
-                "sanitizeFixedDateValue",
                 "sanitizeFixedTimeShowLiveNow",
             ]),
         });

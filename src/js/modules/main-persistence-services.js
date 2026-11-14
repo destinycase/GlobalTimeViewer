@@ -73,7 +73,6 @@
                 "I18N_DATA",
                 "VERSION",
                 "getDefaultFixedTimes",
-                "getDefaultFixedDate",
                 "getState",
                 "setState",
                 "getPersistenceSnapshot"

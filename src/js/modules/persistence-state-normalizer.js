@@ -19,7 +19,6 @@
         const defaultTimeAdjustDayStep = Number.isFinite(Number(safeDeps.DEFAULT_TIME_ADJUST_DAY_STEP))
             ? Number(safeDeps.DEFAULT_TIME_ADJUST_DAY_STEP) : 1;
         const translate = (typeof safeDeps.t === "function") ? safeDeps.t : ((key) => String(key ?? ""));
-        const getDefaultFixedDate = (typeof safeDeps.getDefaultFixedDate === "function") ? safeDeps.getDefaultFixedDate : (() => "");
         const getDefaultFixedTimes = (typeof safeDeps.getDefaultFixedTimes === "function") ? safeDeps.getDefaultFixedTimes : (() => []);
         const ensureGroupMultiSubgroupsSafe = (typeof safeDeps.ensureGroupMultiSubgroupsSafe === "function")
             ? safeDeps.ensureGroupMultiSubgroupsSafe : (() => undefined);
@@ -118,7 +117,6 @@
                 baseTimezoneId: sanitizeBaseTimezoneId(group.baseTimezoneId),
                 showUtcRow: group.showUtcRow !== false,
                 utcRowOrder: Number.isFinite(Number(group.utcRowOrder)) ? Number.parseInt(group.utcRowOrder, 10) : 0,
-                fixedDate: (typeof group.fixedDate === "string") ? group.fixedDate : "",
                 fixedTimeShowLiveNow: !!group.fixedTimeShowLiveNow,
                 fixedTimes: Array.isArray(group.fixedTimes) ? group.fixedTimes : []
             };
@@ -170,7 +168,6 @@
                 baseTimezoneId: "utc",
                 showUtcRow: true,
                 utcRowOrder: 0,
-                fixedDate: getDefaultFixedDate(),
                 fixedTimeShowLiveNow: false,
                 fixedTimes: getDefaultFixedTimes()
             };

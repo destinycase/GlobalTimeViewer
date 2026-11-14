@@ -84,7 +84,6 @@
                 "upgradeNativeTitleTooltips",
                 "getDefaultMultiSubgroupNameViaState",
                 "getDefaultFixedTimes",
-                "getDefaultFixedDate",
                 "createMultiSubgroupStateViaState",
                 "sanitizeMultiSubgroupNameViaState",
                 "sanitizeMultiRangeTitle",

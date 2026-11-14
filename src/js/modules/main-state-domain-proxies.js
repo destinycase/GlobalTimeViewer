@@ -18,7 +18,6 @@
         const defaultFixedTimeValue = String(safeDeps.defaultFixedTimeValue || "09:00");
 
         function getDefaultFixedTimeName() { return fixedTimeSlotUtilsService.getDefaultFixedTimeName(); }
-        function getDefaultFixedDate(anchorDate = new Date()) { return fixedTimeSlotUtilsService.getDefaultFixedDate(anchorDate); }
         function getDefaultFixedTimes() { return fixedTimeSlotUtilsService.getDefaultFixedTimes(); }
         function sanitizeFixedTimeSlotCount(value) { return fixedTimeSlotUtilsService.sanitizeFixedTimeSlotCount(value); }
         function createDefaultFixedTimeSlot(id = "") { return fixedTimeSlotUtilsService.createDefaultFixedTimeSlot(id); }
@@ -29,11 +28,11 @@
         function sanitizeFixedTimeValue(value, fallback = defaultFixedTimeValue) {
             return fixedTimeSlotUtilsService.sanitizeFixedTimeValue(value, fallback);
         }
-        function sanitizeFixedDateValue(value, fallback = "") { return fixedTimeSlotUtilsService.sanitizeFixedDateValue(value, fallback); }
         function sanitizeFixedTimeShowLiveNow(value, fallback = false) {
             return fixedTimeSlotUtilsService.sanitizeFixedTimeShowLiveNow(value, fallback);
         }
-        function getFixedDatePartsFromGroup(group = getCurrentGroup()) { return fixedTimeSlotUtilsService.getFixedDatePartsFromGroup(group); }
+        function getFixedTimeOpenedAt() { return fixedTimeSlotUtilsService.getFixedTimeOpenedAt(); }
+        function markFixedTimeOpened(date = new Date()) { return fixedTimeSlotUtilsService.markFixedTimeOpened(date); }
         function sanitizeFixedTimes(rawFixedTimes) { return fixedTimeSlotUtilsService.sanitizeFixedTimes(rawFixedTimes); }
         function ensureGroupFixedTimes(group) { return fixedTimeSlotUtilsService.ensureGroupFixedTimes(group); }
         function createUniqueFixedTimeId(group = getCurrentGroup()) { return fixedTimeSlotUtilsService.createUniqueFixedTimeId(group); }
@@ -67,7 +66,6 @@
         function syncLinkedRangesFrom(rangeIdx, options = {}) { return multiRangeStateService.syncLinkedRangesFrom(rangeIdx, options); }
         function setMultiRangeCount(value, options = {}) { return multiRangeStateService.setMultiRangeCount(value, options); }
         function getFixedTimeSlotCount(group = getCurrentGroup()) { return fixedTimeStateService.getFixedTimeSlotCount(group); }
-        function setCurrentGroupFixedDate(rawValue, options = {}) { return fixedTimeStateService.setCurrentGroupFixedDate(rawValue, options); }
         function setCurrentGroupFixedTimeShowLiveNow(enabled, options = {}) {
             return fixedTimeStateService.setCurrentGroupFixedTimeShowLiveNow(enabled, options);
         }
@@ -97,16 +95,15 @@
 
         return Object.freeze({
             getDefaultFixedTimeName,
-            getDefaultFixedDate,
             getDefaultFixedTimes,
             sanitizeFixedTimeSlotCount,
             createDefaultFixedTimeSlot,
             sanitizeFixedTimeId,
             sanitizeFixedTimeName,
             sanitizeFixedTimeValue,
-            sanitizeFixedDateValue,
             sanitizeFixedTimeShowLiveNow,
-            getFixedDatePartsFromGroup,
+            getFixedTimeOpenedAt,
+            markFixedTimeOpened,
             sanitizeFixedTimes,
             ensureGroupFixedTimes,
             createUniqueFixedTimeId,
@@ -130,7 +127,6 @@
             syncLinkedRangesFrom,
             setMultiRangeCount,
             getFixedTimeSlotCount,
-            setCurrentGroupFixedDate,
             setCurrentGroupFixedTimeShowLiveNow,
             refreshFixedTimeSlotCountControls,
             setFixedTimeSlotCount,

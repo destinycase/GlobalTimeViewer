@@ -57,17 +57,18 @@ describe("GTV persistence state normalizer", () => {
             baseTimezoneId: "utc",
             showUtcRow: false,
             utcRowOrder: 3,
-            fixedDate: "",
             fixedTimeShowLiveNow: true,
             fixedTimes: []
         });
-        expect(n.sanitizeGroup({ name: "Work", zones: [zone("Asia/Seoul")], fixedDate: "2026-11-08", fixedTimes: [{ id: 1 }] }, 0)).toMatchObject({
+        // A fixed date saved by older versions is not carried over.
+        const work = n.sanitizeGroup({ name: "Work", zones: [zone("Asia/Seoul")], fixedDate: "2026-11-08", fixedTimes: [{ id: 1 }] }, 0);
+        expect(work).toMatchObject({
             name: "Work",
             utcRowOrder: 0,
             showUtcRow: true,
-            fixedDate: "2026-11-08",
             fixedTimes: [{ id: 1 }]
         });
+        expect("fixedDate" in work).toBe(false);
     });
 
     it("clamps indexes and day/night hours", () => {
@@ -131,7 +132,6 @@ describe("GTV persistence state normalizer", () => {
         const touched = [];
         const n = loadNormalizer({
             t: (key) => `t:${key}`,
-            getDefaultFixedDate: () => "2026-01-02",
             getDefaultFixedTimes: () => [{ id: "slot" }],
             ensureGroupMultiSubgroupsSafe: (group) => touched.push(group.name)
         });
@@ -141,7 +141,6 @@ describe("GTV persistence state normalizer", () => {
             baseTimezoneId: "utc",
             showUtcRow: true,
             utcRowOrder: 0,
-            fixedDate: "2026-01-02",
             fixedTimeShowLiveNow: false,
             fixedTimes: [{ id: "slot" }]
         }]);

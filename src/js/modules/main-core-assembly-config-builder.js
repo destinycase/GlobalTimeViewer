@@ -284,7 +284,6 @@
                     "parseDateTimeParts",
                     "buildStrictUtcDateFromParts",
                     "getNextFixedTimeSeed",
-                    "sanitizeFixedDateValue",
                     "sanitizeFixedTimeShowLiveNow",
                     "sanitizeFixedTimeSlotCount",
                 ),

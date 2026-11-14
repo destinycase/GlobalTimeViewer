@@ -20,7 +20,6 @@
         }
 
         function getDefaultFixedTimeName() { return invokeStateDomainProxy("getDefaultFixedTimeName"); }
-        function getDefaultFixedDate(anchorDate = new Date()) { return invokeStateDomainProxy("getDefaultFixedDate", [anchorDate]); }
         function getDefaultFixedTimes() { return invokeStateDomainProxy("getDefaultFixedTimes"); }
         function sanitizeFixedTimeSlotCount(value) { return invokeStateDomainProxy("sanitizeFixedTimeSlotCount", [value]); }
         function createDefaultFixedTimeSlot(id = "") { return invokeStateDomainProxy("createDefaultFixedTimeSlot", [id]); }
@@ -31,11 +30,11 @@
         function sanitizeFixedTimeValue(value, fallback = defaultFixedTimeValue) {
             return invokeStateDomainProxy("sanitizeFixedTimeValue", [value, fallback]);
         }
-        function sanitizeFixedDateValue(value, fallback = "") { return invokeStateDomainProxy("sanitizeFixedDateValue", [value, fallback]); }
         function sanitizeFixedTimeShowLiveNow(value, fallback = false) {
             return invokeStateDomainProxy("sanitizeFixedTimeShowLiveNow", [value, fallback]);
         }
-        function getFixedDatePartsFromGroup(group = getCurrentGroup()) { return invokeStateDomainProxy("getFixedDatePartsFromGroup", [group]); }
+        function getFixedTimeOpenedAt() { return invokeStateDomainProxy("getFixedTimeOpenedAt", []); }
+        function markFixedTimeOpened(date = new Date()) { return invokeStateDomainProxy("markFixedTimeOpened", [date]); }
         function sanitizeFixedTimes(rawFixedTimes) { return invokeStateDomainProxy("sanitizeFixedTimes", [rawFixedTimes]); }
         function ensureGroupFixedTimes(group) { return invokeStateDomainProxy("ensureGroupFixedTimes", [group]); }
         function createUniqueFixedTimeId(group = getCurrentGroup()) { return invokeStateDomainProxy("createUniqueFixedTimeId", [group]); }
@@ -71,9 +70,6 @@
         }
         function setMultiRangeCount(value, options = {}) { return invokeStateDomainProxy("setMultiRangeCount", [value, options]); }
         function getFixedTimeSlotCount(group = getCurrentGroup()) { return invokeStateDomainProxy("getFixedTimeSlotCount", [group]); }
-        function setCurrentGroupFixedDate(rawValue, options = {}) {
-            return invokeStateDomainProxy("setCurrentGroupFixedDate", [rawValue, options]);
-        }
         function setCurrentGroupFixedTimeShowLiveNow(enabled, options = {}) {
             return invokeStateDomainProxy("setCurrentGroupFixedTimeShowLiveNow", [enabled, options]);
         }
@@ -108,16 +104,15 @@
         return Object.freeze({
             invokeStateDomainProxy,
             getDefaultFixedTimeName,
-            getDefaultFixedDate,
             getDefaultFixedTimes,
             sanitizeFixedTimeSlotCount,
             createDefaultFixedTimeSlot,
             sanitizeFixedTimeId,
             sanitizeFixedTimeName,
             sanitizeFixedTimeValue,
-            sanitizeFixedDateValue,
             sanitizeFixedTimeShowLiveNow,
-            getFixedDatePartsFromGroup,
+            getFixedTimeOpenedAt,
+            markFixedTimeOpened,
             sanitizeFixedTimes,
             ensureGroupFixedTimes,
             createUniqueFixedTimeId,
@@ -141,7 +136,6 @@
             syncLinkedRangesFrom,
             setMultiRangeCount,
             getFixedTimeSlotCount,
-            setCurrentGroupFixedDate,
             setCurrentGroupFixedTimeShowLiveNow,
             refreshFixedTimeSlotCountControls,
             setFixedTimeSlotCount,

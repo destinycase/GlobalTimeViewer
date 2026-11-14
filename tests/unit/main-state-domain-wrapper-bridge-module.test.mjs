@@ -58,7 +58,8 @@ describe("GTV main state domain wrapper bridge module", () => {
             getDefaultFixedTimeName: vi.fn(() => "slot"),
             sanitizeFixedTimeName: vi.fn(() => "name"),
             sanitizeFixedTimeValue: vi.fn((_value, fallback) => fallback),
-            getFixedDatePartsFromGroup: vi.fn(() => ({ y: 2026 })),
+            getFixedTimeOpenedAt: vi.fn(() => new Date("2026-11-14T00:00:00.000Z")),
+            markFixedTimeOpened: vi.fn((date) => date),
             getPersistenceState: vi.fn(() => ({ groups: [] })),
             setPersistenceState: vi.fn((next) => next),
             isFixedTimeTab: vi.fn(() => true),
@@ -74,8 +75,10 @@ describe("GTV main state domain wrapper bridge module", () => {
         expect(service.getDefaultFixedTimeName()).toBe("slot");
         expect(service.sanitizeFixedTimeName("x")).toBe("name");
         expect(service.sanitizeFixedTimeValue("x")).toBe("08:15");
-        expect(service.getFixedDatePartsFromGroup()).toEqual({ y: 2026 });
-        expect(proxyService.getFixedDatePartsFromGroup).toHaveBeenCalledWith(currentGroup);
+        expect(service.getFixedTimeOpenedAt().toISOString()).toBe("2026-11-14T00:00:00.000Z");
+        const opened = new Date("2026-11-15T00:00:00.000Z");
+        expect(service.markFixedTimeOpened(opened)).toBe(opened);
+        expect(proxyService.markFixedTimeOpened).toHaveBeenCalledWith(opened);
         expect(service.getPersistenceState()).toEqual({ groups: [] });
         expect(service.setPersistenceState({ activeGroupId: 1 })).toEqual({ activeGroupId: 1 });
         expect(service.isFixedTimeTab()).toBe(true);
